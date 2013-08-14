@@ -1,0 +1,27 @@
+{
+	"mode":"production",
+	
+	"secret":"changeme",
+	
+    "log_path":"/var/log/phaidra/PhaidraAPI.log",
+    
+    "log_level":"debug",       
+    
+    "phaidra_db": {
+    
+    	"dsn":"dbi:mysql:db_name:db_host",
+    	
+    	"username":"changeme",
+    	
+    	"password":"changeme"
+    },
+    
+    "api_db": {
+    
+    	"dsn":"dbi:mysql:db_name:db_host",
+    	
+    	"username":"changeme",
+    	
+    	"password":"changeme"
+    }     
+}
