@@ -12,7 +12,9 @@ sub metadata_format {
 	my $v = $self->param('v');
 	
 	unless(defined($v)){		
-		$self->render(json => { message => 'Please specify the version (parameter v).'} , status => 500) ;
+		$self->stash( 'message' => 'Unknown metadata format version requested.');
+		$self->app->log->error($self->stash->{'message'}); 	
+		$self->render(json => { message => $self->stash->{'message'}} , status => 500) ;		
 		return;
 	}	
 	
@@ -21,7 +23,7 @@ sub metadata_format {
 	my $metadata_format = $metadata_model->metadata_format($self, $v);
 
 	if($metadata_format == -1){
-		$self->render(json => { message => $self->stash->{'message'} } , status => 500) ;
+		$self->render(json => { message => $self->stash->{'message'} } , status => 500) ;		
 		return;
 	}
 	

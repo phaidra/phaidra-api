@@ -9,11 +9,32 @@ sub metadata_format {
 	
     my ($self, $c, $v) = @_;
  
+ 	my $cachekey = 'metadata_format_'.$v;
  	if($v eq '1'){
- 		return $self->get_metadata_format($c);	
- 	}else{ 		
- 		$c->stash( 'message' => 'Unknown metadata format version requested.');
+ 		
+ 		my $res = $c->app->chi->get($cachekey);
+  		
+    	if($res){    		
+    		$c->app->log->debug("[cache hit] $cachekey");
+    	}else{    		
+    		$c->app->log->debug("[cache miss] $cachekey");
+    		
+    		$res = $self->get_metadata_format($c);		
+  
+    		$c->app->chi->set($cachekey, $res, '1 day');    
+  
+  			# save and get the value. the serialization can change integers to strings so 
+  			# if we want to get the same structure for cache miss and cache hit we have to run it through
+  			# the cache serialization process even if cache miss [when we already have the structure]
+  			# so instead of using the structure created we will get the one just saved from cache.  		
+    		$res = $c->app->chi->get($cachekey);
+    		#$c->app->log->debug($c->app->dumper($res));			
+    	}    	 		
+ 		return $res;
+		
+ 	}else{
  		$c->app->log->error($c->stash->{'message'}); 		
+ 		$c->stash( 'message' => 'Unknown metadata format version requested.'); 		 		
 		return -1;
  	}
   
@@ -99,13 +120,13 @@ sub get_metadata_format {
 	$ss = qq/SELECT m.mid, ve.entry, ve.isocode FROM metadata AS m LEFT JOIN vocabulary_entry AS ve ON ve.veid = m.veid;/;
 	$sth = $c->app->db_metadata->prepare($ss) or print $c->app->db_metadata->errstr;
 	$sth->execute();	
-	
+
 	my $entry; # element label (name of the field, eg 'Title')
 	my $isocode; # 2 letter isocode defining language of the entry	
 	
 	$sth->bind_columns(undef, \$mid, \$entry, \$isocode);	
-	while($sth->fetch) {
-		$id_hash{$mid}{labels}{$isocode} = $entry; 			
+	while($sth->fetch) {		
+		$id_hash{$mid}->{'labels'}->{$isocode} = $entry;		 			
 	}
 
 	# get the vocabularies (HINT: this crap will be overwritten when we have vocabulary server)
@@ -141,12 +162,13 @@ sub get_metadata_format {
 			
 			# fetshing data using hash, so that we quickly find the place for the entry but later ... [x] 
 			while($sth->fetch) {
-				$vocabulary{'terms'}{$veid}{uri} = $vocabulary{namespace}.$veid; # this gets overwritten for the same entry
-				$vocabulary{'terms'}{$veid}{$isocode} = $entry; # this should always contain another language for the same entry
+				$vocabulary{'terms'}->{$veid}->{uri} = $vocabulary{namespace}.$veid; # this gets overwritten for the same entry
+				$vocabulary{'terms'}->{$veid}->{$isocode} = $entry; # this should always contain another language for the same entry
 			}
 			
 			# [x] ... we remove the id hash
 			# because we should work with URI - namespace and code, ignoring the current 'id' structure
+
 			my @termarray;
 			while ( my ($key, $element) = each %{$vocabulary{'terms'}} ){	
 				push @termarray, $element;
@@ -157,15 +179,16 @@ sub get_metadata_format {
 			push @{$element->{vocabularies}}, \%vocabulary;
 					
 		}
+
 	}
-	
+
 	# delete ids, we don't need them
 	while ( my ($key, $element) = each %id_hash ){
 		delete $element->{vid};
 		delete $element->{veid};
 		delete $element->{mid_parent};
 	}
-
+	
 	return \@metadata_format;
 }
 

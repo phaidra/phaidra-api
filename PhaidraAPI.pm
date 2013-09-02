@@ -14,19 +14,21 @@ sub startup {
 	$self->mode($config->{mode});     
     $self->secret($config->{secret});
     
+    # init log	
   	$self->log(Mojo::Log->new(path => $config->{log_path}, level => $config->{log_level}));
-   
-    my $r = $self->routes;
-    $r->namespaces(['PhaidraAPI::Controller']);
-
-	$r->route                            ->via('post')  ->to('objects#create');
-    $r->route('/:pid', pid => qr/o:\d+/) ->via('get')   ->to('objects#getobject');    
-    $r->route('/:pid', pid => qr/o:\d+/) ->via('put')   ->to('objects#update');
-    $r->route('/:pid', pid => qr/o:\d+/) ->via('delete')->to('objects#delete');
-
-	$r->route('info/metadata_format')    ->via('get')   ->to('info#metadata_format');      
-
-    # init databases 
+  	
+  	# init cache
+  	$self->plugin(CHI => {
+	    default => {
+	      	driver     => 'File', # FastMmap seems to have problems saving the metadata structure (it won't save anything)
+	    	root_dir   => '/tmp/phaidra-api-cache',
+	    	cache_size => '20m',
+	      	global => 1,
+	      	#serializer => 'Storable',
+    	},
+  	});
+  	
+  	# init databases 
     $self->plugin('database', { 
     	databases => {
         	'db_metadata' => { 
@@ -41,6 +43,16 @@ sub startup {
             },
         },
     });
+      
+    my $r = $self->routes;
+    $r->namespaces(['PhaidraAPI::Controller']);
+
+	$r->route                            ->via('post')  ->to('objects#create');
+    $r->route('/:pid', pid => qr/o:\d+/) ->via('get')   ->to('objects#getobject');    
+    $r->route('/:pid', pid => qr/o:\d+/) ->via('put')   ->to('objects#update');
+    $r->route('/:pid', pid => qr/o:\d+/) ->via('delete')->to('objects#delete');
+
+	$r->route('info/metadata_format')    ->via('get')   ->to('info#metadata_format');      
 
 }
 
