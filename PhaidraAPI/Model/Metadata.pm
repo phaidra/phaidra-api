@@ -84,8 +84,8 @@ sub get_metadata_format {
 	$sth->bind_columns(undef, \$mid, \$veid, \$xmlname, \$xmlns, \$lomref, \$searchable, \$mandatory, \$autofield, \$editable, \$oid, \$datatype, \$valuespace, \$mid_parent, \$cardinality, \$ordered, \$fgslabel, \$vid, \$defaultvalue, \$sequence);
 	
 	# fill the hash with raw table data
-	while($sth->fetch) {		
-		$format{$mid} = { veid => $veid, xmlname => $xmlname, xmlns => $xmlns, lomref => $lomref, searchable => $searchable, mandatory => $mandatory, autofield => $autofield, editable => $editable, oid => $oid, datatype => $datatype, valuespace => $valuespace, mid_parent => $mid_parent, cardinality => $cardinality, ordered => $ordered, fgslabel => $fgslabel, vid => $vid, defaultvalue => $defaultvalue, sequence => $sequence };
+	while($sth->fetch) {			
+		$format{$mid} = { veid => $veid, xmlname => $xmlname, xmlns => $xmlns, lomref => $lomref, searchable => $searchable, mandatory => $mandatory, autofield => $autofield, editable => $editable, oid => $oid, datatype => $datatype, valuespace => $valuespace, mid_parent => $mid_parent, cardinality => $cardinality, ordered => $ordered, fgslabel => $fgslabel, vid => $vid, defaultvalue => $defaultvalue, sequence => $sequence, helptext => 'No helptext defined.' };
 		$id_hash{$mid} = $format{$mid}; # we will use this later for direct id -> element access 		
 	}
 	
