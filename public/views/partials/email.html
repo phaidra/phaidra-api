@@ -1,0 +1,7 @@
+<div class="field row">
+    <div class="span2">{{child.field_title}}:</div>
+    <div class="span4">
+        <input type="text" placeholder="Email" value="{{child.ui_value}}" ng-model="child.ui_value" ng-required="child.mandatory"/>
+        <span class="required-error" ng-show="child.mandatory && !child.ui_value">* required</span>
+    </div>
+</div>

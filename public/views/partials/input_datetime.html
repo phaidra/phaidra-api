@@ -1,0 +1,10 @@
+<div class="field row">
+    <div class="span2">{{child.field_title}}:</div>
+    <span class="required-error" ng-show="child.mandatory && !child.ui_value">* required </span>
+    <div class="span4">
+        <div class="control-group input-append">
+            <input type="text" ng-model="child.ui_value" data-date-format="mm/dd/yyyy" bs-datepicker ng-required="child.mandatory">
+            <button type="button" class="btn" data-toggle="datepicker"><i class="icon-calendar"></i></button>
+        </div>
+    </div>
+</div>

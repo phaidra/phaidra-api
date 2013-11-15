@@ -1,0 +1,97 @@
+% use Data::Dumper;
+
+<!DOCTYPE html>
+
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js"> <!--<![endif]-->
+
+  <head>
+  	
+  	<meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  	<title><%= $title %></title>
+  	
+  	<!-- jQuery -->
+  	<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+  	
+  	<!-- AngularJS -->
+  	<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.0.8/angular.js"></script>
+  	  	
+  	<!-- Bootstrap CSS --> 
+  	<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+  	
+  	<!-- UI-Bootstrap js (AngularJS) -->  	  
+  	<script src="<%= url_for '/js/ui-bootstrap-tpls-0.6.0.js' %>"></script>
+  	
+  	<!-- Custom Phaidra scripts -->  	
+  	<script type="text/javascript" src="<%= url_for '/js/controllers/metadataeditor.js' %>"></script>
+  	<script type="text/javascript" src="<%= url_for '/js/directives/helptooltip.js' %>"></script>
+  	<script type="text/javascript" src="<%= url_for '/js/directives/field-directive.js' %>"></script>
+  	
+  	<!-- Custom Phaidra CSS --> 
+  	<link href="<%= url_for '/css/metadataeditor.css' %>" rel="stylesheet">
+  	
+  </head>
+  <body data-ng-app="metadataeditorApp" data-ng-controller="MetadataeditorCtrl" >
+  
+  	<!--[if lt IE 7]>
+      <p class="chromeframe">You are using an outdated browser. <a href="http://browsehappy.com/">Upgrade your browser today</a> or <a href="http://www.google.com/chromeframe/?redirect=true">install Google Chrome Frame</a> to better experience this site.</p>
+    <![endif]-->
+
+    <!--[if lt IE 9]>
+      <script src="<%= url_for '/js/es5-shim.js' %>"></script>
+      <script src="<%= url_for '/js/json3.min.js' %>"></script>
+    <![endif]-->
+    
+    <script type="text/javascript">
+            $(document).ready(function(){
+                
+				$('#resetEditor').click(function(){
+					var app = document.getElementById('MetadataeditorCtrl');
+					var scope = angular.element(app).scope();
+					scope.$apply(function() {
+						scope.resetEditor();
+					});     
+				});
+                
+            });
+        </script>
+
+	<header id="overview" class="hero-unit">
+        <div class="container">
+            <h1>
+                <strong>Phaidra</strong> Metadata Editor
+            </h1>
+
+            <p>Full version</p>
+
+            <p class="btn-group">
+                <!-- External Call to an AngularJS controller -->
+                <button type="button" class="btn btn-primary right" data-ng-click="getFromJson()"><i class="icon-edit icon-white"></i> Load editor</button>
+        		<button class="btn btn-danger right" id="resetEditor"><i class="icon-refresh icon-white"></i> Reset editor</button>
+        		<a href="https://github.com/phaidra/phaidra-api" class="btn"><i class="icon-github"></i> Code on Github</a>
+            </p>
+        
+        </div>
+    </header>
+  
+  
+  	<%# ######### Content ########## %> 
+  	<%= content %>
+  	<%# ############################ %> 
+  	
+  	<footer class="footer">  	
+  		<div class="container">
+  			<p>
+			Code licensed under
+			<a href="https://github.com/phaidra/phaidra-api/blob/master/LICENSE">Apache License</a>
+			</p>
+			<p>
+				<a href="https://github.com/angular-ui/bootstrap/issues?state=open">Issues</a>
+			</p>
+  		</div>
+  	</footer>
+  </body>
+</html>

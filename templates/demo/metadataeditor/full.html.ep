@@ -1,0 +1,39 @@
+% layout 'metadataeditor', title => 'Metadataeditor';
+
+	<div class="container metadataeditor_full" role="main" >
+
+		<h5 class="muted" data-ng-show="getMetadataFormatVersion()">Metadata format version: {{getMetadataFormatVersion()}}</h5>
+		
+		<div class="well" id="MetadataeditorCtrl" data-ng-show="fields">
+			
+				<tabset>
+				
+					<!-- 1.st level are tabs -->
+					<tab data-ng-repeat="field in fields" heading="{{field.xmlname}}" active="field.active" disabled="field.disabled">
+			      		
+			      		<!-- name of the tab -->
+			      		<!-- {{field.helptext}} -->
+			      		
+			      		<!-- children fields of the tab -->
+			      		<ul data-ng-show="field.children.length">		      		
+			      			<li data-ng-repeat="child in field.children" data-ng-include="'field_renderer.html'"></li>
+			      		</ul>
+			      		
+			      		<script type="text/ng-template" id="field_renderer.html">
+			      		
+			      			<!-- name of the field -->
+							<span class="muted">{{child.xmlname}}</span>
+							
+							<div data-ng-include="'http://services.phaidra-entw.univie.ac.at/api/views/partials/' + child.input_type + '.html'"></div>
+							
+							<!-- children fields of the field -->
+							<ul data-ng-show="child.children.length">
+							    <li data-ng-repeat="child in child.children" data-ng-include="'field_renderer.html'"></li>
+							</ul>
+						</script>
+			    	</tab>
+				</tabset>			
+			
+        	</div>
+       
+	    </div>

@@ -1,0 +1,9 @@
+<div class="field row">
+    <div class="span2">{{child.field_title}}:</div>
+    <div class="span4">
+        <select ng-model="child.ui_value"ng-options="option.option_id as option.option_title for option in child.field_options"
+                sng-required="child.mandatory"></select>
+        <span class="required-error" ng-show="child.mandatory && !child.ui_value">* required</span>
+    </div>
+</div>
+<br>

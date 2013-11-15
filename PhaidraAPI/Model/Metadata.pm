@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use v5.10;
 use base qw/Mojo::Base/;
+use Switch;
 
 sub metadata_format {
 	
@@ -69,7 +70,7 @@ sub get_metadata_format {
 	my $searchable; # 1 if the element is visible in advanced search
 	my $mandatory; # 1 if the element is mandatory
 	my $autofield; # ? i found no use for this one
-	my $editable; # 1 if the element is availablein metadataeditor
+	my $editable; # 1 if the element is available in metadataeditor
 	my $oid; # this was meant for metadata-owner feature 
 	my $datatype; # Phaidra datatype (/usr/local/fedora/cronjobs/XSD/datatypes.xsd)
 	my $valuespace; # regex constraining the value
@@ -85,7 +86,72 @@ sub get_metadata_format {
 	
 	# fill the hash with raw table data
 	while($sth->fetch) {			
-		$format{$mid} = { veid => $veid, xmlname => $xmlname, xmlns => $xmlns, lomref => $lomref, searchable => $searchable, mandatory => $mandatory, autofield => $autofield, editable => $editable, oid => $oid, datatype => $datatype, valuespace => $valuespace, mid_parent => $mid_parent, cardinality => $cardinality, ordered => $ordered, fgslabel => $fgslabel, vid => $vid, defaultvalue => $defaultvalue, sequence => $sequence, helptext => 'No helptext defined.' };
+		$format{$mid} = { 
+			veid => $veid, 
+			xmlname => $xmlname, 
+			xmlns => $xmlns, 
+			lomref => $lomref, 
+			searchable => $searchable, 
+			mandatory => $mandatory, 
+			autofield => $autofield, 
+			editable => $editable, 
+			oid => $oid, 
+			datatype => $datatype,  
+			mid_parent => $mid_parent, 
+			cardinality => $cardinality, 
+			ordered => $ordered, 
+			fgslabel => $fgslabel, 
+			vid => $vid, 
+			defaultvalue => $defaultvalue, 
+			sequence => $sequence, 
+			helptext => 'No helptext defined.' 
+		};
+		
+		$format{$mid}->{input_regex} = $valuespace;
+		
+		# mapping of "Phaidra Datatypes" to form input types
+		#
+		# possible values (with schema restrictions):
+		#  Duration PT(\d{1,2}H){0,1}(\d{1,2}M){0,1}(\d{1,2}S){0,1}
+		#  CharacterString (string)
+		#  LangString (string)
+		#  Vocabulary (int)
+		#  FileSize (nonNegativeInteger)
+		#  Node (string)
+		#  License (nonNegativeInteger)
+		#  DateTime -{0,1}\d{4}(-\d{2}){0,1}(-\d{2}){0,1} or \d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.\d{3}Z
+		#  GPS \d{1,3}°\d{1,2}'\d{1,2}''[EW]{1}\|\d{1,2}°\d{1,2}'\d{1,2}''[NS]{1}
+		#  Boolean 'yes' or 'no'
+		#  Faculty (string)
+		#  Department (string)
+		#  SPL (string)
+		#  Curriculum (string)
+		#  Taxon (int)
+		#
+		# at the beginning just a basic definition, for some fields we will redefine this later 
+		# because eg description is just defined as LangString, the same way as eg title, but description must be textarea 
+		# not just a simple text input
+		switch ($datatype) {
+			case ("CharacterString" || "Faculty" || "Department" || "SPL" || "Curriculum" || "GPS" || "Duration" || "FileSize") { $format{$mid}->{input_type} = "input_text" }
+			
+			case "LangString"	{ $format{$mid}->{input_type} = "input_text_lang" }
+			
+			case "DateTime"	{ $format{$mid}->{input_type} = "input_datetime" }
+						
+			case ("Vocabulary" || "License" || "Taxon") { $format{$mid}->{input_type} = "select" }
+			
+			case "Boolean"	{ $format{$mid}->{input_type} = "input_checkbox" }
+			
+			case "Node"	{ $format{$mid}->{input_type} = "node" }
+			
+			else { $format{$mid}->{input_type} = "" }
+		}
+		
+		# TODO
+		# irdata - input_hidden
+		# description - input_textarea_lang
+		# contribution - input_contribution
+		
 		$id_hash{$mid} = $format{$mid}; # we will use this later for direct id -> element access 		
 	}
 	

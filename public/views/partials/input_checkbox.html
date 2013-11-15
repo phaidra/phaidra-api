@@ -1,0 +1,5 @@
+<div class="field row">
+	<input  ng-model="child.ui_value" id="{{child.field_id}}" type="checkbox" ng-true-value="1" ng-false-value="0" ng-required="child.mandatory"/>
+	<label class="form-field-label" for="{{child.field_id}}">{{child.labels.en}}</label>
+	<span class="required-error" ng-show="child.mandatory && child.ui_value == 0">(* required)</span>
+</div>
