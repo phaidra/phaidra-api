@@ -5,6 +5,7 @@ use warnings;
 use v5.10;
 use base qw/Mojo::Base/;
 use Switch;
+use Data::Dumper;
 
 sub metadata_format {
 	
@@ -85,14 +86,16 @@ sub get_metadata_format {
 	$sth->bind_columns(undef, \$mid, \$veid, \$xmlname, \$xmlns, \$lomref, \$searchable, \$mandatory, \$autofield, \$editable, \$oid, \$datatype, \$valuespace, \$mid_parent, \$cardinality, \$ordered, \$fgslabel, \$vid, \$defaultvalue, \$sequence);
 	
 	# fill the hash with raw table data
-	while($sth->fetch) {			
+	my $i = 0;
+	while($sth->fetch) {		
+		$i++;	
 		$format{$mid} = { 
 			veid => $veid, 
 			xmlname => $xmlname, 
 			xmlns => $xmlns, 
 			lomref => $lomref, 
 			searchable => $searchable, 
-			mandatory => $mandatory, 
+			mandatory => ($mandatory eq 'N' ? 0 : 1), 
 			autofield => $autofield, 
 			editable => $editable, 
 			oid => $oid, 
@@ -104,7 +107,14 @@ sub get_metadata_format {
 			vid => $vid, 
 			defaultvalue => $defaultvalue, 
 			sequence => $sequence, 
-			helptext => 'No helptext defined.' 
+			helptext => 'No helptext defined.',
+			value => '', # what's expected in uwmetadata
+			ui_value => '', # what's expected on the form (eg ns/id for vocabularies)
+			loaded_ui_value => '', # the initial value which was loaded from the object, ev transformed for frontend use
+			loaded_value => '', # the initial uwmetadata value which was loaded from the object	
+			field_id => 'field_'.$i,
+			input_type => # which html control to use, we will specify this later
+			hidden => 0 # we will specify later which fields are to be hidden
 		};
 		
 		$format{$mid}->{input_regex} = $valuespace;
@@ -147,13 +157,24 @@ sub get_metadata_format {
 			else { $format{$mid}->{input_type} = "" }
 		}
 		
+		switch ($format{$mid}->{xmlname}) {
+			case "description"	{ $format{$mid}->{input_type} = "input_textarea_lang" }
+		}
+		
+		switch ($format{$mid}->{xmlname}) {
+			case "irdata" { $format{$mid}->{hidden} = 1 } # system field
+			case "classification" { $format{$mid}->{hidden} = 1 } # i think this should be edited elsewhere
+			case "annotation" { $format{$mid}->{hidden} = 1 } # was removed from editor
+			case "etheses" { $format{$mid}->{hidden} = 1 } # should not be edited in phaidra (i guess..)			
+		}
+		
 		# TODO
 		# irdata - input_hidden
-		# description - input_textarea_lang
+
 		# contribution - input_contribution
 		
 		$id_hash{$mid} = $format{$mid}; # we will use this later for direct id -> element access 		
-	}
+	}	 	
 	
 	# create the hierarchy
 	my @todelete;
@@ -207,12 +228,13 @@ sub get_metadata_format {
 			$sth->execute($element->{vid});
 			
 			my $desc; # some short text describing the vocabulary (it's not multilanguage, sorry)
-			my $vocabulary_namespace; # there's none, i'm fabricating this
 			
 			$sth->bind_columns(undef, \$desc);
 			$sth->fetch;
 			
 			$vocabulary{description} = $desc;
+			
+			# there's none, i'm fabricating this
 			$vocabulary{namespace} = $element->{xmlns}.'/voc_'.$element->{vid}.'/';
 			
 			# get vocabulary values/codes
@@ -226,7 +248,7 @@ sub get_metadata_format {
 			
 			$sth->bind_columns(undef, \$veid, \$entry, \$isocode);
 			
-			# fetshing data using hash, so that we quickly find the place for the entry but later ... [x] 
+			# fetching data using hash, so that we quickly find the place for the entry but later ... [x] 
 			while($sth->fetch) {
 				$vocabulary{'terms'}->{$veid}->{uri} = $vocabulary{namespace}.$veid; # this gets overwritten for the same entry
 				$vocabulary{'terms'}->{$veid}->{$isocode} = $entry; # this should always contain another language for the same entry

@@ -1,10 +1,13 @@
 <div class="field row">
-    <div class="span2">{{child.field_title}}:</div>
-    <span class="required-error" ng-show="child.mandatory && !child.ui_value">* required </span>
-    <div class="span4">
-        <div class="control-group input-append">
-            <input type="text" ng-model="child.ui_value" data-date-format="mm/dd/yyyy" bs-datepicker ng-required="child.mandatory">
-            <button type="button" class="btn" data-toggle="datepicker"><i class="icon-calendar"></i></button>
-        </div>
+ 
+    <div class="span4"> 
+    
+    <div>
+    	<label class="form-field-label" for="{{child.field_id}}">{{child.labels.en}}</label>
+	    <input id="{{child.field_id}}" type="text" datepicker-popup="dd-MMMM-yyyy" ng-model="child.ui_value" value="{{child.ui_value}}" show-weeks="false" is-open="opened" min="minDate" max="'2055-01-01'" datepicker-options="dateOptions" date-disabled="disabled(date, mode)" ng-required="{{child.mandatory}}" placeholder="please select date..." />
+	    <span class="required-error" ng-show="child.mandatory && !child.ui_value">* required</span>
+    </div>
+    
+    
     </div>
 </div>

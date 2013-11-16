@@ -21,9 +21,12 @@
   	  	
   	<!-- Bootstrap CSS --> 
   	<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
+  	<link href="<%= url_for '/css/bootstrap-datepicker.css' %>" rel="stylesheet">
   	
   	<!-- UI-Bootstrap js (AngularJS) -->  	  
   	<script src="<%= url_for '/js/ui-bootstrap-tpls-0.6.0.js' %>"></script>
+  	
+  	<script src="<%= url_for '/js/bootstrap-datepicker.js' %>"></script>
   	
   	<!-- Custom Phaidra scripts -->  	
   	<script type="text/javascript" src="<%= url_for '/js/controllers/metadataeditor.js' %>"></script>
@@ -55,6 +58,8 @@
 						scope.resetEditor();
 					});     
 				});
+				
+				$('.datepicker').datepicker();
                 
             });
         </script>
@@ -89,7 +94,7 @@
 			<a href="https://github.com/phaidra/phaidra-api/blob/master/LICENSE">Apache License</a>
 			</p>
 			<p>
-				<a href="https://github.com/angular-ui/bootstrap/issues?state=open">Issues</a>
+				<a href="https://github.com/phaidra/phaidra-api/issues?state=open">Issues</a>
 			</p>
   		</div>
   	</footer>

@@ -114,3 +114,46 @@ fieldset div {
 strong {
     font-weight: bold; 
 }
+
+.metadataeditor_full input[type='text'],textarea {
+	min-width: 300px;
+}
+
+.metadataeditor_full select {
+    min-width: 315px;
+}
+
+.metadataeditor_full input.ng-invalid.ng-dirty {
+    background-color: #FA787E;
+}
+    
+.metadataeditor_full input.ng-valid.ng-dirty {
+    background-color: #78FA89;
+}
+
+.metadataeditor_full textarea.ng-invalid.ng-dirty {
+    background-color: #FA787E;
+}
+    
+.metadataeditor_full textarea.ng-valid.ng-dirty {
+    background-color: #78FA89;
+}
+
+.metadataeditor_full .form-li {
+    line-height: 45px;
+}
+
+.metadataeditor_full .span4 {
+    width: 90%;
+}
+
+
+.metadataeditor_full label {
+    width: 15%;
+    margin-right: 15px;
+}
+
+.metadataeditor_full .required-error {
+    margin-left: 5px;
+}
+

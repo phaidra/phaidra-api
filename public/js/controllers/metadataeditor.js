@@ -1,8 +1,12 @@
 
 var app = angular.module('metadataeditorApp', ['ui.bootstrap']);
-    
+
+
 app.controller('MetadataeditorCtrl', function($scope) {
     
+	//$scope.regex_identifier = /^o[0-9]:[0-9]+$/;
+	// use: <input ng-pattern="regex_identifier" ...
+	
     $scope.fields = [];
     $scope.metadata_format_version = "";
     
@@ -29,12 +33,13 @@ app.controller('MetadataeditorCtrl', function($scope) {
             type : 'GET',
             dataType : 'json',
 			contentType: "application/json; charset=utf-8",
-            url: '/api/info/metadata_format?v='+metadata_format_version,
+            url: '/info/metadata_format?v='+metadata_format_version,
             data: {},
 			success: function(data){
 				$scope.$apply(function(){ //necessary to $apply the changes
 					$scope.fields = data;
 					$scope.metadata_format_version = metadata_format_version;
+				
 				});
 			},
             error : function(xhr, ajaxOptions, thrownError) {
@@ -42,6 +47,13 @@ app.controller('MetadataeditorCtrl', function($scope) {
             }
         });
     };
+    
+    // used to filter array of elements: if 'hidden' is set, the field will not be included in the array
+    $scope.filterHidden = function(e)
+    {
+        return !e.hidden;        
+    };
+    
     
     /*
     $scope.tabs = [
@@ -58,4 +70,3 @@ app.controller('MetadataeditorCtrl', function($scope) {
     $scope.navType = 'pills'; 
     */
 });
-

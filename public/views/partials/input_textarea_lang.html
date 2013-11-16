@@ -1,7 +1,8 @@
 <div class="field row">
-    <div class="span2">{{child.field_title}}:</div>
+    
     <div class="span4">
-        <textarea type="text" ng-model="child.ui_value" value="{{child.ui_value}}" ng-required="child.mandatory"></textarea>
+    	<label class="form-field-label" for="{{child.field_id}}">{{child.labels.en}}</label>
+        <textarea id="{{child.field_id}}" type="text" ng-model="child.ui_value" value="{{child.ui_value}}" ng-required="{{child.mandatory}}"></textarea>
         <span class="required-error" ng-show="child.mandatory && !child.ui_value">* required</span>
     </div>
 </div>
