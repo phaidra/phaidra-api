@@ -1,8 +1,10 @@
-<div class="field row">
-    
-    <div class="span4">
-    	<label class="form-field-label" for="{{child.field_id}}">{{child.labels.en}}</label>
-        <textarea id="{{child.field_id}}" type="text" ng-model="child.ui_value" value="{{child.ui_value}}" ng-required="{{child.mandatory}}"></textarea>
-        <span class="required-error" ng-show="child.mandatory && !child.ui_value">* required</span>
-    </div>
+<div class="form-group" ng-class="{ 'has-error': child.mandatory && !child.ui_value }">
+	<label class="col-sm-2 control-label">{{child.labels.en}}</label>
+    <div class="col-sm-10 input-group">
+    	<textarea class="form-control" type="text" ng-model="child.ui_value" value="{{child.ui_value}}" ng-required="{{child.mandatory}}"></textarea>    	
+    	<span class="input-group-btn" ng-if="child.cardinality === '*' || child.cardinality > '1'">
+    		<button class="btn btn-default" ng-click="addNewElement(child)"><span class="glyphicon glyphicon-plus"></span></button>
+    		<button ng-if="(child.cardinality === '*' || child.cardinality > '1') && canDelete(child)" class="btn btn-default" ng-click="deleteElement(child)"><span class="glyphicon glyphicon-minus"></span></button>
+    	</span>
+    </div>        
 </div>

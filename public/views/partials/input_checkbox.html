@@ -1,7 +1,10 @@
-<div class="field row">
-	<div class="span4">
-		<label id="{{child.field_id}}" class="form-field-label" for="{{child.field_id}}">{{child.labels.en}}</label>
-		<input  ng-model="child.ui_value" id="{{child.field_id}}" type="checkbox" ng-true-value="1" ng-false-value="0" ng-required="{{child.mandatory}}"/>	
-		<span class="required-error" ng-show="child.mandatory && child.ui_value == 0">(* required)</span>
-	</div>
-</div>
+
+<div class="form-group" ng-class="{ 'has-error': child.mandatory && !child.ui_value }">
+    <div class="col-sm-offset-2 col-sm-10">
+      <div class="checkbox">
+        <label>
+          <input  ng-model="child.ui_value" type="checkbox" ng-true-value="1" ng-false-value="0" ng-required="{{child.mandatory}}">{{child.labels.en}}
+        </label>
+      </div>
+    </div>
+  </div>

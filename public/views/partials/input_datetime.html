@@ -1,13 +1,10 @@
-<div class="field row">
- 
-    <div class="span4"> 
-    
-    <div>
-    	<label class="form-field-label" for="{{child.field_id}}">{{child.labels.en}}</label>
-	    <input id="{{child.field_id}}" type="text" datepicker-popup="dd-MMMM-yyyy" ng-model="child.ui_value" value="{{child.ui_value}}" show-weeks="false" is-open="opened" min="minDate" max="'2055-01-01'" datepicker-options="dateOptions" date-disabled="disabled(date, mode)" ng-required="{{child.mandatory}}" placeholder="please select date..." />
-	    <span class="required-error" ng-show="child.mandatory && !child.ui_value">* required</span>
-    </div>
-    
-    
-    </div>
+<div class="form-group" ng-class="{ 'has-error': child.mandatory && !child.ui_value }">
+	<label class="col-sm-2 control-label" >{{child.labels.en}}</label>
+    <div class="col-sm-10 input-group">
+    	<input class="form-control" type="text" datepicker-popup="dd-MMMM-yyyy" ng-model="child.ui_value" value="{{child.ui_value}}" show-weeks="false" is-open="opened" min="minDate" max="'2055-01-01'" datepicker-options="dateOptions" date-disabled="disabled(date, mode)" ng-required="{{child.mandatory}}" placeholder="-- please choose --" />    
+    	<span class="input-group-btn" ng-if="child.cardinality === '*' || child.cardinality > '1'">
+    		<button class="btn btn-default" ng-click="addNewElement(child)"><span class="glyphicon glyphicon-plus"></span></button>
+    		<button ng-if="(child.cardinality === '*' || child.cardinality > '1') && canDelete(child)" class="btn btn-default" ng-click="deleteElement(child)"><span class="glyphicon glyphicon-minus"></span></button>
+    	</span>
+    </div>        
 </div>

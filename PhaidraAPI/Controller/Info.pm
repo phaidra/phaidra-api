@@ -9,7 +9,7 @@ use PhaidraAPI::Model::Metadata;
 sub metadata_format {
     my $self = shift;  	
 	
-	my $v = $self->param('v');
+	my $v = $self->param('mfv');
 	
 	unless(defined($v)){		
 		$self->stash( 'message' => 'Unknown metadata format version requested.');

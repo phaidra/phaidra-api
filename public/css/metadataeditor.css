@@ -1,3 +1,11 @@
+.jumbotron-buttons {
+	margin: 15px 0 15px 0;
+}
+
+.metadataeditor_full #control-panel {
+	margin: 15px 0 15px 0;
+}
+
 .metadataeditor_full ul {
 	list-style-type: none;
 }
@@ -50,7 +58,9 @@
 .icon-github {
     background: url("../img/github-16px.png") no-repeat scroll 0 0 transparent;
     height: 16px;
-    width: 16px;
+    width: 16px !important;
+ 	margin-top: -1px;
+ 	padding-right: 2px;
 }
 
 h2 {
@@ -58,6 +68,10 @@ h2 {
     margin: 10px 0;
     font-weight: bold;
 }
+
+
+
+/* 
 .input {
     margin: 10px;
 }
@@ -115,9 +129,7 @@ strong {
     font-weight: bold; 
 }
 
-.metadataeditor_full input[type='text'],textarea {
-	min-width: 300px;
-}
+
 
 .metadataeditor_full select {
     min-width: 315px;
@@ -148,6 +160,10 @@ strong {
 }
 
 
+.metadataeditor_full .float-right {
+    float: right;
+}
+
 .metadataeditor_full label {
     width: 15%;
     margin-right: 15px;
@@ -155,5 +171,54 @@ strong {
 
 .metadataeditor_full .required-error {
     margin-left: 5px;
+}
+
+*/
+
+.metadataeditor_full .tab-content {
+	margin: 20px 0 0 0;
+}
+	
+.metadataeditor_full #pid {
+	width: 100px;
+	min-width: 100px;
+}
+
+.metadataeditor_full input[type='text'],textarea {
+	min-width: 300px;
+}
+/*
+.metadataeditor_full input[type='text'],textarea {
+	max-width: 50%;
+}
+
+.metadataeditor_full select {
+	max-width: 50%;
+}
+*/
+.metadataeditor_full .input-group {
+	max-width: 50%;
+}
+
+/*
+.metadataeditor_full .input-group .form-control:last-child {
+	border-bottom-left-radius: 4px;
+	border-top-left-radius: 4px;
+}
+
+.metadataeditor_full .input-group .form-control:first-child {
+	border-top-right-radius: 4px;
+	border-bottom-right-radius: 4px;
+}
+*/
+
+.phaidra-title {
+	color: #B80007;
+	font-weight: bold;
+}
+
+.load-pid {
+	width: 120px;
+	padding: 0;
 }
 

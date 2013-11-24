@@ -1,12 +1,12 @@
-<div class="field row">
-    
-    <div class="span4">
-    	<label class="form-field-label" for="{{child.field_id}}">{{child.labels.en}}</label>
-        <select id="{{child.field_id}}" ng-model="child.ui_value" ng-options="option.uri as option.en for option in child.vocabularies.0.terms" ng-required="{{child.mandatory}}">
+<div class="form-group" ng-class="{error: child.mandatory && !child.ui_value}">
+	<label class="col-sm-2 control-label" >{{child.labels.en}}</label>
+    <div class="col-sm-10 input-group">
+    	<select class="form-control" ng-model="child.ui_value" ng-options="option.uri as option.en for option in child.vocabularies.0.terms" ng-required="{{child.mandatory}}" placeholder="-- please choose --">
         	<option value="">-- please choose --</option>
         </select>
-
-        <span class="required-error" ng-show="child.mandatory && !child.ui_value">* required</span>
-    </div>
+        <span class="input-group-btn" ng-if="child.cardinality === '*' || child.cardinality > '1'">
+        	<button class="btn btn-default" ng-click="addNewElement(child)"><span class="glyphicon glyphicon-plus"></span></button>
+        	<button ng-if="(child.cardinality === '*' || child.cardinality > '1') && canDelete(child)" class="btn btn-default" ng-click="deleteElement(child)"><span class="glyphicon glyphicon-minus"></span></button>
+        </span>
+    </div>        
 </div>
-<br>

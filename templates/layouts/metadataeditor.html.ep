@@ -17,30 +17,37 @@
   	<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
   	
   	<!-- AngularJS -->
-  	<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.0.8/angular.js"></script>
+  	<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.1.5/angular.js"></script>
+  	
+  	<!-- Bootstrap 2 -->   	
+  	<!--<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">-->
   	  	
-  	<!-- Bootstrap CSS --> 
-  	<link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.3.2/css/bootstrap-combined.min.css" rel="stylesheet">
-  	<link href="<%= url_for '/css/bootstrap-datepicker.css' %>" rel="stylesheet">
+  	<!-- Bootstrap 3 CSS & js -->   	
+  	<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.2/css/bootstrap.min.css" rel="stylesheet">
+  	<script src="//netdna.bootstrapcdn.com/bootstrap/3.0.2/js/bootstrap.min.js"></script>
+  	
+  	<!-- Bootstrap datepicker -->
+  	<!--<link href="<%= url_for '/css/bootstrap-datepicker.css' %>" rel="stylesheet">-->
+  	<link href="<%= url_for '/css/datepicker.css' %>" rel="stylesheet">
+  	<link href="<%= url_for '/css/datepicker3.css' %>" rel="stylesheet">  	
+  	<script src="<%= url_for '/js/datepicker/bootstrap-datepicker.js' %>"></script>
   	
   	<!-- UI-Bootstrap js (AngularJS) -->  	  
   	<script src="<%= url_for '/js/ui-bootstrap-tpls-0.6.0.js' %>"></script>
   	
-  	<script src="<%= url_for '/js/bootstrap-datepicker.js' %>"></script>
-  	
   	<!-- Custom Phaidra scripts -->  	
   	<script type="text/javascript" src="<%= url_for '/js/controllers/metadataeditor.js' %>"></script>
   	<script type="text/javascript" src="<%= url_for '/js/directives/helptooltip.js' %>"></script>
-  	<script type="text/javascript" src="<%= url_for '/js/directives/field-directive.js' %>"></script>
+  	<!--<script type="text/javascript" src="<%= url_for '/js/directives/field-directive.js' %>"></script>-->
   	
   	<!-- Custom Phaidra CSS --> 
   	<link href="<%= url_for '/css/metadataeditor.css' %>" rel="stylesheet">
   	
-  </head>
+  </head>	
   <body data-ng-app="metadataeditorApp" data-ng-controller="MetadataeditorCtrl" >
   
   	<!--[if lt IE 7]>
-      <p class="chromeframe">You are using an outdated browser. <a href="http://browsehappy.com/">Upgrade your browser today</a> or <a href="http://www.google.com/chromeframe/?redirect=true">install Google Chrome Frame</a> to better experience this site.</p>
+      <p class="chromeframe">You are using an outdated browser. <a href="http://browsehappy.com/">Upgrade your browser today</a>.</p>
     <![endif]-->
 
     <!--[if lt IE 9]>
@@ -67,17 +74,17 @@
 	<header id="overview" class="hero-unit">
         <div class="container">
             <h1>
-                <strong>Phaidra</strong> Metadata Editor
+                <span class="phaidra-title">Phaidra</span> Metadata Editor
             </h1>
 
             <p>Full version</p>
 
-            <p class="btn-group">
+            <div class="btn-group jumbotron-buttons">
                 <!-- External Call to an AngularJS controller -->
-                <button type="button" class="btn btn-primary right" data-ng-click="getFromJson()"><i class="icon-edit icon-white"></i> Load editor</button>
-        		<button class="btn btn-danger right" id="resetEditor"><i class="icon-refresh icon-white"></i> Reset editor</button>
-        		<a href="https://github.com/phaidra/phaidra-api" class="btn"><i class="icon-github"></i> Code on Github</a>
-            </p>
+                <button type="button" class="btn btn-primary right" data-ng-click="getFromJson()"><i class="glyphicon glyphicon-pencil"></i> Load editor</button>
+        		<!--<button class="btn btn-danger right" id="resetEditor"><i class="glyphicon glyphicon-refresh"></i> Reset editor</button>-->
+        		<a href="https://github.com/phaidra/phaidra-api" class="btn btn-default"><i class="glyphicon icon-github"></i>  Code on Github</a>
+            </div>
         
         </div>
     </header>

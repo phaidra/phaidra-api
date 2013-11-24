@@ -106,15 +106,16 @@ sub get_metadata_format {
 			fgslabel => $fgslabel, 
 			vid => $vid, 
 			defaultvalue => $defaultvalue, 
-			sequence => $sequence, 
+			sequence => (defined($sequence) ? $sequence : 9999), # value must be defined because we are going to sort by this
 			helptext => 'No helptext defined.',
 			value => '', # what's expected in uwmetadata
 			ui_value => '', # what's expected on the form (eg ns/id for vocabularies)
 			loaded_ui_value => '', # the initial value which was loaded from the object, ev transformed for frontend use
 			loaded_value => '', # the initial uwmetadata value which was loaded from the object	
 			field_id => 'field_'.$i,
-			input_type => # which html control to use, we will specify this later
-			hidden => 0 # we will specify later which fields are to be hidden
+			input_type => '', # which html control to use, we will specify this later
+			hidden => 0, # we will specify later which fields are to be hidden
+			disabled => 0 # we will specify later which fields are to be disabled
 		};
 		
 		$format{$mid}->{input_regex} = $valuespace;
@@ -154,23 +155,35 @@ sub get_metadata_format {
 			
 			case "Node"	{ $format{$mid}->{input_type} = "node" }
 			
-			else { $format{$mid}->{input_type} = "" }
+			else { $format{$mid}->{input_type} = "input_text" }
 		}
 		
+		# special input types
 		switch ($format{$mid}->{xmlname}) {
 			case "description"	{ $format{$mid}->{input_type} = "input_textarea_lang" }
+			case "identifier" {
+				# because there is also an 'identifier' in the http://phaidra.univie.ac.at/XML/metadata/extended/V1.0 namespace
+				if($format{$mid}->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0'){
+					$format{$mid}->{input_type} = "static";					
+				}				
+			}
+			case "upload_date" {
+				$format{$mid}->{input_type} = "static";
+			}
+			case "orcomposite" {
+				$format{$mid}->{input_type} = "label_only";
+			}
 		}
 		
+		# hidden fields
 		switch ($format{$mid}->{xmlname}) {
 			case "irdata" { $format{$mid}->{hidden} = 1 } # system field
 			case "classification" { $format{$mid}->{hidden} = 1 } # i think this should be edited elsewhere
 			case "annotation" { $format{$mid}->{hidden} = 1 } # was removed from editor
 			case "etheses" { $format{$mid}->{hidden} = 1 } # should not be edited in phaidra (i guess..)			
-		}
+		}		
 		
 		# TODO
-		# irdata - input_hidden
-
 		# contribution - input_contribution
 		
 		$id_hash{$mid} = $format{$mid}; # we will use this later for direct id -> element access 		

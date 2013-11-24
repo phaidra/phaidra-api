@@ -22,10 +22,10 @@ app.controller('MetadataeditorCtrl', function($scope) {
         return $scope.fields.length;
     };
     
-    $scope.resetEditor = function() {
-        $scope.fields = {};
-        $scope.metadata_format_version = '';
-    };
+    //$scope.resetEditor = function() {
+    //    $scope.fields = {};
+    //    $scope.metadata_format_version = '';
+    //};
     
     $scope.getFromJson = function(){
     	var metadata_format_version = 1;
@@ -33,13 +33,12 @@ app.controller('MetadataeditorCtrl', function($scope) {
             type : 'GET',
             dataType : 'json',
 			contentType: "application/json; charset=utf-8",
-            url: '/info/metadata_format?v='+metadata_format_version,
+            url: '/info/metadata_format?mfv='+metadata_format_version,
             data: {},
 			success: function(data){
 				$scope.$apply(function(){ //necessary to $apply the changes
 					$scope.fields = data;
-					$scope.metadata_format_version = metadata_format_version;
-				
+					$scope.metadata_format_version = metadata_format_version;				
 				});
 			},
             error : function(xhr, ajaxOptions, thrownError) {
@@ -54,6 +53,79 @@ app.controller('MetadataeditorCtrl', function($scope) {
         return !e.hidden;        
     };
     
+    $scope.loadObject = function(pid){
+    	var metadata_format_version = 1;
+        $.ajax({
+            type : 'GET',
+            dataType : 'json',
+			contentType: "application/json; charset=utf-8",
+            url: '/get/object?mfv='+metadata_format_version+'&pid='+pid,
+            data: {},
+			success: function(data){
+				$scope.$apply(function(){ //necessary to $apply the changes
+					$scope.fields = data;
+					$scope.metadata_format_version = metadata_format_version;				
+				});
+			},
+            error : function(xhr, ajaxOptions, thrownError) {
+                alert( "Error: " + xhr.responseText + "\n" + thrownError );
+            }
+        });
+    };
+    
+    // returns 
+    // -1 - if we are 
+    // 0 - if we cannot delete and cannot add
+    // 1 - if we cannot add
+    $scope.canDelete = function(child){
+    	var a = $scope.getContainingArray(this);  
+    	var cnt = 0;
+    	for (i = 0; i < a.length; ++i) {
+    		if(a[i].xmlns == child.xmlns && a[i].xmlname == child.xmlname){
+    			cnt++;
+    		}
+    	}
+    	return cnt > 1;
+    }
+    
+    $scope.addNewElement = function(child){    	    	
+    	// array of elements to which we are going to insert
+    	var arr = $scope.getContainingArray(this);    	
+    	// copy the element
+    	var tobesistr = angular.copy(child);    	
+    	// get index of the current element in this array
+    	var idx = angular.element.inArray(child, arr); // we leaded jQuery before angular so angular.element should equal jQuery
+    	// insert into array at specified index, angular will sort the rest out
+    	arr.splice(idx, 0, tobesistr);    
+    }
+    
+    $scope.deleteElement = function(child){    	
+    	// array of elements where we are going to delete
+    	var arr = $scope.getContainingArray(this);	    	    	
+    	// get index of the current element in this array
+    	var idx = angular.element.inArray(child, arr); // we leaded jQuery before angular so angular.element should equal jQuery
+    	// insert into array at specified index, angular will sort the rest out
+    	arr.splice(idx, 1);    
+    }
+    
+    // black magic here...
+    $scope.getContainingArray = function(scope){
+    	// this works for normal fields
+    	var arr = scope.$parent.$parent.$parent.field.children;    	
+    	// this for blocks
+    	if(scope.$parent.$parent.$parent.$parent.child){
+    		if(scope.$parent.$parent.$parent.$parent.child.children){
+    			arr = scope.$parent.$parent.$parent.$parent.child.children;
+    		}
+    	}    	
+    	// and this for fields in blocks
+    	if(scope.$parent.$parent.$parent.$parent.$parent.child){
+    		if(scope.$parent.$parent.$parent.$parent.$parent.child.children){
+    			arr = scope.$parent.$parent.$parent.$parent.$parent.child.children;
+    		}
+    	}
+    	return arr;
+    }
     
     /*
     $scope.tabs = [
