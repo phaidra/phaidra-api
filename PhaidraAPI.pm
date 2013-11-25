@@ -10,7 +10,7 @@ sub startup {
     my $self = shift;
 
     my $config = $self->plugin( 'JSONConfig' => { file => 'PhaidraAPI.json' } );
-
+	$self->config($config);  
 	$self->mode($config->{mode});     
     $self->secret($config->{secret});
     
@@ -47,17 +47,17 @@ sub startup {
     my $r = $self->routes;
     $r->namespaces(['PhaidraAPI::Controller']);
 	
-	$r->route                            ->via('post')  ->to('objects#create');
-    $r->route('/:pid', pid => qr/o:\d+/) ->via('get')   ->to('objects#getobject');    
-    $r->route('/:pid', pid => qr/o:\d+/) ->via('put')   ->to('objects#update');
-    $r->route('/:pid', pid => qr/o:\d+/) ->via('delete')->to('objects#delete');
+	$r->route                            ->via('post')   ->to('objects#create');
+    $r->route('/:pid', pid => qr/o:\d+/) ->via('get')    ->to('objects#getobject');    
+    $r->route('/:pid', pid => qr/o:\d+/) ->via('put')    ->to('objects#update');
+    $r->route('/:pid', pid => qr/o:\d+/) ->via('delete') ->to('objects#delete');
 
 	$r->route('info/metadata_format')     ->via('get')   ->to('info#metadata_format');      
 	$r->route('demo/submitform')          ->via('get')   ->to('demo#submitform');
 	$r->route('demo/metadataeditor_full') ->via('get')   ->to('demo#metadataeditor_full');
 	$r->route('demo/test_json')           ->via('get')   ->to('demo#test_json');
 	
-	$r->route('get/object') ->via('get')   ->to('get#object');
+	$r->route('get/metadata')				  ->via('get')   ->to('get#metadata');
 
 return $self;
 }

@@ -222,3 +222,11 @@ strong {
 	padding: 0;
 }
 
+#pid.ng-invalid.ng-dirty {
+    background-color: #FA787E;
+}
+    
+#pid.ng-valid.ng-dirty {
+    background-color: #78FA89;
+}
+

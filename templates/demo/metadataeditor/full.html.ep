@@ -16,19 +16,18 @@
 			<!-- Collect the nav links, forms, and other content for toggling -->
 			<div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
 			      <div class="navbar-form input-group load-pid navbar-left">
-			        <input id="pid" ng-pattern="/^o:[0-9]$/" class="form-control" placeholder="load pid" type="text" data-ng-model="pid"></input>
+			        <input id="pid" ng-pattern="regex_pid" class="form-control" placeholder="load pid" type="text" data-ng-model="pid"></input>
 			      	<span class="input-group-btn">
-					     <button data-ng-click="loadObject(pid)" class="btn btn-primary" type="button"><span class="glyphicon glyphicon-open"></span></button>
+					     <button data-ng-click="loadObject(pid)" class="btn btn-primary" type="button"><span class="glyphicon glyphicon-open"></span></button>				    
 					</span>
 			      </div>
 			      
 			      <p class="navbar-text" data-ng-show="getMetadataFormatVersion()">Metadata format version: {{getMetadataFormatVersion()}}</p>
 			      
 			      <div class="navbar-form navbar-right" ng-if="fields">
-				   <button ng-click="save(user)" class="btn btn-success navbar-left"><span class="glyphicon glyphicon-save"></span> Save</button>
+				   <button ng-click="save()" class="btn btn-success navbar-left"><span class="glyphicon glyphicon-save"></span> Save</button>
 				  </div>
-			      
-			      
+				  
 			      
 	    	</div>
 		

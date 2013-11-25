@@ -112,7 +112,7 @@ sub get_metadata_format {
 			ui_value => '', # what's expected on the form (eg ns/id for vocabularies)
 			loaded_ui_value => '', # the initial value which was loaded from the object, ev transformed for frontend use
 			loaded_value => '', # the initial uwmetadata value which was loaded from the object	
-			field_id => 'field_'.$i,
+			#field_id => 'field_'.$i,
 			input_type => '', # which html control to use, we will specify this later
 			hidden => 0, # we will specify later which fields are to be hidden
 			disabled => 0 # we will specify later which fields are to be disabled
@@ -143,18 +143,26 @@ sub get_metadata_format {
 		# because eg description is just defined as LangString, the same way as eg title, but description must be textarea 
 		# not just a simple text input
 		switch ($datatype) {
-			case ("CharacterString" || "Faculty" || "Department" || "SPL" || "Curriculum" || "GPS" || "Duration" || "FileSize") { $format{$mid}->{input_type} = "input_text" }
 			
-			case "LangString"	{ $format{$mid}->{input_type} = "input_text_lang" }
+			case "LangString" { $format{$mid}->{input_type} = "input_text_lang" }
 			
 			case "DateTime"	{ $format{$mid}->{input_type} = "input_datetime" }
 						
-			case ("Vocabulary" || "License" || "Taxon") { $format{$mid}->{input_type} = "select" }
+			case "Vocabulary" { $format{$mid}->{input_type} = "select" }			
+			case "License" { $format{$mid}->{input_type} = "select" }
 			
 			case "Boolean"	{ $format{$mid}->{input_type} = "input_checkbox" }
 			
 			case "Node"	{ $format{$mid}->{input_type} = "node" }
 			
+			case "CharacterString" { $format{$mid}->{input_type} = "input_text" }
+			case "Faculty" { $format{$mid}->{input_type} = "input_text" }
+			case "Department" { $format{$mid}->{input_type} = "input_text" }
+			case "SPL" { $format{$mid}->{input_type} = "input_text" }
+			case "Curriculum" { $format{$mid}->{input_type} = "input_text" }
+			case "GPS" { $format{$mid}->{input_type} = "input_text" }
+			case "Duration" { $format{$mid}->{input_type} = "input_text" }
+			case "FileSize" { $format{$mid}->{input_type} = "input_text" }			
 			else { $format{$mid}->{input_type} = "input_text" }
 		}
 		
@@ -182,9 +190,6 @@ sub get_metadata_format {
 			case "annotation" { $format{$mid}->{hidden} = 1 } # was removed from editor
 			case "etheses" { $format{$mid}->{hidden} = 1 } # should not be edited in phaidra (i guess..)			
 		}		
-		
-		# TODO
-		# contribution - input_contribution
 		
 		$id_hash{$mid} = $format{$mid}; # we will use this later for direct id -> element access 		
 	}	 	
