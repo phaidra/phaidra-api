@@ -1,10 +1,24 @@
-<div class="form-group" ng-class="{ 'has-error': child.mandatory && !child.ui_value }">
-	<label class="col-sm-2 control-label">{{child.labels.en}}</label>
-    <div class="col-sm-10 input-group">
-    	<input class="form-control" type="text" ng-model="child.ui_value" value="{{child.ui_value}}" ng-required="{{child.mandatory}}" >
-    	<span class="input-group-btn" ng-if="child.cardinality === '*' || child.cardinality > '1'">    	
-   			<button class="btn btn-default" ng-click="addNewElement(child)"><span class="glyphicon glyphicon-plus"></span></button>
-   			<button ng-if="(child.cardinality === '*' || child.cardinality > '1') && canDelete(child)" class="btn btn-default" ng-click="deleteElement(child)"><span class="glyphicon glyphicon-minus"></span></button>
-   		</span>    	
-    </div>        
-</div>
+<div class="form-group row input-text-lang" ng-class="{ 'has-error': child.mandatory && !child.ui_value, 'input-text-lang-multi': child.cardinality === '*' || child.cardinality > '1' }" >
+
+	<label class="control-label col-sm-2">{{child.labels.en}}</label>
+
+	<div class="col-sm-10">
+		
+		<div class="input-group">
+		    
+			<input class="form-control" type="text" ng-model="child.ui_value" value="{{child.ui_value}}" ng-required="{{child.mandatory}}" >
+		    
+			<select class="form-control" ng-model="child.value_lang" ng-options="lang.value as lang.label for language in languages" placeholder="in language">
+				<option value="">DE</option>
+			</select>
+		    	
+		    <div class="input-group-btn" ng-if="child.cardinality === '*' || child.cardinality > '1'">       		 	        		
+		    	<button class="btn btn-default" ng-click="addNewElement(child)"><span class="glyphicon glyphicon-plus"></span></button>    					
+		   		<button ng-if="(child.cardinality === '*' || child.cardinality > '1') && canDelete(child)" class="btn btn-default" ng-click="deleteElement(child)"><span class="glyphicon glyphicon-minus"></span></button>		   			
+		   	</div>       	
+		       	
+		</div>
+	   	
+   	</div>
+   	
+</div>        

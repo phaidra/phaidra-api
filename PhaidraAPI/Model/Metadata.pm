@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use v5.10;
 use base qw/Mojo::Base/;
+use Storable qw(dclone);
 use Switch;
 use Data::Dumper;
 
@@ -109,9 +110,12 @@ sub get_metadata_format {
 			sequence => (defined($sequence) ? $sequence : 9999), # value must be defined because we are going to sort by this
 			helptext => 'No helptext defined.',
 			value => '', # what's expected in uwmetadata
+			value_lang => '', # value language, if any
 			ui_value => '', # what's expected on the form (eg ns/id for vocabularies)
 			loaded_ui_value => '', # the initial value which was loaded from the object, ev transformed for frontend use
-			loaded_value => '', # the initial uwmetadata value which was loaded from the object	
+			loaded_value => '', # the initial uwmetadata value which was loaded from the object
+			loaded_value_lang => '', # the initial language for the value, if any
+			loaded => 0, # 1 if this element was filled with a value loaded from object's metadata
 			#field_id => 'field_'.$i,
 			input_type => '', # which html control to use, we will specify this later
 			hidden => 0, # we will specify later which fields are to be hidden
@@ -298,6 +302,199 @@ sub get_metadata_format {
 	return \@metadata_format;
 }
 
+sub get_object_metadata {
+	
+	my ($self, $c, $v, $pid) = @_;
+
+	# this structure contains the metadata default structure (equals to empty metadataeditor) to which
+	# we are going to load the data of some real object 
+	my $metadata_tree = $self->metadata_format($c, $v);
+	if($metadata_tree == -1){
+		$self->render(json => { message => $self->stash->{'message'}} , status => 500) ;		
+		return;
+	}
+	
+	# this is a hash where the key is 'ns/id' and value is a default representation of a node
+	# -> we use this when adding nodes (eg a second title) to get a new empty node
+	my %metadata_nodes_hash;
+	my @metadata_tree_copy = @{$metadata_tree};
+	$self->create_md_nodes_hash($c, \@metadata_tree_copy, \%metadata_nodes_hash);
+	#$c->app->log->debug($c->app->dumper(\%metadata_nodes_hash));
+	
+	# get object metadata
+	my $uwmd = $self->get_uwmetadata($c, $pid);	
+	my $dom = Mojo::DOM->new($uwmd);
+	
+	#$c->app->log->debug($c->app->dumper($dom->tree));
+	
+	#my $e = $dom->tree;
+	my $nsattr = $dom->find('uwmetadata')->first->attr;
+	my $nsmap  = $nsattr;
+	# replace xmlns:ns0 with ns0
+	foreach my $key (keys %{$nsmap}) {
+		my $newkey = $key;		
+		$newkey =~ s/xmlns://g;
+		$nsmap->{$newkey} = delete $nsmap->{$key}; 
+    }
+	#$c->app->log->debug($c->app->dumper($nsmap));	
+	$self->fill_object_metadata($c, $dom, $metadata_tree, undef, $nsmap, \%metadata_nodes_hash);
+	$c->app->log->debug($c->app->dumper($metadata_tree));		
+	return $metadata_tree;
+}
+
+sub fill_object_metadata {
+	
+	my $self = shift;
+	my $c = shift;
+	my $uwmetadata = shift;
+	my $metadata_tree = shift;
+	my $metadata_tree_parent = shift;
+	my $nsmap = shift;
+	my $metadata_nodes_hash = shift;
+	
+	my $tidy = shift;
+	$tidy .= '  ';
+			
+	unless(defined($metadata_tree_parent)){
+		my %h = (
+			'children' => $metadata_tree
+		);
+		#$c->app->log->debug($c->app->dumper($metadata_tree));
+		#$c->app->log->debug($c->app->dumper(\%h));	
+		$metadata_tree_parent = \%h;
+		#$c->app->log->debug($c->app->dumper($metadata_tree_parent->{children}));
+	}
+			
+	for my $e ($uwmetadata->children->each) {
+		
+		#$self->app->log->debug($self->app->dumper($e));		
+		
+	    my $type = $e->type;
+	    
+	    # type looks like this: ns1:general
+	    # get namespace and identifier from it
+	    # namespace = 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0'
+	    # identifier = 'general'
+	    $type =~ m/(ns\d+):([0-9a-zA-Z_]+)/;
+	    my $ns = $1;
+	    my $id = $2;
+	    my $node;
+	    if($id ne 'uwmetadata'){	    
+		    # search this node in the metadata tree
+		    # get one where metadata from uwmetadata were not yet loaded
+		    $ns = $nsmap->{$ns};
+		    $node = $self->get_empty_node($c, $ns, $id, $metadata_tree_parent, $metadata_nodes_hash);
+
+=cut		    
+		    value => '', # what's expected in uwmetadata
+			value_lang => '', # value language, if any
+			ui_value => '', # what's expected on the form (eg ns/id for vocabularies)
+			loaded_ui_value => '', # the initial value which was loaded from the object, ev transformed for frontend use
+			loaded_value => '', # the initial uwmetadata value which was loaded from the object
+			loaded_value_lang => '', # the initial language for the value, if any
+=cut		
+    
+		    $node->{ui_value} = $e->text;
+		    $node->{loaded_ui_value} = $e->text;
+		    #$c->app->log->debug("ns=$ns id=$id text=".$e->text);
+		    if($e->attr){
+		    	$c->app->log->debug("attr=".$c->app->dumper($e->attr));
+		    }
+	    }
+	    if($e->children->size > 0){
+	    	$self->fill_object_metadata($c, $e, $metadata_tree, $node, $nsmap, $metadata_nodes_hash, $tidy);
+	    }
+	}
+	
+}
+
+sub get_empty_node {
+	
+	my $self = shift;
+	my $c = shift;
+	my $ns = shift;
+	my $id = shift;
+	my $parent = shift;
+	my $metadata_nodes_hash = shift;
+	
+	#$c->app->log->debug("searching for ns='$ns' id='$id' ");
+	
+	my $node;
+	my $i = 0;
+	foreach my $n (@{$parent->{children}}){
+			
+		$i++;
+			
+		my $xmlns = $n->{xmlns};
+		my $xmlname = $n->{xmlname};	
+		my $children_size = defined($n->{children}) ? scalar (@{$n->{children}}) : 0;
+		
+		#$c->app->log->debug("inspecting ns='$xmlns' id='$xmlname' children_size=$children_size");
+	
+		if(($xmlns eq $ns) && ($xmlname eq $id)){
+			#$c->app->log->debug("found node ".$xmlname);
+			# found it! is this node already used?
+			if($n->{loaded}){
+				# create a new one	
+				#$c->app->log->debug("create a new node! ".$xmlname);
+				my $new_node = dclone($metadata_nodes_hash->{$xmlns.'/'.$xmlname});
+				#$c->app->log->debug("here it is! ".$new_node->{xmlname});
+				splice @{$parent->{children}}, $i, 0, $new_node;
+			}			
+			
+			$n->{loaded} = 1;
+			$node = $n;
+		}
+		
+		elsif($children_size > 0){
+			#$c->app->log->debug("inspecting children of: ".$n->{xmlname});			
+			$node = $self->get_empty_node($c, $ns, $id, $n, $metadata_nodes_hash);			
+		}
+		
+		last if defined $node;
+	}
+	
+	return $node;
+	
+}
+
+
+sub create_md_nodes_hash {
+	
+	my $self = shift;
+	my $c = shift;
+	my $children = shift;
+	my $h = shift;
+
+	foreach my $n (@{$children}){
+		
+		$h->{$n->{xmlns}.'/'.$n->{xmlname}} = $n;
+					
+		my $children_size = defined($n->{children}) ? scalar (@{$n->{children}}) : 0;		
+		if($children_size > 0){						
+			$self->create_md_nodes_hash($c, $n->{children}, $h);			
+		}
+		
+	}
+	
+}
+
+sub get_uwmetadata {
+	
+	my $self = shift;
+	my $c = shift;
+	my $pid = shift; 
+		
+	my $uwmdurl = $c->app->config->{phaidra}->{getuwmetadataurl};
+	$uwmdurl =~ s/{PID}/$pid/g;
+	#$c->app->log->info($mdurl);
+	
+	my $ua = Mojo::UserAgent->new;
+  	my $uwmd = $ua->get($uwmdurl)->res->body;  	
+	#$c->app->log->info($uwmd);
+	
+	return $uwmd;		
+}
 
 1;
 __END__

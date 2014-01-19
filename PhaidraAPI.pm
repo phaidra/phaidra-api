@@ -28,7 +28,7 @@ sub startup {
     	},
   	});
   	
-  	# init databases 
+  	# init databases
     $self->plugin('database', { 
     	databases => {
         	'db_metadata' => { 
@@ -36,18 +36,19 @@ sub startup {
                 username => $config->{phaidra_db}->{username},
                 password => $config->{phaidra_db}->{password},
             },
-            'db_api' => {
-                dsn      => $config->{api_db}->{dsn},
-                username => $config->{api_db}->{username},
-                password => $config->{api_db}->{password},
-            },
+            #'db_api' => {
+            #    dsn      => $config->{api_db}->{dsn},
+            #    username => $config->{api_db}->{username},
+            #    password => $config->{api_db}->{password},
+            #},
         },
     });
-      
+     
     my $r = $self->routes;
     $r->namespaces(['PhaidraAPI::Controller']);
 	
 	$r->route                            ->via('post')   ->to('objects#create');
+	# FIXME o:
     $r->route('/:pid', pid => qr/o:\d+/) ->via('get')    ->to('objects#getobject');    
     $r->route('/:pid', pid => qr/o:\d+/) ->via('put')    ->to('objects#update');
     $r->route('/:pid', pid => qr/o:\d+/) ->via('delete') ->to('objects#delete');

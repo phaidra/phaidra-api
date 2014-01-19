@@ -40,7 +40,7 @@ app.controller('MetadataeditorCtrl', function($scope) {
 				$scope.$apply(function(){ //necessary to $apply the changes
 					$scope.fields = data;
 					$scope.metadata_format_version = metadata_format_version;				
-				});
+				});				
 			},
             error : function(xhr, ajaxOptions, thrownError) {
                 alert( "Error: " + xhr.responseText + "\n" + thrownError );
@@ -142,4 +142,21 @@ app.controller('MetadataeditorCtrl', function($scope) {
 
     $scope.navType = 'pills'; 
     */
+    
+    /*
+    $scope.$on('$viewContentLoaded', function(){
+    	
+    
+    	$(".dropdown-menu li").click(function(){
+
+    		alert('kua');
+    	      //$(".btn:first-child").text($(this).text());
+    	      //$(".btn:first-child").val($(this).text());
+
+    	});
+    });
+    */
+    
+    $scope.setLanguage
 });
+
