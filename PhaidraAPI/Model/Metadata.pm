@@ -7,6 +7,7 @@ use base qw/Mojo::Base/;
 use Storable qw(dclone);
 use Switch;
 use Data::Dumper;
+use Mojo::ByteStream qw(b);
 
 sub metadata_format {
 	
@@ -90,7 +91,8 @@ sub get_metadata_format {
 	my $i = 0;
 	while($sth->fetch) {		
 		$i++;	
-		$format{$mid} = { 
+		$format{$mid} = {
+			debug_id => int(rand(9999)), 
 			veid => $veid, 
 			xmlname => $xmlname, 
 			xmlns => $xmlns, 
@@ -317,8 +319,8 @@ sub get_object_metadata {
 	# this is a hash where the key is 'ns/id' and value is a default representation of a node
 	# -> we use this when adding nodes (eg a second title) to get a new empty node
 	my %metadata_nodes_hash;
-	my @metadata_tree_copy = @{$metadata_tree};
-	$self->create_md_nodes_hash($c, \@metadata_tree_copy, \%metadata_nodes_hash);
+	my $metadata_tree_copy = dclone($metadata_tree);
+	$self->create_md_nodes_hash($c, $metadata_tree_copy, \%metadata_nodes_hash);
 	#$c->app->log->debug($c->app->dumper(\%metadata_nodes_hash));
 	
 	# get object metadata
@@ -338,7 +340,7 @@ sub get_object_metadata {
     }
 	#$c->app->log->debug($c->app->dumper($nsmap));	
 	$self->fill_object_metadata($c, $dom, $metadata_tree, undef, $nsmap, \%metadata_nodes_hash);
-	$c->app->log->debug($c->app->dumper($metadata_tree));		
+	#$c->app->log->debug($c->app->dumper($metadata_tree));		
 	return $metadata_tree;
 }
 
@@ -384,22 +386,61 @@ sub fill_object_metadata {
 		    # get one where metadata from uwmetadata were not yet loaded
 		    $ns = $nsmap->{$ns};
 		    $node = $self->get_empty_node($c, $ns, $id, $metadata_tree_parent, $metadata_nodes_hash);
+		    # we have a new parent now! we have to set it so that the other nodes *in this cycle* will search
+		    # under this new parent
+		    #$metadata_tree_parent = $node; 
 
 =cut		    
 		    value => '', # what's expected in uwmetadata
-			value_lang => '', # value language, if any
+		    value_lang => '', # value language, if any
+		    
+		    loaded_value => '', # the initial uwmetadata value which was loaded from the object
+		    loaded_value_lang => '', # the initial language for the value, if any
+			
 			ui_value => '', # what's expected on the form (eg ns/id for vocabularies)
 			loaded_ui_value => '', # the initial value which was loaded from the object, ev transformed for frontend use
-			loaded_value => '', # the initial uwmetadata value which was loaded from the object
-			loaded_value_lang => '', # the initial language for the value, if any
+			
+			
 =cut		
-    
-		    $node->{ui_value} = $e->text;
-		    $node->{loaded_ui_value} = $e->text;
-		    #$c->app->log->debug("ns=$ns id=$id text=".$e->text);
-		    if($e->attr){
-		    	$c->app->log->debug("attr=".$c->app->dumper($e->attr));
-		    }
+			if($e->text){
+	    		# fill in values
+	    		#
+	    		# if the node has a vocabulary, then it's a select box 
+	    		# so there is a difference between
+	    		# value (value) and text (ui_value)    		
+	    		if(defined($node->{vocabularies})){
+	    			my $node_value = $e->text;
+	    			foreach my $voc (@{$node->{vocabularies}}){
+	    				foreach my $term (@{$voc->{terms}}){
+	    					# HACK: because the value of an vocabulary in the uwmetadata datastream is
+	    					# at the time not an uri but just an id, we have to make it an uri by adding
+	    					# the vocabulary namespace 	    					
+	    					if($voc->{namespace}.$node_value eq $term->{uri}){
+	    						# we have found the term, let's take it's label
+	    						$node->{value} = $term->{uri};
+	    						$node->{loaded_value} = $term->{uri};
+	    						$node->{ui_value} = $term->{uri};
+	    						$node->{loaded_ui_value} = $term->{uri};    						
+	    					}
+	    				}
+	    			}
+	    		}else{
+	    			my $v = b($e->text)->decode('UTF-8');
+	    			$c->app->log->debug("assign value = ".$e->text);
+	    			$node->{value} = $v;
+				    $node->{loaded_value} = $v;
+				    $node->{ui_value} = $v;
+				    $node->{loaded_ui_value} = $v;
+	    		}
+			    #$c->app->log->debug("ns=$ns id=$id text=".$e->text);
+			    if($e->attr){
+			    	#$c->app->log->debug("attr=".$c->app->dumper($e->attr));
+			    	if($e->attr->{language}){
+				    	$node->{value_lang} = $e->attr->{language};
+				    	$node->{loaded_value_lang} = $e->attr->{language};
+			    	}
+			    }
+			}
 	    }
 	    if($e->children->size > 0){
 	    	$self->fill_object_metadata($c, $e, $metadata_tree, $node, $nsmap, $metadata_nodes_hash, $tidy);
@@ -417,7 +458,7 @@ sub get_empty_node {
 	my $parent = shift;
 	my $metadata_nodes_hash = shift;
 	
-	#$c->app->log->debug("searching for ns='$ns' id='$id' ");
+	#$c->app->log->debug("searching empty node $id under ".$parent->{xmlname}.' ['.$parent->{debug_id}.']');
 	
 	my $node;
 	my $i = 0;
@@ -428,26 +469,26 @@ sub get_empty_node {
 		my $xmlns = $n->{xmlns};
 		my $xmlname = $n->{xmlname};	
 		my $children_size = defined($n->{children}) ? scalar (@{$n->{children}}) : 0;
-		
-		#$c->app->log->debug("inspecting ns='$xmlns' id='$xmlname' children_size=$children_size");
-	
+			
 		if(($xmlns eq $ns) && ($xmlname eq $id)){
-			#$c->app->log->debug("found node ".$xmlname);
+			#$c->app->log->debug("found ".($n->{loaded} ? "used" : "empty")." node ".$xmlname.' ['.$n->{debug_id}.']');
+		
 			# found it! is this node already used?
 			if($n->{loaded}){
-				# create a new one	
-				#$c->app->log->debug("create a new node! ".$xmlname);
+				# yes, create a new one					
 				my $new_node = dclone($metadata_nodes_hash->{$xmlns.'/'.$xmlname});
-				#$c->app->log->debug("here it is! ".$new_node->{xmlname});
+				# and add it to the structure
 				splice @{$parent->{children}}, $i, 0, $new_node;
+				$node = $new_node;
+			}else{
+				# no, use the found one
+				$node = $n;	
 			}			
 			
-			$n->{loaded} = 1;
-			$node = $n;
+			$node->{loaded} = 1;
 		}
 		
-		elsif($children_size > 0){
-			#$c->app->log->debug("inspecting children of: ".$n->{xmlname});			
+		elsif($children_size > 0){					
 			$node = $self->get_empty_node($c, $ns, $id, $n, $metadata_nodes_hash);			
 		}
 		
@@ -487,7 +528,7 @@ sub get_uwmetadata {
 		
 	my $uwmdurl = $c->app->config->{phaidra}->{getuwmetadataurl};
 	$uwmdurl =~ s/{PID}/$pid/g;
-	#$c->app->log->info($mdurl);
+	#$c->app->log->info($uwmdurl);
 	
 	my $ua = Mojo::UserAgent->new;
   	my $uwmd = $ua->get($uwmdurl)->res->body;  	
