@@ -32,4 +32,15 @@ sub metadata_format {
 }
 
 
+sub languages {
+	my $self = shift;
+	
+	# get metadata datastructure
+	my $metadata_model = PhaidraAPI::Model::Metadata->new;	
+	my $metadata = $metadata_model->get_languages($self);
+			
+    $self->render(json => $metadata);	
+}
+
+
 1;

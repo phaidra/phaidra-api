@@ -53,12 +53,13 @@ sub startup {
     $r->route('/:pid', pid => qr/o:\d+/) ->via('put')    ->to('objects#update');
     $r->route('/:pid', pid => qr/o:\d+/) ->via('delete') ->to('objects#delete');
 
-	$r->route('info/metadata_format')     ->via('get')   ->to('info#metadata_format');      
+	$r->route('info/metadata_format')     ->via('get')   ->to('info#metadata_format');
+	$r->route('info/languages')     	  ->via('get')   ->to('info#languages');      
 	$r->route('demo/submitform')          ->via('get')   ->to('demo#submitform');
 	$r->route('demo/metadataeditor_full') ->via('get')   ->to('demo#metadataeditor_full');
 	$r->route('demo/test_json')           ->via('get')   ->to('demo#test_json');
 	
-	$r->route('get/metadata')				  ->via('get')   ->to('get#metadata');
+	$r->route('get/metadata')				  ->via('get')   ->to('get#metadata');	
 
 return $self;
 }

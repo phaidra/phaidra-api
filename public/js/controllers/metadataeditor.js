@@ -8,19 +8,37 @@ app.controller('MetadataeditorCtrl', function($scope) {
 	// use: <input ng-pattern="regex_identifier" ...
 	
     $scope.fields = [];
+    $scope.languages = [];
     $scope.metadata_format_version = "";
     $scope.pid = '';
     
-	//The html matches this as so and will update automatically: 
-	//		<h3>Metadata Format Version: {{getMetadataFormatVersion()}}</h3>
     $scope.getMetadataFormatVersion = function() {
         return $scope.metadata_format_version;
     };
-    
-	//The html matches this and will update automatically: 
-	//<h3>Number of fields: {{getFieldsCount()}}</h3>
+    	
     $scope.getFieldsCount = function() {
         return $scope.fields.length;
+    };
+    
+    $scope.init = function () {
+    	//alert('klkl');
+    	
+    	$.ajax({
+            type : 'GET',
+            dataType : 'json',
+			contentType: "application/json; charset=utf-8",
+            url: '/info/languages',
+            data: {},
+			success: function(data){				
+				$scope.$apply(function(){
+					$scope.languages = data;				
+				});
+			},
+            error : function(xhr, ajaxOptions, thrownError) {
+                alert( "Error: " + xhr.responseText + "\n" + thrownError );
+            }
+        });
+        
     };
     
     //$scope.resetEditor = function() {
@@ -144,19 +162,32 @@ app.controller('MetadataeditorCtrl', function($scope) {
     */
     
     /*
-    $scope.$on('$viewContentLoaded', function(){
+    $scope.$on('$viewContentLoaded', function() {
     	
-    
-    	$(".dropdown-menu li").click(function(){
-
-    		alert('kua');
-    	      //$(".btn:first-child").text($(this).text());
-    	      //$(".btn:first-child").val($(this).text());
-
-    	});
+    	
+    	
+    	$.ajax({
+            type : 'GET',
+            dataType : 'json',
+			contentType: "application/json; charset=utf-8",
+            url: '/info/languages',
+            data: {},
+			success: function(data){
+				//alert('klkl');
+				$scope.$apply(function(){
+					$scope.languages = data;				
+				});
+			},
+            error : function(xhr, ajaxOptions, thrownError) {
+                alert( "Error: " + xhr.responseText + "\n" + thrownError );
+            }
+        });
+    	
+        
     });
     */
+        
     
-    $scope.setLanguage
+    //$scope.setLanguage
 });
 

@@ -8,7 +8,7 @@
 	    	<select class="form-control" ng-model="child.ui_value" ng-options="option.uri as option.en for option in child.vocabularies.0.terms" ng-required="{{child.mandatory}}" placeholder="-- please choose --">
 	        	<option value="">-- please choose --</option>
 	        </select>
-	        <pre>{{child.ui_value | json}}</pre>
+	        
 	        <span class="input-group-btn" ng-if="child.cardinality === '*' || child.cardinality > '1'">
 	        	<button class="btn btn-default" ng-click="addNewElement(child)"><span class="glyphicon glyphicon-plus"></span></button>
 	        	<button ng-if="(child.cardinality === '*' || child.cardinality > '1') && canDelete(child)" class="btn btn-default" ng-click="deleteElement(child)"><span class="glyphicon glyphicon-minus"></span></button>

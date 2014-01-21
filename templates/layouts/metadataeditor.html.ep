@@ -49,7 +49,7 @@
   	<link href="<%= url_for '/css/metadataeditor.css' %>" rel="stylesheet">
   	
   </head>	
-  <body data-ng-app="metadataeditorApp" data-ng-controller="MetadataeditorCtrl" >
+  <body data-ng-app="metadataeditorApp" data-ng-controller="MetadataeditorCtrl" data-ng-init="init()">
   
   	<!--[if lt IE 7]>
       <p class="chromeframe">You are using an outdated browser. <a href="http://browsehappy.com/">Upgrade your browser today</a>.</p>

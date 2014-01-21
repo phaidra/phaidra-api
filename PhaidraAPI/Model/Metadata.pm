@@ -44,6 +44,44 @@ sub metadata_format {
   
 }
 
+sub get_languages {
+	my ($self, $c) = @_;
+	
+	my $cachekey = 'languages';
+	
+	my $res = $c->app->chi->get($cachekey);
+  		
+    if($res){    		
+    	$c->app->log->debug("[cache hit] $cachekey");
+    }else{    		
+    	$c->app->log->debug("[cache miss] $cachekey");
+	
+		my %l;
+		
+		my $sth;
+		my $ss;
+		
+		$ss = qq/SELECT l.isocode, ve.isocode, ve.entry FROM language AS l LEFT JOIN vocabulary_entry AS ve ON l.VEID = ve.VEID/;
+		$sth = $c->app->db_metadata->prepare($ss) or print $c->app->db_metadata->errstr;
+		$sth->execute();
+		my $isocode;
+		my $ve_isocode;
+		my $ve_entry;			
+		$sth->bind_columns(undef, \$isocode, \$ve_isocode, \$ve_entry);				 
+		while($sth->fetch) {		
+			$l{$isocode}{$ve_isocode} = $ve_entry if defined($ve_isocode); 
+			#$l->{$isocode}{isocode} = {$ve_isocode} = $ve_entry ;
+		}
+		
+		$c->app->chi->set($cachekey, \%l, '1 day');    
+  
+  		$res = $c->app->chi->get($cachekey);
+    }
+	
+	#$c->app->log->debug($c->app->dumper($res));
+	return $res;
+}
+
 sub get_metadata_format {
 	
 	my ($self, $c) = @_;
@@ -51,9 +89,23 @@ sub get_metadata_format {
 	my %format;
 	my @metadata_format;
 	my %id_hash;
+	my %license_veid_lid_map;
 	
 	my $sth;
 	my $ss;
+	
+	# create mapping of veid to licence id
+	$ss = qq/SELECT LID, name FROM licenses/;
+	$sth = $c->app->db_metadata->prepare($ss) or print $c->app->db_metadata->errstr;
+	$sth->execute();
+	my $l_lid;
+	my $l_veid;			
+	$sth->bind_columns(undef, \$l_lid, \$l_veid);				 
+	while($sth->fetch) {
+		$license_veid_lid_map{$l_veid} = $l_lid; 
+	}
+	
+	$c->app->log->debug($c->app->dumper(\%license_veid_lid_map));
 	
 	$ss = qq/SELECT 
 			m.MID, m.VEID, m.xmlname, m.xmlns, m.lomref, 
@@ -112,7 +164,7 @@ sub get_metadata_format {
 			sequence => (defined($sequence) ? $sequence : 9999), # value must be defined because we are going to sort by this
 			helptext => 'No helptext defined.',
 			value => '', # what's expected in uwmetadata
-			value_lang => '', # value language, if any
+			value_lang => 'de', # language of the value, if any ('de' by default)
 			ui_value => '', # what's expected on the form (eg ns/id for vocabularies)
 			loaded_ui_value => '', # the initial value which was loaded from the object, ev transformed for frontend use
 			loaded_value => '', # the initial uwmetadata value which was loaded from the object
@@ -243,7 +295,7 @@ sub get_metadata_format {
 	# get the vocabularies (HINT: this crap will be overwritten when we have vocabulary server)
 	while ( my ($key, $element) = each %id_hash ){	
 		if($element->{vid}){
-			
+
 			my %vocabulary;
 			
 			# get vocabulary info
@@ -274,8 +326,17 @@ sub get_metadata_format {
 			
 			# fetching data using hash, so that we quickly find the place for the entry but later ... [x] 
 			while($sth->fetch) {
-				$vocabulary{'terms'}->{$veid}->{uri} = $vocabulary{namespace}.$veid; # this gets overwritten for the same entry
-				$vocabulary{'terms'}->{$veid}->{$isocode} = $entry; # this should always contain another language for the same entry
+				
+				my $termkey;
+				if($element->{vid} == 21){		
+					# license metadata field uses license id as value, not veid		
+					$termkey = $license_veid_lid_map{$veid};
+				}else{				
+					$termkey = $veid; 
+				}
+				
+				$vocabulary{'terms'}->{$termkey}->{uri} = $vocabulary{namespace}.$termkey; # this gets overwritten for the same entry
+				$vocabulary{'terms'}->{$termkey}->{$isocode} = $entry; # this should always contain another language for the same entry								
 			}
 			
 			# [x] ... we remove the id hash
@@ -398,10 +459,9 @@ sub fill_object_metadata {
 		    loaded_value_lang => '', # the initial language for the value, if any
 			
 			ui_value => '', # what's expected on the form (eg ns/id for vocabularies)
-			loaded_ui_value => '', # the initial value which was loaded from the object, ev transformed for frontend use
-			
-			
+			loaded_ui_value => '', # the initial value which was loaded from the object, ev transformed for frontend use			
 =cut		
+
 			if($e->text){
 	    		# fill in values
 	    		#
@@ -426,7 +486,7 @@ sub fill_object_metadata {
 	    			}
 	    		}else{
 	    			my $v = b($e->text)->decode('UTF-8');
-	    			$c->app->log->debug("assign value = ".$e->text);
+	    			#$c->app->log->debug("assign value = ".$e->text);
 	    			$node->{value} = $v;
 				    $node->{loaded_value} = $v;
 				    $node->{ui_value} = $v;
