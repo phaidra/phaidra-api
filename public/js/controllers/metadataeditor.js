@@ -112,7 +112,7 @@ app.controller('MetadataeditorCtrl', function($scope) {
     	// copy the element
     	var tobesistr = angular.copy(child);    	
     	// get index of the current element in this array
-    	var idx = angular.element.inArray(child, arr); // we leaded jQuery before angular so angular.element should equal jQuery
+    	var idx = angular.element.inArray(child, arr); // we loaded jQuery before angular so angular.element should equal jQuery
     	// insert into array at specified index, angular will sort the rest out
     	arr.splice(idx, 0, tobesistr);    
     }
@@ -121,7 +121,7 @@ app.controller('MetadataeditorCtrl', function($scope) {
     	// array of elements where we are going to delete
     	var arr = $scope.getContainingArray(this);	    	    	
     	// get index of the current element in this array
-    	var idx = angular.element.inArray(child, arr); // we leaded jQuery before angular so angular.element should equal jQuery
+    	var idx = angular.element.inArray(child, arr); // we loaded jQuery before angular so angular.element should equal jQuery
     	// insert into array at specified index, angular will sort the rest out
     	arr.splice(idx, 1);    
     }
@@ -131,18 +131,71 @@ app.controller('MetadataeditorCtrl', function($scope) {
     	// this works for normal fields
     	var arr = scope.$parent.$parent.$parent.field.children;    	
     	// this for blocks
-    	if(scope.$parent.$parent.$parent.$parent.child){
-    		if(scope.$parent.$parent.$parent.$parent.child.children){
-    			arr = scope.$parent.$parent.$parent.$parent.child.children;
-    		}
-    	}    	
-    	// and this for fields in blocks
     	if(scope.$parent.$parent.$parent.$parent.$parent.child){
     		if(scope.$parent.$parent.$parent.$parent.$parent.child.children){
     			arr = scope.$parent.$parent.$parent.$parent.$parent.child.children;
     		}
+    	}    	
+    	// and this for fields in blocks
+    	if(scope.$parent.$parent.$parent.$parent.$parent.$parent.child){
+    		if(scope.$parent.$parent.$parent.$parent.$parent.$parent.child.children){
+    			arr = scope.$parent.$parent.$parent.$parent.$parent.$parent.child.children;
+    		}
     	}
     	return arr;
+    }
+    
+    Array.prototype.move = function(from, to) {
+        this.splice(to, 0, this.splice(from, 1)[0]);
+    };
+    
+    $scope.upElement = function(child){
+    	// array of elements which we are going to rearrange
+    	var arr = $scope.getContainingArray(this);
+    	// get index of the current element in this array
+    	var idx = angular.element.inArray(child, arr);
+    	
+    	// update the data_order property
+    	child.data_order--;
+    	arr[idx-1].data_order++;
+    	
+    	// move to index--
+    	if(idx > 0){
+    		arr.move(idx, idx-1);
+    	}    	
+    }
+    
+    $scope.canUpElement = function(child){
+    	// array of elements which we are going to rearrange
+    	var arr = $scope.getContainingArray(this);
+    	// get index of the current element in this array
+    	var idx = angular.element.inArray(child, arr);
+
+    	return idx > 0;
+    }
+    
+    
+    $scope.downElement = function(child){
+    	// array of elements which we are going to rearrange
+    	var arr = $scope.getContainingArray(this);
+    	// get index of the current element in this array
+    	var idx = angular.element.inArray(child, arr);
+    	
+    	// update the data_order property
+    	child.data_order++;
+    	arr[idx+1].data_order--;
+    	
+    	// move to index++
+    	arr.move(idx, idx+1);    	
+    }
+    
+    $scope.canDownElement = function(child){
+    	// array of elements which we are going to rearrange
+    	var arr = $scope.getContainingArray(this);
+    	// get index of the current element in this array
+    	var idx = angular.element.inArray(child, arr);
+
+    	return idx < (arr.length-1);
     }
     
     /*

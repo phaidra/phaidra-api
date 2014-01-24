@@ -356,20 +356,27 @@ strong {
 	max-width: 70%;
 }
 
-.input-textarea-lang-multi .input-group textarea {
-	max-width: 80%;
+.input-textarea-lang-multi textarea {
+	/*max-width: 50%;*/
+	height: 100px;
 }
 
 .input-textarea-lang-multi .input-group select {
-	height: 54px;
+	/*height: 54px;
 	max-width: 20%;
+	*/
 	margin-left: -1px;
 	margin-right: 1px;
 }
 
 .input-datetime {
 	min-width: 60%;
+	
 	/* do not specify max-width, shifts the row to left */
+}
+
+.input-datetime .input-group {
+	max-width: 70%;
 }
 
 .input-datetime .input-group input {
@@ -400,5 +407,9 @@ reenable disabled radius
 */	
 	border-top-left-radius: 4px;
 	border-bottom-left-radius: 4px;
+}
+
+.label-tooltip {
+	font-weight: normal;
 }
 

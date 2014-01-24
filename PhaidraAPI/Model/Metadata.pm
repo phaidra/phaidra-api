@@ -135,9 +135,9 @@ sub get_metadata_format {
 	my $fgslabel; # label for the search engine (is used in index and later in search queries)
 	my $vid; # if defined then id of the controlled vocabulary which represents the possible values
 	my $defaultvalue; # currently there's only #FIRSTNAME, #LASTNAME and #TODAY or NULL
-	my $sequence; # order of the element among it's siblings
+	my $field_order; # order of the element among it's siblings
 	
-	$sth->bind_columns(undef, \$mid, \$veid, \$xmlname, \$xmlns, \$lomref, \$searchable, \$mandatory, \$autofield, \$editable, \$oid, \$datatype, \$valuespace, \$mid_parent, \$cardinality, \$ordered, \$fgslabel, \$vid, \$defaultvalue, \$sequence);
+	$sth->bind_columns(undef, \$mid, \$veid, \$xmlname, \$xmlns, \$lomref, \$searchable, \$mandatory, \$autofield, \$editable, \$oid, \$datatype, \$valuespace, \$mid_parent, \$cardinality, \$ordered, \$fgslabel, \$vid, \$defaultvalue, \$field_order);
 	
 	# fill the hash with raw table data
 	my $i = 0;
@@ -157,11 +157,12 @@ sub get_metadata_format {
 			datatype => $datatype,  
 			mid_parent => $mid_parent, 
 			cardinality => $cardinality, 
-			ordered => $ordered, 
+			ordered => ($ordered eq 'Y' ? 1 : 0), 
 			fgslabel => $fgslabel, 
 			vid => $vid, 
 			defaultvalue => $defaultvalue, 
-			sequence => (defined($sequence) ? $sequence : 9999), # value must be defined because we are going to sort by this
+			field_order => (defined($field_order) ? $field_order : 9999), # as defined in metadata format, value must be defined because we are going to sort by this
+			data_order => '', # as defined in object's metadata (for objects which have 'ordered = 1')		
 			helptext => 'No helptext defined.',
 			value => '', # what's expected in uwmetadata
 			value_lang => 'de', # language of the value, if any ('de' by default)
@@ -208,6 +209,7 @@ sub get_metadata_format {
 						
 			case "Vocabulary" { $format{$mid}->{input_type} = "select" }			
 			case "License" { $format{$mid}->{input_type} = "select" }
+			case "Language" { $format{$mid}->{input_type} = "language_select" }
 			
 			case "Boolean"	{ $format{$mid}->{input_type} = "input_checkbox" }
 			
@@ -272,11 +274,11 @@ sub get_metadata_format {
 	}
 	
 	# and sort it
-	@metadata_format = sort { $a->{sequence} <=> $b->{sequence} } @metadata_format;	
+	@metadata_format = sort { $a->{field_order} <=> $b->{field_order} } @metadata_format;	
 	
 	# and sort the children
 	foreach my $key (keys %parents){
-		@{$id_hash{$key}{children}} = sort { $a->{sequence} <=> $b->{sequence} } @{$parents{$key}{children}};		
+		@{$id_hash{$key}{children}} = sort { $a->{field_order} <=> $b->{field_order} } @{$parents{$key}{children}};		
 	}
 	
 	# get the element labels
@@ -493,19 +495,57 @@ sub fill_object_metadata {
 				    $node->{loaded_ui_value} = $v;
 	    		}
 			    #$c->app->log->debug("ns=$ns id=$id text=".$e->text);
-			    if($e->attr){
-			    	#$c->app->log->debug("attr=".$c->app->dumper($e->attr));
-			    	if($e->attr->{language}){
-				    	$node->{value_lang} = $e->attr->{language};
-				    	$node->{loaded_value_lang} = $e->attr->{language};
-			    	}
-			    }
+			    
+			}
+			
+			if(defined($e->attr)){			
+			   	if($e->attr->{language}){
+			    	$node->{value_lang} = $e->attr->{language};
+			    	$node->{loaded_value_lang} = $e->attr->{language};
+			   	}
+			   	if(defined($e->attr->{seq}) && $node->{ordered}){			   		
+			   		$node->{data_order} = $e->attr->{seq}; 	
+			   		@{$metadata_tree_parent->{children}} = sort { sort_ordered($a) <=> sort_ordered($b) } @{$metadata_tree_parent->{children}};			   				
+			  	}
 			}
 	    }
 	    if($e->children->size > 0){
 	    	$self->fill_object_metadata($c, $e, $metadata_tree, $node, $nsmap, $metadata_nodes_hash, $tidy);
 	    }
 	}
+	
+}
+
+sub sort_ordered {
+	
+	my $node = shift;
+
+=cut
+
+upload_date, version, etc needs to be ordered by field_order, as well as contribute
+but among contribute nodes, the order is defined by seq (data_order)
+=> field_order takes preference
+
+<ns1:lifecycle>
+<ns1:upload_date>2013-06-12T11:02:28.665Z</ns1:upload_date>
+<ns1:version language="de">2</ns1:version>
+<ns1:status>44</ns1:status>
+<ns2:peer_reviewed>no</ns2:peer_reviewed>
+<ns1:contribute seq="1">...</ns1:contribute>
+<ns1:contribute seq="2">...</ns1:contribute>
+<ns1:contribute seq="3">...</ns1:contribute>
+<ns1:contribute seq="4">...</ns1:contribute>
+<ns1:contribute seq="0">...</ns1:contribute>
+<ns2:infoeurepoversion>1556249</ns2:infoeurepoversion>
+</ns1:lifecycle>
+
+=cut	
+
+	if($node->{data_order} eq ''){
+		return int($node->{field_order});	
+	}else{		
+		return int($node->{field_order}) + ("0.".$node->{data_order});
+	}		
 	
 }
 
