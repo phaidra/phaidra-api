@@ -1,6 +1,6 @@
 <div class="form-group row input-text" ng-class="{ 'has-error': child.mandatory && !child.ui_value, 'input-text-multi': child.cardinality === '*' || child.cardinality > '1' }" >
 
-		<label class="control-label col-sm-2">{{child.labels.en}}</label>
+		<label class="control-label col-sm-2"><span class="grey" ng-show="child.ordered">{{child.data_order}}. </span>{{child.labels.en}}</label>
 
 		<div class="col-sm-10">
 		
