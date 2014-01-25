@@ -12,6 +12,8 @@
 	        <span class="input-group-btn" ng-if="child.cardinality === '*' || child.cardinality > '1'">
 	        	<button class="btn btn-default" ng-click="addNewElement(child)"><span class="glyphicon glyphicon-plus"></span></button>
 	        	<button ng-if="(child.cardinality === '*' || child.cardinality > '1') && canDelete(child)" class="btn btn-default" ng-click="deleteElement(child)"><span class="glyphicon glyphicon-minus"></span></button>
+	   			<button class="btn btn-default" ng-click="upElement(child)" ng-if="child.ordered == 1 && canUpElement(child)"><span class="glyphicon glyphicon-chevron-up"></span></button>
+				<button class="btn btn-default" ng-click="downElement(child)" ng-if="child.ordered == 1 && canDownElement(child)"><span class="glyphicon glyphicon-chevron-down"></span></button>	        	
 	        </span>
         </div>
     </div>        
