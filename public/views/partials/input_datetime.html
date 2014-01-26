@@ -5,7 +5,7 @@
     
     	<div class="input-group">
 	    	
-	    	<input tooltip-placement="left" tooltip-popup-delay='1000' tooltip='{{child.helptext}}' class="form-control" type="text" datepicker-popup="dd-MMMM-yyyy" ng-model="child.ui_value" value="{{child.ui_value}}" show-weeks="false" is-open="opened" min="minDate" max="'2055-01-01'" datepicker-options="dateOptions" date-disabled="disabled(date, mode)" ng-required="{{child.mandatory}}" placeholder="-- please choose --" />    
+	    	<input tooltip-placement="left" tooltip-popup-delay='1000' tooltip='{{child.helptext}}' class="form-control" type="text" datepicker-popup="dd MMMM yyyy" ng-model="child.ui_value" value="{{child.ui_value}}" show-weeks="false" is-open="opened" min="minDate" max="'2055-01-01'" datepicker-options="dateOptions" date-disabled="disabled(date, mode)" ng-required="{{child.mandatory}}" placeholder="-- please choose --" />    
 	    	
 	    	<span class="input-group-btn" ng-if="child.cardinality === '*' || child.cardinality > '1'">
 	    		<button class="btn btn-default" ng-click="addNewElement(child)"><span class="glyphicon glyphicon-plus"></span></button>

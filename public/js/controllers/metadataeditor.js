@@ -1,7 +1,6 @@
-var app = angular.module('metadataeditorApp', ['ui.bootstrap']);
+var app = angular.module('metadataeditorApp', ['ui.bootstrap', 'metadataService']);
 
-
-app.controller('MetadataeditorCtrl', function($scope) {
+app.controller('MetadataeditorCtrl', function($scope, MetadataService) {
     
 	$scope.regex_pid = /^[a-op-zA-Z]+:[0-9]+$/;
 	// use: <input ng-pattern="regex_identifier" ...
@@ -10,6 +9,15 @@ app.controller('MetadataeditorCtrl', function($scope) {
     $scope.languages = [];
     $scope.metadata_format_version = "";
     $scope.pid = '';
+    $scope.alerts = [];    
+
+//    $scope.addAlert = function(msg) {
+//    	$scope.alerts.push({msg: msg});
+//    };
+
+    $scope.closeAlert = function(index) {
+    	$scope.alerts.splice(index, 1);
+    };
     
     $scope.getMetadataFormatVersion = function() {
         return $scope.metadata_format_version;
@@ -20,7 +28,6 @@ app.controller('MetadataeditorCtrl', function($scope) {
     };
     
     $scope.init = function () {
-    	//alert('klkl');
     	
     	$.ajax({
             type : 'GET',
@@ -39,6 +46,31 @@ app.controller('MetadataeditorCtrl', function($scope) {
         });
         
     };
+    
+    // process the form
+    /*
+    $scope.save = function() {
+        $http({
+            method  : 'POST',
+            url     : '/metadata?mfv='+metadata_format_version+'&pid='+escape(pid)',
+            data    : $.param($scope.fields),  // pass in data as strings
+            headers : { 'Content-Type': 'application/json' } 
+        	//headers : { 'Content-Type': 'application/x-www-form-urlencoded' }  // set the headers so angular passing info as form data (not request payload)
+        })
+            .success(function(data) {
+                //console.log(data);
+
+                if (!data.success) {
+                	// if not successful, bind errors to error variables
+                    $scope.error_message = data.error_message;
+                } else {
+                	// if successful, bind success message to message
+                    $scope.message = data.message;
+                }
+            });
+    };
+    */
+    
     
     //$scope.resetEditor = function() {
     //    $scope.fields = {};
@@ -73,22 +105,18 @@ app.controller('MetadataeditorCtrl', function($scope) {
     
     $scope.loadObject = function(pid){
     	var metadata_format_version = 1;
-        $.ajax({
-            type : 'GET',
-            dataType : 'json',
-			contentType: "application/json; charset=utf-8",
-            url: '/get/metadata?mfv='+metadata_format_version+'&pid='+escape(pid),
-            data: {},
-			success: function(data){
-				$scope.$apply(function(){ //necessary to $apply the changes
-					$scope.fields = data;
-					$scope.metadata_format_version = metadata_format_version;				
-				});
-			},
-            error : function(xhr, ajaxOptions, thrownError) {
-                alert( "Error: " + xhr.responseText + "\n" + thrownError );
-            }
-        });
+ 
+    	MetadataService.getObjectMetadata(metadata_format_version, pid).then(
+    			function(response) { 
+    				$scope.alerts = response.data.alerts;
+    				$scope.fields = response.data.metadata;
+    			}
+    			,function(response) {
+             		$scope.alerts = response.data.alerts;
+             		$scope.alerts.push({type: 'danger', msg: "Error code "+response.status});
+             	}
+    	);
+    	
     };
     
     $scope.canDelete = function(child){
@@ -242,48 +270,7 @@ app.controller('MetadataeditorCtrl', function($scope) {
     	return angular.element.inArray(child, arr);
     }
     
-    /*
-    $scope.tabs = [
-           	    { title:"Dynamic Title 1", content:"Dynamic content 1" },
-           	    { title:"Dynamic Title 2", content:"Dynamic content 2", disabled: true }
-           	  ];
+}
+);
 
-    $scope.alertMe = function() {
-           	    setTimeout(function() {
-           	      alert("You've selected the alert tab!");
-           	    });
-           	  };
-
-    $scope.navType = 'pills'; 
-    */
-    
-    /*
-    $scope.$on('$viewContentLoaded', function() {
-    	
-    	
-    	
-    	$.ajax({
-            type : 'GET',
-            dataType : 'json',
-			contentType: "application/json; charset=utf-8",
-            url: '/info/languages',
-            data: {},
-			success: function(data){
-				//alert('klkl');
-				$scope.$apply(function(){
-					$scope.languages = data;				
-				});
-			},
-            error : function(xhr, ajaxOptions, thrownError) {
-                alert( "Error: " + xhr.responseText + "\n" + thrownError );
-            }
-        });
-    	
-        
-    });
-    */
-        
-    
-    //$scope.setLanguage
-});
 

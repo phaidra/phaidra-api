@@ -211,7 +211,13 @@ sub get_metadata_format {
 			case "License" { $format{$mid}->{input_type} = "select" }
 			case "Language" { $format{$mid}->{input_type} = "language_select" }
 			
-			case "Boolean"	{ $format{$mid}->{input_type} = "input_checkbox" }
+			case "Boolean"	{
+				if($format{$mid}->{mandatory}){
+					$format{$mid}->{input_type} = "select_yesno";
+				}else{ 
+					$format{$mid}->{input_type} = "input_checkbox";
+				} 
+			}
 			
 			case "Node"	{ $format{$mid}->{input_type} = "node" }
 			
@@ -486,6 +492,18 @@ sub fill_object_metadata {
 	    					}
 	    				}
 	    			}
+	    		}elsif($node->{input_type} eq "input_checkbox" || $node->{input_type} eq "select_yesno"){
+	    			my $v;
+	    			if($e->text eq 'yes'){
+	    				$v = '1';
+	    			}
+	    			if($e->text eq 'no'){
+	    				$v = '0';
+	    			}
+	    			$node->{value} = $v;
+				    $node->{loaded_value} = $v;
+				    $node->{ui_value} = $v;
+				    $node->{loaded_ui_value} = $v;
 	    		}else{
 	    			my $v = b($e->text)->decode('UTF-8');
 	    			#$c->app->log->debug("assign value = ".$e->text);

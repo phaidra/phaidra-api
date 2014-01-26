@@ -59,7 +59,8 @@ sub startup {
 	$r->route('demo/metadataeditor_full') ->via('get')   ->to('demo#metadataeditor_full');
 	$r->route('demo/test_json')           ->via('get')   ->to('demo#test_json');
 	
-	$r->route('get/metadata')				  ->via('get')   ->to('get#metadata');	
+	$r->route('metadata/')			      ->via('get')   ->to('metadata#get');
+	$r->route('metadata/')			      ->via('post')  ->to('metadata#post');	
 
 return $self;
 }

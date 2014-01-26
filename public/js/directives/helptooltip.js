@@ -1,5 +1,6 @@
 
 // Apply any event handlers
+/*
 app.directive( "helptooltip", function(){
     return {
             restrict: "A", // look for an attribute 'helptext'
@@ -11,3 +12,4 @@ app.directive( "helptooltip", function(){
         }
     };
 });
+*/

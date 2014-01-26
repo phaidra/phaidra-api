@@ -33,6 +33,10 @@
 		
 		</nav>		
 		
+		
+		<alert ng-repeat="alert in alerts" type="alert.type" close="closeAlert($index)">{{alert.msg}}</alert>
+		
+		
 		<div class="well" id="MetadataeditorCtrl" data-ng-show="fields">
 		
 			<form name="form" class="form-horizontal" novalidate role="form">
