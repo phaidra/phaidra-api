@@ -3,7 +3,7 @@ var app = angular.module('metadataeditorApp', ['ui.bootstrap']);
 
 app.controller('MetadataeditorCtrl', function($scope) {
     
-	$scope.regex_pid = /^[a-op-zA-Z]+:[0-9]+$/;
+	$scope.regex_pid = /^[a-zA-Z\-]+:[0-9]+$/;
 	// use: <input ng-pattern="regex_identifier" ...
 	
     $scope.fields = [];
