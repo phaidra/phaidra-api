@@ -91,7 +91,7 @@
 
             <div class="btn-group jumbotron-buttons">
                 <!-- External Call to an AngularJS controller -->
-                <button type="button" class="btn btn-primary right" data-ng-click="getFromJson()"><i class="glyphicon glyphicon-pencil"></i> Load editor</button>
+                <button type="button" class="btn btn-primary right" data-ng-click="getMetadataTree()"><i class="glyphicon glyphicon-pencil"></i> Load editor</button>
         		<!--<button class="btn btn-danger right" id="resetEditor"><i class="glyphicon glyphicon-refresh"></i> Reset editor</button>-->
         		<a href="https://github.com/phaidra/phaidra-api" class="btn btn-default"><i class="glyphicon icon-github"></i>  Code on Github</a>
             </div>

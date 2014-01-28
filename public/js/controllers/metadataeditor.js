@@ -12,7 +12,7 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService) {
     $scope.alerts = [];    
 
 //    $scope.addAlert = function(msg) {
-//    	$scope.alerts.push({msg: msg});
+//    	$scope.alerts.unshift({msg: msg});
 //    };
 
     $scope.closeAlert = function(index) {
@@ -29,47 +29,38 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService) {
     
     $scope.init = function () {
     	
-    	$.ajax({
-            type : 'GET',
-            dataType : 'json',
-			contentType: "application/json; charset=utf-8",
-            url: '/info/languages',
-            data: {},
-			success: function(data){				
-				$scope.$apply(function(){
-					$scope.languages = data;				
-				});
-			},
-            error : function(xhr, ajaxOptions, thrownError) {
-                alert( "Error: " + xhr.responseText + "\n" + thrownError );
-            }
-        });
+    	/*
+    	MetadataService.getLanguages().then(
+        	function(response) { 
+        		$scope.alerts = response.data.alerts;
+        		$scope.languages = response.data.languages;        		
+        	}
+        	,function(response) {
+           		$scope.alerts = response.data.alerts;
+           		$scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
+           	}
+        );
+        */
+    	
+    };
         
+    $scope.save = function() {
+    	var metadata_format_version = 1;
+    	MetadataService.saveToObject(metadata_format_version, $scope.pid, $scope.fields).then(
+        	function(response) { 
+        		$scope.alerts = response.data.alerts;
+        		$scope.languages = [];
+        		$scope.fields = [];    			
+        		$scope.metadata_format_version = '';
+        	}
+        	,function(response) {
+           		$scope.alerts = response.data.alerts;
+           		$scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
+           	}
+        );
+    	        
     };
     
-    // process the form
-    /*
-    $scope.save = function() {
-        $http({
-            method  : 'POST',
-            url     : '/metadata?mfv='+metadata_format_version+'&pid='+escape(pid)',
-            data    : $.param($scope.fields),  // pass in data as strings
-            headers : { 'Content-Type': 'application/json' } 
-        	//headers : { 'Content-Type': 'application/x-www-form-urlencoded' }  // set the headers so angular passing info as form data (not request payload)
-        })
-            .success(function(data) {
-                //console.log(data);
-
-                if (!data.success) {
-                	// if not successful, bind errors to error variables
-                    $scope.error_message = data.error_message;
-                } else {
-                	// if successful, bind success message to message
-                    $scope.message = data.message;
-                }
-            });
-    };
-    */
     
     
     //$scope.resetEditor = function() {
@@ -77,24 +68,21 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService) {
     //    $scope.metadata_format_version = '';
     //};
     
-    $scope.getFromJson = function(){
+    $scope.getMetadataTree = function(){
     	var metadata_format_version = 1;
-        $.ajax({
-            type : 'GET',
-            dataType : 'json',
-			contentType: "application/json; charset=utf-8",
-            url: '/info/metadata_format?mfv='+metadata_format_version,
-            data: {},
-			success: function(data){
-				$scope.$apply(function(){ //necessary to $apply the changes
-					$scope.fields = data;
-					$scope.metadata_format_version = metadata_format_version;				
-				});				
-			},
-            error : function(xhr, ajaxOptions, thrownError) {
-                alert( "Error: " + xhr.responseText + "\n" + thrownError );
-            }
-        });
+        
+        MetadataService.getMetadataTree(metadata_format_version, pid).then(
+    		function(response) { 
+    			$scope.alerts = response.data.alerts;
+    			$scope.languages = response.data.languages;
+    			$scope.fields = response.data.tree;    			
+    			$scope.metadata_format_version = metadata_format_version;
+    		}
+    		,function(response) {
+           		$scope.alerts = response.data.alerts;
+           		$scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
+           	}
+    	);
     };
     
     // used to filter array of elements: if 'hidden' is set, the field will not be included in the array
@@ -107,16 +95,16 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService) {
     	var metadata_format_version = 1;
  
     	MetadataService.getObjectMetadata(metadata_format_version, pid).then(
-    			function(response) { 
-    				$scope.alerts = response.data.alerts;
-    				$scope.fields = response.data.metadata;
-    			}
-    			,function(response) {
-             		$scope.alerts = response.data.alerts;
-             		$scope.alerts.push({type: 'danger', msg: "Error code "+response.status});
-             	}
-    	);
-    	
+    		function(response) { 
+    			$scope.alerts = response.data.alerts;
+    			$scope.languages = response.data.languages;
+    			$scope.fields = response.data.metadata;
+    		}
+    		,function(response) {
+           		$scope.alerts = response.data.alerts;
+           		$scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
+           	}
+    	);    	
     };
     
     $scope.canDelete = function(child){

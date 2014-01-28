@@ -8,6 +8,7 @@ use Storable qw(dclone);
 use Switch;
 use Data::Dumper;
 use Mojo::ByteStream qw(b);
+use XML::Writer;
 
 sub metadata_format {
 	
@@ -62,7 +63,7 @@ sub get_languages {
 		my $ss;
 		
 		$ss = qq/SELECT l.isocode, ve.isocode, ve.entry FROM language AS l LEFT JOIN vocabulary_entry AS ve ON l.VEID = ve.VEID/;
-		$sth = $c->app->db_metadata->prepare($ss) or print $c->app->db_metadata->errstr;
+		$sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
 		$sth->execute();
 		my $isocode;
 		my $ve_isocode;
@@ -96,7 +97,7 @@ sub get_metadata_format {
 	
 	# create mapping of veid to licence id
 	$ss = qq/SELECT LID, name FROM licenses/;
-	$sth = $c->app->db_metadata->prepare($ss) or print $c->app->db_metadata->errstr;
+	$sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
 	$sth->execute();
 	my $l_lid;
 	my $l_veid;			
@@ -105,7 +106,7 @@ sub get_metadata_format {
 		$license_veid_lid_map{$l_veid} = $l_lid; 
 	}
 	
-	$c->app->log->debug($c->app->dumper(\%license_veid_lid_map));
+	#$c->app->log->debug($c->app->dumper(\%license_veid_lid_map));
 	
 	$ss = qq/SELECT 
 			m.MID, m.VEID, m.xmlname, m.xmlns, m.lomref, 
@@ -114,7 +115,7 @@ sub get_metadata_format {
 			m.VID, m.defaultvalue, m.sequence
 			FROM metadata m
 			ORDER BY m.sequence ASC/;
-	$sth = $c->app->db_metadata->prepare($ss) or print $c->app->db_metadata->errstr;
+	$sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
 	$sth->execute();
 	
 	my $mid; # id of the element 
@@ -289,7 +290,7 @@ sub get_metadata_format {
 	
 	# get the element labels
 	$ss = qq/SELECT m.mid, ve.entry, ve.isocode FROM metadata AS m LEFT JOIN vocabulary_entry AS ve ON ve.veid = m.veid;/;
-	$sth = $c->app->db_metadata->prepare($ss) or print $c->app->db_metadata->errstr;
+	$sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
 	$sth->execute();	
 
 	my $entry; # element label (name of the field, eg 'Title')
@@ -308,7 +309,7 @@ sub get_metadata_format {
 			
 			# get vocabulary info
 			$ss = qq/SELECT description FROM vocabulary WHERE vid = (?);/;
-			$sth = $c->app->db_metadata->prepare($ss) or print $c->app->db_metadata->errstr;
+			$sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
 			$sth->execute($element->{vid});
 			
 			my $desc; # some short text describing the vocabulary (it's not multilanguage, sorry)
@@ -323,7 +324,7 @@ sub get_metadata_format {
 			
 			# get vocabulary values/codes
 			$ss = qq/SELECT veid, entry, isocode FROM vocabulary_entry WHERE vid = (?);/;
-			$sth = $c->app->db_metadata->prepare($ss) or print $c->app->db_metadata->errstr;
+			$sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
 			$sth->execute($element->{vid});
 			
 			my $veid; # the code, together with namespace this creates URI, that's the current hack
@@ -653,6 +654,164 @@ sub get_uwmetadata {
 	#$c->app->log->info($uwmd);
 	
 	return $uwmd;		
+}
+
+sub save_to_object(){
+	
+	my $self = shift;
+	my $c = shift;
+	my $pid = shift;
+	my $metadata = shift;
+	
+	my $res = { alerts => [], status => 200 };
+	
+	my $uwmetadata = $self->json_2_uwmetadata($c, $metadata);
+	
+	$c->app->log->debug("XXX uwmetadata:".$uwmetadata);
+	
+	unless($uwmetadata){
+		$res->{status} = 500;
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error coverting metadata'};
+		return $res
+	}
+	
+	if($c->app->config->{validate_uwmetadata}){
+		
+	}
+	
+	my $saveres = $self->save_uwmetadata($pid, $uwmetadata);
+	if($saveres->{status} != 200){
+		$res->{status} = 500;
+		unshift @{$res->{alerts}}, @{$saveres->{alerts}};
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving metadata to object'};
+		return $res;
+	}else{
+		unshift @{$res->{alerts}}, @{$saveres->{alerts}};
+	}
+	
+	return $res
+}
+
+sub json_2_uwmetadata(){
+	
+	my $self = shift;
+	my $c = shift;	
+	my $metadata = shift;
+
+	# 1) unfortunately in UWMETADATA, the namespace prefixes are numbered (ns0, ns1,...)
+	# 2) unfortunately the namespace prefixes are numbered rather randomly
+	# 3) unfortunately some scripts have prefixes hardcoded (@xyz = $class->getChildrenByTagName("ns7:source");)
+	# If this api would only edit objects, we could now sacrifice one call to get the current uwmetadata and read out 
+	# the prefix-namespace mapping.
+	# But this api also creates objects, so it will impose it's prefix-namespace mapping anyway.
+	# To be transparent, we should just number the namespaces as they appear in this json tree, but some
+	# elements (namely all optional fields) might not even be there and UWMETADATA files without namespaces
+	# might create problems. So to minimize the damage, we will simply statically define the mapping here,
+	# in the way they usually occure in an object. Howgh.
+	my $prefixmap = {
+		"http://phaidra.univie.ac.at/XML/metadata/V1.0" => 'ns0', 
+		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0" => 'ns1',  	
+		"http://phaidra.univie.ac.at/XML/metadata/extended/V1.0" => 'ns2', 
+		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity" => 'ns3',
+		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/requirement" => 'ns4',
+		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational" => 'ns5',
+		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/annotation" => 'ns6',
+		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification" => 'ns7',
+		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization" => 'ns8',
+		"http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0" =>	'ns9',
+		"http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0" => 'ns10',
+		"http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0/entity" => 'ns11', 
+		"http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0" => 'ns12',
+		"http://phaidra.univie.ac.at/XML/metadata/etheses/V1.0" => 'ns13'
+	};
+	my $forced_declarations = [
+		"http://phaidra.univie.ac.at/XML/metadata/V1.0", 
+		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0",  	
+		"http://phaidra.univie.ac.at/XML/metadata/extended/V1.0", 
+		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity",
+		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/requirement",
+		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational",
+		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/annotation",
+		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification",
+		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization",
+		"http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0",
+		"http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0",
+		"http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0/entity", 
+		"http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0",
+		"http://phaidra.univie.ac.at/XML/metadata/etheses/V1.0"
+	];
+	
+	my $xml = '';
+	my $writer = XML::Writer->new( 
+		OUTPUT => \$xml,
+		NAMESPACES => 1,
+        PREFIX_MAP => $prefixmap,
+        FORCED_NS_DECLS => $forced_declarations,
+        DATA_MODE => 1
+	);
+	
+	$writer->startTag(["http://phaidra.univie.ac.at/XML/metadata/V1.0", "uwmetadata"]);
+	$self->json_2_uwmetadata_rec($c, $metadata, $writer);
+	$writer->endTag(["http://phaidra.univie.ac.at/XML/metadata/V1.0", "uwmetadata"]);
+	
+	$writer->end();
+	
+	return $xml;
+}
+
+sub json_2_uwmetadata_rec(){
+	
+	my $self = shift;
+	my $c = shift;	
+	my $children = shift;
+	my $writer = shift;	
+	
+	foreach my $child (@{$children}){
+		
+		my @attrs = undef;
+		if($child->{ordered}){
+			push @attrs, {'seq' => $child->{data_order}};
+		}
+		if($child->{value_lang}){
+			push @attrs, {'language' => $child->{value_lang}};
+		}
+	
+		$writer->startTag([$child->{xmlns}, $child->{xmlname}], @attrs);
+		
+		my $children_size = defined($child->{children}) ? scalar (@{$child->{children}}) : 0;
+		if($children_size > 0){
+			$self->json_2_uwmetadata_rec($c, $child->{children}, $writer);
+		}else{				
+			if(defined($child->{vocabularies})){
+				# the value is an uri (namespace/id), but this is currently
+				# not supported by phaidra, we have to strip it of the namespace
+				foreach my $voc (@{$child->{vocabularies}}){
+					if($child->{value} =~ m/($voc->{namespace})(\w+)/){
+						$writer->characters($2);
+					}	
+				}
+			}else{
+				$writer->characters($child->{value});
+			}	
+		}
+		
+		$writer->endTag([$child->{xmlns}, $child->{xmlname}]);	
+	}		
+}
+
+sub save_uwmetadata(){
+	
+	my $self = shift;
+	my $c = shift;	
+	my $pid = shift;
+	my $uwmetadata = shift;	
+	
+	my $res = { alerts => [], status => 200 };
+	
+	unshift @{$res->{alerts}}, { type => 'danger', msg => 'save_uwmetadata not implemented'};
+	$res->{status} = 500;
+	
+	return $res;
 }
 
 1;

@@ -5,7 +5,21 @@
 	
     "log_path":"/var/log/phaidra/PhaidraAPI.log",
     
-    "log_level":"debug",       
+    "log_level":"debug",
+    
+    "validate_uwmetadata":"1",
+    
+    "phaidra": {
+    
+    	"baseurl": "phaidra-instance.univie.ac.at",
+
+		"getuwmetadataurl": "https://fedora.phaidra-instance.univie.ac.at/fedora/get/{PID}/bdef:Asset/getUWMETADATA",
+    	
+    	"username": "changeme",
+    	
+    	"password": "changeme"
+    
+    },              
     
     "phaidra_db": {
     
