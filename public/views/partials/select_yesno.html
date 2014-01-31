@@ -1,0 +1,22 @@
+<div class="form-group input-select row" ng-class="{ 'has-error': child.mandatory && !child.ui_value, 'input-select-multi': child.cardinality === '*' || child.cardinality > '1' }">
+		<label class="control-label col-sm-2" for="{{child.field_id}}"><span class="grey" ng-show="child.ordered">{{child.data_order}}. </span>{{child.labels.en}}</label>
+    
+    <div class="col-sm-10">
+    
+    	<div class="input-group">
+    	
+	    	<select class="form-control" ng-model="child.ui_value" ng-required="{{child.mandatory}}" placeholder="-- please choose --" tooltip-placement="left" tooltip-popup-delay='1000' tooltip='{{child.helptext}}'>
+	        	<option value="">-- please choose --</option>
+	        	<option value="1">Yes</option>
+	        	<option value="0">No</option>
+	        </select>
+	        
+	        <span class="input-group-btn" ng-if="child.cardinality === '*' || child.cardinality > '1'">
+	        	<button class="btn btn-default" ng-click="addNewElement(child)"><span class="glyphicon glyphicon-plus"></span></button>
+	        	<button ng-if="(child.cardinality === '*' || child.cardinality > '1') && canDelete(child)" class="btn btn-default" ng-click="deleteElement(child)"><span class="glyphicon glyphicon-minus"></span></button>
+	   			<button class="btn btn-default" ng-click="upElement(child)" ng-if="child.ordered == 1 && canUpElement(child)"><span class="glyphicon glyphicon-chevron-up"></span></button>
+				<button class="btn btn-default" ng-click="downElement(child)" ng-if="child.ordered == 1 && canDownElement(child)"><span class="glyphicon glyphicon-chevron-down"></span></button>	        	
+	        </span>
+        </div>
+    </div>        
+</div>
