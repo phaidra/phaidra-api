@@ -238,7 +238,7 @@ sub get_metadata_format {
 			case "SPL" { $format{$mid}->{input_type} = "input_text" }
 			case "Curriculum" { $format{$mid}->{input_type} = "input_text" }
 			case "GPS" { $format{$mid}->{input_type} = "input_text" }
-			case "Duration" { $format{$mid}->{input_type} = "input_text" }
+			case "Duration" { $format{$mid}->{input_type} = "input_duration" }
 			case "FileSize" { $format{$mid}->{input_type} = "input_text" }			
 			else { $format{$mid}->{input_type} = "input_text" }
 		}
@@ -500,13 +500,13 @@ sub fill_object_metadata {
 	    			if($e->text eq 'no'){
 	    				$v = '0';
 	    			}
-	    			$node->{value} = $v;
+	    			#$node->{value} = $v;
 				    $node->{loaded_value} = $v;
 				    $node->{ui_value} = $v;
 				    $node->{loaded_ui_value} = $v;
 	    		}else{
 	    			my $v = b($e->text)->decode('UTF-8');
-	    			$node->{value} = $v;
+	    			#$node->{value} = $v;
 				    $node->{loaded_value} = $v;
 				    $node->{ui_value} = $v;
 				    $node->{loaded_ui_value} = $v;
@@ -887,7 +887,9 @@ sub json_2_uwmetadata_rec(){
 		}else{				
 			
 			# copy the 'ui_value' to 'value' (or transform, if needed)
-			$child->{value} = $child->{ui_value};
+			if($child->{value} eq ''){
+				$child->{value} = $child->{ui_value};
+			}
 			
 			if(defined($child->{vocabularies})){
 				# the value is an uri (namespace/id), but this is currently

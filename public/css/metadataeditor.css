@@ -223,10 +223,6 @@ strong {
 #pid.ng-invalid.ng-dirty {
     background-color: #FA787E;
 }
-    
-#pid.ng-valid.ng-dirty {
-    background-color: #78FA89;
-}
 
 /* makes the dropdown use scroll 
 .dropdown-menu {
@@ -415,4 +411,17 @@ reenable disabled radius
 
 .grey {
 	color: #aaa;
+}
+
+ .duration  {
+ 	display: table;	
+}
+
+ .duration input {
+	min-width: 50px !important;
+	max-width: 50px !important;*/
+}
+
+.duration input.ng-invalid.ng-dirty {
+    background-color: #FA787E;
 }

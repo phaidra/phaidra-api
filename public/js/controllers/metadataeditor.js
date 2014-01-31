@@ -11,10 +11,6 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService) {
     $scope.pid = '';
     $scope.alerts = [];    
 
-//    $scope.addAlert = function(msg) {
-//    	$scope.alerts.unshift({msg: msg});
-//    };
-
     $scope.closeAlert = function(index) {
     	$scope.alerts.splice(index, 1);
     };
@@ -261,4 +257,66 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService) {
 }
 );
 
+app.directive('phaidraDuration', function() {
+      
+      function link(scope, element, attrs) {
+    	  scope.durationObject = {  hours: '', minutes: '', seconds: ''};
+    	  scope.regex_duration = /^[0-9][0-9]*$/;
+    
+    	  /*
+    	  scope.getMatches = function(string, regex, index) {
+      	    index || (index = 1); // default to the first capturing group
+      	    var matches = [];
+      	    var match;
+      	    while (match = regex.exec(string)) {
+      	        matches.push(match[index]);
+      	    }
+      	    return matches;
+      	  }
+    	  */
+          scope.$watch('duration', function(value) {        	  
+        	  if(value){
+	        	// format: PT99H12M13S
+        		var regex = /^PT([0-9][0-9]*)H/g;
+        		var match = regex.exec(value.ui_value);
+	            var hours = match ? match[1] : '';
+	            
+	            regex = /H([0-9][0-9]*)M/g;
+        		match = regex.exec(value.ui_value);
+	            var minutes = match ? match[1] : '';
+	            
+	            regex = /M([0-9][0-9]*)S$/g;
+        		match = regex.exec(value.ui_value);
+	            var seconds = match ? match[1] : '';
+	           
+		        scope.durationObject.hours = hours ? hours : '';
+		        scope.durationObject.minutes = minutes ? minutes : '';
+		        scope.durationObject.seconds = seconds ? seconds : '';
+	           
+        	  }
+          }, true);
+     
+          scope.$watch('durationObject', function(value) { 
+        	  //alert(scope.durationObject.hours+':'+scope.durationObject.minutes+':'+scope.durationObject.seconds);
+        	  if(value && (scope.durationObject.hours || scope.durationObject.minutes || scope.durationObject.seconds)){
+        		  scope.duration.ui_value = 'PT' + (scope.durationObject.hours ? scope.durationObject.hours : '') + 'H' + (scope.durationObject.minutes ? scope.durationObject.minutes : '') + 'M' + (scope.durationObject.seconds ? scope.durationObject.seconds : '') + 'S';
+        		  scope.duration.value = 'PT' + (scope.durationObject.hours ? scope.durationObject.hours : '00') + 'H' + (scope.durationObject.minutes ? scope.durationObject.minutes : '00') + 'M' + (scope.durationObject.seconds ? scope.durationObject.seconds : '00') + 'S';
+        	  }else{
+        		  scope.duration.ui_value = '';
+        		  scope.duration.value = '';
+        	  }
+          }, true);
+          
+        }
+     
+        return {
+          restrict: 'E',
+          link: link,
+          replace: true,
+          templateUrl: '/views/directives/duration.html',
+          scope: {
+        	  duration: '=duration'
+            },
+        };
+});
 
