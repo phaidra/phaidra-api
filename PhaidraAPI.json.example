@@ -8,10 +8,26 @@
     "log_level":"debug",
     
     "validate_uwmetadata":"1",
+      
+    "defaults": {
+    
+    	"metadata_field_language": "de"
+    	        
+	},
     
     "phaidra": {
     
     	"baseurl": "phaidra-instance.univie.ac.at",
+    	
+    	"fedorabaseurl": "",
+    	
+    	"staticbaseurl": "",
+    	
+    	"fedorastylesheeturl": "",
+    	
+    	"proaiRepositoryIdentifier": "",
+    	
+    	"uwmetadatalabel": "Universitaet Wien Metadata",
 
 		"getuwmetadataurl": "https://fedora.phaidra-instance.univie.ac.at/fedora/get/{PID}/bdef:Asset/getUWMETADATA",
     	

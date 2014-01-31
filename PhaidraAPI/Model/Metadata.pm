@@ -8,7 +8,13 @@ use Storable qw(dclone);
 use Switch;
 use Data::Dumper;
 use Mojo::ByteStream qw(b);
+use Mojo::Home;
 use XML::Writer;
+use XML::LibXML;
+use lib "lib/phaidra_binding";
+use Phaidra::API;
+my $home = Mojo::Home->new;
+$home->detect('PhaidraAPI');
 
 sub metadata_format {
 	
@@ -114,7 +120,7 @@ sub get_metadata_format {
 			m.datatype, m.valuespace, m.MID_parent, m.cardinality, m.ordered, m.fgslabel,
 			m.VID, m.defaultvalue, m.sequence
 			FROM metadata m
-			ORDER BY m.sequence ASC/;
+			ORDER BY m.sequence, m.MID ASC/;
 	$sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
 	$sth->execute();
 	
@@ -145,6 +151,7 @@ sub get_metadata_format {
 	while($sth->fetch) {		
 		$i++;	
 		$format{$mid} = {
+			mid => $mid, # needed for sort
 			debug_id => int(rand(9999)), 
 			veid => $veid, 
 			xmlname => $xmlname, 
@@ -166,7 +173,7 @@ sub get_metadata_format {
 			data_order => '', # as defined in object's metadata (for objects which have 'ordered = 1')		
 			helptext => 'No helptext defined.',
 			value => '', # what's expected in uwmetadata
-			value_lang => 'de', # language of the value, if any ('de' by default)
+			value_lang => '', # language of the value if any
 			ui_value => '', # what's expected on the form (eg ns/id for vocabularies)
 			loaded_ui_value => '', # the initial value which was loaded from the object, ev transformed for frontend use
 			loaded_value => '', # the initial uwmetadata value which was loaded from the object
@@ -204,7 +211,10 @@ sub get_metadata_format {
 		# not just a simple text input
 		switch ($datatype) {
 			
-			case "LangString" { $format{$mid}->{input_type} = "input_text_lang" }
+			case "LangString" { 
+				$format{$mid}->{input_type} = "input_text_lang";
+				$format{$mid}->{value_lang} =  $c->app->config->{defaults}->{metadata_field_language}; 
+			}
 			
 			case "DateTime"	{ $format{$mid}->{input_type} = "input_datetime" }
 						
@@ -235,7 +245,10 @@ sub get_metadata_format {
 		
 		# special input types
 		switch ($format{$mid}->{xmlname}) {
-			case "description"	{ $format{$mid}->{input_type} = "input_textarea_lang" }
+			case "description"	{ 
+				$format{$mid}->{input_type} = "input_textarea_lang";
+				$format{$mid}->{value_lang} =  $c->app->config->{defaults}->{metadata_field_language}; 
+				}
 			case "identifier" {
 				# because there is also an 'identifier' in the http://phaidra.univie.ac.at/XML/metadata/extended/V1.0 namespace
 				if($format{$mid}->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0'){
@@ -281,11 +294,11 @@ sub get_metadata_format {
 	}
 	
 	# and sort it
-	@metadata_format = sort { $a->{field_order} <=> $b->{field_order} } @metadata_format;	
+	@metadata_format = sort { $a->{field_order} <=> $b->{field_order} ||  $a->{mid} <=> $b->{mid} } @metadata_format;	
 	
 	# and sort the children
 	foreach my $key (keys %parents){
-		@{$id_hash{$key}{children}} = sort { $a->{field_order} <=> $b->{field_order} } @{$parents{$key}{children}};		
+		@{$id_hash{$key}{children}} = sort { $a->{field_order} <=> $b->{field_order} ||  $a->{mid} <=> $b->{mid} } @{$parents{$key}{children}};		
 	}
 	
 	# get the element labels
@@ -455,21 +468,7 @@ sub fill_object_metadata {
 		    # search this node in the metadata tree
 		    # get one where metadata from uwmetadata were not yet loaded
 		    $ns = $nsmap->{$ns};
-		    $node = $self->get_empty_node($c, $ns, $id, $metadata_tree_parent, $metadata_nodes_hash);
-		    # we have a new parent now! we have to set it so that the other nodes *in this cycle* will search
-		    # under this new parent
-		    #$metadata_tree_parent = $node; 
-
-=cut		    
-		    value => '', # what's expected in uwmetadata
-		    value_lang => '', # value language, if any
-		    
-		    loaded_value => '', # the initial uwmetadata value which was loaded from the object
-		    loaded_value_lang => '', # the initial language for the value, if any
-			
-			ui_value => '', # what's expected on the form (eg ns/id for vocabularies)
-			loaded_ui_value => '', # the initial value which was loaded from the object, ev transformed for frontend use			
-=cut		
+		    $node = $self->get_empty_node($c, $ns, $id, $metadata_tree_parent, $metadata_nodes_hash); 
 
 			if($e->text){
 	    		# fill in values
@@ -507,14 +506,12 @@ sub fill_object_metadata {
 				    $node->{loaded_ui_value} = $v;
 	    		}else{
 	    			my $v = b($e->text)->decode('UTF-8');
-	    			#$c->app->log->debug("assign value = ".$e->text);
 	    			$node->{value} = $v;
 				    $node->{loaded_value} = $v;
 				    $node->{ui_value} = $v;
 				    $node->{loaded_ui_value} = $v;
 	    		}
-			    #$c->app->log->debug("ns=$ns id=$id text=".$e->text);
-			    
+
 			}
 			
 			if(defined($e->attr)){			
@@ -539,26 +536,22 @@ sub sort_ordered {
 	
 	my $node = shift;
 
-=cut
-
-upload_date, version, etc needs to be ordered by field_order, as well as contribute
-but among contribute nodes, the order is defined by seq (data_order)
-=> field_order takes preference
-
-<ns1:lifecycle>
-<ns1:upload_date>2013-06-12T11:02:28.665Z</ns1:upload_date>
-<ns1:version language="de">2</ns1:version>
-<ns1:status>44</ns1:status>
-<ns2:peer_reviewed>no</ns2:peer_reviewed>
-<ns1:contribute seq="1">...</ns1:contribute>
-<ns1:contribute seq="2">...</ns1:contribute>
-<ns1:contribute seq="3">...</ns1:contribute>
-<ns1:contribute seq="4">...</ns1:contribute>
-<ns1:contribute seq="0">...</ns1:contribute>
-<ns2:infoeurepoversion>1556249</ns2:infoeurepoversion>
-</ns1:lifecycle>
-
-=cut	
+	# upload_date, version, etc needs to be ordered by field_order, as well as contribute
+	# but among contribute nodes, the order is defined by seq (data_order)
+	# => field_order takes preference
+	#
+	# <ns1:lifecycle>
+	# <ns1:upload_date>2013-06-12T11:02:28.665Z</ns1:upload_date>
+	# <ns1:version language="de">2</ns1:version>
+	# <ns1:status>44</ns1:status>
+	# <ns2:peer_reviewed>no</ns2:peer_reviewed>
+	# <ns1:contribute seq="1">...</ns1:contribute>
+	# <ns1:contribute seq="2">...</ns1:contribute>
+	# <ns1:contribute seq="3">...</ns1:contribute>
+	# <ns1:contribute seq="4">...</ns1:contribute>
+	# <ns1:contribute seq="0">...</ns1:contribute>
+	# <ns2:infoeurepoversion>1556249</ns2:infoeurepoversion>
+	# </ns1:lifecycle>
 
 	if($node->{data_order} eq ''){
 		return int($node->{field_order});	
@@ -614,8 +607,7 @@ sub get_empty_node {
 		last if defined $node;
 	}
 	
-	return $node;
-	
+	return $node;	
 }
 
 
@@ -647,11 +639,9 @@ sub get_uwmetadata {
 		
 	my $uwmdurl = $c->app->config->{phaidra}->{getuwmetadataurl};
 	$uwmdurl =~ s/{PID}/$pid/g;
-	#$c->app->log->info($uwmdurl);
 	
 	my $ua = Mojo::UserAgent->new;
   	my $uwmd = $ua->get($uwmdurl)->res->body;  	
-	#$c->app->log->info($uwmd);
 	
 	return $uwmd;		
 }
@@ -667,19 +657,13 @@ sub save_to_object(){
 	
 	my $uwmetadata = $self->json_2_uwmetadata($c, $metadata);
 	
-	$c->app->log->debug("XXX uwmetadata:".$uwmetadata);
-	
 	unless($uwmetadata){
 		$res->{status} = 500;
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error coverting metadata'};
 		return $res
 	}
 	
-	if($c->app->config->{validate_uwmetadata}){
-		
-	}
-	
-	my $saveres = $self->save_uwmetadata($pid, $uwmetadata);
+	my $saveres = $self->save_uwmetadata($c, $pid, $uwmetadata);
 	if($saveres->{status} != 200){
 		$res->{status} = 500;
 		unshift @{$res->{alerts}}, @{$saveres->{alerts}};
@@ -692,6 +676,106 @@ sub save_to_object(){
 	return $res
 }
 
+sub validate_uwmetadata(){
+	
+	my $self = shift;
+	my $c = shift;	
+	my $pid = shift;
+	my $uwmetadata = shift;	
+	
+	my $res = { alerts => [], status => 200 };
+
+	my $xsdpath = $home->rel_file('public/xsd/uwmetadata/ns0.xsd');
+	
+	unless(-f $xsdpath){
+		unshift @{$res->{alerts}}, { type => 'danger', msg => "Cannot find XSD files: $xsdpath"};
+		$res->{status} = 500;
+	};
+
+	my $schema = XML::LibXML::Schema->new(location => $xsdpath);
+	my $parser = XML::LibXML->new;
+
+	eval {
+		my $document = $parser->parse_string($uwmetadata);
+		
+		unless(defined($pid)){
+			$self->add_dummy_metadata($c, $document);
+		}	
+		
+		#$c->app->log->debug("Validating: ".$document->toString(1));	
+		
+		$schema->validate($document) 
+	};
+		
+	if($@){
+		$c->app->log->error("Error validating uwmetadata: $@");
+		unshift @{$res->{alerts}}, { type => 'danger', msg => $@ };
+		$res->{status} = 500;		
+	}
+
+	return $res;
+}
+
+sub add_dummy_metadata(){
+	
+	my $self = shift;
+	my $c = shift;	
+	my $doc = shift;
+	
+	my $cfg;
+	foreach my $node ($doc->findnodes('//namespace::*')) {
+    	$cfg->{namespace}{$node->getLocalName()} = $node->getValue();
+    	$cfg->{short}{$node->getValue()} = $node->getLocalName();
+	}
+	
+	my $xc = XML::LibXML::XPathContext->new($doc);	
+	for my $ns (keys %{$cfg->{namespace}})
+	{
+		$xc->registerNs($ns => $cfg->{namespace}->{$ns});
+	}
+	
+	my $uwmetans = $cfg->{short}->{"http://phaidra.univie.ac.at/XML/metadata/V1.0"};
+	my $lomns = $cfg->{short}->{"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"};
+		
+	# add pid	
+	my $xpath = "/$uwmetans:uwmetadata/$lomns:general";
+	my $nodeset = $xc->findnodes($xpath);
+	my $generalnode;
+	foreach my $gnode ($nodeset->get_nodelist){
+		$generalnode = $gnode;
+		last;
+	}			
+	$xpath = "/$uwmetans:uwmetadata/$lomns:general/$lomns:identifier";	
+	$nodeset = $xc->findnodes($xpath);	
+	my $pidnode = undef;
+	foreach my $node ($nodeset->get_nodelist){
+		$pidnode = $node;	
+		my $pidnodenew = $doc->parse_balanced_chunk('<'.$lomns.':identifier xmlns:'.$lomns.'="http://phaidra.univie.ac.at/XML/metadata/extended/V1.0">o:1</'.$lomns.':identifier>');	
+		$generalnode->insertAfter($pidnodenew, $pidnode);
+		$generalnode->removeChild($pidnode);
+		last;	 
+	}
+	
+	#add upload_date
+	$xpath = "/$uwmetans:uwmetadata/$lomns:lifecycle";
+	$nodeset = $xc->findnodes($xpath);
+	my $lifecyclenode;
+	foreach my $lnode ($nodeset->get_nodelist){
+		$lifecyclenode = $lnode;
+		last;
+	}			
+	$xpath = "/$uwmetans:uwmetadata/$lomns:lifecycle/$lomns:upload_date";	
+	$nodeset = $xc->findnodes($xpath);	
+	my $upload_date_node = undef;
+	foreach my $node ($nodeset->get_nodelist){
+		$upload_date_node = $node;	
+		my $upload_date_node_new = $doc->parse_balanced_chunk('<'.$lomns.':upload_date xmlns:'.$lomns.'="http://phaidra.univie.ac.at/XML/metadata/extended/V1.0">1970-01-01T00:00:00.000Z</'.$lomns.':upload_date>');	
+		$generalnode->insertAfter($upload_date_node_new, $upload_date_node);
+		$generalnode->removeChild($upload_date_node);
+		last;	 
+	}
+}
+
 sub json_2_uwmetadata(){
 	
 	my $self = shift;
@@ -700,12 +784,12 @@ sub json_2_uwmetadata(){
 
 	# 1) unfortunately in UWMETADATA, the namespace prefixes are numbered (ns0, ns1,...)
 	# 2) unfortunately the namespace prefixes are numbered rather randomly
-	# 3) unfortunately some scripts have prefixes hardcoded (@xyz = $class->getChildrenByTagName("ns7:source");)
+	# 3) unfortunately some scripts have the prefixes hardcoded (@xyz = $class->getChildrenByTagName("ns7:source");)
 	# If this api would only edit objects, we could now sacrifice one call to get the current uwmetadata and read out 
-	# the prefix-namespace mapping.
+	# the prefix-namespace mapping, so that we don't change a thing.
 	# But this api also creates objects, so it will impose it's prefix-namespace mapping anyway.
 	# To be transparent, we should just number the namespaces as they appear in this json tree, but some
-	# elements (namely all optional fields) might not even be there and UWMETADATA files without namespaces
+	# elements (namely all optional fields) might not even be there - and UWMETADATA files without those namespaces
 	# might create problems. So to minimize the damage, we will simply statically define the mapping here,
 	# in the way they usually occure in an object. Howgh.
 	my $prefixmap = {
@@ -759,29 +843,52 @@ sub json_2_uwmetadata(){
 	return $xml;
 }
 
+# we need that an element in the json structure contains at least
+# - xmlns
+# - xmlname
+# - ui_value
+# - ordered
+# - datatype
+# - data_order (if any)
+# - language (if any)
 sub json_2_uwmetadata_rec(){
 	
 	my $self = shift;
 	my $c = shift;	
 	my $children = shift;
-	my $writer = shift;	
+	my $writer = shift;		
 	
 	foreach my $child (@{$children}){
 		
-		my @attrs = undef;
-		if($child->{ordered}){
-			push @attrs, {'seq' => $child->{data_order}};
+		my $children_size = defined($child->{children}) ? scalar (@{$child->{children}}) : 0;
+		
+		# some elements are not allowed to be empty, so if these are empty
+		# we cannot add them to uwmetadata
+		if($child->{ui_value} eq '' && $children_size == 0){
+			next;	
 		}
-		if($child->{value_lang}){
-			push @attrs, {'language' => $child->{value_lang}};
+		
+		my %attrs;
+		if($child->{ordered}){
+			$attrs{seq} = $child->{data_order};
+		}
+		if($child->{value_lang} ne ''){
+			$attrs{language} = $child->{value_lang};
 		}
 	
-		$writer->startTag([$child->{xmlns}, $child->{xmlname}], @attrs);
+		if (%attrs){
+			$writer->startTag([$child->{xmlns}, $child->{xmlname}], %attrs);
+		}else{
+			$writer->startTag([$child->{xmlns}, $child->{xmlname}]);
+		}
 		
-		my $children_size = defined($child->{children}) ? scalar (@{$child->{children}}) : 0;
 		if($children_size > 0){
 			$self->json_2_uwmetadata_rec($c, $child->{children}, $writer);
 		}else{				
+			
+			# copy the 'ui_value' to 'value' (or transform, if needed)
+			$child->{value} = $child->{ui_value};
+			
 			if(defined($child->{vocabularies})){
 				# the value is an uri (namespace/id), but this is currently
 				# not supported by phaidra, we have to strip it of the namespace
@@ -791,7 +898,11 @@ sub json_2_uwmetadata_rec(){
 					}	
 				}
 			}else{
-				$writer->characters($child->{value});
+				if($child->{datatype} eq 'Boolean'){
+					$writer->characters($child->{value} ? 'yes' : 'no');
+				}else{
+					$writer->characters($child->{value});
+				}
 			}	
 		}
 		
@@ -808,8 +919,59 @@ sub save_uwmetadata(){
 	
 	my $res = { alerts => [], status => 200 };
 	
-	unshift @{$res->{alerts}}, { type => 'danger', msg => 'save_uwmetadata not implemented'};
-	$res->{status} = 500;
+	unless(defined($pid)){
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Missing PID. UWMETADATA datastream can only be saved to an existing object.'};
+		$res->{status} = 500;	
+		return $res;
+	}
+	unless($pid =~ m/^[a-zA-Z\-]+:[0-9]+$/){
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Malformed PID: $pid'};
+		$res->{status} = 500;	
+		return $res;
+	}
+	
+	if($c->app->config->{validate_uwmetadata}){
+		$c->app->log->info("Validating UWMETADATA for object $pid...");
+		my $valres = $self->validate_uwmetadata($c, $pid, $uwmetadata);
+		if($valres->{status} != 200){
+			$c->app->log->info("Validating UWMETADATA for object $pid...failed:".$c->app->dumper($valres->{alerts}));
+			$res->{status} = $valres->{status};
+			unshift @{$res->{alerts}}, @{$valres->{alerts}};
+			unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error validating metadata'};
+			return $res;
+		}else{
+			$c->app->log->info("Validating UWMETADATA for object $pid...success.");
+			unshift @{$res->{alerts}}, @{$valres->{alerts}};
+		}
+	}
+	
+	$c->app->log->debug("Connecting to ".$c->app->config->{phaidra}->{fedorabaseurl}."...");
+	my $phaidra = Phaidra::API->new(
+		$c->app->config->{phaidra}->{fedorabaseurl}, 
+		$c->app->config->{phaidra}->{staticbaseurl}, 
+		$c->app->config->{phaidra}->{fedorastylesheeturl}, 
+		$c->app->config->{phaidra}->{proaiRepositoryIdentifier}, 
+		$c->app->config->{phaidra}->{username}, 
+		$c->app->config->{phaidra}->{password}
+	);
+	
+	# we are only changing UWMETADATA so we don't have to load & save object	
+	my $soap = $phaidra->getSoap("apim");
+	unless(defined($soap)){
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Cannot create SOAP connection to '.$c->app->config->{phaidra}->{fedorabaseurl}};
+		$res->{status} = 500;	
+		return $res;
+	}
+	$c->app->log->debug("Connected");
+	my $soapres = $soap->modifyDatastreamByValue($pid, "UWMETADATA", '', $c->app->config->{phaidra}->{uwmetadatalabel}, "text/xml", '', SOAP::Data->type(base64 => $uwmetadata), 'DISABLED', 'none', 'Modified by PhaidraAPI (rest)', SOAP::Data->type(boolean => 0));
+	if($soapres->fault)
+	{
+		$c->app->log->error("Saving UWMETADATA for $pid failed.");		
+		$res->{status} = 500;	
+		unshift @{$res->{alerts}}, { type => 'danger', msg => "Saving UWMETADATA failed: ".$soapres->faultcode.": ".$soapres->faultstring};
+		return $res;
+	}
+	$c->app->log->debug("Saving UWMETADATA for $pid successful.");
 	
 	return $res;
 }
