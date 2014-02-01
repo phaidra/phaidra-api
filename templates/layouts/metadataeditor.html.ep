@@ -44,11 +44,12 @@
   	<!-- UI-Bootstrap js (AngularJS) -->  	  
   	<script src="<%= url_for '/js/ui-bootstrap-tpls-0.6.0.js' %>"></script>
   	
+  	<!-- Promise tracker -->
+  	<script src="<%= url_for '/js/promise-tracker.min.js' %>"></script>
+  	
   	<!-- Custom Phaidra scripts -->
 	<script type="text/javascript" src="<%= url_for '/js/services/metadata.js' %>"></script>
   	<script type="text/javascript" src="<%= url_for '/js/controllers/metadataeditor.js' %>"></script>
-  	<script type="text/javascript" src="<%= url_for '/js/directives/helptooltip.js' %>"></script>
-  	<!--<script type="text/javascript" src="<%= url_for '/js/directives/field-directive.js' %>"></script>-->
   	
   	<!-- Custom Phaidra CSS --> 
   	<link href="<%= url_for '/css/metadataeditor.css' %>" rel="stylesheet">
@@ -84,10 +85,11 @@
 	<header id="overview" class="hero-unit">
         <div class="container">
             <h1>
-                <span class="phaidra-title">Phaidra</span> Metadata Editor
+                <span class="phaidra-title">Phaidra</span> <%=l 'Metadata Editor' %>
+                <img class="load-spinner" ng-show="loadingTracker.active()" src="../img/ajax-loader.gif">
             </h1>
-
-            <p>Full version</p>
+			
+            <p><%=l 'Full version' %></p>
 
             <div class="btn-group jumbotron-buttons">
                 <!-- External Call to an AngularJS controller -->

@@ -5,7 +5,7 @@
     
     	<div class="input-group">
     	
-	    	<textarea class="form-control" type="text" ng-model="child.ui_value" value="{{child.ui_value}}" ng-required="{{child.mandatory}}" tooltip-placement="left" tooltip-popup-delay='1000' tooltip='{{child.helptext}}'></textarea>    	
+	    	<textarea class="form-control" type="text" ng-model="child.ui_value" value="{{child.ui_value}}" ng-required="{{child.mandatory}}" phaidra-help phaidra-help-id="{{child.help_id}}" tooltip-placement="left" tooltip-popup-delay='1500' tooltip-html-unsafe='{{default_helptext}}'></textarea>    	
 	    	<span class="input-group-btn" ng-if="child.cardinality === '*' || child.cardinality > '1'">
 	    		<button class="btn btn-default" ng-click="addNewElement(child)"><span class="glyphicon glyphicon-plus"></span></button>
 	    		<button ng-if="(child.cardinality === '*' || child.cardinality > '1') && canDelete(child)" class="btn btn-default" ng-click="deleteElement(child)"><span class="glyphicon glyphicon-minus"></span></button>

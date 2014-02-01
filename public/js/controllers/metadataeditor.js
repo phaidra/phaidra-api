@@ -1,10 +1,16 @@
-var app = angular.module('metadataeditorApp', ['ui.bootstrap', 'metadataService']);
+var app = angular.module('metadataeditorApp', ['ui.bootstrap', 'ajoslin.promise-tracker', 'metadataService']);
 
-app.controller('MetadataeditorCtrl', function($scope, MetadataService) {
+app.controller('MetadataeditorCtrl', function($scope, MetadataService, promiseTracker) {
     
 	$scope.regex_pid = /^[a-zA-Z\-]+:[0-9]+$/;
 	// use: <input ng-pattern="regex_identifier" ...
 	
+	// we will use this to track running ajax requests to show spinner
+	$scope.loadingTracker = promiseTracker.register('loadingTracker');
+	
+	$scope.default_helptext = 'Loading tooltip content...';
+	
+	$scope.debugvar = 'im in MetadataeditorCtrl scope!';
     $scope.fields = [];
     $scope.languages = [];
     $scope.metadata_format_version = "";
@@ -25,24 +31,15 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService) {
     
     $scope.init = function () {
     	
-    	/*
-    	MetadataService.getLanguages().then(
-        	function(response) { 
-        		$scope.alerts = response.data.alerts;
-        		$scope.languages = response.data.languages;        		
-        	}
-        	,function(response) {
-           		$scope.alerts = response.data.alerts;
-           		$scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
-           	}
-        );
-        */
+   
     	
     };
         
     $scope.save = function() {
     	var metadata_format_version = 1;
-    	MetadataService.saveToObject(metadata_format_version, $scope.pid, $scope.fields).then(
+    	var promise = MetadataService.saveToObject(metadata_format_version, $scope.pid, $scope.fields)
+    	$scope.loadingTracker.addPromise(promise);
+    	promise.then(
         	function(response) { 
         		$scope.alerts = response.data.alerts;
         		$scope.languages = [];
@@ -57,17 +54,19 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService) {
     	        
     };
     
-    
-    
-    //$scope.resetEditor = function() {
-    //    $scope.fields = {};
-    //    $scope.metadata_format_version = '';
-    //};
+    $scope.resetEditor = function() {
+    	$scope.alerts = [];
+		$scope.languages = [];
+		$scope.fields = [];    			
+		$scope.metadata_format_version = '';
+    };
     
     $scope.getMetadataTree = function(){
     	var metadata_format_version = 1;
-        
-        MetadataService.getMetadataTree(metadata_format_version, pid).then(
+    	$scope.resetEditor();
+        var promise = MetadataService.getMetadataTree(metadata_format_version, pid);        
+        $scope.loadingTracker.addPromise(promise);
+        promise.then(
     		function(response) { 
     			$scope.alerts = response.data.alerts;
     			$scope.languages = response.data.languages;
@@ -89,8 +88,10 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService) {
     
     $scope.loadObject = function(pid){
     	var metadata_format_version = 1;
- 
-    	MetadataService.getObjectMetadata(metadata_format_version, pid).then(
+    	$scope.resetEditor();
+    	var promise = MetadataService.getObjectMetadata(metadata_format_version, pid);
+    	$scope.loadingTracker.addPromise(promise);
+    	promise.then(
     		function(response) { 
     			$scope.alerts = response.data.alerts;
     			$scope.languages = response.data.languages;
@@ -254,8 +255,7 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService) {
     	return angular.element.inArray(child, arr);
     }
     
-}
-);
+});
 
 app.directive('phaidraDuration', function() {
       
@@ -263,17 +263,6 @@ app.directive('phaidraDuration', function() {
     	  scope.durationObject = {  hours: '', minutes: '', seconds: ''};
     	  scope.regex_duration = /^[0-9][0-9]*$/;
     
-    	  /*
-    	  scope.getMatches = function(string, regex, index) {
-      	    index || (index = 1); // default to the first capturing group
-      	    var matches = [];
-      	    var match;
-      	    while (match = regex.exec(string)) {
-      	        matches.push(match[index]);
-      	    }
-      	    return matches;
-      	  }
-    	  */
           scope.$watch('duration', function(value) {        	  
         	  if(value){
 	        	// format: PT99H12M13S
@@ -319,4 +308,76 @@ app.directive('phaidraDuration', function() {
             },
         };
 });
+
+// lazy binding
+(function($){
+    $.fn.lazybind = function(event, fn, timeout, abort){
+        var timer = null;
+        $(this).bind(event, function(e){
+            var ev = e;
+            timer = setTimeout(function(){
+                fn(ev);
+            }, timeout);
+        });
+        if(abort == undefined){
+            return;
+        }
+        $(this).bind(abort, function(){
+            if(timer != null){
+                clearTimeout(timer);
+            }
+        });
+    };
+})(jQuery);
+
+// load tooltip content on demand
+app.directive('phaidraHelp', function($http, $timeout) {
+	 return {
+	  restrict: 'A', 
+
+	  link: function(scope, element, attr) {
+	  
+	      // the tooltip is shown after some delay
+	      // and we also don't want to load the content
+		  // when user just crossed the field with a mouse
+		  // so we are going to load it on mouseover, but only
+		  // if user stays hier a while (see, if mouseout before, it will be cancelled)
+		  // BUT, we want the content to be loaded before the tooltip shows
+		  // otherwise it will be wrong positioned because of the changed content
+		  // (and correctly positioned only on second hover)
+		  // + we need to call $scope.$apply
+		  element.lazybind('mouseover',function(e) {
+			 
+			  // this will make the tooltip realize it has a new content
+			  // so if the new content is already there, it will be correctly positioned
+			  scope.$apply(function(e) {
+				  
+				  if(attr['loaded']){
+					  return;			  
+				  }
+				 
+		          var promise = $http({
+			          method  : 'GET',
+			          url     : '/help/tooltip',
+			          params  : { id: attr['phaidraHelpId']  }
+			      });        
+			      scope.loadingTracker.addPromise(promise);
+			      promise.then(
+			  		function(response) { 	  		
+			  			
+			  			attr.$set('tooltipHtmlUnsafe', response.data.content);
+			  			attr.$set('loaded', true);
+			  			
+			   		}
+			   		,function(response) {
+			   			attr.$set('tooltipHtmlUnsafe', "Failed to load tooltip");
+			       	}
+			   	  );
+		      
+			  });
+		  }, 1000, 'mouseout' );
+	   }
+	 }
+});
+
 

@@ -5,7 +5,7 @@
     
     	<div class="input-group">
     	
-	    	<select class="form-control" ng-model="child.ui_value" ng-options="option.uri as option.en for option in child.vocabularies.0.terms" ng-required="{{child.mandatory}}" placeholder="-- please choose --" tooltip-placement="left" tooltip-popup-delay='1000' tooltip='{{child.helptext}}'>
+	    	<select class="form-control" ng-model="child.ui_value" ng-options="option.uri as option.en for option in child.vocabularies.0.terms" ng-required="{{child.mandatory}}" placeholder="-- please choose --" phaidra-help phaidra-help-id="{{child.help_id}}" tooltip-placement="left" tooltip-popup-delay='1500' tooltip-html-unsafe='{{default_helptext}}'>
 	        	<option value="">-- please choose --</option>
 	        </select>
 	        

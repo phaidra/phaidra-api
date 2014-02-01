@@ -4,10 +4,10 @@
 
 		<div class="col-sm-10">
 		
-		    <div class="input-group">
+		    <div class="input-group" phaidra-help phaidra-help-id="{{child.help_id}}" tooltip-placement="left" tooltip-popup-delay='1500' tooltip-html-unsafe='{{default_helptext}}'>
 		    
-		    	<input class="form-control" type="text" ng-model="child.ui_value" value="{{child.ui_value}}" ng-required="{{child.mandatory}}" phaidra-help phaidra-help-id="{{child.help_id}}" tooltip-placement="left" tooltip-popup-delay='1500' tooltip-html-unsafe='{{default_helptext}}'>
-
+		    	<phaidra-duration duration="child"></phaidra-duration>
+		    	
 		    	<div class="input-group-btn" ng-if="child.cardinality === '*' || child.cardinality > '1'">       		 	        		
 		    		<button class="btn btn-default" ng-click="addNewElement(child)"><span class="glyphicon glyphicon-plus"></span></button>    					
 		   			<button ng-if="(child.cardinality === '*' || child.cardinality > '1') && canDelete(child)" class="btn btn-default" ng-click="deleteElement(child)"><span class="glyphicon glyphicon-minus"></span></button>

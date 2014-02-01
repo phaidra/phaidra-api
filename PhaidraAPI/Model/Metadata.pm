@@ -171,7 +171,7 @@ sub get_metadata_format {
 			defaultvalue => $defaultvalue, 
 			field_order => (defined($field_order) ? $field_order : 9999), # as defined in metadata format, value must be defined because we are going to sort by this
 			data_order => '', # as defined in object's metadata (for objects which have 'ordered = 1')		
-			helptext => 'No helptext defined.',
+			help_id => 'helpmeta_'.$mid, # used ot get the help tooltip content via ajax
 			value => '', # what's expected in uwmetadata
 			value_lang => '', # language of the value if any
 			ui_value => '', # what's expected on the form (eg ns/id for vocabularies)

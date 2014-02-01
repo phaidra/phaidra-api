@@ -425,3 +425,8 @@ reenable disabled radius
 .duration input.ng-invalid.ng-dirty {
     background-color: #FA787E;
 }
+
+.load-spinner {
+	margin-top: -30px;
+	margin-left: 10px;
+}

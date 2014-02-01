@@ -1,6 +1,6 @@
 % layout 'metadataeditor', title => 'Metadataeditor';
 
-	<div class="container metadataeditor_full" role="main" >
+	<div class="container metadataeditor_full" role="main">
 
 		<nav id="control-panel" class="navbar navbar-default" role="navigation">
 			<div class="navbar-header">
@@ -37,7 +37,7 @@
 		<alert ng-repeat="alert in alerts" type="alert.type" close="closeAlert($index)">{{alert.msg}}</alert>
 		
 		
-		<div class="well" id="MetadataeditorCtrl" data-ng-show="fields">
+		<div class="well" id="MetadataeditorCtrl" data-ng-show="fields" data-ng-cloak>
 		
 			<form name="form" class="form-horizontal" novalidate role="form">
 			
@@ -47,7 +47,7 @@
 					<tab data-ng-repeat="field in fields | filter:filterHidden" active="field.active" disabled="field.disabled">
 			      		
 			      		<tab-heading>
-        					<span tooltip-popup-delay='1000' tooltip="{{field.helptext}}">{{field.labels.en}}</span>        					
+        					<span phaidra-help phaidra-help-id="{{field.help_id}}" tooltip-placement="left" tooltip-popup-delay='1500' tooltip-html-unsafe='{{default_helptext}}'>{{field.labels.en}}</span>        					
       					</tab-heading>
       					
 				      		<!-- name of the tab -->
@@ -69,7 +69,7 @@
 						          
 							          <div class="panel panel-default">
 							          
-										  <div class="panel-heading" tooltip-placement="left" tooltip-popup-delay='1000' tooltip='{{child.helptext}}'>
+										  <div class="panel-heading" phaidra-help phaidra-help-id="{{child.help_id}}" tooltip-placement="left" tooltip-popup-delay='1500' tooltip-html-unsafe='{{default_helptext}}'>
 										    <h3 class="panel-title pull-left"><span class="grey" ng-show="child.ordered">{{child.data_order}}. </span>{{child.labels.en}}</h3>
 										    <span class="btn-group pull-right">    
 											    <button ng-if="child.cardinality === '*' || child.cardinality > '1'" class="btn btn-default" ng-click="addNewElement(child)"><span class="glyphicon glyphicon-plus"></span></button>
