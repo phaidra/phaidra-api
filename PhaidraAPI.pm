@@ -5,6 +5,9 @@ use warnings;
 use Mojo::Base 'Mojolicious';
 use Mojo::Log;
 use Mojolicious::Plugin::I18N;
+use Mojo::Loader;
+use lib "lib/phaidra_directory";
+use lib "lib/phaidra_binding";
 
 # This method will run once at server start
 sub startup {
@@ -17,7 +20,13 @@ sub startup {
     
     # init log	
   	$self->log(Mojo::Log->new(path => $config->{log_path}, level => $config->{log_level}));
-  	
+
+	my $directory_impl = $config->{directory_class};
+	my $e = Mojo::Loader->new->load($directory_impl);    
+    my $directory = $directory_impl->new($self, $config);
+ 
+    $self->helper( directory => sub { return $directory; } );
+    
   	# init I18N
   	$self->plugin(charset => {charset => 'utf8'});
   	$self->plugin(I18N => {namespace => 'PhaidraAPI::I18N', support_url_langs => [qw(en de it sr)]});

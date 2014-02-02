@@ -9,7 +9,7 @@ sub tooltip {
     my $self = shift;  	
 
 	my $id = $self->param('id');
-$self->app->log->debug("Gettin tooltip for:".$id);
+
 	$self->render(json => { content => $self->l($id) });
 }
 

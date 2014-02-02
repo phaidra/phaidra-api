@@ -8,13 +8,11 @@ use PhaidraAPI::Model::Metadata;
 
 sub submitform {
     my $self = shift;  	
-
-    $self->render();
-	
+    $self->render();	
 }
 
 sub metadataeditor_full {
-    my $self = shift;  	
+    my $self = shift;  	    
     $self->render('demo/metadataeditor/full');	
 }
 

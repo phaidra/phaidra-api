@@ -266,6 +266,7 @@ sub get_metadata_format {
 		# hidden fields
 		switch ($format{$mid}->{xmlname}) {
 			case "irdata" { $format{$mid}->{hidden} = 1 } # system field
+			case "metadataqualitycheck" { $format{$mid}->{hidden} = 1 } # system field
 			case "classification" { $format{$mid}->{hidden} = 1 } # i think this should be edited elsewhere
 			case "annotation" { $format{$mid}->{hidden} = 1 } # was removed from editor
 			case "etheses" { $format{$mid}->{hidden} = 1 } # should not be edited in phaidra (i guess..)			
