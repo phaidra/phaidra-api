@@ -17,8 +17,7 @@ sub get {
 	my $v = $self->param('mfv');
 	my $pid = $self->param('pid');
 	
-	#$self->app->log->info("$pid, $v");	
-	
+	#$self->app->log->info("$pid, $v");		
 	unless(defined($v)){		
 		$self->stash( msg => 'Unknown metadata format version requested.');
 		$self->app->log->error($self->stash->{msg}); 	

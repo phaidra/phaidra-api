@@ -1,6 +1,6 @@
-var app = angular.module('metadataeditorApp', ['ui.bootstrap', 'ajoslin.promise-tracker', 'metadataService']);
+var app = angular.module('metadataeditorApp', ['ui.bootstrap', 'ajoslin.promise-tracker', 'metadataService', 'directoryService']);
 
-app.controller('MetadataeditorCtrl', function($scope, MetadataService, promiseTracker) {
+app.controller('MetadataeditorCtrl', function($scope, MetadataService, DirectoryService, promiseTracker) {
     
 	$scope.regex_pid = /^[a-zA-Z\-]+:[0-9]+$/;
 	// use: <input ng-pattern="regex_identifier" ...
@@ -255,6 +255,108 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService, promiseTr
     	return angular.element.inArray(child, arr);
     }
     
+});
+
+app.directive('phaidraOrgassignment', function(DirectoryService) {
+	
+    function link(scope, element, attrs) {
+    	scope.orgassignmentObject = { faculty: '', department: ''};
+    	scope.faculties = [];
+    	
+    	// we can fill faculties on linking, they won't change
+    	var promise = DirectoryService.getOrgUnits(null);
+    	//scope.loadingTracker.addPromise(promise);
+    	promise.then(
+    		function(response) { 
+    			scope.alerts = response.data.alerts;
+    			scope.faculties = response.data.org_units;
+    		}
+    		,function(response) {
+           		scope.alerts = response.data.alerts;
+           		scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
+           	}
+    	);
+    	
+    	// if there is a change in metadatatree, apply it on select boxes
+    	scope.$watch('orgassignmentChild', function(child) {        	  
+    		if(child){
+    			
+    			// get faculty_id from child
+    			var i;
+    			var faculty_id;
+    			for (i = 0; i < child.children.length; ++i) {
+    				if(child.children[i].xmlname == 'faculty'){    					
+    					faculty_id = child.children[i].ui_value;    					
+    				}
+    			}
+    			
+    			// fill departments in orgassignmentObject
+    			scope.departments = [];
+    			var promise = DirectoryService.getOrgUnits(faculty_id);
+    	    	//scope.loadingTracker.addPromise(promise);
+    	    	promise.then(
+    	    		function(response) { 
+    	    			scope.alerts = response.data.alerts;
+    	    			scope.departments = response.data.org_units;
+    	    		}
+    	    		,function(response) {
+    	           		scope.alerts = response.data.alerts;
+    	           		scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
+    	           	}
+    	    	);
+		        	           
+      	  	}
+        }, true);
+   
+    	// if there is a change in faculty selectbox, apply it on metadata tree 
+    	// and re-fill departments selectbox if faculty has changed
+        scope.$watch('orgassignmentObject', function(value) { 
+
+        	if(value){        		
+        		var faculty_change = false;
+        		for (i = 0; i < scope.orgassignmentChild.children.length; ++i) {
+        			if(scope.orgassignmentChild.children[i].xmlname == 'faculty'){    	
+        				if(scope.orgassignmentChild.children[i].ui_value != scope.orgassignmentObject.faculty){
+        					faculty_change = true;
+        				}
+        				scope.orgassignmentChild.children[i].ui_value = scope.orgassignmentObject.faculty;    					
+        			}
+        			if(scope.orgassignmentChild.children[i].xmlname == 'department'){    					
+        				scope.orgassignmentChild.children[i].ui_value = scope.orgassignmentObject.department;    					
+        			}
+        		}
+        		
+        		// fill departments in orgassignmentObject
+        		if(faculty_change){
+	    			scope.departments = [];
+	    			var promise = DirectoryService.getOrgUnits(faculty_id);
+	    	    	//scope.loadingTracker.addPromise(promise);
+	    	    	promise.then(
+	    	    		function(response) { 
+	    	    			scope.alerts = response.data.alerts;
+	    	    			scope.departments = response.data.org_units;
+	    	    		}
+	    	    		,function(response) {
+	    	           		scope.alerts = response.data.alerts;
+	    	           		scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
+	    	           	}
+	    	    	);
+        		}
+      	  	}
+        	
+        }, true);
+        
+      }
+   
+      return {
+        restrict: 'E',
+        link: link,
+        replace: true,
+        templateUrl: '/views/directives/orgassignment.html',
+        scope: {
+        	orgassignmentChild: '=orgassignmentChild'
+          },
+      };
 });
 
 app.directive('phaidraDuration', function() {

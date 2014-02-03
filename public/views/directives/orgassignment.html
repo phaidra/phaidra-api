@@ -1,0 +1,12 @@
+<div>
+	<alert ng-repeat="alert in alerts" type="alert.type" close="closeAlert($index)">{{alert.msg}}</alert>
+
+	<select class="form-control" ng-model="orgassignmentObject.faculty" ng-options="faculty.value as faculty.name for faculty in faculties" placeholder="-- please choose --" >
+		<option value="">-- please choose --</option>
+	</select>
+
+	<select class="form-control" ng-model="orgassignmentObject.department" ng-options="department.value as department.name for department in departments" placeholder="-- please choose --" >
+		<option value="">-- please choose --</option>
+	</select>
+	     
+</div>   

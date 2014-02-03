@@ -82,19 +82,29 @@
 										  </div>
 										  
 										  <div class="panel-body">
-									
-											<div data-ng-hide="child.hidden" data-ng-include="'/views/partials/' + child.input_type + '.html'"></div>
-								
-											<!-- children fields of the field -->
-											<ul data-ng-show="child.children.length">
-											    <li data-ng-repeat="child in child.children" data-ng-include="'field_renderer.html'"></li>
-											</ul>
+										  
+										  		<div ng-switch="child.xmlname">
+										  	
+													<div ng-switch-when="orgassignment">
+														<!-- in org  -->
+														<div data-ng-hide="child.hidden" data-ng-include="'/views/partials/select_orgassignment.html'"></div>
+							          					<%#-- for orgassignment node do not descent to children, the select_orgassignment template covers them already %> 
+							          				</div>
+							          		
+							          				<div ng-switch-default>
+														<div data-ng-hide="child.hidden" data-ng-include="'/views/partials/' + child.input_type + '.html'"></div>
+														
+														<!-- children fields of the field -->
+														<ul data-ng-show="child.children.length">
+														    <li data-ng-repeat="child in child.children" data-ng-include="'field_renderer.html'"></li>
+														</ul>
+													</div>
+													
+												</div>
 									
 										  </div>
 										  
 									</div>
-						          
-						          	
 						          
 						          </div>
 						          

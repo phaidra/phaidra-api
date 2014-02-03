@@ -61,11 +61,11 @@ sub startup {
     my $r = $self->routes;
     $r->namespaces(['PhaidraAPI::Controller']);
 	
-	$r->route                            ->via('post')   ->to('objects#create');
+	#$r->route                            ->via('post')   ->to('objects#create');
 	# FIXME o:
-    $r->route('/:pid', pid => qr/o:\d+/) ->via('get')    ->to('objects#getobject');    
-    $r->route('/:pid', pid => qr/o:\d+/) ->via('put')    ->to('objects#update');
-    $r->route('/:pid', pid => qr/o:\d+/) ->via('delete') ->to('objects#delete');
+    #$r->route('/:pid', pid => qr/o:\d+/) ->via('get')    ->to('objects#getobject');    
+    #$r->route('/:pid', pid => qr/o:\d+/) ->via('put')    ->to('objects#update');
+    #$r->route('/:pid', pid => qr/o:\d+/) ->via('delete') ->to('objects#delete');
 	  
 	$r->route('demo/submitform')          ->via('get')   ->to('demo#submitform');
 	$r->route('demo/metadataeditor_full') ->via('get')   ->to('demo#metadataeditor_full');
@@ -77,6 +77,8 @@ sub startup {
 	$r->route('metadata/languages')		  ->via('get')   ->to('metadata#languages');
 	
 	$r->route('help/tooltip')		  	  ->via('get')   ->to('help#tooltip');		
+	
+	$r->route('directory/get_org_units')  ->via('get')   ->to('directory#get_org_units');
 
 return $self;
 }
