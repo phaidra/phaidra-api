@@ -12,7 +12,7 @@ sub submitform {
 }
 
 sub metadataeditor_full {
-    my $self = shift;  	    
+    my $self = shift;  	       
     $self->render('demo/metadataeditor/full');	
 }
 

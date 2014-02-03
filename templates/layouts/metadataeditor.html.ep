@@ -49,6 +49,7 @@
   	
   	<!-- Custom Phaidra scripts -->
 	<script type="text/javascript" src="<%= url_for '/js/services/metadata.js' %>"></script>
+	<script type="text/javascript" src="<%= url_for '/js/services/directory.js' %>"></script>
   	<script type="text/javascript" src="<%= url_for '/js/controllers/metadataeditor.js' %>"></script>
   	
   	<!-- Custom Phaidra CSS --> 

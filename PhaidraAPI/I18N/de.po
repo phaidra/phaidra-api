@@ -1,3 +1,12 @@
+msgid "University of Vienna"
+msgstr "Universität Wien"
+
+msgid "Support facilities"
+msgstr "Dienstleistungseinrichtungen, Stabstellen, etc."
+
+msgid "(whole organisational unit)"
+msgstr "(gesamte Organisationseinheit)"
+
 msgid "Metadata Editor"
 msgstr "Metadaten-Editor"
 
