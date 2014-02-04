@@ -1,6 +1,6 @@
 % layout 'metadataeditor', title => 'Metadataeditor';
 
-	<div class="container metadataeditor_full" role="main">
+	<div class="container metadataeditor_full" role="main" >
 
 		<nav id="control-panel" class="navbar navbar-default" role="navigation">
 			<div class="navbar-header">
@@ -18,14 +18,14 @@
 			      <div class="navbar-form input-group load-pid navbar-left">
 			        <input id="pid" ng-pattern="regex_pid" class="form-control" placeholder="load pid" type="text" data-ng-model="pid"></input>
 			      	<span class="input-group-btn">
-					     <button data-ng-click="loadObject(pid)" class="btn btn-primary" type="button"><span class="glyphicon glyphicon-open"></span></button>				    
+					     <button ng-disabled="form_disabled" data-ng-click="loadObject(pid)" class="btn btn-primary" type="button"><span class="glyphicon glyphicon-open"></span></button>				    
 					</span>
 			      </div>
 			      
 			      <p class="navbar-text" data-ng-show="getMetadataFormatVersion()">Metadata format version: {{getMetadataFormatVersion()}}</p>
 			      
 			      <div class="navbar-form navbar-right" ng-if="fields">
-				   <button ng-disabled="form.$invalid" ng-click="save()" class="btn btn-success navbar-left"><span class="glyphicon glyphicon-save"></span> Save</button>
+				   <button ng-disabled="form.$invalid || form_disabled" ng-click="save()" class="btn btn-success navbar-left"><span class="glyphicon glyphicon-save"></span> Save</button>
 				  </div>
 				  
 			      
@@ -37,96 +37,103 @@
 		<alert ng-repeat="alert in alerts" type="alert.type" close="closeAlert($index)">{{alert.msg}}</alert>
 		
 		
-		<div class="well" id="MetadataeditorCtrl" data-ng-show="fields" data-ng-cloak>
+		<div class="well" id="MetadataeditorCtrl" data-ng-show="fields" data-ng-cloak >
 		
 			<form name="form" class="form-horizontal" novalidate role="form">
 			
-				<tabset>
+				<fieldset ng-disabled="form_disabled">
 				
-					<!-- 1.st level are tabs -->
-					<tab data-ng-repeat="field in fields | filter:filterHidden" active="field.active" disabled="field.disabled">
-			      		
-			      		<tab-heading>
-        					<span phaidra-help phaidra-help-id="{{field.help_id}}" tooltip-placement="left" tooltip-popup-delay='1500' tooltip-html-unsafe='{{default_helptext}}'>{{field.labels.en}}</span>        					
-      					</tab-heading>
-      					
-				      		<!-- name of the tab -->
-				      		<!-- {{field.xmlname}} -->
-				      		<!-- {{field.helptext}} -->
+					<tabset>
+					
+						<!-- 1.st level are tabs -->
+						<tab data-ng-repeat="field in fields | filter:filterHidden" active="field.active" disabled="field.disabled">
 				      		
-				      		<!-- children fields of the tab -->
-				      		<ul data-ng-show="field.children.length">		      		
-				      			<li data-ng-repeat="child in field.children" data-ng-include="'field_renderer.html'" class="form-li"></li>
-				      		</ul>
-				      		
-				      		<script type="text/ng-template" id="field_renderer.html">
-				      		
-								<!-- <span class="muted">{{child.xmlname}} - {{child.input_type}}</span>--> 
-								
-								<div ng-switch="child.input_type">
-								
-						          <div ng-switch-when="node">
-						          
-							          <div class="panel panel-default">
+				      		<tab-heading>
+	        					<span phaidra-help phaidra-help-id="{{field.help_id}}" tooltip-placement="left" tooltip-popup-delay='1500' tooltip-html-unsafe='{{default_helptext}}'>{{field.labels.en}}</span>        					
+	      					</tab-heading>
+	      					
+					      		<!-- name of the tab -->
+					      		<!-- {{field.xmlname}} -->
+					      		<!-- {{field.helptext}} -->
+					      		
+					      		<!-- children fields of the tab -->
+					      		<ul data-ng-show="field.children.length">		      		
+					      			<li data-ng-repeat="child in field.children" data-ng-include="'field_renderer.html'" class="form-li"></li>
+					      		</ul>
+					      		
+					      		<script type="text/ng-template" id="field_renderer.html">
+					      		
+									<!-- <span class="muted">{{child.xmlname}} - {{child.input_type}}</span>--> 
+									
+									<div ng-switch="child.input_type">
+									
+							          <div ng-switch-when="node">
 							          
-										  <div class="panel-heading" phaidra-help phaidra-help-id="{{child.help_id}}" tooltip-placement="left" tooltip-popup-delay='1500' tooltip-html-unsafe='{{default_helptext}}'>
-										    <h3 class="panel-title pull-left"><span class="grey" ng-show="child.ordered">{{child.data_order}}. </span>{{child.labels.en}}</h3>
-										    <span class="btn-group pull-right">    
-											    <button ng-if="child.cardinality === '*' || child.cardinality > '1'" class="btn btn-default" ng-click="addNewElement(child)"><span class="glyphicon glyphicon-plus"></span></button>
-											    <button ng-if="(child.cardinality === '*' || child.cardinality > '1') && canDelete(child)" class="btn btn-default" ng-click="deleteElement(child)"><span class="glyphicon glyphicon-minus"></span></button>
-											    <button class="btn btn-default" ng-click="upElement(child)" ng-if="child.ordered == 1 && canUpElement(child)"><span class="glyphicon glyphicon-chevron-up"></span></button>
-		   										<button class="btn btn-default" ng-click="downElement(child)" ng-if="child.ordered == 1 && canDownElement(child)"><span class="glyphicon glyphicon-chevron-down"></span></button>
-										    </span>
-										    
-										    <div class="clearfix"></div>
-										  </div>
-										  
-										  <div class="panel-body">
-										  
-										  		<div ng-switch="child.xmlname">
-										  	
-													<div ng-switch-when="orgassignment">
-														<!-- in org  -->
-														<div data-ng-hide="child.hidden" data-ng-include="'/views/partials/select_orgassignment.html'"></div>
-							          					<%#-- for orgassignment node do not descent to children, the select_orgassignment template covers them already %> 
-							          				</div>
-							          		
-							          				<div ng-switch-default>
-														<div data-ng-hide="child.hidden" data-ng-include="'/views/partials/' + child.input_type + '.html'"></div>
+								          <div class="panel panel-default">
+								          
+											  <div class="panel-heading" phaidra-help phaidra-help-id="{{child.help_id}}" tooltip-placement="left" tooltip-popup-delay='1500' tooltip-html-unsafe='{{default_helptext}}'>
+											    <h3 class="panel-title pull-left"><span class="grey" ng-show="child.ordered">{{child.data_order}}. </span>{{child.labels.en}}</h3>
+											    <span class="btn-group pull-right">    
+												    <button ng-if="child.cardinality === '*' || child.cardinality > '1'" class="btn btn-default" ng-click="addNewElement(child)"><span class="glyphicon glyphicon-plus"></span></button>
+												    <button ng-if="(child.cardinality === '*' || child.cardinality > '1') && canDelete(child)" class="btn btn-default" ng-click="deleteElement(child)"><span class="glyphicon glyphicon-minus"></span></button>
+												    <button class="btn btn-default" ng-click="upElement(child)" ng-if="child.ordered == 1 && canUpElement(child)"><span class="glyphicon glyphicon-chevron-up"></span></button>
+			   										<button class="btn btn-default" ng-click="downElement(child)" ng-if="child.ordered == 1 && canDownElement(child)"><span class="glyphicon glyphicon-chevron-down"></span></button>
+											    </span>
+											    
+											    <div class="clearfix"></div>
+											  </div>
+											  
+											  <div class="panel-body">
+											  
+											  		<div ng-switch="child.xmlname">
+											  	
+														<div ng-switch-when="orgassignment">
+															<phaidra-orgassignment orgassignment-child="child" directory-service="DirectoryService"></phaidra-orgassignment>															
+								          					<%#-- for orgassignment node do not descent to children, the phaidra-orgassignment directove covers them already %> 
+								          				</div>
+								          				
+								          				<div ng-switch-when="curriculum">
+								          				<!-- in curriculum -->
+								          					<multilevel-select root-child="child" directory-service="DirectoryService"></multilevel-select>								          					
+								          					<%#-- for curriculum node do not descent to children, the multilevel-select template covers them already %>
+								          				</div>
+								          		
+								          				<div ng-switch-default>
+															<div data-ng-hide="child.hidden" data-ng-include="'/views/partials/' + child.input_type + '.html'"></div>
+															
+															<!-- children fields of the field -->
+															<ul data-ng-show="child.children.length">
+															    <li data-ng-repeat="child in child.children" data-ng-include="'field_renderer.html'"></li>
+															</ul>
+														</div>
 														
-														<!-- children fields of the field -->
-														<ul data-ng-show="child.children.length">
-														    <li data-ng-repeat="child in child.children" data-ng-include="'field_renderer.html'"></li>
-														</ul>
 													</div>
-													
-												</div>
+										
+											  </div>
+											  
+										</div>
+							          
+							          </div>
+							          
+							          <div ng-switch-default>
+							        
+							        	<div data-ng-hide="child.hidden" data-ng-include="'/views/partials/' + child.input_type + '.html'"></div>
+										
+										<!-- children fields of the field -->
+										<ul data-ng-show="child.children.length">
+										    <li data-ng-repeat="child in child.children" data-ng-include="'field_renderer.html'"></li>
+										</ul>
+							          
+							          </div>
+		      						</div>
 									
-										  </div>
-										  
-									</div>
-						          
-						          </div>
-						          
-						          <div ng-switch-default>
-						        
-						        	<div data-ng-hide="child.hidden" data-ng-include="'/views/partials/' + child.input_type + '.html'"></div>
 									
-									<!-- children fields of the field -->
-									<ul data-ng-show="child.children.length">
-									    <li data-ng-repeat="child in child.children" data-ng-include="'field_renderer.html'"></li>
-									</ul>
-						          
-						          </div>
-	      						</div>
-								
-								
-							</script>
-						
-						
-			    	</tab>
-				</tabset>
-				
+								</script>
+							
+							
+				    	</tab>
+					</tabset>
+				</fieldset>
 			</form>
 			
         </div>

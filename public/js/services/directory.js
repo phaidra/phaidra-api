@@ -12,5 +12,19 @@ angular.module('directoryService', [])
 	         });
 	    },
 	
+	    getStudyPlans: function() {
+	         return $http({
+	             method  : 'GET',
+	             url     : '/directory/get_study_plans',
+	         });
+	    },
+	    
+	    getStudy: function(splid, ids, level) {
+	         return $http({
+	             method  : 'GET',
+	             url     : '/directory/get_study',
+	             params  : { splid: splid, ids: ids, level: level }
+	         });
+	    },
 	}
 });
