@@ -10,7 +10,9 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService, Directory
 	
 	$scope.default_helptext = 'Loading tooltip content...';
 	
-	$scope.debugvar = 'im in MetadataeditorCtrl scope!';
+	// used to disable the form and it's controls on save
+	$scope.form_disabled = false;
+	
     $scope.fields = [];
     $scope.languages = [];
     $scope.metadata_format_version = "";
@@ -37,6 +39,7 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService, Directory
         
     $scope.save = function() {
     	var metadata_format_version = 1;
+    	$scope.form_disabled = true;
     	var promise = MetadataService.saveToObject(metadata_format_version, $scope.pid, $scope.fields)
     	$scope.loadingTracker.addPromise(promise);
     	promise.then(
@@ -45,10 +48,12 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService, Directory
         		$scope.languages = [];
         		$scope.fields = [];    			
         		$scope.metadata_format_version = '';
+        		$scope.form_disabled = false;
         	}
         	,function(response) {
            		$scope.alerts = response.data.alerts;
            		$scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
+           		$scope.form_disabled = false;
            	}
         );
     	        
@@ -257,11 +262,146 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService, Directory
     
 });
 
+app.directive('multilevelSelect', function($http, DirectoryService) {
+	
+    function link(scope, element, attrs) {
+    	scope.levelsObject = [ { value : '-1', options: [], label: '' } ];
+    	scope.alerts = [];
+    	
+    	// we can fill the first level on linking, it won't change
+    	var promise = DirectoryService.getStudyPlans();
+    	//scope.loadingTracker.addPromise(promise);
+    	promise.then(
+    		function(response) { 
+    			scope.alerts = response.data.alerts;
+    			scope.levelsObject[0].options = response.data.study_plans;
+    		}
+    		,function(response) {
+           		scope.alerts = response.data.alerts;
+           		scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
+           	}
+    	);
+    	
+    	// if there is a change in metadata tree, apply it on select boxes
+    	scope.$watch('rootChild', function(root) {        	  
+    		if(root){
+    			
+    			// get values from children
+    			var i;
+    			var ids = [];
+    			var promises = [];
+    			for (i = 0; i < root.children.length; ++i) {
+    				// first level is spl, the rest is kennzahl
+    				if(root.children[i].xmlname == 'spl'){    
+    					// spl is on index 0    					
+    					scope.levelsObject[0].value = root.children[i].ui_value; 
+    					scope.levelsObject[0].label = root.children[i].labels.en;
+    					// for spl we don't need to reload options
+    				}else{ 					
+    					// kennzahl elements are ordered, we will order them in model object as well
+    					// +1 because 0 is spl
+    					var idx = parseInt(root.children[i].data_order)+1; 
+    					if(!scope.levelsObject[idx]){
+    						scope.levelsObject[idx] = { value : '-1', options: [], label: '' };					
+    					}
+    					scope.levelsObject[idx].value = root.children[i].ui_value;
+    					scope.levelsObject[idx].label = root.children[i].labels.en;
+    					
+    					// reload values, splid: is the value of the first level
+    					var splid = root.children[0].ui_value;
+    					ids.push(root.children[i].ui_value);
+
+    					// before this async call is called the ids will be overwritten
+    					// so we have to copy them
+    					var local_ids_copy = [];    					
+    					angular.copy(ids, local_ids_copy);
+    					DirectoryService.getStudy(splid, local_ids_copy, idx).then(
+    	    	    		function(response) { 
+    	    	    			scope.alerts = response.data.alerts;    	    	    	
+    	    	    			angular.copy(response.data.study, scope.levelsObject[response.data.level].options);
+    	    	    		}
+    	    	    		,function(response) {
+    	    	           		scope.alerts = response.data.alerts;
+    	    	           		scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
+    	    	           	}
+    	    	    	);
+    	    	    	
+    				}
+    			}    			
+		        	           
+      	  	}
+        }, true);
+
+    	// if there is a change in select boxes model, apply it on metadata tree
+        scope.$watch('levelsObject', function(value) { 
+
+        	if(value){
+        		var ids = [];
+        		var promises = [];
+        		var change = false;
+        		var delete_from_index = scope.levelsObject.length;
+        		for (i = 0; i < scope.levelsObject.length; ++i) {
+        			if(!change){    	
+    
+       					if(scope.rootChild.children[i].ui_value != scope.levelsObject[i].value){    
+       						scope.rootChild.children[i].ui_value = scope.levelsObject[i].value;
+       						change = true;
+       					}
+       					if(i != 0){       						
+       						ids.push(scope.levelsObject[i].value);
+       					}
+           				    					
+        			}else{
+        				// there was a change in the previous level, we need to re-fill options of this level
+        				// and remove all subsequent levels
+        				delete_from_index = i;
+        				// reload values, id: is the value of the previous level
+    					var splid = scope.rootChild.children[0].ui_value;    					
+    					ids.push(scope.levelsObject[i].value);
+    					   	    			
+    					var local_ids_copy = [];
+    					angular.copy(ids, local_ids_copy);    					
+   			         	DirectoryService.getStudy(splid, local_ids_copy, i).then(
+    	    	    		function(response) { 
+    	    	    			scope.alerts = response.data.alerts;
+    	    	    			angular.copy(response.data.study, scope.levelsObject[response.data.level].options);
+    	    	    		}
+    	    	    		,function(response) {
+    	    	           		scope.alerts = response.data.alerts;
+    	    	           		scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
+    	    	           	}
+    	    	    	);
+        				break;
+        			}        			
+        		}        		
+        		scope.levelsObject.splice(delete_from_index, scope.levelsObject.length-delete_from_index);
+        		scope.rootChild.children.splice(delete_from_index, scope.rootChild.children.length-delete_from_index);
+        		
+      	  	}
+        	
+        }, true);
+        
+      }
+   
+      return {
+        restrict: 'E',
+        link: link,
+        replace: true,
+        templateUrl: '/views/directives/multilevel_select.html',
+        scope: {
+        	rootChild: '=rootChild'
+          },
+      };
+});
+
+
 app.directive('phaidraOrgassignment', function(DirectoryService) {
 	
     function link(scope, element, attrs) {
     	scope.orgassignmentObject = { faculty: '', department: ''};
     	scope.faculties = [];
+    	scope.faculty_label = '';
+    	scope.department_label = '';
     	
     	// we can fill faculties on linking, they won't change
     	var promise = DirectoryService.getOrgUnits(null);
@@ -284,9 +424,15 @@ app.directive('phaidraOrgassignment', function(DirectoryService) {
     			// get faculty_id from child
     			var i;
     			var faculty_id;
+    			var department_id;
     			for (i = 0; i < child.children.length; ++i) {
     				if(child.children[i].xmlname == 'faculty'){    					
-    					faculty_id = child.children[i].ui_value;    					
+    					faculty_id = child.children[i].ui_value; 
+    					scope.faculty_label = child.children[i].labels.en;    	    	    
+    				}
+    				if(child.children[i].xmlname == 'department'){    					
+    					department_id = child.children[i].ui_value; 
+    					scope.department_label = child.children[i].labels.en;
     				}
     			}
     			
@@ -304,6 +450,9 @@ app.directive('phaidraOrgassignment', function(DirectoryService) {
     	           		scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
     	           	}
     	    	);
+    	    	
+    	    	scope.orgassignmentObject.faculty = faculty_id;
+    	    	scope.orgassignmentObject.department = department_id;
 		        	           
       	  	}
         }, true);

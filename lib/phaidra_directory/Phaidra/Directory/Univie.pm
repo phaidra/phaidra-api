@@ -145,9 +145,11 @@ sub get_org_units {
 		my @values = ();
 	
         my ($name1col, $name2col)=('name1', 'name2');
-        if($lang eq 'en')
-        {
-        	($name1col, $name2col)=('name1_e', 'name2_e');
+        if(defined($lang)){
+        	if($lang eq 'en')
+	        {
+	        	($name1col, $name2col)=('name1_e', 'name2_e');
+	        }
         }
         my $ss=qq/
         	SELECT DISTINCT RTRIM(lj.inum), LTRIM(lj.$name1col || ' ' || lj.$name2col)
@@ -194,9 +196,11 @@ is defined as NUMBER.
 
   		my $entries=undef;
   		my ($name1col, $name2col)= ('name1', 'name2');
-  		if ($lang eq 'en')
-  		{
-    		($name1col, $name2col)= ('name1_e', 'name2_e');
+  		if(defined($lang)){
+	  		if ($lang eq 'en')
+	  		{
+	    		($name1col, $name2col)= ('name1_e', 'name2_e');
+	  		}
   		}
   		my $values= undef;
 	
@@ -359,7 +363,8 @@ sub get_study_plans {
 	$sth->finish;
     undef $sth;
     
-	return \@values;
+    return { study_plans => \@values };	
+
 }
 
 # uni specific        
@@ -414,7 +419,7 @@ sub get_study {
     }
     $sth->finish;
     undef $sth;
-	return \@values;
+	return { study => \@values };	
 }
 
 # uni specific
