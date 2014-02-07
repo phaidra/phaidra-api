@@ -112,9 +112,9 @@ sub tree {
 	
 	my $metadata_model = PhaidraAPI::Model::Metadata->new;
 	
-	my $metadata_format = $metadata_model->metadata_format($self, $v);
+	my $metadata_tree = $metadata_model->metadata_tree($self, $v);
 
-	if($metadata_format == -1){
+	if($metadata_tree == -1){
 		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }] } , status => 500) ;		
 		return;
 	}
@@ -124,7 +124,7 @@ sub tree {
 	my $t1 = tv_interval($t0);	
 	$self->stash( msg => "backend load took $t1 s");
 	
-    $self->render(json => { tree => $metadata_format, languages => $languages });	
+    $self->render(json => { tree => $metadata_tree, languages => $languages });	
 }
 
 sub languages {

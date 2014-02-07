@@ -16,11 +16,11 @@ use Phaidra::API;
 my $home = Mojo::Home->new;
 $home->detect('PhaidraAPI');
 
-sub metadata_format {
+sub metadata_tree {
 	
     my ($self, $c, $v) = @_;
  
- 	my $cachekey = 'metadata_format_'.$v;
+ 	my $cachekey = 'metadata_tree_'.$v;
  	if($v eq '1'){
  		
  		my $res = $c->app->chi->get($cachekey);
@@ -30,7 +30,7 @@ sub metadata_format {
     	}else{    		
     		$c->app->log->debug("[cache miss] $cachekey");
     		
-    		$res = $self->get_metadata_format($c);		
+    		$res = $self->get_metadata_tree($c);		
   
     		$c->app->chi->set($cachekey, $res, '1 day');    
   
@@ -89,12 +89,12 @@ sub get_languages {
 	return $res;
 }
 
-sub get_metadata_format {
+sub get_metadata_tree {
 	
 	my ($self, $c) = @_;
 	
 	my %format;
-	my @metadata_format;
+	my @metadata_tree;
 	my %id_hash;
 	my %license_veid_lid_map;
 	
@@ -220,6 +220,11 @@ sub get_metadata_format {
 						
 			case "Vocabulary" { $format{$mid}->{input_type} = "select" }			
 			case "License" { $format{$mid}->{input_type} = "select" }
+			case "Faculty" { $format{$mid}->{input_type} = "select" }
+			case "Department" { $format{$mid}->{input_type} = "select" }
+			case "SPL" { $format{$mid}->{input_type} = "select" }
+			case "Curriculum" { $format{$mid}->{input_type} = "select" }
+			
 			case "Language" { $format{$mid}->{input_type} = "language_select" }
 			
 			case "Boolean"	{
@@ -232,11 +237,7 @@ sub get_metadata_format {
 			
 			case "Node"	{ $format{$mid}->{input_type} = "node" }
 			
-			case "CharacterString" { $format{$mid}->{input_type} = "input_text" }
-			case "Faculty" { $format{$mid}->{input_type} = "input_text" }
-			case "Department" { $format{$mid}->{input_type} = "input_text" }
-			case "SPL" { $format{$mid}->{input_type} = "input_text" }
-			case "Curriculum" { $format{$mid}->{input_type} = "input_text" }
+			case "CharacterString" { $format{$mid}->{input_type} = "input_text" }						
 			case "GPS" { $format{$mid}->{input_type} = "input_text" }
 			case "Duration" { $format{$mid}->{input_type} = "input_duration" }
 			case "FileSize" { $format{$mid}->{input_type} = "input_text" }			
@@ -291,11 +292,11 @@ sub get_metadata_format {
 	# we do this because we don't want to hardcode the mids anywhere
 	# we should just work with namespace and name
 	while ( my ($key, $element) = each %format ){	
-		push @metadata_format, $element;
+		push @metadata_tree, $element;
 	}
 	
 	# and sort it
-	@metadata_format = sort { $a->{field_order} <=> $b->{field_order} ||  $a->{mid} <=> $b->{mid} } @metadata_format;	
+	@metadata_tree = sort { $a->{field_order} <=> $b->{field_order} ||  $a->{mid} <=> $b->{mid} } @metadata_tree;	
 	
 	# and sort the children
 	foreach my $key (keys %parents){
@@ -374,8 +375,88 @@ sub get_metadata_format {
 			# maybe we want to support multiple vocabularies for one field in future
 			push @{$element->{vocabularies}}, \%vocabulary;
 					
+		}		
+		# get organisational structure vocabularies
+		# faculties and stdy plans at the moment, 
+		# departments depends on chosen faculty and curriculums on chosen study plan
+		# so we won't load departments and curriculums (although this is a bit uni specific)
+		elsif($element->{datatype} eq "Faculty"){
+			
+			my %vocabulary;
+			
+			$vocabulary{namespace} = $element->{xmlns}.'/voc_'.$element->{xmlname}.'/';
+			my $langs = $c->app->config->{directory}->{org_units_languages};
+			foreach my $lang (@$langs){
+				
+				my $res = $c->app->directory->get_org_units($c, undef, $lang);
+				if(exists($res->{alerts})){
+					if($res->{status} != 200){
+						# there are only alerts
+						return { alerts => $res->{alerts}, status => $res->{status} }; 
+					}
+				}
+				
+				my $org_units = $res->{org_units};
+				
+				foreach my $u (@$org_units){
+					$vocabulary{'terms'}->{$u->{value}}->{uri} = $vocabulary{namespace}.$u->{value};
+					$vocabulary{'terms'}->{$u->{value}}->{$lang} = $u->{name};
+										
+				}											
+			}
+			my @termarray;
+			while ( my ($key, $element) = each %{$vocabulary{'terms'}} ){	
+				push @termarray, $element;
+			}
+			$vocabulary{'terms'} = \@termarray;
+			
+			push @{$element->{vocabularies}}, \%vocabulary;
+			
+		}elsif($element->{datatype} eq "Department"){
+			my %vocabulary;
+			$vocabulary{namespace} = $element->{xmlns}.'/voc_'.$element->{xmlname}.'/';
+			$vocabulary{terms} = [];
+			push @{$element->{vocabularies}}, \%vocabulary;
+				
+		}elsif($element->{datatype} eq "SPL"){
+			
+			my %vocabulary;
+			
+			$vocabulary{namespace} = $element->{xmlns}.'/voc_'.$element->{xmlname}.'/';
+			my $langs = $c->app->config->{directory}->{study_plans_languages};
+			foreach my $lang (@$langs){
+				
+				my $res = $c->app->directory->get_study_plans($c, undef, $lang);
+				if(exists($res->{alerts})){
+					if($res->{status} != 200){
+						# there are only alerts
+						return { alerts => $res->{alerts}, status => $res->{status} }; 
+					}
+				}
+				
+				my $study_plans = $res->{study_plans};
+				
+				foreach my $sp (@$study_plans){
+					$vocabulary{'terms'}->{$sp->{value}}->{uri} = $vocabulary{namespace}.$sp->{value};
+					$vocabulary{'terms'}->{$sp->{value}}->{$lang} = $sp->{name};
+										
+				}											
+			}
+			my @termarray;
+			while ( my ($key, $element) = each %{$vocabulary{'terms'}} ){	
+				push @termarray, $element;
+			}
+			$vocabulary{'terms'} = \@termarray;
+			
+			push @{$element->{vocabularies}}, \%vocabulary;						
+		
+		}elsif($element->{datatype} eq "Curriculum"){
+			my %vocabulary;
+			$vocabulary{namespace} = $element->{xmlns}.'/voc_'.$element->{xmlname}.'/';
+			$vocabulary{terms} = [];
+			push @{$element->{vocabularies}}, \%vocabulary;
 		}
-
+		
 	}
 
 	# delete ids, we don't need them
@@ -385,7 +466,7 @@ sub get_metadata_format {
 		delete $element->{mid_parent};
 	}
 	
-	return \@metadata_format;
+	return \@metadata_tree;
 }
 
 sub get_object_metadata {
@@ -394,7 +475,7 @@ sub get_object_metadata {
 
 	# this structure contains the metadata default structure (equals to empty metadataeditor) to which
 	# we are going to load the data of some real object 
-	my $metadata_tree = $self->metadata_format($c, $v);
+	my $metadata_tree = $self->metadata_tree($c, $v);
 	if($metadata_tree == -1){
 		$self->render(json => { message => $self->stash->{'message'}} , status => 500) ;		
 		return;
@@ -426,6 +507,33 @@ sub get_object_metadata {
 	$self->fill_object_metadata($c, $dom, $metadata_tree, undef, $nsmap, \%metadata_nodes_hash);
 	#$c->app->log->debug($c->app->dumper($metadata_tree));		
 	return $metadata_tree;
+}
+
+sub get_departments_terms {
+	my $self = shift;
+	my $c = shift;
+	my $parent_id = shift;
+	
+	my %vocabulary;
+	my $namespace =  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_department/";
+	my $langs = $c->app->config->{directory}->{org_units_languages};
+	foreach my $lang (@$langs){
+				
+		my $res = $c->app->directory->get_org_units($c, $parent_id, $lang);
+				
+		my $org_units = $res->{org_units};
+				
+		foreach my $u (@$org_units){	
+			$vocabulary{'terms'}->{$u->{value}}->{uri} = $namespace.$u->{value};
+			$vocabulary{'terms'}->{$u->{value}}->{$lang} = $u->{name};								
+		}											
+	}
+	my @termarray;
+	while ( my ($key, $element) = each %{$vocabulary{'terms'}} ){	
+		push @termarray, $element;
+	}
+	
+	return \@termarray;
 }
 
 sub fill_object_metadata {
@@ -478,21 +586,40 @@ sub fill_object_metadata {
 	    		# so there is a difference between
 	    		# value (value) and text (ui_value)    		
 	    		if(defined($node->{vocabularies})){
-	    			my $node_value = $e->text;
+	    			
 	    			foreach my $voc (@{$node->{vocabularies}}){
-	    				foreach my $term (@{$voc->{terms}}){
-	    					# HACK: because the value of an vocabulary in the uwmetadata datastream is
-	    					# at the time not an uri but just an id, we have to make it an uri by adding
-	    					# the vocabulary namespace 	    					
-	    					if($voc->{namespace}.$node_value eq $term->{uri}){
-	    						# we have found the term, let's take it's label
-	    						$node->{value} = $term->{uri};
-	    						$node->{loaded_value} = $term->{uri};
-	    						$node->{ui_value} = $term->{uri};
-	    						$node->{loaded_ui_value} = $term->{uri};    						
-	    					}
-	    				}
+		    			my $node_value = $e->text;
+		    			
+		    			$node->{value} = $voc->{namespace}.$node_value;
+		    			$node->{loaded_value} = $voc->{namespace}.$node_value;
+		    			$node->{ui_value} = $voc->{namespace}.$node_value;
+		    			$node->{loaded_ui_value} = $voc->{namespace}.$node_value;
 	    			}
+	    				    			
+	    			if($node->{xmlname} eq 'department'){
+	    			
+	    				# get the selected faculty, if any, and fill the department vocabulary	
+		    			if($e->parent){
+		    				my $faculty = undef;
+			    			for my $child ($e->parent->children->each) {
+							    if($child->tree eq $e->tree){
+							    	if($faculty){
+							    		if($faculty->text){
+							    			foreach my $voc (@{$node->{vocabularies}}){
+							    				$voc->{terms} = $self->get_departments_terms($c, $faculty->text);	
+							    			}
+							    		}
+							    		
+							    	}
+							    	last;
+							    }
+							    $faculty = $child;
+							}
+		    			}	    			
+	    			}
+	    			
+	    			#if($node->{xmlname} )
+	    			
 	    		}elsif($node->{input_type} eq "input_checkbox" || $node->{input_type} eq "select_yesno"){
 	    			my $v;
 	    			if($e->text eq 'yes'){
