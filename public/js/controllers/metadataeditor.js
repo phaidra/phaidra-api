@@ -18,7 +18,7 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService, Directory
     $scope.metadata_format_version = "";
     $scope.pid = '';
     $scope.alerts = [];    
-
+    
     $scope.closeAlert = function(index) {
     	$scope.alerts.splice(index, 1);
     };
@@ -32,10 +32,83 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService, Directory
     };
     
     $scope.init = function () {
+    	//$scope.apply();
+    };
+    
+    $scope.watched_faculty_selectboxes = [];
+    
+    
+    $scope.load_init = function(){
     	
-   
+    	// find faculty select-box and study plan select-boxes
+    	// and watch them, it these change, we need to update the
+    	// cascaded select-boxes
+    	if($scope.fields){
+    		$scope.watch_cascaded($scope.fields);
+    	}
+    	
+    	var i = 0; 	
+    	for (i = 0; i < $scope.watched_faculty_selectboxes.length; ++i) {
+    		
+    		$scope.$watch('watched_faculty_selectboxes['+i+']', function(faculty_node){
+    			// find the department sibling and update it
+    			var orgassignment_node = $scope.get_model_parent(null, $scope.fields, faculty_node);
+    			// for orgassignment this is easy: 
+    			// orgassignment_node.children[0] is faculty;
+    			// orgassignment_node.children[1] is department;    			
+    			var faculty_id_uri = orgassignment_node.children[0].ui_value;
+    			var faculty_id_namespace = orgassignment_node.children[0].vocabularies[0].namespace;
+    			var department_namespace = orgassignment_node.children[1].vocabularies[0].namespace;
+    			var faculty_id = faculty_id_uri.substring(faculty_id_namespace.length);
+    			var promise = DirectoryService.getOrgUnits(faculty_id, department_namespace);
+    	    	$scope.loadingTracker.addPromise(promise);
+    	    	promise.then(
+    	    		function(response) { 
+    	    			$scope.alerts = response.data.alerts;
+    	    			orgassignment_node.children[1].vocabularies[0].terms = response.data.terms; 
+    	    		}
+    	    		,function(response) {
+    	           		$scope.alerts = response.data.alerts;
+    	           		$scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
+    	           	}
+    	    	);
+    		},true);	
+    	}
     	
     };
+    
+
+    $scope.get_model_parent = function (parent, children, model) {
+    	var i = 0; 	
+    	for (i = 0; i < children.length; ++i) {
+    		//if(children[i].$$hashKey == model.$$hashKey){
+    		if(children[i] === model){
+    			return parent;
+    		}
+    		if(children[i].children){
+    			var ret_parent = $scope.get_model_parent(children[i], children[i].children, model);
+    			if(ret_parent){
+    				return ret_parent;
+    			}
+    		}
+    	}
+    }
+    
+    $scope.watch_cascaded = function (children) {    
+    	var i = 0; 	
+    	for (i = 0; i < children.length; ++i) {
+    		// the cascaded select-boxes are always leafs
+    		if(children[i].children){
+    			$scope.watch_cascaded(children[i].children);
+    		}else{
+    			if(children[i].xmlname == 'faculty'){    
+    				$scope.watched_faculty_selectboxes.push(children[i]);    				
+    			}
+    		}
+    		
+    	}
+    }
+    
         
     $scope.save = function() {
     	var metadata_format_version = 1;
@@ -77,6 +150,7 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService, Directory
     			$scope.languages = response.data.languages;
     			$scope.fields = response.data.tree;    			
     			$scope.metadata_format_version = metadata_format_version;
+    			$scope.load_init();
     		}
     		,function(response) {
            		$scope.alerts = response.data.alerts;
@@ -101,6 +175,7 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService, Directory
     			$scope.alerts = response.data.alerts;
     			$scope.languages = response.data.languages;
     			$scope.fields = response.data.metadata;
+    			$scope.load_init();
     		}
     		,function(response) {
            		$scope.alerts = response.data.alerts;
@@ -289,7 +364,6 @@ app.directive('multilevelSelect', function($http, DirectoryService) {
     			// get values from children
     			var i;
     			var ids = [];
-    			var promises = [];
     			for (i = 0; i < root.children.length; ++i) {
     				// first level is spl, the rest is kennzahl
     				if(root.children[i].xmlname == 'spl'){    
@@ -327,7 +401,8 @@ app.directive('multilevelSelect', function($http, DirectoryService) {
     	    	    	);
     	    	    	
     				}
-    			}    			
+    			}
+    			scope.levelsObject.splice(i, scope.levelsObject.length-i);
 		        	           
       	  	}
         }, true);
@@ -337,7 +412,6 @@ app.directive('multilevelSelect', function($http, DirectoryService) {
 
         	if(value){
         		var ids = [];
-        		var promises = [];
         		var change = false;
         		var delete_from_index = scope.levelsObject.length;
         		for (i = 0; i < scope.levelsObject.length; ++i) {
