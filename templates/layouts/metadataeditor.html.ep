@@ -17,9 +17,17 @@
   	<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
   	<!--<script src="<%= url_for '/js/jquery.min.js' %>"></script>-->
   	
+  	<!-- Select2 -->
+  	<!--<link rel="stylesheet" href="<%= url_for '/css/select2.css' %>">-->
+  	<!--<link rel="stylesheet" href="<%= url_for '/css/select2-bootstrap.css' %>">-->
+  	<!--<script type="text/javascript" src="<%= url_for '/js/select2.min.js' %>"></script>-->
+  	
   	<!-- AngularJS -->
   	<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.1.5/angular.js"></script>
   	<!--<script src="<%= url_for '/js/angular.min.js' %>"></script>-->
+  	
+  	<!-- AngularJS Select2 -->
+  	<!--<script type="text/javascript" src="<%= url_for '/js/ngselect2.js' %>"></script>-->
   	
   	<!-- AngularJS i18n -->
   	<script src="http://cdnjs.cloudflare.com/ajax/libs/angular-i18n/1.2.5/angular-locale_de-at.js"></script>

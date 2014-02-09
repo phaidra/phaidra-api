@@ -17,7 +17,7 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService, Directory
     $scope.languages = [];
     $scope.metadata_format_version = "";
     $scope.pid = '';
-    $scope.alerts = [];    
+    $scope.alerts = [];        
     
     $scope.closeAlert = function(index) {
     	$scope.alerts.splice(index, 1);
@@ -35,53 +35,200 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService, Directory
     	//$scope.apply();
     };
     
-    $scope.watched_faculty_selectboxes = [];
+    $scope.reset_values = function (node, default_value){
+    	if(!default_value){
+    		default_value = '';
+    	}
+    	node.ui_value = default_value;
+    	node.loaded_ui_value = default_value;
+    	node.value = default_value;
+    	node.loaded_value = default_value;
+    }
     
+    $scope.curriculum_update_handler = function(curriculum_child_node){
+		
+    	if(!curriculum_child_node){
+    		return;
+    	}
+    	
+		var spl_namespace = 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_spl/';
+		var kennzahl_namespace = 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_kennzahl/';
+		
+		// we don't want to update select-boxes when they are only being rendered    			
+		if($scope.form.$pristine){
+			return;
+		}
+		
+		// find the next select-box and update it, and remove all the rest of them    			
+		var curriculum_node = $scope.get_model_parent(null, $scope.fields, curriculum_child_node);
+		
+		// if 'none' is selected, just remove the remaining nodes
+		if(!curriculum_child_node.ui_value){//kennzahl_namespace+'-100'){
+			
+			// this happens not only if user selected none but also
+			// if we just added a new child and the watch was automatically
+			// triggered again, that's why we check if there is actually something
+			// to remove past this child node
+			var i = 0;
+			var current_change_index = 0;
+			for (i = 0; i < curriculum_node.children.length; ++i) {
+				if(curriculum_node.children[i] === curriculum_child_node){
+    				current_change_index = i;
+    				break;
+    			}
+			}
+			if(current_change_index+1 < curriculum_node.children.length){
+				curriculum_node.children.splice(current_change_index);
+				curriculum_node.study_name = [];
+			}
+			return;
+		}
+		
+		curriculum_node.study_name = [];
+		var i = 0; 
+		var spl = '';    			
+		var ids = [];    			    		
+		var current_change_index = 0;
+    	for (i = 0; i < curriculum_node.children.length; ++i) {
+    		var n = curriculum_node.children[i];
+    		if(n.xmlname == 'spl'){
+    			spl = n.ui_value.substring(spl_namespace.length);
+    		}
+    		if(n.xmlname == 'kennzahl'){
+    			ids.push(n.ui_value.substring(kennzahl_namespace.length));    	    		
+    		}
+    		if(n === curriculum_child_node){
+				current_change_index = i;
+				break;
+			}    	    		
+    	}
+    	    	
+    	var promise = DirectoryService.getStudy(spl, ids, kennzahl_namespace);
+    	$scope.loadingTracker.addPromise(promise);
+    	promise.then(
+    		function(response) { 
+    			$scope.alerts = response.data.alerts;
+    			
+    			if(current_change_index == 0){
+    				// we will reset the first kennzahl node and load new values
+    				// the reset will cause the watch to trigger again (but that's ok)    	    				
+    				angular.copy(response.data.terms, curriculum_node.children[1].vocabularies[0].terms);       	    				
+    				$scope.reset_values(curriculum_node.children[1]);
+    				curriculum_node.children.splice(2);
+    			}else{
+    				// copy first kennzahl node
+        	    	var new_select = angular.copy(curriculum_node.children[1]);
+        	    	if(response.data.terms.length == 0){
+        	    		// we have probably reached the end of the definition
+        	    		// try to get the study name
+        	    		var promise1 = DirectoryService.getStudyName(spl, ids);
+        	        	$scope.loadingTracker.addPromise(promise1);
+        	        	promise1.then(
+        	        		function(response) { 
+        	        			$scope.alerts = response.data.alerts;
+        	        			curriculum_node.study_name = response.data.study_name;
+        	        		}
+        	        		,function(response) {
+        	        			$scope.alerts = response.data.alerts;
+        	                	$scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
+        	                }
+        	            );
+        	    		return;
+        	    	}
+        	    	// put the result terms in
+        	    	angular.copy(response.data.terms, new_select.vocabularies[0].terms);
+        	    	// set value to 'none'
+        	    	$scope.reset_values(new_select);
+        	    	// update seq, not +1 because the current_change_index
+        	    	// is the index in the curriculum_node array where there is also spl
+        	    	// but seq starts at first kennzahl
+        	    	new_select.data_order = current_change_index;
+        	    	// remove all kennzahl nodes after the changed one
+        	    	curriculum_node.children.splice(current_change_index+1);
+        	    	// add the new node
+	    			curriculum_node.children.push(new_select);
+	    			// add the watch on it
+	    			$scope.watched_curriculum_child_selectboxes.push(new_select);
+    	    		$scope.$watch('watched_curriculum_child_selectboxes['+($scope.watched_curriculum_child_selectboxes.length-1)+']', $scope.curriculum_update_handler, true);	
+
+    			}    	    		
+    		}
+    		,function(response) {
+           		$scope.alerts = response.data.alerts;
+           		$scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
+           	}
+    	);
+		
+	}
+    
+    $scope.faculty_update_handler = function(faculty_node){
+		
+    	if(!faculty_node){
+    		return;
+    	}
+    	
+		// we don't want to update select-boxes when they are only being rendered    			
+		if($scope.form.$pristine){
+			return;
+		}
+		
+		// find the department sibling and update it
+		var orgassignment_node = $scope.get_model_parent(null, $scope.fields, faculty_node);
+		// for orgassignment this is easy: 
+		// orgassignment_node.children[0] is faculty;
+		// orgassignment_node.children[1] is department;    			
+		var faculty_id_uri = orgassignment_node.children[0].ui_value;
+		var faculty_id_namespace = orgassignment_node.children[0].vocabularies[0].namespace;
+		var department_namespace = orgassignment_node.children[1].vocabularies[0].namespace;
+		var faculty_id = faculty_id_uri.substring(faculty_id_namespace.length);
+			
+		$scope.reset_values(orgassignment_node.children[1]);
+		
+		var promise = DirectoryService.getOrgUnits(faculty_id, department_namespace);
+    	$scope.loadingTracker.addPromise(promise);
+    	promise.then(
+    		function(response) { 
+    			$scope.alerts = response.data.alerts;    	    			
+    			angular.copy(response.data.terms, orgassignment_node.children[1].vocabularies[0].terms);    	    			
+    		}
+    		,function(response) {
+           		$scope.alerts = response.data.alerts;
+           		$scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
+           	}
+    	);
+	};
+    
+    $scope.watched_faculty_selectboxes = [];
+    $scope.watched_curriculum_child_selectboxes = [];
     
     $scope.load_init = function(){
     	
+    	$scope.watched_faculty_selectboxes = [];
+        $scope.watched_curriculum_child_selectboxes = [];        
+    	
     	// find faculty select-box and study plan select-boxes
-    	// and watch them, it these change, we need to update the
-    	// cascaded select-boxes
+    	// and watch them, if these change, we need to update the
+    	// next sibling select-box
     	if($scope.fields){
     		$scope.watch_cascaded($scope.fields);
     	}
     	
     	var i = 0; 	
-    	for (i = 0; i < $scope.watched_faculty_selectboxes.length; ++i) {
-    		
-    		$scope.$watch('watched_faculty_selectboxes['+i+']', function(faculty_node){
-    			// find the department sibling and update it
-    			var orgassignment_node = $scope.get_model_parent(null, $scope.fields, faculty_node);
-    			// for orgassignment this is easy: 
-    			// orgassignment_node.children[0] is faculty;
-    			// orgassignment_node.children[1] is department;    			
-    			var faculty_id_uri = orgassignment_node.children[0].ui_value;
-    			var faculty_id_namespace = orgassignment_node.children[0].vocabularies[0].namespace;
-    			var department_namespace = orgassignment_node.children[1].vocabularies[0].namespace;
-    			var faculty_id = faculty_id_uri.substring(faculty_id_namespace.length);
-    			var promise = DirectoryService.getOrgUnits(faculty_id, department_namespace);
-    	    	$scope.loadingTracker.addPromise(promise);
-    	    	promise.then(
-    	    		function(response) { 
-    	    			$scope.alerts = response.data.alerts;
-    	    			orgassignment_node.children[1].vocabularies[0].terms = response.data.terms; 
-    	    		}
-    	    		,function(response) {
-    	           		$scope.alerts = response.data.alerts;
-    	           		$scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
-    	           	}
-    	    	);
-    		},true);	
+    	for (i = 0; i < $scope.watched_faculty_selectboxes.length; ++i) {    		
+    		$scope.$watch('watched_faculty_selectboxes['+i+']', $scope.faculty_update_handler, true);	
+    	}
+    	
+    	for (i = 0; i < $scope.watched_curriculum_child_selectboxes.length; ++i) {    		
+    		$scope.$watch('watched_curriculum_child_selectboxes['+i+']', $scope.curriculum_update_handler, true);	
     	}
     	
     };
     
+     
 
     $scope.get_model_parent = function (parent, children, model) {
     	var i = 0; 	
     	for (i = 0; i < children.length; ++i) {
-    		//if(children[i].$$hashKey == model.$$hashKey){
     		if(children[i] === model){
     			return parent;
     		}
@@ -103,6 +250,9 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService, Directory
     		}else{
     			if(children[i].xmlname == 'faculty'){    
     				$scope.watched_faculty_selectboxes.push(children[i]);    				
+    			}
+    			if(children[i].xmlname == 'spl' || children[i].xmlname == 'kennzahl'){    
+    				$scope.watched_curriculum_child_selectboxes.push(children[i]);    				
     			}
     		}
     		
@@ -217,6 +367,31 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService, Directory
     	}    	
     	// insert into array at specified index, angular will sort the rest out
     	arr.splice(idx+1, 0, tobesistr);    
+    	
+    	// register watches! (eg if the new element is orgassignment or curriculum)
+    	if(tobesistr.children){
+    		if(tobesistr.xmlname == 'curriculum'){
+    			// leave just spl and one kennzahl node
+    			tobesistr.children.splice(2);
+    			// reset the kennzahl node
+    			$scope.reset_values(tobesistr.children[1]);
+    			tobesistr.study_name = [];
+    		}
+    		var i = 0;
+	    	for (i = 0; i < tobesistr.children.length; ++i) {
+	    		var n = tobesistr.children[i];
+	    		// the cascaded select-boxes are always leafs
+	    		if(n.xmlname == 'faculty'){  	    			
+	    			$scope.watched_faculty_selectboxes.push(n);
+	    			$scope.$watch('watched_faculty_selectboxes['+($scope.watched_faculty_selectboxes.length-1)+']', $scope.faculty_update_handler, true);
+	    		}
+	    		if(n.xmlname == 'spl' || n.xmlname == 'kennzahl'){	    			
+	    			$scope.reset_values(n);	    			
+	    			$scope.watched_curriculum_child_selectboxes.push(n); 
+	    			$scope.$watch('watched_curriculum_child_selectboxes['+($scope.watched_curriculum_child_selectboxes.length-1)+']', $scope.curriculum_update_handler, true);
+	    		}	    			    		
+	    	}
+    	}
     }
     
     $scope.deleteElement = function(child){    	
@@ -335,251 +510,6 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService, Directory
     	return angular.element.inArray(child, arr);
     }
     
-});
-
-app.directive('multilevelSelect', function($http, DirectoryService) {
-	
-    function link(scope, element, attrs) {
-    	scope.levelsObject = [ { value : '-1', options: [], label: '' } ];
-    	scope.alerts = [];
-    	
-    	// we can fill the first level on linking, it won't change
-    	var promise = DirectoryService.getStudyPlans();
-    	//scope.loadingTracker.addPromise(promise);
-    	promise.then(
-    		function(response) { 
-    			scope.alerts = response.data.alerts;
-    			scope.levelsObject[0].options = response.data.study_plans;
-    		}
-    		,function(response) {
-           		scope.alerts = response.data.alerts;
-           		scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
-           	}
-    	);
-    	
-    	// if there is a change in metadata tree, apply it on select boxes
-    	scope.$watch('rootChild', function(root) {        	  
-    		if(root){
-    			
-    			// get values from children
-    			var i;
-    			var ids = [];
-    			for (i = 0; i < root.children.length; ++i) {
-    				// first level is spl, the rest is kennzahl
-    				if(root.children[i].xmlname == 'spl'){    
-    					// spl is on index 0    					
-    					scope.levelsObject[0].value = root.children[i].ui_value; 
-    					scope.levelsObject[0].label = root.children[i].labels.en;
-    					// for spl we don't need to reload options
-    				}else{ 					
-    					// kennzahl elements are ordered, we will order them in model object as well
-    					// +1 because 0 is spl
-    					var idx = parseInt(root.children[i].data_order)+1; 
-    					if(!scope.levelsObject[idx]){
-    						scope.levelsObject[idx] = { value : '-1', options: [], label: '' };					
-    					}
-    					scope.levelsObject[idx].value = root.children[i].ui_value;
-    					scope.levelsObject[idx].label = root.children[i].labels.en;
-    					
-    					// reload values, splid: is the value of the first level
-    					var splid = root.children[0].ui_value;
-    					ids.push(root.children[i].ui_value);
-
-    					// before this async call is called the ids will be overwritten
-    					// so we have to copy them
-    					var local_ids_copy = [];    					
-    					angular.copy(ids, local_ids_copy);
-    					DirectoryService.getStudy(splid, local_ids_copy, idx).then(
-    	    	    		function(response) { 
-    	    	    			scope.alerts = response.data.alerts;    	    	    	
-    	    	    			angular.copy(response.data.study, scope.levelsObject[response.data.level].options);
-    	    	    		}
-    	    	    		,function(response) {
-    	    	           		scope.alerts = response.data.alerts;
-    	    	           		scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
-    	    	           	}
-    	    	    	);
-    	    	    	
-    				}
-    			}
-    			scope.levelsObject.splice(i, scope.levelsObject.length-i);
-		        	           
-      	  	}
-        }, true);
-
-    	// if there is a change in select boxes model, apply it on metadata tree
-        scope.$watch('levelsObject', function(value) { 
-
-        	if(value){
-        		var ids = [];
-        		var change = false;
-        		var delete_from_index = scope.levelsObject.length;
-        		for (i = 0; i < scope.levelsObject.length; ++i) {
-        			if(!change){    	
-    
-       					if(scope.rootChild.children[i].ui_value != scope.levelsObject[i].value){    
-       						scope.rootChild.children[i].ui_value = scope.levelsObject[i].value;
-       						change = true;
-       					}
-       					if(i != 0){       						
-       						ids.push(scope.levelsObject[i].value);
-       					}
-           				    					
-        			}else{
-        				// there was a change in the previous level, we need to re-fill options of this level
-        				// and remove all subsequent levels
-        				delete_from_index = i;
-        				// reload values, id: is the value of the previous level
-    					var splid = scope.rootChild.children[0].ui_value;    					
-    					ids.push(scope.levelsObject[i].value);
-    					   	    			
-    					var local_ids_copy = [];
-    					angular.copy(ids, local_ids_copy);    					
-   			         	DirectoryService.getStudy(splid, local_ids_copy, i).then(
-    	    	    		function(response) { 
-    	    	    			scope.alerts = response.data.alerts;
-    	    	    			angular.copy(response.data.study, scope.levelsObject[response.data.level].options);
-    	    	    		}
-    	    	    		,function(response) {
-    	    	           		scope.alerts = response.data.alerts;
-    	    	           		scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
-    	    	           	}
-    	    	    	);
-        				break;
-        			}        			
-        		}        		
-        		scope.levelsObject.splice(delete_from_index, scope.levelsObject.length-delete_from_index);
-        		scope.rootChild.children.splice(delete_from_index, scope.rootChild.children.length-delete_from_index);
-        		
-      	  	}
-        	
-        }, true);
-        
-      }
-   
-      return {
-        restrict: 'E',
-        link: link,
-        replace: true,
-        templateUrl: '/views/directives/multilevel_select.html',
-        scope: {
-        	rootChild: '=rootChild'
-          },
-      };
-});
-
-
-app.directive('phaidraOrgassignment', function(DirectoryService) {
-	
-    function link(scope, element, attrs) {
-    	scope.orgassignmentObject = { faculty: '', department: ''};
-    	scope.faculties = [];
-    	scope.faculty_label = '';
-    	scope.department_label = '';
-    	
-    	// we can fill faculties on linking, they won't change
-    	var promise = DirectoryService.getOrgUnits(null);
-    	//scope.loadingTracker.addPromise(promise);
-    	promise.then(
-    		function(response) { 
-    			scope.alerts = response.data.alerts;
-    			scope.faculties = response.data.org_units;
-    		}
-    		,function(response) {
-           		scope.alerts = response.data.alerts;
-           		scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
-           	}
-    	);
-    	
-    	// if there is a change in metadatatree, apply it on select boxes
-    	scope.$watch('orgassignmentChild', function(child) {        	  
-    		if(child){
-    			
-    			// get faculty_id from child
-    			var i;
-    			var faculty_id;
-    			var department_id;
-    			for (i = 0; i < child.children.length; ++i) {
-    				if(child.children[i].xmlname == 'faculty'){    					
-    					faculty_id = child.children[i].ui_value; 
-    					scope.faculty_label = child.children[i].labels.en;    	    	    
-    				}
-    				if(child.children[i].xmlname == 'department'){    					
-    					department_id = child.children[i].ui_value; 
-    					scope.department_label = child.children[i].labels.en;
-    				}
-    			}
-    			
-    			// fill departments in orgassignmentObject
-    			scope.departments = [];
-    			var promise = DirectoryService.getOrgUnits(faculty_id);
-    	    	//scope.loadingTracker.addPromise(promise);
-    	    	promise.then(
-    	    		function(response) { 
-    	    			scope.alerts = response.data.alerts;
-    	    			scope.departments = response.data.org_units;
-    	    		}
-    	    		,function(response) {
-    	           		scope.alerts = response.data.alerts;
-    	           		scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
-    	           	}
-    	    	);
-    	    	
-    	    	scope.orgassignmentObject.faculty = faculty_id;
-    	    	scope.orgassignmentObject.department = department_id;
-		        	           
-      	  	}
-        }, true);
-   
-    	// if there is a change in faculty selectbox, apply it on metadata tree 
-    	// and re-fill departments selectbox if faculty has changed
-        scope.$watch('orgassignmentObject', function(value) { 
-
-        	if(value){        		
-        		var faculty_change = false;
-        		for (i = 0; i < scope.orgassignmentChild.children.length; ++i) {
-        			if(scope.orgassignmentChild.children[i].xmlname == 'faculty'){    	
-        				if(scope.orgassignmentChild.children[i].ui_value != scope.orgassignmentObject.faculty){
-        					faculty_change = true;
-        				}
-        				scope.orgassignmentChild.children[i].ui_value = scope.orgassignmentObject.faculty;    					
-        			}
-        			if(scope.orgassignmentChild.children[i].xmlname == 'department'){    					
-        				scope.orgassignmentChild.children[i].ui_value = scope.orgassignmentObject.department;    					
-        			}
-        		}
-        		
-        		// fill departments in orgassignmentObject
-        		if(faculty_change){
-	    			scope.departments = [];
-	    			var promise = DirectoryService.getOrgUnits(faculty_id);
-	    	    	//scope.loadingTracker.addPromise(promise);
-	    	    	promise.then(
-	    	    		function(response) { 
-	    	    			scope.alerts = response.data.alerts;
-	    	    			scope.departments = response.data.org_units;
-	    	    		}
-	    	    		,function(response) {
-	    	           		scope.alerts = response.data.alerts;
-	    	           		scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
-	    	           	}
-	    	    	);
-        		}
-      	  	}
-        	
-        }, true);
-        
-      }
-   
-      return {
-        restrict: 'E',
-        link: link,
-        replace: true,
-        templateUrl: '/views/directives/orgassignment.html',
-        scope: {
-        	orgassignmentChild: '=orgassignmentChild'
-          },
-      };
 });
 
 app.directive('phaidraDuration', function() {
