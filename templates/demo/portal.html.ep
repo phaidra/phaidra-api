@@ -1,0 +1,91 @@
+% layout 'portal', title => 'Demo portal';
+
+	<alert ng-repeat="alert in alerts" type="alert.type" close="closeAlert($index)">{{alert.msg}}</alert>
+	
+	<script type="text/ng-template" id="signin.html">
+        <div class="modal-header">
+            <h3>Sign in</h3>
+        </div>
+        <div class="modal-body">
+            <ul>
+                <li ng-repeat="item in items">
+                    
+                </li>
+            </ul>
+            
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-primary" ng-click="ok()">Sign in</button>
+            <button class="btn btn-warning" ng-click="cancel()">Cancel</button>
+        </div>
+    </script>
+    
+   
+<span id="portal">
+	<table cellspacing="0px" cellpadding="10px" border="0">
+		<colgroup>
+			<col width="160px">
+			<col width="395px">
+			<col width="200px">
+		</colgroup>
+		
+		<tbody>
+			<tr>
+				<td>
+					<div class="one">Phaidra is</div>
+				</td>
+				<td class="portal-text">
+					is an acronym for Permanent Hosting, Archiving and Indexing of Digital Resources and Assets<br>... <b>the comprehensive university Digital Asset Management System with long-term archiving functions</b>.
+				</td>
+				<td rowspan="3">
+					<a title="Phaidra-Folder" href="https://fedora.phaidra.univie.ac.at/fedora/get/o:185581/bdef:Content/download" ><img style="margin-left: 10px;" src="[% c.uri_for('/static/img/') %]collage_c.jpg"></a>
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<div class="two">Info for Phaidra</div>
+				</td>
+				<td class="portal-text">
+					is available in detail on our <a href="http://phaidraservice.univie.ac.at">Service site.</a><br>Susanne Blumesberger, the Customer Management Representative (01/42 77 15170) is available to provide you with detailed information and is also reachable by email at <a href="mailto:phaidra@univie.ac.at">phaidra@univie.ac.at</a>.
+				</td>
+			</tr>
+			<tr>
+				<td>
+					<div class="three">Phaidra international</div>
+				</td>
+				<td class="portal-text">
+					is not only implemented at several local institutions, but is in use internationally, including universities in Serbia, Montenegro and Italy.<br>You can find out more about the Phaidra network at <a href="http://phaidra.org">phaidra.org</a>
+				</td>
+			</tr>		
+			<tr>
+				<td colspan="2">		
+					<table class="partner-table" cellspacing="0" border="0" callpadding="0">
+						<colgroup>
+							<col width="110px">
+							<col width="110px">
+							<col width="110px">
+							<col width="110px">
+							<col width="110px">
+						</colgroup>
+						<tbody>
+							<tr style="height: 1em;">
+								<td style=" letter-spacing:1px; text-transform: uppercase; font-size: 9pt; background-color:#cccccc;" colspan="5">Partners:</td>
+							</tr>
+							<tr>
+								<td><a target="_blank" href="http://www.coar-repositories.org/"><img class="partner-logo" src="[% c.uri_for('/static/img/partners/') %]coar_35.jpg"></a></td>
+								<td><a target="_blank" href="http://eacea.ec.europa.eu/tempus/"><img class="partner-logo" src="[% c.uri_for('/static/img/partners/') %]tempus_60.jpg"></a></td>
+								<td><a target="_blank" href="http://www.europeana-libraries.eu/"><img class="partner-logo" src="[% c.uri_for('/static/img/partners/') %]europeana_70.jpg"></a></td>
+								<td><a target="_blank" href="https://www.openaire.eu/"><img class="partner-logo" src="[% c.uri_for('/static/img/partners/') %]openaire_70.jpg"></a></td>
+								<td><a target="_blank" href="http://www.openaire.eu/en/component/content/article/76-highlights/326-openaireplus-press-release"><img class="partner-logo" src="[% c.uri_for('/static/img/partners/') %]openaireplus_60.jpg"></a></td>
+							</tr>
+						</tbody>
+					</table>
+				</td>
+				<td>
+					<a href="http://phaidra.org"><img class="phaidra-org-img" src="[% c.uri_for('/static/img/partners/') %]phaidraorg186.jpg"></a>
+				</td>
+			</tr>
+		</tbody>
+	</table>
+</span>
+

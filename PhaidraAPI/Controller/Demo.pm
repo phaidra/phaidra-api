@@ -4,7 +4,6 @@ use strict;
 use warnings;
 use v5.10;
 use base 'Mojolicious::Controller';
-use PhaidraAPI::Model::Metadata;
 
 sub submitform {
     my $self = shift;  	
@@ -14,6 +13,11 @@ sub submitform {
 sub metadataeditor_full {
     my $self = shift;  	       
     $self->render('demo/metadataeditor/full');	
+}
+
+sub portal {
+    my $self = shift;  	       
+    $self->render('demo/portal');	
 }
 
 

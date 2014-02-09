@@ -56,16 +56,16 @@
   	<script src="<%= url_for '/js/promise-tracker.min.js' %>"></script>
   	
   	<!-- Custom Phaidra scripts -->
-	<script type="text/javascript" src="<%= url_for '/js/services/metadata.js' %>"></script>
 	<script type="text/javascript" src="<%= url_for '/js/services/directory.js' %>"></script>
-  	<script type="text/javascript" src="<%= url_for '/js/controllers/metadataeditor.js' %>"></script>
+  	<script type="text/javascript" src="<%= url_for '/js/controllers/portal.js' %>"></script>
   	
   	<!-- Custom Phaidra CSS --> 
-  	<link href="<%= url_for '/css/metadataeditor.css' %>" rel="stylesheet">
+  	<link href="<%= url_for '/css/portal.css' %>" rel="stylesheet">
   	<link href="<%= url_for '/css/main.css' %>" rel="stylesheet">
   	
+  	
   </head>	
-  <body data-ng-app="metadataeditorApp" data-ng-controller="MetadataeditorCtrl" data-ng-init="init()">
+  <body data-ng-app="portalApp" data-ng-controller="PortalCtrl" data-ng-init="init()">
   
   	<!--[if lt IE 7]>
       <p class="chromeframe">You are using an outdated browser. <a href="http://browsehappy.com/">Upgrade your browser today</a>.</p>
@@ -75,41 +75,46 @@
       <script src="<%= url_for '/js/es5-shim.js' %>"></script>
       <script src="<%= url_for '/js/json3.min.js' %>"></script>
     <![endif]-->
-    
-    <script type="text/javascript">
-            $(document).ready(function(){
-                
-				$('#resetEditor').click(function(){
-					var app = document.getElementById('MetadataeditorCtrl');
-					var scope = angular.element(app).scope();
-					scope.$apply(function() {
-						scope.resetEditor();
-					});     
-				});
-				
-				$('.datepicker').datepicker();
-                
-            });
-        </script>
 
-	<header id="overview" class="hero-unit">
-        <div class="container">
-            <h1>
-                <span class="phaidra-title">Phaidra</span> <%=l 'Metadata Editor' %>
-                <img class="load-spinner" ng-show="loadingTracker.active()" src="../img/ajax-loader.gif">
-            </h1>
-			
-            <p><%=l 'Full version' %></p>
+	
+        <nav class="navbar navbar-default" role="navigation">
+  <div class="container-fluid">
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <div class="navbar-header">
+      <button type="button" class="navbar-toggle" data-toggle="collapse" data-target="#bs-example-navbar-collapse-1">
+        <span class="sr-only">Toggle navigation</span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+        <span class="icon-bar"></span>
+      </button>
+      <a class="navbar-brand" href="#">Phaidra</a>
+    </div>
 
-            <div class="btn-group jumbotron-buttons">
-                <!-- External Call to an AngularJS controller -->
-                <button type="button" class="btn btn-primary right" data-ng-click="getMetadataTree()"><i class="glyphicon glyphicon-pencil"></i> Load editor</button>
-        		<!--<button class="btn btn-danger right" id="resetEditor"><i class="glyphicon glyphicon-refresh"></i> Reset editor</button>-->
-        		<a href="https://github.com/phaidra/phaidra-api" class="btn btn-default"><i class="glyphicon icon-github"></i>  Code on Github</a>
-            </div>
+    <!-- Collect the nav links, forms, and other content for toggling -->
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+      <ul class="nav navbar-nav">
         
+        <li class="dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown">Edit <b class="caret"></b></a>
+          <ul class="dropdown-menu">
+            <li><a href="/demo/metadataeditor_full">UWMetadata</a></li>
+            <li class="divider"></li>
+          </ul>
+        </li>
+      </ul>
+      <form class="navbar-form navbar-left" role="search">
+        <div class="form-group">
+          <input type="text" class="form-control" placeholder="Search">
         </div>
-    </header>
+        <button type="submit" class="btn btn-default">Submit</button>
+      </form>
+      <ul class="nav navbar-right">
+      	<button type="button" class="btn btn-default navbar-btn" ng-click="signin_open()">Sign in</button>
+      </ul>
+    </div><!-- /.navbar-collapse -->
+  </div><!-- /.container-fluid -->
+</nav>
+    
   
   
   	<%# ######### Content ########## %> 
@@ -121,11 +126,12 @@
   		<div class="container">
   			<p>
 			Code licensed under
-			<a href="https://github.com/phaidra/phaidra-api/blob/master/LICENSE">Apache License</a>
+			<a href="https://github.com/phaidra/phaidra-api/blob/master/LICENSE">Apache License</a>			
 			</p>
 			<p>
 				<a href="https://github.com/phaidra/phaidra-api/issues?state=open">Issues</a>
 			</p>
+			<p><a href="https://github.com/phaidra/phaidra-api" class="btn btn-default"><i class="glyphicon icon-github"></i>  Code on Github</a></p>
   		</div>
   	</footer>
   </body>
