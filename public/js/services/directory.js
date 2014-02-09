@@ -2,12 +2,12 @@ angular.module('directoryService', [])
 .factory('DirectoryService', function($http) {
 	
 	return {
-	    getOrgUnits: function(parent_id, namespace) {
+	    getOrgUnits: function(parent_id, values_namespace) {
 	         //return the promise directly.
 	         return $http({
 	             method  : 'GET',
 	             url     : '/directory/get_org_units',
-	             params  : { parent_id: parent_id, namespace: namespace }
+	             params  : { parent_id: parent_id, values_namespace: values_namespace }
 	         	//headers : are by default application/json
 	         });
 	    },
@@ -19,11 +19,19 @@ angular.module('directoryService', [])
 	         });
 	    },
 	    
-	    getStudy: function(splid, ids, level) {
+	    getStudy: function(spl, ids, values_namespace) {
 	         return $http({
 	             method  : 'GET',
 	             url     : '/directory/get_study',
-	             params  : { splid: splid, ids: ids, level: level }
+	             params  : { spl: spl, ids: ids, values_namespace: values_namespace }
+	         });
+	    },
+	    
+	    getStudyName: function(spl, ids) {
+	         return $http({
+	             method  : 'GET',
+	             url     : '/directory/get_study_name',
+	             params  : { spl: spl, ids: ids }
 	         });
 	    },
 	}

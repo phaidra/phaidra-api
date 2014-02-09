@@ -509,13 +509,13 @@ sub get_object_metadata {
 	return $metadata_tree;
 }
 
-sub get_departments_terms {
+sub get_org_units_terms {
 	my $self = shift;
 	my $c = shift;
 	my $parent_id = shift;
+	my $value_namespace = shift;
 	
 	my %vocabulary;
-	my $namespace =  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_department/";
 	my $langs = $c->app->config->{directory}->{org_units_languages};
 	foreach my $lang (@$langs){
 				
@@ -524,7 +524,7 @@ sub get_departments_terms {
 		my $org_units = $res->{org_units};
 				
 		foreach my $u (@$org_units){	
-			$vocabulary{'terms'}->{$u->{value}}->{uri} = $namespace.$u->{value};
+			$vocabulary{'terms'}->{$u->{value}}->{uri} = $value_namespace.$u->{value};
 			$vocabulary{'terms'}->{$u->{value}}->{$lang} = $u->{name};								
 		}											
 	}
@@ -534,6 +534,54 @@ sub get_departments_terms {
 	}
 	
 	return \@termarray;
+}
+
+sub get_study_terms {
+	
+	my $self = shift;
+	my $c = shift;
+	my $spl = shift;
+	my $ids = shift;
+	my $values_namespace = shift;
+	
+	my %vocabulary;	
+	my $langs = $c->app->config->{directory}->{study_plans_languages};
+	
+	foreach my $lang (@$langs){
+		my $res = $c->app->directory->get_study($c, $spl, $ids, $lang);
+					
+		my $study = $res->{'study'};
+					
+		foreach my $s (@$study){	
+			$vocabulary{'terms'}->{$s->{value}}->{uri} = $values_namespace.$s->{value};
+			$vocabulary{'terms'}->{$s->{value}}->{$lang} = $s->{name};								
+		}	
+	}										
+	
+	my @termarray;
+	while ( my ($key, $element) = each %{$vocabulary{'terms'}} ){	
+		push @termarray, $element;
+	}
+	
+	return \@termarray;
+}
+
+sub get_study_name {
+	
+	my $self = shift;
+	my $c = shift;
+	my $spl = shift;
+	my $ids = shift;
+	
+	my $langs = $c->app->config->{directory}->{study_plans_languages};
+	
+	my %names;
+	foreach my $lang (@$langs){
+		my $name = $c->app->directory->get_study_name($c, $spl, $ids, $lang);
+		$names{$lang} = $name;				
+	}										
+	
+	return \%names;
 }
 
 sub fill_object_metadata {
@@ -552,11 +600,8 @@ sub fill_object_metadata {
 	unless(defined($metadata_tree_parent)){
 		my %h = (
 			'children' => $metadata_tree
-		);
-		#$c->app->log->debug($c->app->dumper($metadata_tree));
-		#$c->app->log->debug($c->app->dumper(\%h));	
+		);	
 		$metadata_tree_parent = \%h;
-		#$c->app->log->debug($c->app->dumper($metadata_tree_parent->{children}));
 	}
 			
 	for my $e ($uwmetadata->children->each) {
@@ -606,7 +651,7 @@ sub fill_object_metadata {
 							    	if($faculty){
 							    		if($faculty->text){
 							    			foreach my $voc (@{$node->{vocabularies}}){
-							    				$voc->{terms} = $self->get_departments_terms($c, $faculty->text);	
+							    				$voc->{terms} = $self->get_org_units_terms($c, $faculty->text, "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_department/");	
 							    			}
 							    		}
 							    		
@@ -618,7 +663,64 @@ sub fill_object_metadata {
 		    			}	    			
 	    			}
 	    			
-	    			#if($node->{xmlname} )
+	    			if($node->{xmlname} eq 'kennzahl'){
+	    				# get the previous sibling and study plan and fill the study plan vocabulary	
+		    			if($e->parent){
+		    				my $prev = undef;
+		    				my $spl = undef;
+		    				my $current_seq = undef;
+		    				my $ids_all;
+ 							my $last_kennzahl = 0;
+			    			for my $child ($e->parent->children->each) {
+
+			    				if($e->parent->children->reverse->first->tree eq $e->tree){			    					
+			    					$last_kennzahl = 1;			    					
+			    				}
+			    				
+			    				my $child_type = $child->type;
+			    				$child_type =~ m/(ns\d+):([0-9a-zA-Z_]+)/;
+							    my $ns = $1;
+							    my $id = $2;
+							    if($id eq 'spl'){
+							    	$spl = $child->text;
+							    	next;
+							    }
+							    if($id eq 'kennzahl'){
+							    	push @$ids_all, { text => $child->text, seq => $child->attr('seq')};
+							    	if($child->tree eq $e->tree){
+							    		$current_seq = $child->attr('seq');
+							    	}
+							    }							    
+							}							
+							@$ids_all = sort { $a->{seq} <=> $b->{seq} } @$ids_all;
+
+							# for the get_study method we need all the ids until the current one
+							my @ids;
+							for my $id (@$ids_all){
+								if($id->{seq} eq $current_seq){
+									last;	
+								}else{
+									push @ids, $id->{text}; 	
+								}									
+							}
+												    		
+							foreach my $voc (@{$node->{vocabularies}}){
+								$voc->{terms} = $self->get_study_terms($c, $spl, \@ids, "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_kennzahl/");	
+							}							    		
+							
+							# try to get the study name
+							if($last_kennzahl){
+							
+								my @ids;
+								for my $id (@$ids_all){							
+									push @ids, $id->{text}; 	
+								}									
+															
+								$metadata_tree_parent->{study_name} = $self->get_study_name($c, $spl, \@ids);
+																
+							}
+		    			}	
+	    			}
 	    			
 	    		}elsif($node->{input_type} eq "input_checkbox" || $node->{input_type} eq "select_yesno"){
 	    			my $v;
