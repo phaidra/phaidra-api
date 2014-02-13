@@ -28,7 +28,7 @@ sub login {
     # where we generate the request ourselves
     unless($auth_header)
     {
-    	$self->res->headers->www_authenticate('Basic "'.$self->app->config->authentication->{realm}.'"');
+    	$self->res->headers->www_authenticate('Basic "'.$self->app->config->{authentication}->{realm}.'"');
     	$self->render(json => { alerts => [{ type => 'danger', msg => 'please authenticate' }]} , status => 401) ;
     	return;
     }
@@ -61,7 +61,7 @@ sub extract_basic_auth_credentials {
     my ($username, $password) = split(/:/, b($str)->b64_decode);	
     
     unless(defined($username) && defined($password)){
-    	$self->res->headers->www_authenticate('Basic "'.$self->app->config->authentication->{realm}.'"');
+    	$self->res->headers->www_authenticate('Basic "'.$self->app->config->{authentication}->{realm}.'"');
     	$self->render(json => { alerts => [{ type => 'danger', msg => 'no credentials found' }]} , status => 401) ;
     	return 0;
     }
