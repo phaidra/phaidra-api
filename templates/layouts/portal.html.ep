@@ -49,9 +49,9 @@
   	<link href="<%= url_for '/css/datepicker3.css' %>" rel="stylesheet">  	
   	<script src="<%= url_for '/js/datepicker/bootstrap-datepicker.js' %>"></script>
   	
-  	<!-- UI-Bootstrap js (AngularJS) -->  	  
-  	<!--<script src="<%= url_for '/js/ui-bootstrap-tpls-0.6.0.js' %>"></script>-->
-  	<script src="http://angular-ui.github.io/bootstrap/ui-bootstrap-tpls-0.10.0.js"></script>
+  	<!-- UI-Bootstrap js (AngularJS) -->
+  	<!--<script src="http://angular-ui.github.io/bootstrap/ui-bootstrap-tpls-0.10.0.js"></script>-->  	  
+  	<script src="<%= url_for '/js/ui-bootstrap-tpls-0.10.0.js' %>"></script>  	
   	
   	<!-- Promise tracker -->
   	<script src="<%= url_for '/js/promise-tracker.min.js' %>"></script>
