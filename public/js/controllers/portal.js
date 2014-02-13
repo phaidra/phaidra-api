@@ -28,10 +28,12 @@ var ModalInstanceCtrl = function ($scope, $modalInstance, DirectoryService, prom
     	$scope.loadingTracker.addPromise(promise);
     	promise.then(
     		function(response) { 
+    			$scope.form_disabled = false;
     			$scope.alerts = response.data.alerts;
     			$scope.alerts.push({type: 'success', msg: 'Login successful'});
     		}
     		,function(response) {
+    			$scope.form_disabled = false;
     			$scope.alerts = response.data.alerts;
             	$scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
             }
