@@ -2,15 +2,15 @@
 	margin: 15px 0 15px 0;
 }
 
-.metadataeditor_full #control-panel {
+.uwmetadataeditor_full #control-panel {
 	margin: 15px 0 15px 0;
 }
 
-.metadataeditor_full ul {
+.uwmetadataeditor_full ul {
 	list-style-type: none;
 }
 
-.metadataeditor_full h4 {
+.uwmetadataeditor_full h4 {
 	margin-left: 5px;
 }
 
@@ -83,80 +83,80 @@ strong {
 
 
 
-.metadataeditor_full select {
+.uwmetadataeditor_full select {
     min-width: 315px;
 }
 
-.metadataeditor_full input.ng-invalid.ng-dirty {
+.uwmetadataeditor_full input.ng-invalid.ng-dirty {
     background-color: #FA787E;
 }
     
-.metadataeditor_full input.ng-valid.ng-dirty {
+.uwmetadataeditor_full input.ng-valid.ng-dirty {
     background-color: #78FA89;
 }
 
-.metadataeditor_full textarea.ng-invalid.ng-dirty {
+.uwmetadataeditor_full textarea.ng-invalid.ng-dirty {
     background-color: #FA787E;
 }
     
-.metadataeditor_full textarea.ng-valid.ng-dirty {
+.uwmetadataeditor_full textarea.ng-valid.ng-dirty {
     background-color: #78FA89;
 }
 
-.metadataeditor_full .form-li {
+.uwmetadataeditor_full .form-li {
     line-height: 45px;
 }
 
-.metadataeditor_full .span4 {
+.uwmetadataeditor_full .span4 {
     width: 90%;
 }
 
 
-.metadataeditor_full .float-right {
+.uwmetadataeditor_full .float-right {
     float: right;
 }
 
-.metadataeditor_full label {
+.uwmetadataeditor_full label {
     width: 15%;
     margin-right: 15px;
 }
 
-.metadataeditor_full .required-error {
+.uwmetadataeditor_full .required-error {
     margin-left: 5px;
 }
 
 */
 
-.metadataeditor_full .tab-content {
+.uwmetadataeditor_full .tab-content {
 	margin: 20px 0 0 0;
 }
 	
-.metadataeditor_full #pid {
+.uwmetadataeditor_full #pid {
 	width: 100px;
 	min-width: 100px;
 }
 
-.metadataeditor_full input[type='text'],textarea {
+.uwmetadataeditor_full input[type='text'],textarea {
 	min-width: 300px;
 }
 /*
-.metadataeditor_full input[type='text'],textarea {
+.uwmetadataeditor_full input[type='text'],textarea {
 	max-width: 50%;
 }
 
-.metadataeditor_full select {
+.uwmetadataeditor_full select {
 	max-width: 50%;
 }
 */
 
 
 /*
-.metadataeditor_full .input-group .form-control:last-child {
+.uwmetadataeditor_full .input-group .form-control:last-child {
 	border-bottom-left-radius: 4px;
 	border-top-left-radius: 4px;
 }
 
-.metadataeditor_full .input-group .form-control:first-child {
+.uwmetadataeditor_full .input-group .form-control:first-child {
 	border-top-right-radius: 4px;
 	border-bottom-right-radius: 4px;
 }

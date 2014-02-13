@@ -2,20 +2,20 @@ angular.module('metadataService', [])
 .factory('MetadataService', function($http) {
 	
 	return {
-	    getObjectMetadata: function(mfv, pid) {
+		getUwmetadataFromObject: function(mfv, pid) {
 	         //return the promise directly.
 	         return $http({
 	             method  : 'GET',
-	             url     : '/metadata',
-	             params  : { mfv: mfv, pid: pid }
+	             url     : '/object/'+pid+'/uwmetadata',
+	             params  : { mfv: mfv }
 	         	//headers : are by default application/json
 	         });
 	    },
 	
-		getMetadataTree: function(mfv) {
+		getUwmetadataTree: function(mfv) {
 	        return $http({
 	            method  : 'GET',
-	            url     : '/metadata/tree',
+	            url     : '/uwmetadata/tree',
 	            params  : { mfv: mfv }
 	        });	        
 	   },
@@ -27,11 +27,11 @@ angular.module('metadataService', [])
 	        });	        
 	   },
 	   
-	   saveToObject: function(mfv, pid, metadata){
+	   saveUwmetadataToObject: function(mfv, pid, uwmetadata){
 		   return $http({
 			   method  : 'POST',
-	           url     : '/metadata',
-	           data    : { metadata: metadata, mfv: mfv, pid: pid }
+	           url     : '/object/'+pid+'/uwmetadata',
+	           data    : { uwmetadata: uwmetadata, mfv: mfv }
 		   });	        
 	   },
 	}

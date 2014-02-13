@@ -1,6 +1,6 @@
-% layout 'metadataeditor', title => 'Metadataeditor';
+% layout 'uwmetadataeditor', title => 'Metadataeditor';
 
-	<div class="container metadataeditor_full" role="main" >
+	<div class="container uwmetadataeditor_full" role="main" >
 
 		<nav id="control-panel" class="navbar navbar-default" role="navigation">
 			<div class="navbar-header">
@@ -25,7 +25,7 @@
 			      <p class="navbar-text" data-ng-show="getMetadataFormatVersion()">Metadata format version: {{getMetadataFormatVersion()}}</p>
 			      
 			      <div class="navbar-form navbar-right" ng-if="fields">
-				   <button ng-disabled="form.$invalid || form_disabled" ng-click="save()" class="btn btn-success navbar-left"><span class="glyphicon glyphicon-save"></span> Save</button>
+				   <button ng-disabled="form.$invalid || form_disabled" data-ng-click="save()" class="btn btn-success navbar-left"><span class="glyphicon glyphicon-save"></span> Save</button>
 				  </div>
 				  
 			      
@@ -37,7 +37,7 @@
 		<alert ng-repeat="alert in alerts" type="alert.type" close="closeAlert($index)">{{alert.msg}}</alert>
 		
 		
-		<div class="well" id="MetadataeditorCtrl" data-ng-show="fields" data-ng-cloak >
+		<div class="well" id="UwmetadataeditorCtrl" data-ng-show="fields" data-ng-cloak >
 		
 			<form name="form" class="form-horizontal" novalidate role="form">
 			

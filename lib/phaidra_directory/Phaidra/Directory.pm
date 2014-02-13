@@ -21,6 +21,33 @@ sub _init {
   	return $self;	
 }
 
+sub authenticate($$$$){
+	my $app = shift;
+	my $username = shift; 
+	my $password = shift;
+	my $extradata = shift;
+	
+	$app->log->error("This method is not implemented");	
+}
+
+sub validate_user(){
+	my $app = shift;
+	my $username = shift; 
+	my $password = shift;
+	my $extradata = shift;
+	
+	my $ret = authenticate($app, $username, $password, $extradata);
+	
+	# Mojolicious::Plugin::Authenticate requires that error returns undef and success uid
+	if($ret->{status} eq 200){
+		$app->log->info("successfuly authenticated $username");
+		return $username;
+	}else{
+		$app->log->error("authentication failed, error code: ".$ret->{status}."\n".$app->dumper($ret->{alerts}));
+		return undef;	
+	}
+}
+
 sub get_name {    
 	my $self = shift;
 	my $c = shift;

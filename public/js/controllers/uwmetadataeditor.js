@@ -1,6 +1,6 @@
-var app = angular.module('metadataeditorApp', ['ui.bootstrap', 'ajoslin.promise-tracker', 'metadataService', 'directoryService']);
+var app = angular.module('uwmetadataeditorApp', ['ui.bootstrap', 'ajoslin.promise-tracker', 'metadataService', 'directoryService']);
 
-app.controller('MetadataeditorCtrl', function($scope, MetadataService, DirectoryService, promiseTracker) {
+app.controller('UwmetadataeditorCtrl', function($scope, MetadataService, DirectoryService, promiseTracker) {
     
 	$scope.regex_pid = /^[a-zA-Z\-]+:[0-9]+$/;
 	// use: <input ng-pattern="regex_identifier" ...
@@ -263,7 +263,7 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService, Directory
     $scope.save = function() {
     	var metadata_format_version = 1;
     	$scope.form_disabled = true;
-    	var promise = MetadataService.saveToObject(metadata_format_version, $scope.pid, $scope.fields)
+    	var promise = MetadataService.saveUwmetadataToObject(metadata_format_version, $scope.pid, $scope.fields)
     	$scope.loadingTracker.addPromise(promise);
     	promise.then(
         	function(response) { 
@@ -289,10 +289,10 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService, Directory
 		$scope.metadata_format_version = '';
     };
     
-    $scope.getMetadataTree = function(){
+    $scope.getUwmetadataTree = function(){
     	var metadata_format_version = 1;
     	$scope.resetEditor();
-        var promise = MetadataService.getMetadataTree(metadata_format_version, pid);        
+        var promise = MetadataService.getUwmetadataTree(metadata_format_version, pid);        
         $scope.loadingTracker.addPromise(promise);
         promise.then(
     		function(response) { 
@@ -318,7 +318,7 @@ app.controller('MetadataeditorCtrl', function($scope, MetadataService, Directory
     $scope.loadObject = function(pid){
     	var metadata_format_version = 1;
     	$scope.resetEditor();
-    	var promise = MetadataService.getObjectMetadata(metadata_format_version, pid);
+    	var promise = MetadataService.getUwmetadataFromObject(metadata_format_version, pid);
     	$scope.loadingTracker.addPromise(promise);
     	promise.then(
     		function(response) { 

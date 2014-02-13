@@ -43,8 +43,6 @@
     	"proaiRepositoryIdentifier": "",
     	
     	"uwmetadatalabel": "Universitaet Wien Metadata",
-
-		"getuwmetadataurl": "https://fedora.phaidra-instance.univie.ac.at/fedora/get/{PID}/bdef:Asset/getUWMETADATA",
     	
     	"username": "changeme",
     	
@@ -68,5 +66,28 @@
     	"username":"changeme",
     	
     	"password":"changeme"
-    }     
+    }    
+    
+    "authentication": {
+    
+    	"realm": "PhaidraAPI",
+    	
+    	"ldap": {
+    		"server": "",
+    		
+    		"port": "",
+    		
+    		"useridattribute": "",
+    		
+    		"usersearchbase": "",
+    		
+        	"usersearchfilter": "",   
+        			
+    		"userattributes": "",
+    		
+    		"securityprincipal": "",
+    		
+    		"securitycredentials": ""
+    	}
+    }, 
 }

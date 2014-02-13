@@ -1,5 +1,5 @@
-angular.module('directoryService', [])
-.factory('DirectoryService', function($http) {
+angular.module('directoryService', ['Base64'])
+.factory('DirectoryService', function($http, Base64) {
 	
 	return {
 	    getOrgUnits: function(parent_id, values_namespace) {
@@ -32,6 +32,15 @@ angular.module('directoryService', [])
 	             method  : 'GET',
 	             url     : '/directory/get_study_name',
 	             params  : { spl: spl, ids: ids }
+	         });
+	    },
+	    
+	    login: function(username, password) {
+
+	         return $http({
+	             method  : 'GET',
+	             url     : '/login',
+	             headers: {'Authorization': 'Basic ' + Base64.encode(username + ':' + password)}
 	         });
 	    },
 	}

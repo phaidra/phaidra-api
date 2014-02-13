@@ -10,9 +10,9 @@ sub submitform {
     $self->render();	
 }
 
-sub metadataeditor_full {
+sub uwmetadataeditor_full {
     my $self = shift;  	       
-    $self->render('demo/metadataeditor/full');	
+    $self->render('demo/uwmetadataeditor/full');	
 }
 
 sub portal {
