@@ -16,8 +16,8 @@
   	<link rel="ICON" href="<%= url_for '/img/favicon.ico' %>" type="image/x-icon" />
   	
   	<!-- jQuery -->
-  	<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
-  	<!--<script src="<%= url_for '/js/jquery.min.js' %>"></script>-->
+  	<!--<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>-->
+  	<script src="<%= url_for '/js/jquery.min.js' %>"></script>
   	
   	<!-- Select2 -->
   	<!--<link rel="stylesheet" href="<%= url_for '/css/select2.css' %>">-->
@@ -25,25 +25,23 @@
   	<!--<script type="text/javascript" src="<%= url_for '/js/select2.min.js' %>"></script>-->
   	
   	<!-- AngularJS -->
-  	<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.1.5/angular.js"></script>
-  	<!--<script src="<%= url_for '/js/angular.min.js' %>"></script>-->
+  	<!--<script src="http://ajax.googleapis.com/ajax/libs/angularjs/1.1.5/angular.js"></script>-->
+  	<script src="<%= url_for '/js/angular.min.js' %>"></script>
   	
   	<!-- AngularJS Select2 -->
   	<!--<script type="text/javascript" src="<%= url_for '/js/ngselect2.js' %>"></script>-->
   	
   	<!-- AngularJS i18n -->
-  	<script src="http://cdnjs.cloudflare.com/ajax/libs/angular-i18n/1.2.5/angular-locale_de-at.js"></script>
-  	<!--<script src="<%= url_for '/js/angular-locale_de-at.js' %>"></script>-->
+  	<!--<script src="http://cdnjs.cloudflare.com/ajax/libs/angular-i18n/1.2.5/angular-locale_de-at.js"></script>-->
+  	<script src="<%= url_for '/js/angular-locale_de-at.js' %>"></script>
   	
   	<!-- Bootstrap 3 CSS & js -->   	
     
-    <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet">
-  	<script src="//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>  	
-  	
-  	<!--
+    <!--<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet">-->
+  	<!--<script src="//netdna.bootstrapcdn.com/bootstrap/3.0.3/js/bootstrap.min.js"></script>-->  	  	
   	<script src="<%= url_for '/js/bootstrap.min.js' %>"></script>
   	<link href="<%= url_for '/css/bootstrap.min.css' %>" rel="stylesheet">
-  	-->
+  	
   	
   	<!-- Bootstrap datepicker -->
   	<!--<link href="<%= url_for '/css/bootstrap-datepicker.css' %>" rel="stylesheet">-->
