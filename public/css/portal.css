@@ -1,4 +1,7 @@
 
+/* The fixed navbar will overlay your other content, unless you add padding to the bottom of the <body>.  */
+body { padding-top: 70px; }
+
 #portal
 {
 	font-size: 1.3em;
@@ -6,7 +9,7 @@
 }
 
 #portal table {
-	margin-left: 100px;
+	margin-left: 15px;
 }
 
 #portal a
@@ -30,11 +33,12 @@
 
 #portal .partner-table {
 	padding: 40px 0px 0px 0px;
+	margin-left: 0px;
 }
 
 #portal .phaidra-org-img {
 	border: solid 1px #aaaaaa;
-	margin: 40px 0 0 10px;
+	margin: 0px 0 0 10px;
 }
 
 #portal td
@@ -70,4 +74,6 @@ margin-top: 5px;
 	padding: 6px 0 0 17px;
 }
 
-
+.signin-btn {
+	margin-right:20px;
+}

@@ -1,4 +1,4 @@
-package PhaidraAPI::Model::Metadata;
+package PhaidraAPI::Model::Uwmetadata;
 
 use strict;
 use warnings;
@@ -19,34 +19,39 @@ $home->detect('PhaidraAPI');
 sub metadata_tree {
 	
     my ($self, $c, $v) = @_;
+    
+    my $res = { alerts => [], status => 200 };
  
  	my $cachekey = 'metadata_tree_'.$v;
  	if($v eq '1'){
  		
- 		my $res = $c->app->chi->get($cachekey);
+ 		my $cacheval = $c->app->chi->get($cachekey);
   		
-    	if($res){    		
+    	if($cacheval){    		
     		$c->app->log->debug("[cache hit] $cachekey");
     	}else{    		
     		$c->app->log->debug("[cache miss] $cachekey");
     		
-    		$res = $self->get_metadata_tree($c);		
+    		$cacheval = $self->get_metadata_tree($c);		
   
-    		$c->app->chi->set($cachekey, $res, '1 day');    
+    		$c->app->chi->set($cachekey, $cacheval, '1 day');    
   
   			# save and get the value. the serialization can change integers to strings so 
   			# if we want to get the same structure for cache miss and cache hit we have to run it through
   			# the cache serialization process even if cache miss [when we already have the structure]
   			# so instead of using the structure created we will get the one just saved from cache.  		
-    		$res = $c->app->chi->get($cachekey);
+    		$cacheval = $c->app->chi->get($cachekey);
     		#$c->app->log->debug($c->app->dumper($res));			
-    	}    	 		
+    	}    	
+    	$res->{metadata_tree} = $cacheval; 		
  		return $res;
 		
  	}else{
- 		$c->app->log->error($c->stash->{'message'}); 		
- 		$c->stash( 'message' => 'Unknown metadata format version requested.'); 		 		
-		return -1;
+ 		$c->stash( 'message' => 'Unknown metadata format version requested.');
+ 		$c->app->log->error($c->stash->{'message'});
+ 		unshift @{$res->{alerts}}, { type => 'danger', msg => $self->stash->{'message'} };
+ 		$res->{status} = 500;
+		return $res;
  	}
   
 }
@@ -132,7 +137,7 @@ sub get_metadata_tree {
 	my $searchable; # 1 if the element is visible in advanced search
 	my $mandatory; # 1 if the element is mandatory
 	my $autofield; # ? i found no use for this one
-	my $editable; # 1 if the element is available in metadataeditor
+	my $editable; # 1 if the element is available in uwmetadataeditor
 	my $oid; # this was meant for metadata-owner feature 
 	my $datatype; # Phaidra datatype (/usr/local/fedora/cronjobs/XSD/datatypes.xsd)
 	my $valuespace; # regex constraining the value
@@ -471,30 +476,30 @@ sub get_metadata_tree {
 
 sub get_object_metadata {
 	
-	my ($self, $c, $v, $pid) = @_;
+	my ($self, $c, $v, $pid, $username, $password) = @_;
 
-	# this structure contains the metadata default structure (equals to empty metadataeditor) to which
-	# we are going to load the data of some real object 
-	my $metadata_tree = $self->metadata_tree($c, $v);
-	if($metadata_tree == -1){
-		$self->render(json => { message => $self->stash->{'message'}} , status => 500) ;		
-		return;
+	# this structure contains the metadata default structure (equals to empty uwmetadataeditor) to which
+	# we are going to load the data of some real object	
+	my $tree_res = $self->metadata_tree($c, $v); 
+	if($tree_res->{status} ne 200){		
+		return $tree_res;
 	}
+	
+	my $metadata_tree = $tree_res->{metadata_tree};
 	
 	# this is a hash where the key is 'ns/id' and value is a default representation of a node
 	# -> we use this when adding nodes (eg a second title) to get a new empty node
 	my %metadata_nodes_hash;
 	my $metadata_tree_copy = dclone($metadata_tree);
 	$self->create_md_nodes_hash($c, $metadata_tree_copy, \%metadata_nodes_hash);
-	#$c->app->log->debug($c->app->dumper(\%metadata_nodes_hash));
 	
 	# get object metadata
-	my $uwmd = $self->get_uwmetadata($c, $pid);	
-	my $dom = Mojo::DOM->new($uwmd);
-	
-	#$c->app->log->debug($c->app->dumper($dom->tree));
-	
-	#my $e = $dom->tree;
+	my $res = $self->get_uwmetadata($c, $pid, $username, $password);
+	if($res->{status} ne 200){
+		return $res;
+	}	
+	my $dom = Mojo::DOM->new($res->{uwmetadata});
+		
 	my $nsattr = $dom->find('uwmetadata')->first->attr;
 	my $nsmap  = $nsattr;
 	# replace xmlns:ns0 with ns0
@@ -503,10 +508,10 @@ sub get_object_metadata {
 		$newkey =~ s/xmlns://g;
 		$nsmap->{$newkey} = delete $nsmap->{$key}; 
     }
-	#$c->app->log->debug($c->app->dumper($nsmap));	
+
 	$self->fill_object_metadata($c, $dom, $metadata_tree, undef, $nsmap, \%metadata_nodes_hash);
-	#$c->app->log->debug($c->app->dumper($metadata_tree));		
-	return $metadata_tree;
+
+	return { metadata => $metadata_tree, status => 200};
 }
 
 sub get_org_units_terms {
@@ -866,14 +871,31 @@ sub get_uwmetadata {
 	my $self = shift;
 	my $c = shift;
 	my $pid = shift; 
-		
-	my $uwmdurl = $c->app->config->{phaidra}->{getuwmetadataurl};
-	$uwmdurl =~ s/{PID}/$pid/g;
+	my $username = shift;
+	my $password = shift;
 	
-	my $ua = Mojo::UserAgent->new;
-  	my $uwmd = $ua->get($uwmdurl)->res->body;  	
+	my $res = { alerts => [], status => 200 };
 	
-	return $uwmd;		
+	my $url = Mojo::URL->new;
+	$url->scheme('https');
+	$url->userinfo("$username:$password");
+	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
+	$url->path("/fedora/get/$pid/bdef:Asset/getUWMETADATA");	
+	
+  	my $get = Mojo::UserAgent->new->get($url);  	
+  	
+  	if (my $r = $get->success) {
+  		$res->{status} = 200;  
+  		$res->{uwmetadata} = $r->body;
+  	}
+	else 
+	{
+	  my ($err, $code) = $get->error;
+	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+	  $res->{status} =  $code ? $code : 500;
+	}
+	
+	return $res;		
 }
 
 sub save_to_object(){
@@ -882,6 +904,8 @@ sub save_to_object(){
 	my $c = shift;
 	my $pid = shift;
 	my $metadata = shift;
+	my $username = shift;
+	my $password = shift;
 	
 	my $res = { alerts => [], status => 200 };
 	
@@ -893,7 +917,7 @@ sub save_to_object(){
 		return $res
 	}
 	
-	my $saveres = $self->save_uwmetadata($c, $pid, $uwmetadata);
+	my $saveres = $self->save_uwmetadata($c, $pid, $uwmetadata, $username, $password);
 	if($saveres->{status} != 200){
 		$res->{status} = 500;
 		unshift @{$res->{alerts}}, @{$saveres->{alerts}};
@@ -1148,6 +1172,8 @@ sub save_uwmetadata(){
 	my $c = shift;	
 	my $pid = shift;
 	my $uwmetadata = shift;	
+	my $username = shift;
+	my $password = shift;
 	
 	my $res = { alerts => [], status => 200 };
 	
@@ -1183,8 +1209,8 @@ sub save_uwmetadata(){
 		$c->app->config->{phaidra}->{staticbaseurl}, 
 		$c->app->config->{phaidra}->{fedorastylesheeturl}, 
 		$c->app->config->{phaidra}->{proaiRepositoryIdentifier}, 
-		$c->app->config->{phaidra}->{username}, 
-		$c->app->config->{phaidra}->{password}
+		$username, 
+		$password
 	);
 	
 	# we are only changing UWMETADATA so we don't have to load & save object	

@@ -1,0 +1,33 @@
+
+<div class="modal">
+	<div class="modal-dialog">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h4 class="modal-title"><span class="glyphicon glyphicon-lock"></span> Sign in <img class="load-spinner" ng-show="loadingTracker.active()" src="../img/ajax-loader.gif"></h4>
+					
+				</div>
+				<div class="modal-body">
+				
+					<alert ng-repeat="alert in alerts" type="alert.type" close="closeAlert($index)">{{alert.msg}}</alert>
+				
+					<data-ng-form name="loginform" novalidate role="form">
+						<fieldset data-ng-disabled="form_disabled">
+							<div class="form-group input-group-lg" ng-class="{true: 'has-error'}[loginform.username.$dirty && loginform.username.$invalid]">
+								<label class="control-label" for="username">Username:</label>
+								<input type="text" class="form-control" name="username" id="username" ng-model="user.username" ng-keyup="hitEnter($event)" required>
+							</div>
+							<div class="form-group input-group-lg" ng-class="{true: 'has-error'}[loginform.password.$dirty && loginform.password.$invalid]">
+								<label class="control-label" for="password">Password:</label>
+								<input type="password" class="form-control" name="password" id="password" ng-model="user.password" ng-keyup="hitEnter($event)" required>
+							</div>
+						</fieldset>
+					</data-ng-form>
+					
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-default" ng-click="cancel()">Cancel</button>
+					<button type="button" class="btn btn-primary" ng-click="signin()" ng-disabled="(loginform.$dirty && loginform.$invalid) || loginform.$pristine || form_disabled">Sign in</button>
+				</div>
+			</div>
+		</div>
+	</div>

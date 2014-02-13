@@ -1,3 +1,32 @@
+/* Fix for Bootstrap 3 with Angular UI Bootstrap */
+.modal { 
+	display: block;
+	height: 500px;
+	overflow: hidden;
+}
+
+.modal-content {
+ border: none;	
+}
+
+.modal .load-spinner {
+	float: right;
+}
+
+/* Custom dialog/modal headers */
+
+.dialog-header-error { background-color: #d2322d; }
+.dialog-header-wait { background-color: #428bca; }
+.dialog-header-notify { background-color: #eeeeee; }
+.dialog-header-confirm { background-color: #333333; }
+	.dialog-header-error span, .dialog-header-error h4,
+	.dialog-header-wait span, .dialog-header-wait h4,
+	.dialog-header-confirm span, .dialog-header-confirm h4 { color: #ffffff; }
+
+/* Ease Display */
+
+.pad { padding: 25px; }
+
 .footer {
 	background: url("../img/ticks_light.png") repeat scroll 0 0 transparent;
 	-webkit-border-radius: 4px;

@@ -5,6 +5,7 @@ use warnings;
 use Mojo::Base 'Mojolicious';
 use Mojo::Log;
 use Mojolicious::Plugin::I18N;
+use Mojolicious::Plugin::Authentication;
 use Mojo::Loader;
 use lib "lib/phaidra_directory";
 use lib "lib/phaidra_binding";
@@ -26,6 +27,19 @@ sub startup {
     my $directory = $directory_impl->new($self, $config);
  
     $self->helper( directory => sub { return $directory; } );
+    
+    # init auth
+    $self->plugin(authentication => {
+		load_user => sub {
+			my $self = shift;
+			my $username  = shift;
+			return $self->directory->get_login_data($self, $username);
+		},
+		validate_user => sub {
+			my ($self, $username, $password, $extradata) = @_;
+			return $self->directory->authenticate($config, $username, $password, $extradata);
+		},
+	});
     
   	# init I18N
   	$self->plugin(charset => {charset => 'utf8'});
@@ -60,22 +74,29 @@ sub startup {
      
     my $r = $self->routes;
     $r->namespaces(['PhaidraAPI::Controller']);
+    
+    my $auth = $r->bridge->to('authentication#check');
+    my $apiauth = $r->bridge->to('authentication#extract_basic_auth_credentials');
 	
-	#$r->route                            ->via('post')   ->to('objects#create');
-	# FIXME o:
-    #$r->route('/:pid', pid => qr/o:\d+/) ->via('get')    ->to('objects#getobject');    
-    #$r->route('/:pid', pid => qr/o:\d+/) ->via('put')    ->to('objects#update');
-    #$r->route('/:pid', pid => qr/o:\d+/) ->via('delete') ->to('objects#delete');
-	  
-	$r->route('demo/submitform')          ->via('get')   ->to('demo#submitform');
-	$r->route('demo/metadataeditor_full') ->via('get')   ->to('demo#metadataeditor_full');
+    $r->route('object/:pid/modify', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('put') ->to('object#modify');
+    $r->route('object/:pid', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('delete') ->to('object#delete');
+    
+    $apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('get') ->to('uwmetadata#get');
+    $apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('post') ->to('uwmetadata#post');
+    	  
+	# if not authenticated, users will be redirected to login page
+	$auth->route('demo/submitform')          ->via('get')   ->to('demo#submitform');
+	$r->route('uwmetadataeditor_full') ->via('get')   ->to('demo#uwmetadataeditor_full');
+	#$auth->route('uwmetadataeditor_full') ->via('get')   ->to('demo#uwmetadataeditor_full');
 	$r->route('demo/test_json')           ->via('get')   ->to('demo#test_json');
-	$r->route('demo/portal') 			  ->via('get')   ->to('demo#portal');
+	$r->route('portal') 			  ->via('get')   ->to('demo#portal');
+	$r->route('login') 			  ->via('get')   ->to('authentication#login');
+	$r->route('loginform') 			  ->via('get')   ->to('authentication#loginform');
 		
-	$r->route('metadata/')			      ->via('get')   ->to('metadata#get');
-	$r->route('metadata/')			      ->via('post')  ->to('metadata#post');
-	$r->route('metadata/tree')			  ->via('get')   ->to('metadata#tree');
-	$r->route('metadata/languages')		  ->via('get')   ->to('metadata#languages');
+	#$apiauth->route('uwmetadata/')			      ->via('get')   ->to('uwmetadata#get');
+	#$apiauth->route('uwmetadata/')			      ->via('post')  ->to('uwmetadata#post');
+	$r->route('uwmetadata/tree')			  ->via('get')   ->to('uwmetadata#tree');
+	$r->route('uwmetadata/languages')		  ->via('get')   ->to('uwmetadata#languages');
 	
 	$r->route('help/tooltip')		  	  ->via('get')   ->to('help#tooltip');		
 	

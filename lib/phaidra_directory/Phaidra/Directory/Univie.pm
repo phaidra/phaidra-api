@@ -5,6 +5,7 @@ use warnings;
 use v5.10;
 use Mojo::JSON;
 use DBI;
+use Net::LDAPS;
 use base 'Phaidra::Directory';
 
 
@@ -15,6 +16,7 @@ sub connect_db()
    	my $dbh = DBI->connect($c->app->config->{directory}->{connect_string}, $c->app->config->{directory}->{username}, $c->app->config->{directory}->{password}) or return $self->db_error_handler($c, $DBI::errstr);
     return $dbh;
 }
+
 
 sub db_error_handler {
 	
@@ -27,6 +29,73 @@ sub db_error_handler {
 	return $res;
 }
 
+sub get_ldap {
+	my $self = shift;
+	my $c = shift;	
+	
+	my $res = { alerts => [], status => 500 };
+		
+	my $LDAP_SERVER = $c->app->config->{authentication}->{ldap}->{server};
+	my $LDAP_SSL_PORT = $c->app->config->{authentication}->{ldap}->{port};
+	
+	my $ldap = Net::LDAPS->new($LDAP_SERVER, port => $LDAP_SSL_PORT);
+	unless(defined($ldap)){
+		unshift @{$res->{alerts}}, { type => 'danger', msg => $! };
+		return $res;	
+	}
+	
+	# bind the security principal account
+	my $secDN = $c->app->config->{authentication}->{ldap}->{securityprincipal};
+	my $secPASS = $c->app->config->{authentication}->{ldap}->{securitycredentials};
+	my $ldapMsg = $ldap->bind($secDN, password => $secPASS);
+	
+	if($ldapMsg->is_error){
+		unshift @{$res->{alerts}}, { type => 'danger', msg => $ldapMsg->error };	
+		return $res;
+	}
+	
+	return $ldap;
+}
+
+sub getLDAPEntryForUser {
+	
+	my $self = shift;
+	my $c = shift;
+	my $username = shift;
+
+    my $ldap = getLDAP($c);
+ 
+
+    my $filter = $c->app->config->{authenticate}->{ldap}->{usersearchfilter};
+    $filter =~ s/\{0\}/$username/;
+
+    my $user_search_base = $c->app->config->{authenticate}->{ldap}->{usersearchbase};
+
+	$c->app->log->info("Searching for user $username in searchbase $user_search_base.");
+	
+    my $ldapSearch = $ldap->search(base => $user_search_base, filter => $filter);
+
+    die "There was an error during search:\n\t" . ldap_error_text($ldapSearch->code) if $ldapSearch->code;
+
+    while(my $ldapEntry = $ldapSearch->pop_entry() )
+   	{
+    	foreach my $attr (@{$ldapEntry->{'asn'}->{'attributes'}}){
+        	my $attrtype = $attr->{'type'};
+            my @attvals = @{$attr->{'vals'}};
+            foreach my $val (@attvals){
+            	if($attrtype eq 'cn'){
+                	if($val eq $username){
+                    	return $ldapEntry;
+                    }
+                }
+            }
+        }
+    }
+    
+
+}
+
+
 sub _init {
 	# this is the app config
 	my $self = shift;
@@ -34,6 +103,40 @@ sub _init {
 	my $config = shift;
 
 	return $self;
+}
+
+sub authenticate(){
+	
+	my $config = shift;
+	my $username = shift; 
+	my $password = shift;
+	my $extradata = shift; #not used
+	
+	my $res = { alerts => [], status => 500 };
+		
+	my $LDAP_SERVER = $config->{authentication}->{ldap}->{server};
+	my $LDAP_SSL_PORT = $config->{authentication}->{ldap}->{port};
+	
+	my $ldap = Net::LDAPS->new($LDAP_SERVER, port => $LDAP_SSL_PORT);
+	unless(defined($ldap)){
+		unshift @{$res->{alerts}}, { type => 'danger', msg => $! };
+		return $res;	
+	}
+	
+	my $dn = $config->{authentication}->{ldap}->{useridattribute}."=".$username.",".$config->{authentication}->{ldap}->{usersearchbase};
+	
+	# bind the user
+	my $ldapMsg = $ldap->bind($dn, password => $password);
+	
+	if($ldapMsg->is_error){
+		unshift @{$res->{alerts}}, { type => 'danger', msg => $ldapMsg->error };	
+		$res->{status} = 403;	
+		return $res;
+	}else{
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'authenticated' };
+		$res->{status} = 200;	
+		return $res;
+	}
 }
 
 # usage in controller $self->app->directory->get_name($self, 'hudakr4'); 
@@ -609,7 +712,7 @@ sub get_login_data {
 	}
 	$sth->finish;
     undef $sth;
-	return $fname,$lname,\@inums,\@fakcodes;
+	return { status => 200, firstname => $fname, lastname => $lname, org_units_l2 => @inums, org_units_l1 => @fakcodes };
 }
 
 sub is_superuser {

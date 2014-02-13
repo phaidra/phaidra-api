@@ -13,6 +13,8 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
   	<title><%= $title %></title>
   	
+  	<link rel="ICON" href="<%= url_for '/img/favicon.ico' %>" type="image/x-icon" />
+  	
   	<!-- jQuery -->
   	<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
   	<!--<script src="<%= url_for '/js/jquery.min.js' %>"></script>-->
@@ -58,14 +60,14 @@
   	<!-- Custom Phaidra scripts -->
 	<script type="text/javascript" src="<%= url_for '/js/services/metadata.js' %>"></script>
 	<script type="text/javascript" src="<%= url_for '/js/services/directory.js' %>"></script>
-  	<script type="text/javascript" src="<%= url_for '/js/controllers/metadataeditor.js' %>"></script>
+  	<script type="text/javascript" src="<%= url_for '/js/controllers/uwmetadataeditor.js' %>"></script>
   	
   	<!-- Custom Phaidra CSS --> 
-  	<link href="<%= url_for '/css/metadataeditor.css' %>" rel="stylesheet">
+  	<link href="<%= url_for '/css/uwmetadataeditor.css' %>" rel="stylesheet">
   	<link href="<%= url_for '/css/main.css' %>" rel="stylesheet">
   	
   </head>	
-  <body data-ng-app="metadataeditorApp" data-ng-controller="MetadataeditorCtrl" data-ng-init="init()">
+  <body data-ng-app="uwmetadataeditorApp" data-ng-controller="UwmetadataeditorCtrl" data-ng-init="init()">
   
   	<!--[if lt IE 7]>
       <p class="chromeframe">You are using an outdated browser. <a href="http://browsehappy.com/">Upgrade your browser today</a>.</p>
@@ -80,7 +82,7 @@
             $(document).ready(function(){
                 
 				$('#resetEditor').click(function(){
-					var app = document.getElementById('MetadataeditorCtrl');
+					var app = document.getElementById('UwmetadataeditorCtrl');
 					var scope = angular.element(app).scope();
 					scope.$apply(function() {
 						scope.resetEditor();

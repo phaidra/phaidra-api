@@ -38,7 +38,7 @@
 					is an acronym for Permanent Hosting, Archiving and Indexing of Digital Resources and Assets<br>... <b>the comprehensive university Digital Asset Management System with long-term archiving functions</b>.
 				</td>
 				<td rowspan="3">
-					<a title="Phaidra-Folder" href="https://fedora.phaidra.univie.ac.at/fedora/get/o:185581/bdef:Content/download" ><img style="margin-left: 10px;" src="[% c.uri_for('/static/img/') %]collage_c.jpg"></a>
+					<a title="Phaidra-Folder" href="https://fedora.phaidra.univie.ac.at/fedora/get/o:185581/bdef:Content/download" ><img style="margin-left: 10px;" src="<%= url_for '/img/portal/'%>collage_c.jpg"></a>
 				</td>
 			</tr>
 			<tr>
@@ -72,17 +72,17 @@
 								<td style=" letter-spacing:1px; text-transform: uppercase; font-size: 9pt; background-color:#cccccc;" colspan="5">Partners:</td>
 							</tr>
 							<tr>
-								<td><a target="_blank" href="http://www.coar-repositories.org/"><img class="partner-logo" src="[% c.uri_for('/static/img/partners/') %]coar_35.jpg"></a></td>
-								<td><a target="_blank" href="http://eacea.ec.europa.eu/tempus/"><img class="partner-logo" src="[% c.uri_for('/static/img/partners/') %]tempus_60.jpg"></a></td>
-								<td><a target="_blank" href="http://www.europeana-libraries.eu/"><img class="partner-logo" src="[% c.uri_for('/static/img/partners/') %]europeana_70.jpg"></a></td>
-								<td><a target="_blank" href="https://www.openaire.eu/"><img class="partner-logo" src="[% c.uri_for('/static/img/partners/') %]openaire_70.jpg"></a></td>
-								<td><a target="_blank" href="http://www.openaire.eu/en/component/content/article/76-highlights/326-openaireplus-press-release"><img class="partner-logo" src="[% c.uri_for('/static/img/partners/') %]openaireplus_60.jpg"></a></td>
+								<td><a target="_blank" href="http://www.coar-repositories.org/"><img class="partner-logo" src="<%= url_for '/img/portal/'%>coar_35.jpg"></a></td>
+								<td><a target="_blank" href="http://eacea.ec.europa.eu/tempus/"><img class="partner-logo" src="<%= url_for '/img/portal/'%>tempus_60.jpg"></a></td>
+								<td><a target="_blank" href="http://www.europeana-libraries.eu/"><img class="partner-logo" src="<%= url_for '/img/portal/'%>europeana_70.jpg"></a></td>
+								<td><a target="_blank" href="https://www.openaire.eu/"><img class="partner-logo" src="<%= url_for '/img/portal/'%>openaire_70.jpg"></a></td>
+								<td><a target="_blank" href="http://www.openaire.eu/en/component/content/article/76-highlights/326-openaireplus-press-release"><img class="partner-logo" src="<%= url_for '/img/portal/'%>openaireplus_60.jpg"></a></td>
 							</tr>
 						</tbody>
 					</table>
 				</td>
 				<td>
-					<a href="http://phaidra.org"><img class="phaidra-org-img" src="[% c.uri_for('/static/img/partners/') %]phaidraorg186.jpg"></a>
+					<a href="http://phaidra.org"><img class="phaidra-org-img" src="<%= url_for '/img/portal/'%>phaidraorg186.jpg"></a>
 				</td>
 			</tr>
 		</tbody>
