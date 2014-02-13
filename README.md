@@ -15,6 +15,8 @@ Prerequisities:
   
   /usr/local/bin/cpanm Mojolicious::Plugin::I18N
   
+  /usr/local/bin/cpanm Net::LDAPS
+  
   
   (On Ubuntu: sudo apt-get install libmojolicious-plugin-i18n-perl)
 
