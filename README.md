@@ -28,9 +28,10 @@ Prerequisities:
 
   Server available at http://127.0.0.1:3000.
 
-  * Notes
+* Apache/CGI
 
-	This config of virtual host might be needed if the code is running via apache cgi
+        ScriptAlias /api my_document_root/api.cgi
+
         RewriteEngine on
         RewriteCond %{HTTP:Authorization} ^(.+)
         RewriteRule ^(.*)$ $1 [E=HTTP_AUTHORIZATION:%1,PT]
