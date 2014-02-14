@@ -1,6 +1,6 @@
 var app = angular.module('uwmetadataeditorApp', ['ui.bootstrap', 'ajoslin.promise-tracker', 'metadataService', 'directoryService']);
 
-app.controller('UwmetadataeditorCtrl', function($scope, MetadataService, DirectoryService, promiseTracker) {
+app.controller('UwmetadataeditorCtrl', function($scope, $location, MetadataService, DirectoryService, promiseTracker) {
     
 	$scope.regex_pid = /^[a-zA-Z\-]+:[0-9]+$/;
 	// use: <input ng-pattern="regex_identifier" ...
@@ -557,7 +557,7 @@ app.directive('phaidraDuration', function() {
           restrict: 'E',
           link: link,
           replace: true,
-          templateUrl: '/views/directives/duration.html',
+          templateUrl: $('head base').attr('href')+'/views/directives/duration.html',
           scope: {
         	  duration: '=duration'
             },
@@ -613,7 +613,7 @@ app.directive('phaidraHelp', function($http, $timeout) {
 				 
 		          var promise = $http({
 			          method  : 'GET',
-			          url     : '/help/tooltip',
+			          url     : $('head base').attr('href')+'/help/tooltip',
 			          params  : { id: attr['phaidraHelpId']  }
 			      });        
 			      scope.loadingTracker.addPromise(promise);

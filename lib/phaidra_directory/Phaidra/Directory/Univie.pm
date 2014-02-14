@@ -107,11 +107,13 @@ sub _init {
 
 sub authenticate(){
 	
+	my $self = shift;	
 	my $config = shift;
+	my $log = shift;
 	my $username = shift; 
 	my $password = shift;
 	my $extradata = shift; #not used
-	
+		
 	my $res = { alerts => [], status => 500 };
 		
 	my $LDAP_SERVER = $config->{authentication}->{ldap}->{server};
@@ -123,7 +125,21 @@ sub authenticate(){
 		return $res;	
 	}
 	
-	my $dn = $config->{authentication}->{ldap}->{useridattribute}."=".$username.",".$config->{authentication}->{ldap}->{usersearchbase};
+	# first we have to find the DN (i think its differs for various account types)
+	my $sf = $config->{authentication}->{ldap}->{usersearchfilter};
+	my $sp = $config->{authentication}->{ldap}->{securityprincipal};
+	my $sc = $config->{authentication}->{ldap}->{securitycredentials};
+	$sf =~ s/\{0\}/$username/g;	
+	$ldap->bind($sp, password => $sc);
+	my $searchresult = $ldap->search(
+		base => $config->{authentication}->{ldap}->{usersearchbase},
+		filter => $sf,
+        attrs => ['dn'] 
+    );    
+    my $dn;
+	foreach my $entry ($searchresult->entries) {		
+    	$dn = $entry->dn; 
+   	}
 	
 	# bind the user
 	my $ldapMsg = $ldap->bind($dn, password => $password);
@@ -133,7 +149,6 @@ sub authenticate(){
 		$res->{status} = 403;	
 		return $res;
 	}else{
-		unshift @{$res->{alerts}}, { type => 'danger', msg => 'authenticated' };
 		$res->{status} = 200;	
 		return $res;
 	}
