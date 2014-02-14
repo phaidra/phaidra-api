@@ -17,7 +17,7 @@ sub startup {
     my $config = $self->plugin( 'JSONConfig' => { file => 'PhaidraAPI.json' } );
 	$self->config($config);  
 	$self->mode($config->{mode});     
-    $self->secret($config->{secret});
+    $self->secrets($config->{secret});
     
     # init log	
   	$self->log(Mojo::Log->new(path => $config->{log_path}, level => $config->{log_level}));
@@ -37,7 +37,7 @@ sub startup {
 		},
 		validate_user => sub {
 			my ($self, $username, $password, $extradata) = @_;
-			return $self->directory->authenticate($config, $username, $password, $extradata);
+			return $self->directory->authenticate($config, $self->log, $username, $password, $extradata);
 		},
 	});
     
@@ -78,8 +78,8 @@ sub startup {
     my $auth = $r->bridge->to('authentication#check');
     my $apiauth = $r->bridge->to('authentication#extract_basic_auth_credentials');
 	
-    $r->route('object/:pid/modify', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('put') ->to('object#modify');
-    $r->route('object/:pid', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('delete') ->to('object#delete');
+    $apiauth->route('object/:pid/modify', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('put') ->to('object#modify');
+    $apiauth->route('object/:pid', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('delete') ->to('object#delete');
     
     $apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('get') ->to('uwmetadata#get');
     $apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('post') ->to('uwmetadata#post');

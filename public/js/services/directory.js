@@ -6,7 +6,7 @@ angular.module('directoryService', ['Base64'])
 	         //return the promise directly.
 	         return $http({
 	             method  : 'GET',
-	             url     : '/directory/get_org_units',
+	             url     : $('head base').attr('href')+'/directory/get_org_units',
 	             params  : { parent_id: parent_id, values_namespace: values_namespace }
 	         	//headers : are by default application/json
 	         });
@@ -15,14 +15,14 @@ angular.module('directoryService', ['Base64'])
 	    getStudyPlans: function() {
 	         return $http({
 	             method  : 'GET',
-	             url     : '/directory/get_study_plans',
+	             url     : $('head base').attr('href')+'/directory/get_study_plans',
 	         });
 	    },
 	    
 	    getStudy: function(spl, ids, values_namespace) {
 	         return $http({
 	             method  : 'GET',
-	             url     : '/directory/get_study',
+	             url     : $('head base').attr('href')+'/directory/get_study',
 	             params  : { spl: spl, ids: ids, values_namespace: values_namespace }
 	         });
 	    },
@@ -30,7 +30,7 @@ angular.module('directoryService', ['Base64'])
 	    getStudyName: function(spl, ids) {
 	         return $http({
 	             method  : 'GET',
-	             url     : '/directory/get_study_name',
+	             url     : $('head base').attr('href')+'/directory/get_study_name',
 	             params  : { spl: spl, ids: ids }
 	         });
 	    },
@@ -39,7 +39,7 @@ angular.module('directoryService', ['Base64'])
 
 	         return $http({
 	             method  : 'GET',
-	             url     : '/login',
+	             url     : $('head base').attr('href')+'/login',
 	             headers: {'Authorization': 'Basic ' + Base64.encode(username + ':' + password)}
 	         });
 	    },

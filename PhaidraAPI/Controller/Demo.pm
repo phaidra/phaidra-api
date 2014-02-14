@@ -16,7 +16,9 @@ sub uwmetadataeditor_full {
 }
 
 sub portal {
-    my $self = shift;  	       
+    my $self = shift;  	 
+    
+    $self->app->log->debug($self->app->dumper($self->stash->{current_user}));      
     $self->render('demo/portal');	
 }
 

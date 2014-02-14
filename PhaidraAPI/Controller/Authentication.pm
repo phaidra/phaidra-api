@@ -35,7 +35,7 @@ sub login {
     my ($method, $str) = split(/ /,$auth_header);
     my ($username, $password) = split(/:/, b($str)->b64_decode);
     
-    my $res = $self->app->directory->authenticate($username, $password);
+    my $res = $self->app->directory->authenticate($self->app->config, $self->app->log, $username, $password);
     
     $self->render(json => { alerts => $res->{alerts}} , status => $res->{status}) ;    
 }

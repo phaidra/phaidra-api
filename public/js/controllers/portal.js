@@ -58,14 +58,11 @@ app.controller('PortalCtrl', function($scope, $modal, $log, DirectoryService, pr
     $scope.closeAlert = function(index) {
     	$scope.alerts.splice(index, 1);
     };
-    $scope.init = function () {
-    	//$scope.apply();
-    };
     
     $scope.signin_open = function () {
 
     	var modalInstance = $modal.open({
-            templateUrl: '/views/partials/loginform.html',
+            templateUrl: $('head base').attr('href')+'/views/partials/loginform.html',
             controller: ModalInstanceCtrl
     	});
     };

@@ -6,7 +6,7 @@ angular.module('metadataService', [])
 	         //return the promise directly.
 	         return $http({
 	             method  : 'GET',
-	             url     : '/object/'+pid+'/uwmetadata',
+	             url     : $('head base').attr('href')+'/object/'+pid+'/uwmetadata',
 	             params  : { mfv: mfv }
 	         	//headers : are by default application/json
 	         });
@@ -15,7 +15,7 @@ angular.module('metadataService', [])
 		getUwmetadataTree: function(mfv) {
 	        return $http({
 	            method  : 'GET',
-	            url     : '/uwmetadata/tree',
+	            url     : $('head base').attr('href')+'/uwmetadata/tree',
 	            params  : { mfv: mfv }
 	        });	        
 	   },
@@ -23,14 +23,14 @@ angular.module('metadataService', [])
 		getLanguages: function() {
 	        return $http({
 	            method  : 'GET',
-	            url     : '/metadata/languages'
+	            url     : $('head base').attr('href')+'/metadata/languages'
 	        });	        
 	   },
 	   
 	   saveUwmetadataToObject: function(mfv, pid, uwmetadata){
 		   return $http({
 			   method  : 'POST',
-	           url     : '/object/'+pid+'/uwmetadata',
+	           url     : $('head base').attr('href')+'/object/'+pid+'/uwmetadata',
 	           data    : { uwmetadata: uwmetadata, mfv: mfv }
 		   });	        
 	   },
