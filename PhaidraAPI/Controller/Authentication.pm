@@ -23,7 +23,6 @@ sub login {
 	my $self = shift;
 		
 	my $auth_header = $self->req->headers->authorization;
-    
     # this should not happen, we are using this login method only on frontend
     # where we generate the request ourselves
     unless($auth_header)
