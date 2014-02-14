@@ -27,3 +27,11 @@ Prerequisities:
   [debug] Reading config file "PhaidraAPI.json".
 
   Server available at http://127.0.0.1:3000.
+
+  * Notes
+
+	This config of virtual host might be needed if the code is running via apache cgi
+        RewriteEngine on
+        RewriteCond %{HTTP:Authorization} ^(.+)
+        RewriteRule ^(.*)$ $1 [E=HTTP_AUTHORIZATION:%1,PT]
+  
