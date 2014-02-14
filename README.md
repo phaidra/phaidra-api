@@ -31,6 +31,7 @@ Prerequisities:
 * Apache/CGI
 
   $# chown apache:apache api.cgi
+  
   $# chmod u+x api.cgi
 
   Virtual host config:
