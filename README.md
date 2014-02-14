@@ -15,6 +15,8 @@ Prerequisities:
   
   /usr/local/bin/cpanm Mojolicious::Plugin::I18N
   
+  /usr/local/bin/cpanm Mojolicious::Plugin::Authentication
+  
   /usr/local/bin/cpanm Net::LDAPS
   
   
