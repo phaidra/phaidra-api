@@ -3,10 +3,18 @@
 	display: block;
 	height: 500px;
 	overflow: hidden;
+	
 }
 
 .modal-content {
- border: none;	
+ border: none;
+ 	
+}
+
+.modal-dialog {
+ 
+ /*width: 370px;*/
+ 	width: 47%;
 }
 
 .modal .load-spinner {
