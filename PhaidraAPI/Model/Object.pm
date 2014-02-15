@@ -17,8 +17,6 @@ sub delete {
 	my $fedoraurl = $c->app->config->{phaidra}->{fedorabaseurl};
 	my $url = "https://$username:$password"."@"."$fedoraurl/fedora/objects/$pid?state=D";
 	
-	$c->app->log->debug("XXX url:".$url);
-	
 	my $ua = Mojo::UserAgent->new;
   	my $put = $ua->put($url => {} => form => { state => 'D' } );
   	if (my $r = $put->success) {  
@@ -48,9 +46,9 @@ sub modify {
     my $params = {
 		state => $state,
 		label => $label, 
-		ownerid => $ownerid,
-		logmessage => $logmessage,
-		lastmodifieddate => $lastmodifieddate
+		ownerId => $ownerid,
+		logMessage => $logmessage,
+		lastModifiedDate => $lastmodifieddate
 	};
     
     my $res = { alerts => [], status => 200 };
@@ -62,10 +60,11 @@ sub modify {
 	$url->path("/fedora/objects/$pid");
 	$url->query($params);
 	
-	$c->app->log->debug("Params:\n".$c->app->dumper($params));
-
+	#$c->app->log->debug("Params:\n".$c->app->dumper($params));
+	
 	my $ua = Mojo::UserAgent->new;
-  	my $put = $ua->put($url);
+	
+  	my $put = $ua->put($url);  	
   	if (my $r = $put->success) {  
   		unshift @{$res->{alerts}}, { type => 'success', msg => $r->body };
   	}

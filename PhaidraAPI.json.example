@@ -1,4 +1,11 @@
 {
+	"hypnotoad": {
+	
+        "listen": ["http://*:3000"],
+        
+        "proxy": 1
+    },
+
 	"mode":"production",
 	
 	"secret":"changeme",

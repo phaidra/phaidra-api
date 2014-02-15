@@ -526,8 +526,6 @@ sub getDissemination
 	my $res = $soap->getDissemination(SOAP::Data->type(string => $self->{PID}), SOAP::Data->type(string => $sdef),
 			SOAP::Data->type(string => $method), undef, undef);
 
-#$log->info('XXXXXXXXXX '.Dumper($res));
-
 	if($res->fault)
 	{
 		$log->logdie("getDissemination failed: ".$res->faultcode.": ".$res->faultstring);

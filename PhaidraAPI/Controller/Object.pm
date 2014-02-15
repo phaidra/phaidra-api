@@ -16,11 +16,8 @@ sub delete {
 		return;
 	}	
 
-	my $username = $self->app->config->{phaidra}->{username};
-	my $password = $self->app->config->{phaidra}->{password};
-
 	my $object_model = PhaidraAPI::Model::Object->new;		
-    my $r = $object_model->delete($self, $self->stash('pid'), $username, $password);
+    my $r = $object_model->delete($self, $self->stash('pid'), $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
    	
    	$self->render(json => $r, status => $r->{status}) ;
 }
@@ -41,11 +38,8 @@ sub modify {
 	my $logmessage = $self->param('logmessage');
 	my $lastmodifieddate = $self->param('lastmodifieddate');
 
-	my $username = $self->app->config->{phaidra}->{username};
-	my $password = $self->app->config->{phaidra}->{password};
-
 	my $object_model = PhaidraAPI::Model::Object->new;		
-    my $r = $object_model->modify($self, $self->stash('pid'), $state, $label, $ownerid, $logmessage, $lastmodifieddate, $username, $password);
+    my $r = $object_model->modify($self, $self->stash('pid'), $state, $label, $ownerid, $logmessage, $lastmodifieddate, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
    	
    	$self->render(json => $r, status => $r->{status}) ;
 }

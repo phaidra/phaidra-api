@@ -104,8 +104,15 @@ sub startup {
 	$r->route('directory/get_study_plans')  ->via('get')   ->to('directory#get_study_plans');
 	$r->route('directory/get_study')  		->via('get')   ->to('directory#get_study');
 	$r->route('directory/get_study_name')  	->via('get')   ->to('directory#get_study_name');
-
-return $self;
+=cut
+	$self->hook(before_dispatch => sub {
+    	my $self = shift;        
+        if( $self->req->headers->header('X-Forwarded-Protocol') eq 'https'){
+        	$self->req->url->base->scheme('https');
+        }             
+    });
+=cut
+	return $self;
 }
 
 1;
