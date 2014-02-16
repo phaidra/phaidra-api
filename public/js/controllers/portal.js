@@ -24,23 +24,29 @@ var ModalInstanceCtrl = function ($scope, $modalInstance, DirectoryService, prom
 		
 		$scope.form_disabled = true;
 		
-		var promise = DirectoryService.login($scope.user.username, $scope.user.password);		
+		var promise = DirectoryService.signin($scope.user.username, $scope.user.password);		
     	$scope.loadingTracker.addPromise(promise);
     	promise.then(
     		function(response) { 
     			$scope.form_disabled = false;
     			$scope.alerts = response.data.alerts;
-    			$scope.alerts.push({type: 'success', msg: 'Login successful'});
+    			$scope.alerts.push({type: 'success', msg: 'Signed in'});
+    			$modalInstance.close();
+    			var red = $('#signin').attr('data-redirect');
+    			if(red){
+    				window.location = red;
+    			}
     		}
     		,function(response) {
     			$scope.form_disabled = false;
     			$scope.alerts = response.data.alerts;
             	$scope.alerts.unshift({type: 'danger', msg: "Error code "+response.status});
+            	$modalInstance.close();
             }
         );
 		return;
 		
-		$modalInstance.close();
+		
 	};
 
 	$scope.cancel = function () {
@@ -65,6 +71,12 @@ app.controller('PortalCtrl', function($scope, $modal, $log, DirectoryService, pr
             templateUrl: $('head base').attr('href')+'/views/partials/loginform.html',
             controller: ModalInstanceCtrl
     	});
+    };
+    
+    $scope.init = function () {
+    	if($('#signin').attr('data-open') == 1){
+    		$scope.signin_open();
+    	}
     };
       
 });

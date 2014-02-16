@@ -9,16 +9,24 @@ use base 'Mojolicious::Controller';
 # bridge
 sub check {	
 	my $self = shift;
-    $self->redirect_to('/loginform') and return 0 unless($self->is_user_authenticated);
+	
+	unless($self->is_user_authenticated){
+		$self->flash({opensignin => 1});
+		$self->flash({redirect_to => $self->req->url});
+		$self->redirect_to('/portal') and return 0;	
+	}
+
     return 1;    
 }
 
-sub loginform {
-    my $self = shift;  	    
-	$self->render('demo/loginform');	
+sub signout {
+	my $self = shift;
+	$self->logout();
+	$self->flash( alerts => [{ type => 'info', msg => 'You have been signed out' }] );
+	$self->redirect_to('/portal');
 }
 
-sub login {
+sub signin {
 	
 	my $self = shift;
 		
@@ -35,8 +43,10 @@ sub login {
     my ($method, $str) = split(/ /,$auth_header);
     my ($username, $password) = split(/:/, b($str)->b64_decode);
     
-    my $res = $self->app->directory->authenticate($self->app->config, $self->app->log, $username, $password);
+    $self->authenticate($username, $password);
     
+    my $res = $self->stash('phaidra_auth_result');
+        
     $self->render(json => { alerts => $res->{alerts}} , status => $res->{status}) ;    
 }
 

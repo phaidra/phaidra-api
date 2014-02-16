@@ -107,32 +107,32 @@ sub _init {
 
 sub authenticate(){
 	
-	my $self = shift;	
-	my $config = shift;
-	my $log = shift;
+	my $self = shift;
+	my $c = shift;	
 	my $username = shift; 
 	my $password = shift;
 	my $extradata = shift; #not used
 		
 	my $res = { alerts => [], status => 500 };
 		
-	my $LDAP_SERVER = $config->{authentication}->{ldap}->{server};
-	my $LDAP_SSL_PORT = $config->{authentication}->{ldap}->{port};
+	my $LDAP_SERVER = $c->config->{authentication}->{ldap}->{server};
+	my $LDAP_SSL_PORT = $c->config->{authentication}->{ldap}->{port};
 	
 	my $ldap = Net::LDAPS->new($LDAP_SERVER, port => $LDAP_SSL_PORT);
 	unless(defined($ldap)){
 		unshift @{$res->{alerts}}, { type => 'danger', msg => $! };
-		return $res;	
+		$c->stash({phaidra_auth_result => $res});
+		return undef;	
 	}
 	
 	# first we have to find the DN (i think its differs for various account types)
-	my $sf = $config->{authentication}->{ldap}->{usersearchfilter};
-	my $sp = $config->{authentication}->{ldap}->{securityprincipal};
-	my $sc = $config->{authentication}->{ldap}->{securitycredentials};
+	my $sf = $c->config->{authentication}->{ldap}->{usersearchfilter};
+	my $sp = $c->config->{authentication}->{ldap}->{securityprincipal};
+	my $sc = $c->config->{authentication}->{ldap}->{securitycredentials};
 	$sf =~ s/\{0\}/$username/g;	
 	$ldap->bind($sp, password => $sc);
 	my $searchresult = $ldap->search(
-		base => $config->{authentication}->{ldap}->{usersearchbase},
+		base => $c->config->{authentication}->{ldap}->{usersearchbase},
 		filter => $sf,
         attrs => ['dn'] 
     );    
@@ -147,10 +147,12 @@ sub authenticate(){
 	if($ldapMsg->is_error){
 		unshift @{$res->{alerts}}, { type => 'danger', msg => $ldapMsg->error };	
 		$res->{status} = 403;	
-		return $res;
+		$c->stash({phaidra_auth_result => $res});
+		return undef;
 	}else{
 		$res->{status} = 200;	
-		return $res;
+		$c->stash({phaidra_auth_result => $res});
+		return $username;
 	}
 }
 
@@ -727,7 +729,10 @@ sub get_login_data {
 	}
 	$sth->finish;
     undef $sth;
-	return { status => 200, firstname => $fname, lastname => $lname, org_units_l2 => @inums, org_units_l1 => @fakcodes };
+    
+    my $res = { status => 200, firstname => $fname, lastname => $lname, org_units_l2 => @inums, org_units_l1 => @fakcodes };
+
+	return $res;
 }
 
 sub is_superuser {
