@@ -43,13 +43,12 @@ sub modify {
     my $username = shift;
     my $password = shift;
     
-    my $params = {
-		state => $state,
-		label => $label, 
-		ownerId => $ownerid,
-		logMessage => $logmessage,
-		lastModifiedDate => $lastmodifieddate
-	};
+    my %params;
+    $params{state} = $state if $state;
+    $params{label} = $label if $label;
+    $params{ownerId} = $ownerid if $ownerid;
+    $params{logMessage} = $logmessage if $logmessage;
+    $params{lastModifiedDate} = $lastmodifieddate if $lastmodifieddate;  
     
     my $res = { alerts => [], status => 200 };
 	
@@ -58,7 +57,7 @@ sub modify {
 	$url->userinfo("$username:$password");
 	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
 	$url->path("/fedora/objects/$pid");
-	$url->query($params);
+	$url->query(\%params);
 	
 	#$c->app->log->debug("Params:\n".$c->app->dumper($params));
 	
