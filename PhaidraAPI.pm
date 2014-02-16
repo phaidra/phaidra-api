@@ -17,7 +17,7 @@ sub startup {
     my $config = $self->plugin( 'JSONConfig' => { file => 'PhaidraAPI.json' } );
 	$self->config($config);  
 	$self->mode($config->{mode});     
-    $self->secrets($config->{secret});
+    $self->secrets([$config->{secret}]);
     
     # init log	
   	$self->log(Mojo::Log->new(path => $config->{log_path}, level => $config->{log_level}));
@@ -33,14 +33,17 @@ sub startup {
 		load_user => sub {
 			my $self = shift;
 			my $username  = shift;
+			$self->app->log->info("Loading user: ".$username);
 			return $self->directory->get_login_data($self, $username);
 		},
 		validate_user => sub {
 			my ($self, $username, $password, $extradata) = @_;
-			return $self->directory->authenticate($config, $self->log, $username, $password, $extradata);
+			$self->app->log->info("Validating user: ".$username);
+			return $self->directory->authenticate($self, $username, $password, $extradata);
 		},
 	});
-    
+    $self->sessions->default_expiration(7200); # 2hrs 
+        
   	# init I18N
   	$self->plugin(charset => {charset => 'utf8'});
   	$self->plugin(I18N => {namespace => 'PhaidraAPI::I18N', support_url_langs => [qw(en de it sr)]});
@@ -86,15 +89,14 @@ sub startup {
     	  
 	# if not authenticated, users will be redirected to login page
 	$auth->route('demo/submitform')          ->via('get')   ->to('demo#submitform');
-	$r->route('uwmetadataeditor_full') ->via('get')   ->to('demo#uwmetadataeditor_full');
-	#$auth->route('uwmetadataeditor_full') ->via('get')   ->to('demo#uwmetadataeditor_full');
+	#$r->route('uwmetadataeditor_full') ->via('get')   ->to('demo#uwmetadataeditor_full');
+	$auth->route('uwmetadataeditor_full') ->via('get')   ->to('demo#uwmetadataeditor_full');
 	$r->route('demo/test_json')           ->via('get')   ->to('demo#test_json');
 	$r->route('portal') 			  ->via('get')   ->to('demo#portal');
-	$r->route('login') 			  ->via('get')   ->to('authentication#login');
+	$r->route('signin') 			  ->via('get')   ->to('authentication#signin');
+	$r->route('signout') 			  ->via('get')   ->to('authentication#signout');
 	$r->route('loginform') 			  ->via('get')   ->to('authentication#loginform');
 		
-	#$apiauth->route('uwmetadata/')			      ->via('get')   ->to('uwmetadata#get');
-	#$apiauth->route('uwmetadata/')			      ->via('post')  ->to('uwmetadata#post');
 	$r->route('uwmetadata/tree')			  ->via('get')   ->to('uwmetadata#tree');
 	$r->route('uwmetadata/languages')		  ->via('get')   ->to('uwmetadata#languages');
 	
@@ -104,14 +106,7 @@ sub startup {
 	$r->route('directory/get_study_plans')  ->via('get')   ->to('directory#get_study_plans');
 	$r->route('directory/get_study')  		->via('get')   ->to('directory#get_study');
 	$r->route('directory/get_study_name')  	->via('get')   ->to('directory#get_study_name');
-=cut
-	$self->hook(before_dispatch => sub {
-    	my $self = shift;        
-        if( $self->req->headers->header('X-Forwarded-Protocol') eq 'https'){
-        	$self->req->url->base->scheme('https');
-        }             
-    });
-=cut
+
 	return $self;
 }
 

@@ -35,11 +35,11 @@ angular.module('directoryService', ['Base64'])
 	         });
 	    },
 	    
-	    login: function(username, password) {
+	    signin: function(username, password) {
 
 	         return $http({
 	             method  : 'GET',
-	             url     : $('head base').attr('href')+'/login',
+	             url     : $('head base').attr('href')+'/signin',
 	             headers: {'Authorization': 'Basic ' + Base64.encode(username + ':' + password)}
 	         });
 	    },

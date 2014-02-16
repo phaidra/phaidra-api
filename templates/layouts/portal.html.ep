@@ -79,8 +79,7 @@
     <!--[if lt IE 9]>
       <script src="<%= url_for '/js/es5-shim.js' %>"></script>
       <script src="<%= url_for '/js/json3.min.js' %>"></script>
-    <![endif]-->
-
+    <![endif]-->	
 	
         <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
   <div class="container-fluid">
@@ -117,11 +116,17 @@
       </ul>
       
       <ul class="nav navbar-right">      
-      	<button type="button" class="btn btn-default navbar-btn signin-btn" ng-click="signin_open()">Sign in</button>
+      	<% if (is_user_authenticated) { %>
+      		<a href="/signout" id="signout" class="btn btn-default navbar-btn signin-btn" ng-click="sign_out()">Sign out</a>      		
+      	<% }else{ %>
+      		<button type="button" id="signin" data-redirect="<%= flash 'redirect_to' %>" data-open="<%= flash 'opensignin' %>" class="btn btn-default navbar-btn signin-btn" ng-click="signin_open()">Sign in</button>
+      	<% } %>
       </ul>
+      <% if(is_user_authenticated){ %>
       <ul class="nav navbar-right">
-      	<span class="navbar-text">Signed in as <%= current_user %></span>
+      	<span class="navbar-text">Signed in as <%= current_user->{firstname} %> <%= current_user->{lastname} %></span>
       </ul>
+      <% } %>
     </div><!-- /.navbar-collapse -->
   </div><!-- /.container-fluid -->
 </nav>

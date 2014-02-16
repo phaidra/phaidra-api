@@ -17,8 +17,13 @@ sub uwmetadataeditor_full {
 
 sub portal {
     my $self = shift;  	 
+    my $cu = $self->current_user();
     
-    $self->app->log->debug($self->app->dumper($self->stash->{current_user}));      
+    unless($self->flash('redirect_to')){
+    	# if no redirect was set, reload the current url (portal)
+    	$self->flash({redirect_to => $self->req->url});
+    }      
+        
     $self->render('demo/portal');	
 }
 
