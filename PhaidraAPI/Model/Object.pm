@@ -13,21 +13,7 @@ sub delete {
     my $password = shift;
 
     my $res = { alerts => [], status => 200 };
-=cut 
-	my $fedoraurl = $c->app->config->{phaidra}->{fedorabaseurl};
-	my $url = "https://$username:$password"."@"."$fedoraurl/fedora/objects/$pid?state=D";
 	
-	my $ua = Mojo::UserAgent->new;
-  	my $put = $ua->put($url => {} => form => { state => 'D' } );
-  	if (my $r = $put->success) {  
-  		unshift @{$res->{alerts}}, { type => 'success', msg => $r->body };
-  	}
-	else {
-	  my ($err, $code) = $put->error;
-	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-	  $res->{status} =  $code;
-	}
-=cut  	
   	return $res;	
 }
 
@@ -58,8 +44,6 @@ sub modify {
 	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
 	$url->path("/fedora/objects/$pid");
 	$url->query(\%params);
-	
-	#$c->app->log->debug("Params:\n".$c->app->dumper($params));
 	
 	my $ua = Mojo::UserAgent->new;
 	
