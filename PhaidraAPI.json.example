@@ -16,12 +16,6 @@
     
     "validate_uwmetadata":"1",
       
-    "defaults": {
-    
-    	"metadata_field_language": "de"
-    	        
-	},
-	
 	"directory_class": "Phaidra::Directory::Univie",
 	
 	"directory": {	        
@@ -65,36 +59,5 @@
     	
     	"password":"changeme"
     },
-    
-    "api_db": {
-    
-    	"dsn":"dbi:mysql:db_name:db_host",
-    	
-    	"username":"changeme",
-    	
-    	"password":"changeme"
-    }    
-    
-    "authentication": {
-    
-    	"realm": "PhaidraAPI",
-    	
-    	"ldap": {
-    		"server": "",
-    		
-    		"port": "",
-    		
-    		"useridattribute": "",
-    		
-    		"usersearchbase": "",
-    		
-        	"usersearchfilter": "",   
-        			
-    		"userattributes": "",
-    		
-    		"securityprincipal": "",
-    		
-    		"securitycredentials": ""
-    	}
-    }, 
+ 
 }
