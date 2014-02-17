@@ -38,13 +38,13 @@ Prerequisities:
 	
 	Hypnotoad:
 	
-	/usr/local/bin/hypnotoad api.cgi
+	/usr/local/bin/hypnotoad phaidra-api.cgi
 
 	or
 		
 	Morbo:
 	
-	env MOJO_REVERSE_PROXY=1 /usr/local/bin/morbo -w PhaidraAPI -w PhaidraAPI.json -w PhaidraAPI.pm -w templates -w public -w lib api.cgi
+	env MOJO_REVERSE_PROXY=1 /usr/local/bin/morbo -w PhaidraAPI -w PhaidraAPI.json -w PhaidraAPI.pm -w templates -w public -w lib phaidra-api.cgi
 	
 	Apache virtual host conf (among other stuff, eg SSLEngine config):
 	
@@ -79,13 +79,13 @@ Prerequisities:
 
 * Apache/CGI
 
-  $# chown apache:apache api.cgi
+  $# chown apache:apache phaidra-api.cgi
   
   $# chmod u+x api.cgi
 
   Virtual host config:
   
-        ScriptAlias /api my_document_root/api.cgi
+        ScriptAlias /api my_document_root/phaidra-api.cgi
 
         RewriteEngine on
         RewriteCond %{HTTP:Authorization} ^(.+)
