@@ -26,7 +26,7 @@ Prerequisities:
 
 * Run:
 
-  $# morbo -w PhaidraAPI -w templates -w public -w lib api.cgi
+  $# morbo -w PhaidraAPI -w templates -w public -w lib phaidra-api.cgi
 
   [debug] Reading config file "PhaidraAPI.json".
 
