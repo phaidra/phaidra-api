@@ -15,7 +15,7 @@ sub get {
 	my $t0 = [gettimeofday];
 
 	my $v = $self->param('mfv');
-	my $pid = $self->param('pid');
+	my $pid = $self->stash('pid');
 			
 	unless(defined($v)){		
 		$self->stash( msg => 'Unknown metadata format version requested.');
@@ -56,10 +56,11 @@ sub post {
 	
 	my $t0 = [gettimeofday];
 
+	my $v = $self->param('mfv');
+	my $pid = $self->stash('pid');
+
 	my $payload = $self->req->json;
-	my $v = $payload->{mfv};
-	my $pid = $payload->{pid};
-	my $metadata = $payload->{metadata};		
+	my $uwmetadata = $payload->{uwmetadata};		
 	
 	unless(defined($v)){		
 		$self->stash( msg => 'Unknown metadata format version specified.');
@@ -79,7 +80,7 @@ sub post {
 		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 500) ;		
 		return;
 	}	
-	unless(defined($metadata)){		
+	unless(defined($uwmetadata)){		
 		$self->stash( msg => 'No data sent.');
 		$self->app->log->error($self->stash->{msg}); 	
 		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 500) ;		
@@ -88,11 +89,12 @@ sub post {
 	
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
 	
-	my $res = $metadata_model->save_to_object($self, $pid, $metadata, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+	my $res = $metadata_model->save_to_object($self, $pid, $uwmetadata, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 	
 	my $t1 = tv_interval($t0);	
-	unshift @{$res->{alerts}}, { type => 'success', msg => "Object $pid saved successfuly in $t1 s"};
-	
+	if($res->{status} eq 200){
+		unshift @{$res->{alerts}}, { type => 'success', msg => "Object $pid saved successfuly in $t1 s"};
+	}
 	foreach my $alert (@{$res->{alerts}}){
 		$self->stash( msg => $alert->{msg} );
 	}

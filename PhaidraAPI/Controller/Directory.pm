@@ -29,7 +29,7 @@ sub get_study {
 	
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;	
 	my $terms = $metadata_model->get_study_terms($self, $spl, \@ids, $values_namespace);
-	
+
     $self->render(json => { terms => $terms }, status => 200 );
 }
 

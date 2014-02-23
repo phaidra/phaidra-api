@@ -276,7 +276,12 @@ sub get_metadata_tree {
 			case "classification" { $format{$mid}->{hidden} = 1 } # i think this should be edited elsewhere
 			case "annotation" { $format{$mid}->{hidden} = 1 } # was removed from editor
 			case "etheses" { $format{$mid}->{hidden} = 1 } # should not be edited in phaidra (i guess..)			
-		}		
+		}
+		
+		# if field is ordered, set seq to 0
+		if($format{$mid}->{ordered}){
+			$format{$mid}->{data_order} = '0';
+		}	
 		
 		$id_hash{$mid} = $format{$mid}; # we will use this later for direct id -> element access 		
 	}	 	
@@ -1093,7 +1098,7 @@ sub json_2_uwmetadata(){
 	$writer->endTag(["http://phaidra.univie.ac.at/XML/metadata/V1.0", "uwmetadata"]);
 	
 	$writer->end();
-	
+	#$c->app->log->debug($xml);
 	return $xml;
 }
 
@@ -1120,6 +1125,15 @@ sub json_2_uwmetadata_rec(){
 		# we cannot add them to uwmetadata
 		if($child->{ui_value} eq '' && $children_size == 0){
 			next;	
+		}
+		# this way we remove source and taxon from taxonpath, 
+		# but then the taxonpath will be empty
+		if($child->{xmlname} eq 'taxonpath'){
+			# check 'source'
+			if(@{$child->{children}}[0]->{ui_value} eq ''){
+				# if it's empty, we skip the whole taxonpath
+				next;
+			}
 		}
 		
 		my %attrs;
