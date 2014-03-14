@@ -44,4 +44,40 @@ sub modify {
    	$self->render(json => $r, status => $r->{status}) ;
 }
 
+
+sub get_user_collections {
+	my $token = shift;
+	
+	my @coll_pids;		
+
+}
+
+sub add_collection_member {
+	my $token = shift;
+	
+}
+
+sub remove_collection_member {
+	my $token = shift;
+}
+
+sub collection_order {
+	my $token = shift;
+	my $members_pos;
+	
+}
+
+sub collection_create {
+	my $token = shift;
+	my $metadata = shift;
+	my $members = shift; # optional
+		
+	my $pid;
+	
+}
+
+
+
+
+
 1;

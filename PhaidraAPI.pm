@@ -5,9 +5,21 @@ use warnings;
 use Mojo::Base 'Mojolicious';
 use Mojo::Log;
 use Mojolicious::Plugin::I18N;
+use Mojolicious::Plugin::Session;
 use Mojo::Loader;
 use lib "lib/phaidra_directory";
 use lib "lib/phaidra_binding";
+use Mango;
+use Sereal::Encoder qw(encode_sereal);
+use Sereal::Decoder qw(decode_sereal);
+use Crypt::CBC              ();
+use Crypt::Rijndael         ();
+use Crypt::URandom          (qw/urandom/);
+use Digest::SHA             (qw/hmac_sha256/);
+use Math::Random::ISAAC::XS ();
+use MIME::Base64 3.12 (qw/encode_base64url decode_base64url/);
+use PhaidraAPI::Model::Session::Transport::Header;
+use PhaidraAPI::Model::Session::Store::Mongo;
 
 # This method will run once at server start
 sub startup {
@@ -52,19 +64,89 @@ sub startup {
             },
         },
     });
+	
+	$self->helper(mango => sub { state $mango = Mango->new('mongodb://'.$config->{mongodb}->{username}.':'.$config->{mongodb}->{password}.'@'.$config->{mongodb}->{host}.'/'.$config->{mongodb}->{database}) });
+	
+    # we might possibly save a lot of data to session 
+    # so we are not going to use cookies, but a database instead
+    $self->plugin(
+        session => {
+            stash_key     => 'mojox-session',
+	    	store  => PhaidraAPI::Model::Session::Store::Mongo->new( 
+	    		mango => $self->mango, 
+	    		'log' => $self->log 
+	    	),              
+	    	transport => PhaidraAPI::Model::Session::Transport::Header->new(
+	    		name => $config->{authentication}->{token_header},
+	    		'log' => $self->log 
+	    		),
+            expires_delta => $config->{session_expiration}, 
+	    	ip_match      => 1
+        }
+    );
+    
+    $self->hook('before_dispatch' => sub {
+		my $self = shift;		  
+		
+		my $session = $self->stash('mojox-session');
+		$session->load;
+		if($session->sid){
+			$session->extend_expires;
+			$session->flush;			
+		}
+      	
+	});
+     
+    $self->helper(save_cred => sub {
+    	my $self = shift;
+		my $u = shift;
+		my $p = shift;
+		
+		my $ciphertext;
+		
+		my $session = $self->stash('mojox-session');
+		$session->load;
+		unless($session->sid){		
+			$session->create;		
+		}	
+		my $ba = encode_sereal({ username => $u, password => $p });  	
+	    my $salt = Math::Random::ISAAC::XS->new( map { unpack( "N", urandom(4) ) } 1 .. 256 )->irand();
+	    my $key = hmac_sha256( $salt, $self->app->config->{enc_key} );
+	    my $cbc = Crypt::CBC->new( -key => $key, -cipher => 'Rijndael' );
+	    
+	    eval {
+	        $ciphertext = encode_base64url( $cbc->encrypt( $ba ) );      
+	    };
+	    $self->app->log->error("Encoding error: $@") if $@;
+		$session->data(cred => $ciphertext, salt => $salt);
+    });
+    
+    $self->helper(load_cred => sub {
+    	my $self = shift;
+    	
+    	my $session = $self->stash('mojox-session');
+		$session->load;
+		unless($session->sid){
+			return undef;
+		}
+		
+		my $salt = $session->data('salt');
+		my $ciphertext = $session->data('cred');		
+	    my $key = hmac_sha256( $salt, $self->app->config->{enc_key} );	
+	    my $cbc = Crypt::CBC->new( -key => $key, -cipher => 'Rijndael' );
+	    my $data;
+	    eval {  
+	    	$data = decode_sereal($cbc->decrypt( decode_base64url($ciphertext) ))	    	
+	   	};
+	    $self->app->log->error("Decoding error: $@") if $@;
+	
+	    return $data;
+
+    });	 
      
     my $r = $self->routes;
     $r->namespaces(['PhaidraAPI::Controller']);
-    
-    my $apiauth = $r->bridge->to('authentication#extract_basic_auth_credentials');
-	
-    $apiauth->route('object/:pid/modify', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('put') ->to('object#modify');
-    $apiauth->route('object/:pid', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('delete') ->to('object#delete');
-    
-    $apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('get') ->to('uwmetadata#get');
-    $apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('post') ->to('uwmetadata#post');
-    
-		
+    		
 	$r->route('uwmetadata/tree')			  ->via('get')   ->to('uwmetadata#tree');
 	$r->route('uwmetadata/languages')		  ->via('get')   ->to('uwmetadata#languages');
 	
@@ -73,6 +155,18 @@ sub startup {
 	$r->route('directory/get_org_units')  	->via('get')   ->to('directory#get_org_units');
 	$r->route('directory/get_study')  		->via('get')   ->to('directory#get_study');
 	$r->route('directory/get_study_name')  	->via('get')   ->to('directory#get_study_name');
+
+	$r->route('signin') 			  	->via('get')   ->to('authentication#signin');
+    $r->route('signout') 			->via('get')   ->to('authentication#signout');    
+
+	my $apiauth = $r->bridge->to('authentication#extract_credentials');
+    
+    $apiauth->route('object/:pid/modify', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('put') ->to('object#modify');
+    $apiauth->route('object/:pid', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('delete') ->to('object#delete');
+    
+    $apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('get') ->to('uwmetadata#get');
+    $apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('post') ->to('uwmetadata#post');
+    
 
 	return $self;
 }

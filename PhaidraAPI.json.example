@@ -10,6 +10,12 @@
 	
 	"secret":"changeme",
 	
+	"enc_key":"changeme",
+	
+	"session_expiration":"7200",
+
+    "inactivity_timeout":"7200"
+	
     "log_path":"/var/log/phaidra/PhaidraAPI.log",
     
     "log_level":"debug",
@@ -59,5 +65,41 @@
     	
     	"password":"changeme"
     },
+    
+    "mongodb": {
+        "host": "host",
+        "port": "27017",
+        "username": "username",
+        "password": "password",
+        "database": "database"
+    },
+    
+    "authentication": {
+    
+    	"realm": "Phaidra",
+    	
+    	"token_header": "X-XSRF-TOKEN",
+    	
+    	"token_cookie": "XSRF-TOKEN",
+    	
+    	"ldap": {
+    		"server": "",
+    		
+    		"port": "",
+    		
+    		"useridattribute": "",
+    		
+    		"usersearchbase": "",
+    		
+        	"usersearchfilter": "",   
+        			
+    		"userattributes": "",
+    		
+    		"securityprincipal": "",
+    		
+    		"securitycredentials": ""
+    	}
+    	
+    }
  
 }

@@ -20,7 +20,18 @@ Prerequisities:
   /usr/local/bin/cpanm Net::LDAPS
 
   /usr/local/bin/cpanm IO::Socket::SSL
-  
+
+  /usr/local/bin/cpanm Sereal
+ 
+  /usr/local/bin/cpanm Crypt::CBC
+
+  /usr/local/bin/cpanm Crypt::Rijndael
+
+  /usr/local/bin/cpanm Crypt::URandom
+
+  /usr/local/bin/cpanm Math::Random::ISAAC::XS
+ 
+  /usr/local/bin/cpanm MIME::Base64 
   
   (On Ubuntu: sudo apt-get install libmojolicious-plugin-i18n-perl)
 
