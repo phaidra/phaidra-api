@@ -46,7 +46,7 @@ sub get {
 	my $languages = $metadata_model->get_languages($self);
 	
 	my $t1 = tv_interval($t0);	
-	$self->stash( msg => "backend load took $t1 s");
+	#$self->stash( msg => "backend load took $t1 s");
 	
     $self->render(json => { metadata => $res->{metadata}, languages => $languages, alerts => [{ type => 'success', msg => $self->stash->{msg}}]});
 }
@@ -93,7 +93,8 @@ sub post {
 	
 	my $t1 = tv_interval($t0);	
 	if($res->{status} eq 200){
-		unshift @{$res->{alerts}}, { type => 'success', msg => "Object $pid saved successfuly in $t1 s"};
+		#unshift @{$res->{alerts}}, { type => 'success', msg => "Object $pid saved successfuly in $t1 s"};
+		unshift @{$res->{alerts}}, { type => 'success', msg => "UWMetadata for $pid saved successfuly"};
 	}
 	foreach my $alert (@{$res->{alerts}}){
 		$self->stash( msg => $alert->{msg} );

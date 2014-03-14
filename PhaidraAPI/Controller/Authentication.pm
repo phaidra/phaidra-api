@@ -105,6 +105,8 @@ sub signout {
 		$session->expire;							
 		$session->flush;	
 	}
+	
+	$self->render(status => 200);
 }
 
 
