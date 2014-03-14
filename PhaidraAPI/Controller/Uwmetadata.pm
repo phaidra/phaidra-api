@@ -119,19 +119,17 @@ sub tree {
 	
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
 	
-	my $metadata_tree = $metadata_model->metadata_tree($self, $v);
-
-	if($metadata_tree == -1){
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }] } , status => 500) ;		
-		return;
-	}
-	
 	my $languages = $metadata_model->get_languages($self);
+	
+	my $res = $metadata_model->metadata_tree($self, $v);
+	if($res->{status} ne 200){
+		$self->render(json => { alerts => $res->{alerts} }, $res->{status});
+	}	
 	
 	my $t1 = tv_interval($t0);	
 	$self->stash( msg => "backend load took $t1 s");
 	
-    $self->render(json => { tree => $metadata_tree, languages => $languages });	
+    $self->render(json => { tree => $res->{metadata_tree}, languages => $languages, alerts => $res->{alerts} }, status => $res->{status});	
 }
 
 sub languages {
