@@ -48,7 +48,7 @@ sub get {
 	my $t1 = tv_interval($t0);	
 	#$self->stash( msg => "backend load took $t1 s");
 	
-    $self->render(json => { metadata => $res->{metadata}, languages => $languages, alerts => [{ type => 'success', msg => $self->stash->{msg}}]});
+    $self->render(json => { metadata => $res->{metadata}, languages => $languages}); #, alerts => [{ type => 'success', msg => $self->stash->{msg}}]});
 }
 
 sub post {

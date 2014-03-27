@@ -155,6 +155,9 @@ sub startup {
 	$r->route('directory/get_org_units')  	->via('get')   ->to('directory#get_org_units');
 	$r->route('directory/get_study')  		->via('get')   ->to('directory#get_study');
 	$r->route('directory/get_study_name')  	->via('get')   ->to('directory#get_study_name');
+	
+	$r->route('search/owner/:username')  ->via('get')   ->to('search#owner');
+	$r->route('search/collections/owner/:username')  ->via('get')   ->to('search#collections_owner');
 
 	$r->route('signin') 			  	->via('get')   ->to('authentication#signin');
     $r->route('signout') 			->via('get')   ->to('authentication#signout');    
