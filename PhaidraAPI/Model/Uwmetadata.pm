@@ -1238,7 +1238,7 @@ sub save_uwmetadata(){
 	my $soapres = $soap->modifyDatastreamByValue($pid, "UWMETADATA", '', $c->app->config->{phaidra}->{uwmetadatalabel}, "text/xml", '', SOAP::Data->type(base64 => $uwmetadata), 'DISABLED', 'none', 'Modified by PhaidraAPI (rest)', SOAP::Data->type(boolean => 0));
 	if($soapres->fault)
 	{
-		$c->app->log->error("Saving UWMETADATA for $pid failed.");		
+		$c->app->log->error("Saving UWMETADATA for $pid failed:".$soapres->faultcode.": ".$soapres->faultstring);		
 		$res->{status} = 500;	
 		unshift @{$res->{alerts}}, { type => 'danger', msg => "Saving UWMETADATA failed: ".$soapres->faultcode.": ".$soapres->faultstring};
 		return $res;

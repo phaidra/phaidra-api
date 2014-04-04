@@ -92,8 +92,7 @@ sub post {
 	my $res = $metadata_model->save_to_object($self, $pid, $uwmetadata, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 	
 	my $t1 = tv_interval($t0);	
-	if($res->{status} eq 200){
-		#unshift @{$res->{alerts}}, { type => 'success', msg => "Object $pid saved successfuly in $t1 s"};
+	if($res->{status} eq 200){		
 		unshift @{$res->{alerts}}, { type => 'success', msg => "UWMetadata for $pid saved successfuly"};
 	}
 	foreach my $alert (@{$res->{alerts}}){

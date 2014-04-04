@@ -170,6 +170,7 @@ sub startup {
     $apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('get') ->to('uwmetadata#get');
     $apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('post') ->to('uwmetadata#post');
     
+    $apiauth->route('collection/create') ->via('post') ->to('collection#create');
 
 	return $self;
 }
