@@ -9,7 +9,7 @@ use Mojolicious::Plugin::Session;
 use Mojo::Loader;
 use lib "lib/phaidra_directory";
 use lib "lib/phaidra_binding";
-use Mango;
+use Mango 0.24;
 use Sereal::Encoder qw(encode_sereal);
 use Sereal::Decoder qw(decode_sereal);
 use Crypt::CBC              ();

@@ -3,7 +3,7 @@ package PhaidraAPI::Model::Session::Store::Mongo;
 use strict;
 use warnings;
 use base 'MojoX::Session::Store';
-use Mango;
+use Mango 0.24;
 use Data::Dumper;
 
 __PACKAGE__->attr('mango');
