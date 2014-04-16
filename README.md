@@ -5,11 +5,15 @@ Prerequisities:
 
 * Mojolicious Plugins
 
+  /usr/local/bin/cpanm Mango
+
+  /usr/local/bin/cpanm MooX::Types::MooseLike::Numeric --force
+
+  /usr/local/bin/cpanm MooX::Types::MooseLike
+
   /usr/local/bin/cpanm Mojolicious::Plugin::Database
   
-  /usr/local/bin/cpanm MooX::Types::MooseLike::Numeric --force
-  
-  /usr/local/bin/cpanm MooX::Types::MooseLike
+  /usr/local/bin/cpanm Mojolicious::Plugin::Session
   
   /usr/local/bin/cpanm Mojolicious::Plugin::CHI
   
@@ -32,8 +36,17 @@ Prerequisities:
   /usr/local/bin/cpanm Math::Random::ISAAC::XS
  
   /usr/local/bin/cpanm MIME::Base64 
+
+  /usr/local/bin/cpanm 
   
   (On Ubuntu: sudo apt-get install libmojolicious-plugin-i18n-perl)
+
+
+* Config
+
+  vi PhaidraAPI.json (see PhaidraAPI.json.example) Make sure log directory exists.
+
+  vi lib/phaidra_directory/Phaidra/Directory/directory.json (ev also JSON.pm or add the class you are using) 
 
 * Run:
 
@@ -87,18 +100,3 @@ Prerequisities:
 
 	Hypnotoad config (PhaidraAPI.json):
 		proxy: 1	
-
-* Apache/CGI
-
-  $# chown apache:apache phaidra-api.cgi
-  
-  $# chmod u+x api.cgi
-
-  Virtual host config:
-  
-        ScriptAlias /api my_document_root/phaidra-api.cgi
-
-        RewriteEngine on
-        RewriteCond %{HTTP:Authorization} ^(.+)
-        RewriteRule ^(.*)$ $1 [E=HTTP_AUTHORIZATION:%1,PT]
-  
