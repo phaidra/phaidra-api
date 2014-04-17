@@ -71,8 +71,7 @@ sub signin {
     $self->directory->authenticate($self, $username, $password);
     my $res = $self->stash('phaidra_auth_result');
     unless(($res->{status} eq 200)){    
-    	$self->app->log->info("User $username not authenticated");
-    	unshift @{$res->{alerts}}, { type => 'danger', msg => "authentication failed" };		
+    	$self->app->log->info("User $username not authenticated");	
     	$self->render(json => { alerts => $res->{alerts}} , status => $res->{status}) ;
     	return;    		
     }    

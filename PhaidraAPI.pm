@@ -46,9 +46,10 @@ sub startup {
   	# init cache
   	$self->plugin(CHI => {
 	    default => {
-	      	driver     => 'File', # FastMmap seems to have problems saving the metadata structure (it won't save anything)
-	    	root_dir   => '/tmp/phaidra-api-cache',
-	    	cache_size => '20m',
+	      	driver     => 'Memory',
+	    	#driver     => 'File', # FastMmap seems to have problems saving the metadata structure (it won't save anything)
+	    	#root_dir   => '/tmp/phaidra-api-cache',
+	    	#cache_size => '20m',
 	      	global => 1,
 	      	#serializer => 'Storable',
     	},

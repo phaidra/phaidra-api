@@ -42,7 +42,7 @@ sub owner {
 		
 		sub { 	
 	  		my ($delay, $r) = @_;	
-			$self->app->log->debug($self->app->dumper($r));			
+			#$self->app->log->debug($self->app->dumper($r));			
 			$self->render(json => $r, status => $r->{status});	
   		}
 	
@@ -85,7 +85,7 @@ sub collections_owner {
 		
 		sub { 	
 	  		my ($delay, $r) = @_;	
-			$self->app->log->debug($self->app->dumper($r));			
+			#$self->app->log->debug($self->app->dumper($r));			
 			$self->render(json => $r, status => $r->{status});	
   		}
 	
