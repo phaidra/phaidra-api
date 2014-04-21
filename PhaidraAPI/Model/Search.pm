@@ -8,6 +8,87 @@ use Mojo::IOLoop;
 use Mojo::IOLoop::Delay;
 use base qw/Mojo::Base/;
 
+sub triples {
+	my $self = shift;
+	my $c = shift;
+	my $query = shift;
+	my $limit = shift;
+	
+	my $res = { alerts => [], status => 200 };
+	
+	my %params;
+	$params{dt} = 'on';
+	$params{lang} = 'spo';
+	$params{format} = 'N-Triples';
+	$params{limit} = $limit if $limit;
+	$params{query} = $query;
+	$params{type} = 'triples';	
+	
+	my $url = Mojo::URL->new;
+	$url->scheme('https');
+	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
+	$url->path("/fedora/risearch");
+	$url->query(\%params);
+	
+	my $tx = $c->ua->post($url);
+
+	if (my $reply = $tx->success) {
+		
+		my @a;
+		my $str = $reply->body;		
+		while($str =~ /([^\n]+)\n?/g){
+			my @spo = split(' ', $1);
+        	push @a, [$spo[0], $spo[1], $spo[2]];
+		};
+		 
+		$res->{result} = \@a;
+					  		
+	}else{
+		my ($err, $code) = $tx->error;
+		unshift @{$res->{alerts}}, { type => 'danger', msg => "$err"};			
+		$res->{status} = 500;								
+	}	
+	
+	return $res;
+}
+
+sub datastream_exists {
+	my $self = shift;
+	my $c = shift;
+	my $pid = shift;
+	my $dsid = shift;
+	
+	my $res = { alerts => [], status => 200 };
+	
+	my $triplequery = "<info:fedora/$pid> <info:fedora/fedora-system:def/view#disseminates> <info:fedora/$pid/$dsid>";
+	
+	my %params;
+	$params{dt} = 'on';
+	$params{format} = 'count';
+	$params{lang} = 'spo';
+	$params{limit} = '1';
+	$params{query} = $triplequery;
+	$params{type} = 'triples';	
+	
+	my $url = Mojo::URL->new;
+	$url->scheme('https');
+	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
+	$url->path("/fedora/risearch");
+	$url->query(\%params);
+	
+	my $tx = $c->ua->post($url);
+
+	if (my $reply = $tx->success) {
+		$res->{'exists'} = scalar ($reply->body);			  		
+	}else{
+		my ($err, $code) = $tx->error;
+		unshift @{$res->{alerts}}, { type => 'danger', msg => "$err"};			
+		$res->{status} = 500;								
+	}	
+	
+	return $res;
+}
+
 sub search_simple_query {
 	my $self = shift;
 	my $c = shift;

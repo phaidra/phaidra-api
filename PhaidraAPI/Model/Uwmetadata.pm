@@ -13,6 +13,8 @@ use XML::Writer;
 use XML::LibXML;
 use lib "lib/phaidra_binding";
 use Phaidra::API;
+use PhaidraAPI::Model::Object;
+use PhaidraAPI::Model::Search;
 my $home = Mojo::Home->new;
 $home->detect('PhaidraAPI');
 
@@ -903,6 +905,25 @@ sub get_uwmetadata {
 	return $res;		
 }
 
+sub set_identifier() {
+	my $self = shift;
+	my $c = shift;
+	my $pid = shift;
+	my $metadata = shift;
+	
+	foreach my $n (@{$metadata}){
+		if($n->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0' && $n->{xmlname} eq 'identifier'){
+			$n->{value} = $pid;
+			last; 
+		}else{
+			my $children_size = defined($n->{children}) ? scalar (@{$n->{children}}) : 0;
+			if($children_size > 0){
+				$self->set_identifier($c, $pid, $n->{children});
+			}
+		}
+	}
+}
+
 sub save_to_object(){
 	
 	my $self = shift;
@@ -913,6 +934,8 @@ sub save_to_object(){
 	my $password = shift;
 	
 	my $res = { alerts => [], status => 200 };
+	
+	$self->set_identifier($c, $pid, $metadata);
 	
 	my $uwmetadata = $self->json_2_uwmetadata($c, $metadata);
 	
@@ -1217,31 +1240,35 @@ sub save_uwmetadata(){
 		}
 	}
 	
-	$c->app->log->debug("Connecting to ".$c->app->config->{phaidra}->{fedorabaseurl}."...");
-	my $phaidra = Phaidra::API->new(
-		$c->app->config->{phaidra}->{fedorabaseurl}, 
-		$c->app->config->{phaidra}->{staticbaseurl}, 
-		$c->app->config->{phaidra}->{fedorastylesheeturl}, 
-		$c->app->config->{phaidra}->{proaiRepositoryIdentifier}, 
-		$username, 
-		$password
-	);
-	
-	# we are only changing UWMETADATA so we don't have to load & save object	
-	my $soap = $phaidra->getSoap("apim");
-	unless(defined($soap)){
-		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Cannot create SOAP connection to '.$c->app->config->{phaidra}->{fedorabaseurl}};
-		$res->{status} = 500;	
+	# does it already exists? we have to use modify instead of add method if it does
+	my $search_model = PhaidraAPI::Model::Search->new;
+	my $sr = $search_model->datastream_exists($c, $pid, 'UWMETADATA');
+	if($sr->{status} ne 200){
+		unshift @{$res->{alerts}}, @{$sr->{alerts}};
+		$res->{status} = $sr->{status}; 
 		return $res;
 	}
-	$c->app->log->debug("Connected");
-	my $soapres = $soap->modifyDatastreamByValue($pid, "UWMETADATA", '', $c->app->config->{phaidra}->{uwmetadatalabel}, "text/xml", '', SOAP::Data->type(base64 => $uwmetadata), 'DISABLED', 'none', 'Modified by PhaidraAPI (rest)', SOAP::Data->type(boolean => 0));
-	if($soapres->fault)
-	{
-		$c->app->log->error("Saving UWMETADATA for $pid failed:".$soapres->faultcode.": ".$soapres->faultstring);		
-		$res->{status} = 500;	
-		unshift @{$res->{alerts}}, { type => 'danger', msg => "Saving UWMETADATA failed: ".$soapres->faultcode.": ".$soapres->faultstring};
-		return $res;
+	
+	if($sr->{'exists'}){
+		
+		my $object_model = PhaidraAPI::Model::Object->new;
+		my $r = $object_model->modify_datastream($c, $pid, "UWMETADATA", "text/xml", undef, $uwmetadata, $c->app->config->{phaidra}->{uwmetadatalabel}, $username, $password);
+	  	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+	    $res->{status} = $r->{status};
+	    if($r->{status} ne 200){
+	    	return $res;
+	    }
+		
+	}else{
+		
+		my $object_model = PhaidraAPI::Model::Object->new;
+		my $r = $object_model->add_datastream($c, $pid, "UWMETADATA", "text/xml", undef, $uwmetadata, $c->app->config->{phaidra}->{uwmetadatalabel}, "X", $username, $password);
+	  	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+	    $res->{status} = $r->{status};
+	    if($r->{status} ne 200){
+	    	return $res;
+	    }	
+		
 	}
 	$c->app->log->debug("Saving UWMETADATA for $pid successful.");
 	

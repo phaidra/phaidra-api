@@ -20,19 +20,19 @@ sub get {
 	unless(defined($v)){		
 		$self->stash( msg => 'Unknown metadata format version requested.');
 		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 500) ;
+		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;
 		return;
 	}
 	unless($v eq '1'){		
 		$self->stash( msg => 'Unsupported metadata format version.');
 		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 500) ;		
+		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;		
 		return;
 	}		
 	unless(defined($pid)){		
 		$self->stash( msg => 'Undefined pid.');
 		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 500) ;		
+		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;		
 		return;
 	}	
 		
@@ -65,25 +65,25 @@ sub post {
 	unless(defined($v)){		
 		$self->stash( msg => 'Unknown metadata format version specified.');
 		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 500) ;
+		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;
 		return;
 	}
 	unless($v eq '1'){		
 		$self->stash( msg => 'Unsupported metadata format version specified.');
 		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 500) ;		
+		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;		
 		return;
 	}		
 	unless(defined($pid)){		
 		$self->stash( msg => 'Undefined pid.');
 		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 500) ;		
+		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;		
 		return;
 	}	
 	unless(defined($uwmetadata)){		
 		$self->stash( msg => 'No data sent.');
 		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 500) ;		
+		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;		
 		return;
 	}
 	
@@ -94,9 +94,6 @@ sub post {
 	my $t1 = tv_interval($t0);	
 	if($res->{status} eq 200){		
 		unshift @{$res->{alerts}}, { type => 'success', msg => "UWMetadata for $pid saved successfuly"};
-	}
-	foreach my $alert (@{$res->{alerts}}){
-		$self->stash( msg => $alert->{msg} );
 	}
 	
 	$self->render(json => { alerts => $res->{alerts} } , status => $res->{status});
@@ -112,7 +109,7 @@ sub tree {
 	unless(defined($v)){		
 		$self->stash( msg => 'Unknown metadata format version requested.');
 		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { msg => $self->stash->{msg}} , status => 500) ;		
+		$self->render(json => { msg => $self->stash->{msg}} , status => 400) ;		
 		return;
 	}	
 	

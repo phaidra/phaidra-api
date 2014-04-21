@@ -94,8 +94,19 @@ sub startup {
 		if($session->sid){
 			$session->extend_expires;
 			$session->flush;			
-		}
-      	
+		}      	
+	});
+	
+	$self->hook('after_dispatch' => sub {
+		my $self = shift;		  
+		my $json = $self->res->json;
+		if($json){
+			if($json->{alerts}){
+				if(scalar(@{$json->{alerts}}) > 0){
+					$self->app->log->debug("Alerts:\n".$self->dumper($json->{alerts}));
+				}	
+			}	
+		}		      	
 	});
      
     $self->helper(save_cred => sub {
@@ -142,7 +153,6 @@ sub startup {
 	    $self->app->log->error("Decoding error: $@") if $@;
 	
 	    return $data;
-
     });	 
      
     my $r = $self->routes;
@@ -159,6 +169,7 @@ sub startup {
 	
 	$r->route('search/owner/:username')  ->via('get')   ->to('search#owner');
 	$r->route('search/collections/owner/:username')  ->via('get')   ->to('search#collections_owner');
+	$r->route('search/triples')  ->via('get')   ->to('search#triples');
 
 	$r->route('signin') 			  	->via('get')   ->to('authentication#signin');
     $r->route('signout') 			->via('get')   ->to('authentication#signout');    
@@ -172,6 +183,11 @@ sub startup {
     $apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('post') ->to('uwmetadata#post');
     
     $apiauth->route('collection/create') ->via('post') ->to('collection#create');
+    $apiauth->route('collection/:pid/members') ->via('get') ->to('collection#get_collection_members');
+    $apiauth->route('collection/:pid/members') ->via('post') ->to('collection#add_collection_members');
+    $apiauth->route('collection/:pid/members') ->via('delete') ->to('collection#remove_collection_members');
+    $apiauth->route('collection/:pid/members') ->via('put') ->to('collection#set_collection_members');
+    $apiauth->route('collection/:pid/members/order') ->via('post') ->to('collection#order_collection_members');
 
 	return $self;
 }

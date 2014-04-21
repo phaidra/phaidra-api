@@ -12,7 +12,7 @@ sub delete {
 	unless(defined($self->stash('pid'))){		
 		$self->stash( msg => 'Undefined pid.');
 		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 500) ;		
+		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;		
 		return;
 	}	
 
@@ -28,7 +28,7 @@ sub modify {
 	unless(defined($self->stash('pid'))){		
 		$self->stash( msg => 'Undefined pid.');
 		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 500) ;		
+		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;		
 		return;
 	}	
 

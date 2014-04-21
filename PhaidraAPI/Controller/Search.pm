@@ -8,6 +8,18 @@ use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Search::GSearchSAXHandler;
 use Mojo::IOLoop::Delay;
 
+sub triples {
+	my $self = shift;
+	
+	my $query = $self->param('query');
+	my $limit = $self->param('limit');
+	
+	my $search_model = PhaidraAPI::Model::Search->new;
+	my $sr = $search_model->triples($self, $query, $format, $limit);
+	
+	$self->render(json => $sr, status => $sr->{status});
+}
+
 sub owner {
 	my $self = shift;	
 	my $from = 1;
@@ -16,7 +28,7 @@ sub owner {
 	unless(defined($self->stash('username'))){		
 		$self->stash( msg => 'Undefined username');
 		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 500) ;		
+		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;		
 		return;
 	}
 	
@@ -59,7 +71,7 @@ sub collections_owner {
 	unless(defined($self->stash('username'))){		
 		$self->stash( msg => 'Undefined username');
 		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 500) ;		
+		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;		
 		return;
 	}
 	

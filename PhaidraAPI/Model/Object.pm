@@ -101,7 +101,7 @@ sub create {
     }
   		
   	# add thumbnail  	
-	$r = $self->add_datastream_location($c, $pid, "THUMBNAIL", "image/png", "http://".$c->app->config->{phaidra}->{staticbaseurl}."/thumbs/collection.png", "THUMBNAIL label", "E", $username, $password);
+	$r = $self->add_datastream($c, $pid, "THUMBNAIL", "image/png", "http://".$c->app->config->{phaidra}->{staticbaseurl}."/thumbs/collection.png", undef, "THUMBNAIL label", "E", $username, $password);
   	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
@@ -109,7 +109,7 @@ sub create {
     }
     
   	# add stylesheet
-  	$r = $self->add_datastream_location($c, $pid, "STYLESHEET", "text/xml", $c->app->config->{phaidra}->{fedorastylesheeturl}, "STYLESHEET label", "E", $username, $password);
+  	$r = $self->add_datastream($c, $pid, "STYLESHEET", "text/xml", $c->app->config->{phaidra}->{fedorastylesheeturl}, undef, "STYLESHEET label", "E", $username, $password);
   	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
@@ -119,7 +119,40 @@ sub create {
   	return $res;
 }
 
-sub add_datastream_location {
+sub get_datastream {
+	
+	my $self = shift;
+	my $c = shift;
+	my $pid = shift;
+	my $dsid = shift; 
+	my $username = shift;
+	my $password = shift;
+	
+	my $res = { alerts => [], status => 200 };
+	
+	my $url = Mojo::URL->new;
+	$url->scheme('https');
+	$url->userinfo("$username:$password");
+	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
+	$url->path("/fedora/objects/$pid/datastreams/$dsid/content");	
+	
+  	my $get = Mojo::UserAgent->new->get($url);  	
+  	
+  	if (my $r = $get->success) {
+  		$res->{status} = 200;  
+  		$res->{$dsid} = $r->body;
+  	}
+	else 
+	{
+	  my ($err, $code) = $get->error;
+	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+	  $res->{status} =  $code ? $code : 500;
+	}
+	
+	return $res;		
+}
+
+sub add_datastream {
 	
 	my $self = shift;
 	my $c = shift;
@@ -127,6 +160,7 @@ sub add_datastream_location {
 	my $dsid = shift;
 	my $mimetype = shift;
 	my $location = shift;
+	my $dscontent = shift;
 	my $label = shift;
 	my $controlgroup = shift;
 	my $username = shift;
@@ -143,7 +177,7 @@ sub add_datastream_location {
     $params{checksumType} = 'DISABLED';
     #$params{checksum}
     $params{mimeType} = $mimetype if $mimetype;
-    $params{logMessage} = 'PhaidraAPI object/addDatastreamLocation';  
+    $params{logMessage} = 'PhaidraAPI object/add_datastream';  
     
     my $res = { alerts => [], status => 200 };
 	
@@ -155,13 +189,72 @@ sub add_datastream_location {
 	$url->query(\%params);
 	
 	my $ua = Mojo::UserAgent->new;
-	
-  	my $post = $ua->post($url);  	
+	my $post;
+	if($dscontent){
+  		$post = $ua->post($url => $dscontent);
+	}else{
+		$post = $ua->post($url);
+	}  	
   	if (my $r = $post->success) {  
   		#unshift @{$res->{alerts}}, { type => 'success', msg => $r->body };
   	}
 	else {
 	  my ($err, $code) = $post->error;
+	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+	  $res->{status} =  $code ? $code : 500;
+	}
+  	
+  	return $res;	
+}
+
+sub modify_datastream {
+	
+	my $self = shift;
+	my $c = shift;
+	my $pid = shift;	
+	my $dsid = shift;
+	my $mimetype = shift;
+	my $location = shift;
+	my $dscontent = shift;
+	my $label = shift;
+	my $username = shift;
+	my $password = shift;
+	
+	my %params;	
+    $params{dsLocation} = $location if $location;
+    #$params{altIDs}
+    $params{dsLabel} = $label if $label;
+    $params{versionable} = 1;
+    $params{dsState} = 'A';
+    #$params{formatURI}
+    $params{checksumType} = 'DISABLED';
+    #$params{checksum}
+    $params{mimeType} = $mimetype if $mimetype;
+    $params{logMessage} = 'PhaidraAPI object/modify_datastream';
+    $params{force} = 0;
+    #$params{ignoreContent}   
+    
+    my $res = { alerts => [], status => 200 };
+
+	my $url = Mojo::URL->new;
+	$url->scheme('https');
+	$url->userinfo("$username:$password");
+	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
+	$url->path("/fedora/objects/$pid/datastreams/$dsid");
+	$url->query(\%params);
+	
+	my $ua = Mojo::UserAgent->new;
+	my $put;
+	if($dscontent){
+  		$put = $ua->put($url => $dscontent);
+	}else{
+		$put = $ua->put($url);
+	}  	
+  	if (my $r = $put->success) {  
+  		#unshift @{$res->{alerts}}, { type => 'success', msg => $r->body };
+  	}
+	else {
+	  my ($err, $code) = $put->error;
 	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
 	  $res->{status} =  $code ? $code : 500;
 	}
@@ -208,7 +301,7 @@ sub create_empty {
         </foxml:objectProperties>
 </foxml:digitalObject>
 |;
-	
+		
 	my $pid;
 	my $ua = Mojo::UserAgent->new;	
   	my $put = $ua->post($url => {'Content-Type' => 'text/xml'} => $foxml);  	
@@ -382,6 +475,65 @@ sub add_relationships {
   	
   	return $res;
 }
+
+# this method is our hack in 3.3
+sub purge_relationships {
+	
+	my $self = shift;
+    my $c = shift;
+    my $pid = shift;
+    my $relationships = shift;
+    my $username = shift;
+    my $password = shift;
+    
+    my $res = { alerts => [], status => 200 };
+    
+    $c->app->log->debug("Connecting to ".$c->app->config->{phaidra}->{fedorabaseurl}."...");
+	my $phaidra = Phaidra::API->new(
+		$c->app->config->{phaidra}->{fedorabaseurl}, 
+		$c->app->config->{phaidra}->{staticbaseurl}, 
+		$c->app->config->{phaidra}->{fedorastylesheeturl}, 
+		$c->app->config->{phaidra}->{proaiRepositoryIdentifier}, 
+		$username, 
+		$password
+	);
+		
+    # on a rope
+	my $soap = $phaidra->getSoap("apim");
+	unless(defined($soap)){
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Cannot create SOAP connection to '.$c->app->config->{phaidra}->{fedorabaseurl}};
+		$res->{status} = 500;	
+		return $res;
+	}
+	$c->app->log->debug("Connected");	
+	
+	my @rels = ();
+	foreach my $r (@$relationships)
+	{
+        	push @rels, SOAP::Data->type("RelationshipTuple")->name("relationships" =>
+			\SOAP::Data->value(
+				SOAP::Data->name("subject")->value($pid),
+				SOAP::Data->name("predicate")->value($r->{predicate})->type("string"),
+				SOAP::Data->name("object")->value("info:fedora/".$r->{object})->type("string"),
+				SOAP::Data->name("isLiteral")->value(0)->type("boolean"),
+				SOAP::Data->name("datatype")->value(undef)
+			)
+		);
+	}
+
+	my $soapres = $soap->purgeRelationships(\@rels);
+	
+	if($soapres->fault)
+	{
+		$c->app->log->error("Removing relationships for $pid failed:".$soapres->faultcode.": ".$soapres->faultstring);		
+		$res->{status} = 500;	
+		unshift @{$res->{alerts}}, { type => 'danger', msg => "Removing relationships for $pid failed: ".$soapres->faultcode.": ".$soapres->faultstring};
+		return $res;
+	}
+  	
+  	return $res;
+}
+
 
 sub set_rights {
 	my $self = shift;
