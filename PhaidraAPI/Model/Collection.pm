@@ -125,7 +125,7 @@ sub create {
 		my $ordered_members_size = scalar @ordered_members;
 		if($ordered_members_size > 0){		
 			my $coll_model = PhaidraAPI::Model::Collection->new;
-			my $r = $coll_model->order($self, $pid, \@ordered_members, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+			my $r = $coll_model->order($self, $pid, \@ordered_members, $username, $password);
 			push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
 		    $res->{status} = $r->{status};
 		    if($r->{status} ne 200){
