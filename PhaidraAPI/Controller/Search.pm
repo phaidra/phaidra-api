@@ -15,7 +15,7 @@ sub triples {
 	my $limit = $self->param('limit');
 	
 	my $search_model = PhaidraAPI::Model::Search->new;
-	my $sr = $search_model->triples($self, $query, $format, $limit);
+	my $sr = $search_model->triples($self, $query, $limit);
 	
 	$self->render(json => $sr, status => $sr->{status});
 }
