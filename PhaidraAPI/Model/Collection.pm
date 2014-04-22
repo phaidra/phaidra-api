@@ -100,18 +100,20 @@ sub create {
     my $res_act = $object_model->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
     
     # add members
-    my $members_size = scalar @{$members};
-    if($members_size > 0){
-	    my @relationships;
-	    foreach my $member (@{$members}){
-			push @relationships, { predicate => "info:fedora/fedora-system:def/relations-external#hasCollectionMember", object => $member };
-	    }  	  	    	
-		my $r = $object_model->add_relationships($c, $pid, \@relationships, $username, $password);
-	  	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
-	    $res->{status} = $r->{status};
-	    if($r->{status} ne 200){
-	    	return $res;
-	    }
+    if($members){
+    	my $members_size = scalar @{$members};
+	    if($members_size > 0){
+		    my @relationships;
+		    foreach my $member (@{$members}){
+				push @relationships, { predicate => "info:fedora/fedora-system:def/relations-external#hasCollectionMember", object => $member };
+		    }  	  	    	
+			my $r = $object_model->add_relationships($c, $pid, \@relationships, $username, $password);
+		  	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+		    $res->{status} = $r->{status};
+		    if($r->{status} ne 200){
+		    	return $res;
+		    }
+	   }
     }
     
 	$res->{pid} = $pid;
