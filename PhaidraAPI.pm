@@ -172,7 +172,8 @@ sub startup {
 	$r->route('search/triples')  ->via('get')   ->to('search#triples');
 
 	$r->route('signin') 			  	->via('get')   ->to('authentication#signin');
-    $r->route('signout') 			->via('get')   ->to('authentication#signout');    
+    $r->route('signout') 			->via('get')   ->to('authentication#signout');   
+    $r->route('keepalive') 			->via('get')   ->to('authentication#keepalive');   
 
 	my $apiauth = $r->bridge->to('authentication#extract_credentials');
     

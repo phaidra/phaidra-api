@@ -53,6 +53,16 @@ sub extract_basic_auth_credentials {
     return split(/:/, b($str)->b64_decode);	    
 }
 
+sub keepalive {
+	my $self = shift;
+	my $session = $self->stash('mojox-session');
+	$session->load;
+	unless($session->sid){		
+		$session->create;		
+	}	
+	$self->render(json => { expires => $session->expires } , status => 200 ) ;
+}
+
 sub signin {
 	
 	my $self = shift;
