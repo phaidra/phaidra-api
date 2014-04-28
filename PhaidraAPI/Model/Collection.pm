@@ -91,6 +91,7 @@ sub create {
     
     # add metadata (just uwmetadata now)
     my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;	
+    $metadata_model->init_system_metadata($c, $pid, $metadata);
 	my $res_md = $metadata_model->save_to_object($c, $pid, $metadata, $username, $password);	
 	if($res_md->{status} ne 200){		
 		return $res_md;

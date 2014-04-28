@@ -220,21 +220,15 @@ sub create {
 	my $members = $payload->{members};
 
 	unless(defined($v)){		
-		$self->stash( msg => 'Unknown metadata format version specified');
-		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 500) ;
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Unknown metadata format version specified' }]} , status => 500) ;
 		return;
 	}
 	unless($v eq '1'){		
-		$self->stash( msg => 'Unsupported metadata format version specified');
-		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 500) ;		
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Unsupported metadata format version specified' }]} , status => 500) ;		
 		return;
 	}		
 	unless(defined($uwmetadata)){		
-		$self->stash( msg => 'No metadata provided');
-		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 500) ;		
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata provided' }]} , status => 500) ;		
 		return;
 	}
 

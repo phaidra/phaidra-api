@@ -16,23 +16,19 @@ sub get {
 
 	my $v = $self->param('mfv');
 	my $pid = $self->stash('pid');
-			
-	unless(defined($v)){		
-		$self->stash( msg => 'Unknown metadata format version requested.');
-		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;
-		return;
+	
+	# default
+	unless(defined($v)){
+		$v = '1';	
 	}
-	unless($v eq '1'){		
-		$self->stash( msg => 'Unsupported metadata format version.');
-		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;		
+	
+	unless($v eq '1'){		 	
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Unsupported metadata format version specified' }]} , status => 400) ;		
 		return;
-	}		
+	}	
+			
 	unless(defined($pid)){		
-		$self->stash( msg => 'Undefined pid.');
-		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;		
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;		
 		return;
 	}	
 		
@@ -62,28 +58,23 @@ sub post {
 	my $payload = $self->req->json;
 	my $uwmetadata = $payload->{uwmetadata};		
 	
-	unless(defined($v)){		
-		$self->stash( msg => 'Unknown metadata format version specified.');
-		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;
-		return;
+	# default
+	unless(defined($v)){
+		$v = '1';	
 	}
-	unless($v eq '1'){		
-		$self->stash( msg => 'Unsupported metadata format version specified.');
-		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;		
-		return;
-	}		
-	unless(defined($pid)){		
-		$self->stash( msg => 'Undefined pid.');
-		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;		
+	
+	unless($v eq '1'){		 	
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Unsupported metadata format version specified' }]} , status => 400) ;		
 		return;
 	}	
-	unless(defined($uwmetadata)){		
-		$self->stash( msg => 'No data sent.');
-		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;		
+			
+	unless(defined($pid)){		
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;		
+		return;
+	}	
+
+	unless(defined($uwmetadata)){		 	
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'No data sent' }]} , status => 400) ;		
 		return;
 	}
 	
@@ -106,10 +97,13 @@ sub tree {
 	
 	my $v = $self->param('mfv');
 	
-	unless(defined($v)){		
-		$self->stash( msg => 'Unknown metadata format version requested.');
-		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { msg => $self->stash->{msg}} , status => 400) ;		
+	# default
+	unless(defined($v)){
+		$v = '1';	
+	}
+	
+	unless($v eq '1'){		 	
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Unsupported metadata format version specified' }]} , status => 400) ;		
 		return;
 	}	
 	

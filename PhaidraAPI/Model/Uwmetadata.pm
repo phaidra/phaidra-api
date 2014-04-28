@@ -5,6 +5,7 @@ use warnings;
 use v5.10;
 use base qw/Mojo::Base/;
 use Storable qw(dclone);
+use POSIX qw/strftime/;
 use Switch;
 use Data::Dumper;
 use Mojo::ByteStream qw(b);
@@ -159,23 +160,23 @@ sub get_metadata_tree {
 		$i++;	
 		$format{$mid} = {
 			mid => $mid, # needed for sort
-			debug_id => int(rand(9999)), 
+			# not needed #debug_id => int(rand(9999)), 
 			veid => $veid, 
 			xmlname => $xmlname, 
 			xmlns => $xmlns, 
-			lomref => $lomref, 
-			searchable => $searchable, 
+			# not needed #lomref => $lomref, 
+			# not needed #searchable => $searchable, 
 			mandatory => ($mandatory eq 'N' ? 0 : 1), 
-			autofield => $autofield, 
-			editable => $editable, 
-			oid => $oid, 
+			# not needed #autofield => $autofield, 
+			# not needed #editable => $editable, 
+			# not needed #oid => $oid, 
 			datatype => $datatype,  
 			mid_parent => $mid_parent, 
 			cardinality => $cardinality, 
 			ordered => ($ordered eq 'Y' ? 1 : 0), 
-			fgslabel => $fgslabel, 
+			# not needed #fgslabel => $fgslabel, 
 			vid => $vid, 
-			defaultvalue => $defaultvalue, 
+			# not needed #defaultvalue => $defaultvalue, 
 			field_order => (defined($field_order) ? $field_order : 9999), # as defined in metadata format, value must be defined because we are going to sort by this
 			data_order => '', # as defined in object's metadata (for objects which have 'ordered = 1')		
 			help_id => 'helpmeta_'.$mid, # used ot get the help tooltip content via ajax
@@ -476,6 +477,7 @@ sub get_metadata_tree {
 		delete $element->{vid};
 		delete $element->{veid};
 		delete $element->{mid_parent};
+		delete $element->{mid};
 	}
 	
 	return \@metadata_tree;
@@ -924,6 +926,84 @@ sub set_identifier() {
 	}
 }
 
+sub get_json_node(){
+	my ($self, $c, $namespace, $xmlname, $metadata) = @_;
+	
+	my $ret;
+	foreach my $n (@{$metadata}){
+		if($n->{xmlns} eq $namespace && $n->{xmlname} eq $xmlname){
+			$ret = $n;
+			last;
+		}else{
+			my $children_size = defined($n->{children}) ? scalar (@{$n->{children}}) : 0;
+			if($children_size > 0){
+				$ret = $self->get_json_node($c, $namespace, $xmlname, $n->{children});
+				last if($ret);			
+			}
+		}
+	}
+	return $ret;
+}
+
+sub set_json_node_value(){	
+	my ($self, $c, $namespace, $xmlname, $metadata, $value) = @_;
+	my $n = $self->get_json_node($c, $namespace, $xmlname, $metadata);	
+	if($n){
+		$n->{'value'} = $value;
+	}	
+}
+
+sub set_json_node_ui_value(){	
+	my ($self, $c, $namespace, $xmlname, $metadata, $value) = @_;
+	my $n = $self->get_json_node($c, $namespace, $xmlname, $metadata);	
+	if($n){
+		$n->{'ui_value'} = $value;
+	}	
+}
+
+sub init_system_metadata() {
+	my $self = shift;
+	my $c = shift;
+	my $pid = shift;
+	my $metadata = shift;
+		
+	#$self->set_identifier($c, $pid, $metadata);
+	# set identifier
+	$self->set_json_node_ui_value($c, 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0', 'identifier', $metadata, $pid);
+	
+	# set upload date
+	# 2014-02-23T10:08:57.831Z
+	my $now = strftime("%Y-%m-%dT%H:%M:%S.000Z", localtime);
+	$self->set_json_node_ui_value($c, 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0', 'upload_date', $metadata, $now);
+	
+	$self->fix_uwmetadata($c, $metadata);
+}
+
+# 1) add empty classification node if missing (validation needs it)
+sub fix_uwmetadata () {
+	my ($self, $c, $metadata) = @_;
+	
+	my $i = 0;
+	my $rights_idx;
+	foreach my $n (@{$metadata}){
+		$i++;
+		if($n->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0' && $n->{xmlname} eq 'classification'){
+			return;
+		}	
+		if($n->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0' && $n->{xmlname} eq 'rights'){
+			$rights_idx = $i;
+		}
+	}
+	
+	# not found, add, after rights
+	splice(@{$metadata}, $rights_idx+1, 0, {
+    	xmlns => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0",
+        xmlname => "classification",
+        datatype => "Node"
+    });
+	
+}
+
 sub save_to_object(){
 	
 	my $self = shift;
@@ -935,10 +1015,7 @@ sub save_to_object(){
 	
 	my $res = { alerts => [], status => 200 };
 	
-	$self->set_identifier($c, $pid, $metadata);
-	
 	my $uwmetadata = $self->json_2_uwmetadata($c, $metadata);
-	
 	unless($uwmetadata){
 		$res->{status} = 500;
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error coverting metadata'};
@@ -1145,8 +1222,8 @@ sub json_2_uwmetadata_rec(){
 		my $children_size = defined($child->{children}) ? scalar (@{$child->{children}}) : 0;
 		
 		# some elements are not allowed to be empty, so if these are empty
-		# we cannot add them to uwmetadata
-		if($child->{ui_value} eq '' && $children_size == 0){
+		# we cannot add them to uwmetadata (except for classification, needs to be there even if empty)
+		if($child->{ui_value} eq '' && $children_size == 0 && $child->{xmlname} ne 'classification'){
 			next;	
 		}
 		# this way we remove source and taxon from taxonpath, 
@@ -1181,20 +1258,29 @@ sub json_2_uwmetadata_rec(){
 			if($child->{value} eq ''){
 				$child->{value} = $child->{ui_value};
 			}
+
+			# hack, until vocabulary server
+			if(
+				$child->{datatype} eq 'Vocabulary' || 
+				$child->{datatype} eq 'License' ||
+				$child->{datatype} eq 'Faculty' ||
+				$child->{datatype} eq 'Department' ||
+				$child->{datatype} eq 'SPL' ||
+				$child->{datatype} eq 'Curriculum'
+			){
 			
-			if(defined($child->{vocabularies})){
-				# the value is an uri (namespace/id), but this is currently
-				# not supported by phaidra, we have to strip it of the namespace
-				foreach my $voc (@{$child->{vocabularies}}){
-					if($child->{value} =~ m/($voc->{namespace})(\w+)/){
-						$writer->characters($2);
-					}	
+				# eg http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_21/6
+				if($child->{value} =~ m/($child->{xmlns})\/voc_(\d+)\/(\w+)/){					
+					$writer->characters($3);
 				}
+			
 			}else{
 				if($child->{datatype} eq 'Boolean'){
 					$writer->characters($child->{value} ? 'yes' : 'no');
 				}else{
-					$writer->characters($child->{value});
+					if($child->{value}){
+						$writer->characters($child->{value});
+					}
 				}
 			}	
 		}
@@ -1226,7 +1312,6 @@ sub save_uwmetadata(){
 	}
 	
 	if($c->app->config->{validate_uwmetadata}){
-		$c->app->log->info("Validating UWMETADATA for object $pid...");
 		my $valres = $self->validate_uwmetadata($c, $pid, $uwmetadata);
 		if($valres->{status} != 200){
 			$c->app->log->info("Validating UWMETADATA for object $pid...failed:".$c->app->dumper($valres->{alerts}));

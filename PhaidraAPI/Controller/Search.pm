@@ -26,9 +26,7 @@ sub owner {
 	my $limit = 10;
 	
 	unless(defined($self->stash('username'))){		
-		$self->stash( msg => 'Undefined username');
-		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;		
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined username' }]} , status => 400) ;		
 		return;
 	}
 	
@@ -69,9 +67,7 @@ sub collections_owner {
 	my $limit = 10;
 	
 	unless(defined($self->stash('username'))){		
-		$self->stash( msg => 'Undefined username');
-		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;		
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined username' }]} , status => 400) ;		
 		return;
 	}
 	

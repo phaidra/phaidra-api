@@ -10,9 +10,7 @@ sub delete {
     my $self = shift;
 
 	unless(defined($self->stash('pid'))){		
-		$self->stash( msg => 'Undefined pid.');
-		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;		
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;		
 		return;
 	}	
 
@@ -25,10 +23,8 @@ sub delete {
 sub modify {
     my $self = shift;
 
-	unless(defined($self->stash('pid'))){		
-		$self->stash( msg => 'Undefined pid.');
-		$self->app->log->error($self->stash->{msg}); 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => $self->stash->{msg} }]} , status => 400) ;		
+	unless(defined($self->stash('pid'))){		 	
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;		
 		return;
 	}	
 
