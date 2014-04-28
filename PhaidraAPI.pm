@@ -170,6 +170,7 @@ sub startup {
 	$r->route('search/owner/:username')  ->via('get')   ->to('search#owner');
 	$r->route('search/collections/owner/:username')  ->via('get')   ->to('search#collections_owner');
 	$r->route('search/triples')  ->via('get')   ->to('search#triples');
+	$r->route('search')  ->via('get')   ->to('search#search');
 
 	$r->route('signin') 			  	->via('get')   ->to('authentication#signin');
     $r->route('signout') 			->via('get')   ->to('authentication#signout');   

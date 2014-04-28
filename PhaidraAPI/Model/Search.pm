@@ -89,39 +89,87 @@ sub datastream_exists {
 	return $res;
 }
 
-sub search_simple_query {
-	my $self = shift;
-	my $c = shift;
+# org.apache.lucene.analysis.core.StopAnalyzer
+my @english_stopwords = (
+ "a", "an", "and", "are", "as", "at", "be", "but", "by",
+ "for", "if", "in", "into", "is", "it",
+ "no", "not", "of", "on", "or", "such",
+ "that", "the", "their", "then", "there", "these",
+ "they", "this", "to", "was", "will", "with"
+);
+
+my %english_stopwords_hash = map { $_ => 1 } @english_stopwords;
+
+sub build_query {
+	my($self, $c, $query) = @_;
+	my $q;
 	
-	my $query = shift;
-	my $from = shift;
-	my $limit = shift;
+	my @words = split(' ', $query);
 	
+	# currently only title
+	$q = "(((uw.general.title:("; 
+	foreach my $w (@words){
+		next if(exists($english_stopwords_hash{$w}));
+		$w = $self->check_word($c, $w);
+		$q .= "+$w~0.8";
+	}
+	$q .= ")^4)))";	
 	
+	return $q;
+}
+
+sub check_word() {
+	my($self, $c, $w) = @_;
+	
+	$w =~ s/\\/\\\\/g;
+	$w =~ s/\:/\\\:/g;
+	$w =~ s/\"/\\\"/g;
+	$w =~ s/\+/\\\+/g;
+	$w =~ s/\-/\\\-/g;
+	$w =~ s/\&\&/\\\&\\\&/g;
+	$w =~ s/\|\|/\\\|\\\|/g;
+	$w =~ s/\!/\\\!/g;
+	$w =~ s/\(/\\\(/g;
+	$w =~ s/\)/\\\)/g;
+	$w =~ s/\{/\\\{/g;
+	$w =~ s/\}/\\\}/g;
+	$w =~ s/\[/\\\[/g;
+	$w =~ s/\]/\\\]/g;
+	$w =~ s/\^/\\\^/g;
+	$w =~ s/\~/\\\~/g;
+
+	# wildchards not allowed as first char
+	# see: http://lucene.apache.org/
+	$w =~ s/^\*|^\?//g;
+	# delete special chars
+	$w =~ s/\,|\.|\;|\_|\=|\!|\N{U+00B0}|\$|\%|\&|\/|\|\N{U+2032}|\N{U+00A7}/ /g;
+		
+	return $w;
 }
 
 sub search {
 	
-	my $self = shift;
-	my $c = shift;
-	my $query = shift;
-	my $from = shift;
-	my $limit = shift;
-	my $cb = shift;
+	my($self, $c, $query, $from, $limit, $sort, $reverse, $cb) = @_;
 	
 	my $res = { alerts => [], status => 200 };
+
+	# never reverse relevance
+	$reverse = 1 if (defined ($sort) && $sort =~ m/SCORE/);	
+
+	if($sort){
+		$sort = "$sort,".($reverse ? 'true' : 'false');
+	}
 
 	my $hitPageStart = $from;
 	my $hitPageSize = $limit;
 	my $snippetsMax = 0;
 	my $fieldMaxLength = 200;
 	my $restXslt = 'copyXml';
-	my $sortFields = 'fgs.createdDate,STRING';
-	my $fields = [ 'PID', 'fgs.createdDate', 'fgs.lastModifiedDate', 'uw.general.title', 'uw.general.title.de', 'uw.general.title.en', 'uw.general.description', 'uw.general.description.de', 'uw.general.description.'.$c->session->{language}, 'uw.digitalbook.name_magazine', 'uw.digitalbook.from_page', 'uw.digitalbook.to_page', 'uw.digitalbook.volume', 'uw.digitalbook.edition', 'uw.digitalbook.releaseyear', 'uw.digitalbook.booklet', 'dc.creator', 'uw.lifecycle.contribute.entity.firstname', 'uw.lifecycle.contribute.entity.institution' ];
+	my $sortFields = defined($sort) ? $sort : 'fgs.lastModifiedDate,STRING,false';
+	my $fields = [ 'PID', 'fgs.contentModel', 'fgs.createdDate', 'fgs.lastModifiedDate', 'uw.general.title', 'uw.general.title.de', 'uw.general.title.en', 'uw.general.description', 'uw.general.description.de', 'uw.general.description.en', 'uw.digitalbook.name_magazine', 'uw.digitalbook.from_page', 'uw.digitalbook.to_page', 'uw.digitalbook.volume', 'uw.digitalbook.edition', 'uw.digitalbook.releaseyear', 'uw.digitalbook.booklet', 'dc.creator', 'uw.lifecycle.contribute.entity.firstname', 'uw.lifecycle.contribute.entity.institution' ];
 
 	my $url = Mojo::URL->new;
-	$url->scheme('https');		
-	$url->userinfo($c->stash->{basic_auth_credentials}->{username}.":".$c->stash->{basic_auth_credentials}->{password});
+	$url->scheme('https');			
 	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
 	$url->path("/gsearch/rest/");	
 	$url->query({
@@ -134,13 +182,14 @@ sub search {
 		restXslt => $restXslt,
 		sortFields => $sortFields
 	});
-	
+		
 	my @result;
 	
 	my $tx = $c->ua->get($url);
 
 	if (my $reply = $tx->success) {
 		my $xml = $reply->body;
+		
 		$xml =~ s/<\?xml version="1.0" encoding="UTF-16"\?>/<?xml version="1.0" encoding="UTF-8"?>/;
 		
 		my $saxhandler = PhaidraAPI::Model::Search::GSearchSAXHandler->new($fields, \@result);

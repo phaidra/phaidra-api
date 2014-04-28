@@ -20,23 +20,90 @@ sub triples {
 	$self->render(json => $sr, status => $sr->{status});
 }
 
+sub search {
+	my $self = shift;	
+	my $from = 1;
+	my $limit = 10;
+	my $sort = 'uw.general.title,SCORE';
+	my $reverse = '0';
+	my $query;
+	
+	if(defined($self->param('q'))){	
+		$query = $self->param('q');
+	}
+	unless(defined($query)){
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined query' }]} , status => 400) ;		
+		return;
+	}
+	
+	if(defined($self->param('from'))){	
+		$from = $self->param('from');
+	}
+	
+	if(defined($self->param('limit'))){	
+		$limit = $self->param('limit');
+	}
+	
+	if(defined($self->param('sort'))){	
+		$sort = $self->param('sort');
+	}
+	
+	if(defined($self->param('reverse'))){	
+		$reverse = $self->param('reverse');
+	}	
+	
+	my $search_model = PhaidraAPI::Model::Search->new;			
+	
+	$query = $search_model->build_query($self, $query);
+	
+	$self->render_later;
+	my $delay = Mojo::IOLoop->delay( 
+	
+		sub {
+			my $delay = shift;			
+			$search_model->search($self, $query, $from, $limit, $sort, $reverse, $delay->begin);			
+		},
+		
+		sub { 	
+	  		my ($delay, $r) = @_;	
+			#$self->app->log->debug($self->app->dumper($r));			
+			$self->render(json => $r, status => $r->{status});	
+  		}
+	
+	);
+	$delay->wait unless $delay->ioloop->is_running;	
+		
+}
+
 sub owner {
 	my $self = shift;	
 	my $from = 1;
 	my $limit = 10;
+	my $sort = 'fgs.lastModifiedDate,STRING';
+	my $reverse = '0';
 	
 	unless(defined($self->stash('username'))){		
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined username' }]} , status => 400) ;		
 		return;
 	}
 	
-	if(defined($self->stash('from'))){	
-		$from = $self->stash('from');
+	if(defined($self->param('from'))){	
+		$from = $self->param('from');
 	}
 	
-	unless(defined($self->stash('limit'))){	
-		$limit = $self->stash('limit');
-	}		
+	if(defined($self->param('limit'))){	
+		$limit = $self->param('limit');
+	}	
+	
+	
+	if(defined($self->param('sort'))){	
+		$sort = $self->param('sort');
+	}
+	
+	if(defined($self->param('reverse'))){	
+		$reverse = $self->param('reverse');
+	}	
+		
 	
 	my $search_model = PhaidraAPI::Model::Search->new;			
 	
@@ -47,7 +114,7 @@ sub owner {
 	
 		sub {
 			my $delay = shift;
-			$search_model->search($self, $query, $from, $limit, $delay->begin);			
+			$search_model->search($self, $query, $from, $limit, undef, undef, $delay->begin);			
 		},
 		
 		sub { 	
@@ -71,12 +138,12 @@ sub collections_owner {
 		return;
 	}
 	
-	if(defined($self->stash('from'))){	
-		$from = $self->stash('from');
+	if(defined($self->param('from'))){	
+		$from = $self->param('from');
 	}
 	
-	unless(defined($self->stash('limit'))){	
-		$limit = $self->stash('limit');
+	if(defined($self->param('limit'))){	
+		$limit = $self->param('limit');
 	}		
 	
 	my $search_model = PhaidraAPI::Model::Search->new;			
@@ -88,7 +155,7 @@ sub collections_owner {
 	
 		sub {
 			my $delay = shift;
-			$search_model->search($self, $query, $from, $limit, $delay->begin);			
+			$search_model->search($self, $query, $from, $limit, undef, undef, $delay->begin);			
 		},
 		
 		sub { 	
