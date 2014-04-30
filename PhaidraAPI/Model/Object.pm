@@ -224,7 +224,7 @@ sub modify_datastream {
     $params{dsLocation} = $location if $location;
     #$params{altIDs}
     $params{dsLabel} = $label if $label;
-    $params{versionable} = 1;
+    #$params{versionable} = 1;
     $params{dsState} = 'A';
     #$params{formatURI}
     $params{checksumType} = 'DISABLED';

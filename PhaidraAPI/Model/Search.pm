@@ -149,9 +149,7 @@ sub check_word() {
 
 sub search {
 	
-	my($self, $c, $query, $from, $limit, $sort, $reverse, $cb) = @_;
-	
-	my $res = { alerts => [], status => 200 };
+	my($self, $c, $query, $from, $limit, $sort, $reverse, $fields, $cb) = @_;
 
 	# never reverse relevance
 	$reverse = 1 if (defined ($sort) && $sort =~ m/SCORE/);	
@@ -166,18 +164,79 @@ sub search {
 	my $fieldMaxLength = 200;
 	my $restXslt = 'copyXml';
 	my $sortFields = defined($sort) ? $sort : 'fgs.lastModifiedDate,STRING,false';
-	my $fields = [ 'PID', 'fgs.contentModel', 'fgs.createdDate', 'fgs.lastModifiedDate', 'uw.general.title', 'uw.general.title.de', 'uw.general.title.en', 'uw.general.description', 'uw.general.description.de', 'uw.general.description.en', 'uw.digitalbook.name_magazine', 'uw.digitalbook.from_page', 'uw.digitalbook.to_page', 'uw.digitalbook.volume', 'uw.digitalbook.edition', 'uw.digitalbook.releaseyear', 'uw.digitalbook.booklet', 'dc.creator', 'uw.lifecycle.contribute.entity.firstname', 'uw.lifecycle.contribute.entity.institution' ];
+	
+	if(!defined($fields) || (scalar @$fields < 1)) {
+		$fields = [ 'PID', 'fgs.contentModel', 'fgs.createdDate', 'fgs.lastModifiedDate', 'uw.general.title', 'uw.general.title.de', 'uw.general.title.en', 'uw.general.description', 'uw.general.description.de', 'uw.general.description.en', 'uw.digitalbook.name_magazine', 'uw.digitalbook.from_page', 'uw.digitalbook.to_page', 'uw.digitalbook.volume', 'uw.digitalbook.edition', 'uw.digitalbook.releaseyear', 'uw.digitalbook.booklet', 'dc.creator', 'uw.lifecycle.contribute.entity.firstname', 'uw.lifecycle.contribute.entity.institution' ];	
+	}
+	
+	if($limit ne 0 && $limit < 50){
+		my $res = $self->search_call($c, 'gfindObjects', $query, $hitPageStart, $hitPageSize, 200, $fieldMaxLength, $restXslt, $sortFields, $fields);
+		return $self->$cb($res);	
+	}else{
+		# read in chunks	
+		my $sr;
+		my $res;
+		my $from = 1;
+		my $pagesize = 50; # default by gsearch anyway, so mostly it won't deliver more
+		my $total = 0;
+		my $read = 0;
+		my $done = 1;
+		my $i = 0;
+		my @objects;
+		while(!$done || $sr->{status} ne 200){
+			$i++;			
+			$done = 1;
+			
+			if(($read+$pagesize) > $limit && $limit ne 0){				
+				$pagesize = $limit-$read;				
+			}
+			
+			$sr = $self->search_call($c, 'gfindObjects', $query, $from, $pagesize, 200, $fieldMaxLength, $restXslt, $sortFields, $fields);
+			$total = $sr->{hits};	
+			
+			if($sr->{status} eq 200){
+				my $lenght = scalar @{$sr->{objects}};
+				$read += $lenght;
+				$from = $read+1; 
+				
+				push @objects, @{$sr->{objects}};
+				if($limit eq 0){
+					# we read everything
+					if($read < $total){
+						$done = 0;	
+					}
+				}else{
+					# we read until limit
+					if($read < $limit){
+						$done = 0;	
+					}
+				}
+			}
+		}
+		$res->{status} = $sr->{status};
+		$res->{hits} = $sr->{hits};
+		$res->{objects} = \@objects;
+		return $self->$cb($res);
+	}
+		
+}
 
+sub search_call() {
+	
+	my ($self, $c, $operation, $query, $hitPageStart, $hitPageSize, $snippetsMax, $fieldMaxLength, $restXslt, $sortFields, $fields) = @_;
+	
+	my $res = { alerts => [], status => 200 };
+	
 	my $url = Mojo::URL->new;
 	$url->scheme('https');			
 	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
 	$url->path("/gsearch/rest/");	
 	$url->query({
-		operation => 'gfindObjects',
+		operation => $operation,
 		query => $query,
 		hitPageStart => $hitPageStart,
 		hitPageSize => $hitPageSize,
-		snippetsMax => 200,
+		snippetsMax => $snippetsMax,
 		fieldMaxLength => $fieldMaxLength,
 		restXslt => $restXslt,
 		sortFields => $sortFields
@@ -204,8 +263,8 @@ sub search {
 		unshift @{$res->{alerts}}, { type => 'danger', msg => "$err"};			
 		$res->{status} = 500;								
 	}	  	
-		
-	return $self->$cb($res);	
+	
+	return $res;
 }
 
 1;

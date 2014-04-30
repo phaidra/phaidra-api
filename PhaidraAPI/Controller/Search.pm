@@ -27,6 +27,7 @@ sub search {
 	my $sort = 'uw.general.title,SCORE';
 	my $reverse = '0';
 	my $query;
+	my @fields;
 	
 	if(defined($self->param('q'))){	
 		$query = $self->param('q');
@@ -52,6 +53,10 @@ sub search {
 		$reverse = $self->param('reverse');
 	}	
 	
+	if(defined($self->param('fields'))){
+		@fields = $self->param('fields');
+	}
+	
 	my $search_model = PhaidraAPI::Model::Search->new;			
 	
 	$query = $search_model->build_query($self, $query);
@@ -61,7 +66,7 @@ sub search {
 	
 		sub {
 			my $delay = shift;			
-			$search_model->search($self, $query, $from, $limit, $sort, $reverse, $delay->begin);			
+			$search_model->search($self, $query, $from, $limit, $sort, $reverse, \@fields, $delay->begin);			
 		},
 		
 		sub { 	
@@ -81,6 +86,7 @@ sub owner {
 	my $limit = 10;
 	my $sort = 'fgs.lastModifiedDate,STRING';
 	my $reverse = '0';
+	my @fields;
 	
 	unless(defined($self->stash('username'))){		
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined username' }]} , status => 400) ;		
@@ -94,8 +100,7 @@ sub owner {
 	if(defined($self->param('limit'))){	
 		$limit = $self->param('limit');
 	}	
-	
-	
+		
 	if(defined($self->param('sort'))){	
 		$sort = $self->param('sort');
 	}
@@ -104,6 +109,9 @@ sub owner {
 		$reverse = $self->param('reverse');
 	}	
 		
+	if(defined($self->param('fields'))){
+		@fields = $self->param('fields');
+	}
 	
 	my $search_model = PhaidraAPI::Model::Search->new;			
 	
@@ -114,7 +122,7 @@ sub owner {
 	
 		sub {
 			my $delay = shift;
-			$search_model->search($self, $query, $from, $limit, undef, undef, $delay->begin);			
+			$search_model->search($self, $query, $from, $limit, undef, undef, \@fields, $delay->begin);			
 		},
 		
 		sub { 	
