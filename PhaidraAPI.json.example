@@ -53,9 +53,19 @@
     	
     	"username": "changeme",
     	
-    	"password": "changeme"
+    	"password": "changeme",
+    	
+    	"triplestore": "localMysqlMPTTriplestore"
     
     },              
+    
+    "localMysqlMPTTriplestore": {
+    	"dsn":"dbi:mysql:db_name:db_host",
+    	
+    	"username":"changeme",
+    	
+    	"password":"changeme"
+    }
     
     "phaidra_db": {
     

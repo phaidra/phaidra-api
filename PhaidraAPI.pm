@@ -56,15 +56,22 @@ sub startup {
   	});
   	
   	# init databases
-    $self->plugin('database', { 
-    	databases => {
-        	'db_metadata' => { 
+  	my %databases;
+  	$databases{'db_metadata'} = { 
 				dsn      => $config->{phaidra_db}->{dsn},
                 username => $config->{phaidra_db}->{username},
                 password => $config->{phaidra_db}->{password},
-            },
-        },
-    });
+    };
+
+	if($config->{phaidra}->{triplestore} eq 'localMysqlMPTTriplestore'){
+		$databases{'db_triplestore'} = { 
+				dsn      => $config->{localMysqlMPTTriplestore}->{dsn},
+                username => $config->{localMysqlMPTTriplestore}->{username},
+                password => $config->{localMysqlMPTTriplestore}->{password},
+    	};
+	}           
+
+    $self->plugin('database', { databases => \%databases } );
 	
 	$self->helper(mango => sub { state $mango = Mango->new('mongodb://'.$config->{mongodb}->{username}.':'.$config->{mongodb}->{password}.'@'.$config->{mongodb}->{host}.'/'.$config->{mongodb}->{database}) });
 	
@@ -183,6 +190,9 @@ sub startup {
     
     $apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('get') ->to('uwmetadata#get');
     $apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('post') ->to('uwmetadata#post');
+    
+    # does not show inactive objects, not specific to collection (but does ordering)
+    $apiauth->route('object/:pid/related', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('get') ->to('search#related');
     
     $apiauth->route('collection/create') ->via('post') ->to('collection#create');
     $apiauth->route('collection/:pid/members') ->via('get') ->to('collection#get_collection_members');

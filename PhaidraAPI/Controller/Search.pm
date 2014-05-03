@@ -20,6 +20,65 @@ sub triples {
 	$self->render(json => $sr, status => $sr->{status});
 }
 
+
+sub related {
+	
+	my $self = shift;
+	my $relation;	
+	my $from = 1;
+	my $limit = 10;
+	my $right = 0;	
+	my @fields;	
+	
+	unless(defined($self->stash('pid'))){		
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;		
+		return;
+	}
+	
+	if(defined($self->param('relation'))){	
+		$relation = $self->param('relation');
+	}else{
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined relation' }]} , status => 400) ;		
+		return;
+	}
+	
+	if(defined($self->param('from'))){	
+		$from = $self->param('from');
+	}
+	
+	if(defined($self->param('limit'))){	
+		$limit = $self->param('limit');
+	}
+	
+	if(defined($self->param('right'))){	
+		$limit = $self->param('right');
+	}			
+	
+	if(defined($self->param('fields'))){
+		@fields = $self->param('fields');
+	}
+	
+	my $search_model = PhaidraAPI::Model::Search->new;
+	
+	$self->render_later;
+	my $delay = Mojo::IOLoop->delay( 
+	
+		sub {
+			my $delay = shift;			
+			$search_model->related($self, $self->stash('pid'), $relation, $right, $from, $limit, \@fields, $delay->begin);			
+		},
+		
+		sub { 	
+	  		my ($delay, $r) = @_;	
+			#$self->app->log->debug($self->app->dumper($r));			
+			$self->render(json => $r, status => $r->{status});	
+  		}
+	
+	);
+	$delay->wait unless $delay->ioloop->is_running;	
+	
+}
+
 sub search {
 	my $self = shift;	
 	my $from = 1;

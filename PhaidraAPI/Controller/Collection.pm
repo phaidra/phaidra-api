@@ -91,8 +91,7 @@ sub remove_collection_members {
 	my $object_model = PhaidraAPI::Model::Object->new;	  	
 	my $r = $object_model->purge_relationships($self, $pid, \@relationships, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 	$self->render(json => $r, status => $r->{status});
-   	   
-	
+   	
 }
 
 sub set_collection_members {
@@ -139,10 +138,11 @@ sub get_collection_members {
 		$self->render(json => $sr, status => $sr->{status});
 		return;
 	}
-	my @members;
+	my %members;
 	foreach my $statement (@{$sr->{result}}){
 		@{$statement}[2] =~ m/^\<info:fedora\/([a-zA-Z\-]+:[0-9]+)\>$/g;
-		push @members, $1;
+		#push @members, $1;
+		$members{$1} = { 'pos' => undef };
 	}
 	
 	# get order definition
@@ -155,13 +155,24 @@ sub get_collection_members {
 	}	
 	
 	# order members
-	my $xml = Mojo::DOM->new($ores->{COLLECTIONORDER});	
-	my @ordered_members;
+	my $xml = Mojo::DOM->new($ores->{COLLECTIONORDER});		
 	$xml->find('member[pos]')->each(sub { 
 		my $m = shift;
-		push @ordered_members, { pid => $m->text, 'pos' => $m->{'pos'} };		
+		my $pid = $m->text;
+		$members{$pid}->{'pos'} = $m->{'pos'};		
 	});	
-	@ordered_members = sort { $a->{'pos'} <=> $b->{'pos'} } @ordered_members; 
+
+	my @ordered_members;
+	foreach my $p (keys %members){
+		push @ordered_members, { pid => $p, 'pos' =>  $members{$p}->{'pos'}};
+	}
+	
+	sub undef_sort {
+	  return 1 unless(defined($a->{'pos'}));
+	  return -1 unless(defined($b->{'pos'}));	
+	  return $a->{'pos'} <=> $b->{'pos'};
+	}
+	@ordered_members = sort undef_sort @ordered_members; 
 	
 	$self->render(json => { members => \@ordered_members }, status => $res->{status});
 }
@@ -218,6 +229,11 @@ sub create {
 	my $uwmetadata = $payload->{uwmetadata};
 	my $rights = $payload->{rights};
 	my $members = $payload->{members};
+	
+	# default
+	unless(defined($v)){
+		$v = '1';	
+	}
 
 	unless(defined($v)){		
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'Unknown metadata format version specified' }]} , status => 500) ;

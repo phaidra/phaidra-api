@@ -4,8 +4,10 @@ use strict;
 use warnings;
 use v5.10;
 use XML::Parser::PerlSAX;
+use XML::XPath;
 use Mojo::IOLoop;
 use Mojo::IOLoop::Delay;
+use PhaidraAPI::Model::Object;
 use base qw/Mojo::Base/;
 
 sub triples {
@@ -50,6 +52,367 @@ sub triples {
 	}	
 	
 	return $res;
+}
+
+sub related_objects_itql(){
+	
+	my ($self, $c, $subject, $relation, $right, $offset, $limit)=@_;
+	
+	my $res = { alerts => [], status => 200 };
+	
+	my $rel = '<info:fedora/'.$subject.'> <'.$relation.'> $item';
+	if($right){
+		$rel = '$item <'.$relation.'> <info:fedora/'.$subject.'>';
+	}
+	
+	my $count;
+	my $relcount = '
+	select count(
+		select $item 
+		from <#ri> 
+		where 
+		$item <http://www.openarchives.org/OAI/2.0/itemID> $itemID and
+		'.$rel.' and 
+		$item <info:fedora/fedora-system:def/model#state> <info:fedora/fedora-system:def/model#Active>)
+	from <#ri> 
+	where 
+	$item <http://www.openarchives.org/OAI/2.0/itemID> $itemID and
+	'.$rel.' and 
+	$item <info:fedora/fedora-system:def/model#state> <info:fedora/fedora-system:def/model#Active>';
+	
+	my $result = $self->risearch_tuple($c, $relcount);
+	if($result->{status} ne 200){
+		unshift @{$res->{alerts}}, $result->{alerts};			
+		$res->{status} = $result->{status};
+		return $res;			
+	}
+	my $xp = XML::XPath->new(xml => $res->{result});
+	my $nodeset = $xp->findnodes('//result');
+	foreach my $node ($nodeset->get_nodelist){				
+		$count = int($node->findvalue('k0'));
+		last; # should be only one
+	}
+	
+	my $query = '
+	select $itemID $title $cmodel	
+	from <#ri> 
+	where 
+	$item <http://www.openarchives.org/OAI/2.0/itemID> $itemID and
+	'.$rel.' and  
+	$item <info:fedora/fedora-system:def/model#state> <info:fedora/fedora-system:def/model#Active> and 
+	$item <http://purl.org/dc/elements/1.1/title> $title and
+	$item <info:fedora/fedora-system:def/model#hasModel> $cmodel
+	minus $cmodel <mulgara:is> <info:fedora/fedora-system:FedoraObject-3.0> 
+	order by $itemID asc';
+	
+	if($limit){
+		$query .= ' limit '.$limit;
+	}
+	if($offset){
+		$query .= ' offset '.$offset;
+	}
+
+	$result = $self->risearch_tuple($c, $query, $offset, $limit);
+	if($result->{status} ne 200){
+		unshift @{$res->{alerts}}, $result->{alerts};			
+		$res->{status} = $result->{status};
+		return $res;			
+	}
+	
+	my @objects;
+	my $oaiid = $c->{config}->{phaidra}->{proaiRepositoryIdentifier};
+	$xp = XML::XPath->new(xml => $res->{result});
+	$nodeset = $xp->findnodes('//result');
+	foreach my $node ($nodeset->get_nodelist){				
+
+		my $cmodel = $node->findvalue('cmodel/@uri');
+		
+		if($cmodel =~ m/fedora-system/){
+			next;
+		}
+				
+		$cmodel =~ s/^info:fedora\/cmodel:(.*)$/$1/;				
+
+		my $itemID = $node->findvalue('itemID/@uri');		
+		$itemID =~ s/^info:fedora\/oai:$oaiid:(.*)$/$1/;
+		$itemID =~ s/^oai:$oaiid:(.*)$/$1/; # the second format without info:fedora/, used by phaidraimporter
+		
+		push @objects, { 
+			pid => $itemID, 
+			title => $node->findvalue('title'), 
+			cmodel => $cmodel
+		};			
+	}	
+	
+	$res->{objects} = \@objects;
+	$res->{hits} = $count; 
+	return $res;
+}
+
+sub risearch_tuple ($$$)
+{
+	my ($self, $c, $query, $offset, $limit) = @_;
+
+	my $res = { alerts => [], status => 200 };
+	
+	my %params;
+	$params{lang} = 'itql';
+	$params{type} = 'tuples';
+	$params{format} = 'Sparql';
+	$params{limit} = $limit if $limit;
+	$params{offset} = $offset if $offset;
+	$params{query} = $query;
+	
+	my $url = Mojo::URL->new;
+	$url->scheme('https');
+	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
+	$url->path("/fedora/risearch");
+	$url->query(\%params);
+	
+	my $tx = $c->ua->post($url);
+
+	if (my $reply = $tx->success) {					
+		$res->{result} = $reply->body;
+					  		
+	}else{
+		my ($err, $code) = $tx->error;
+		unshift @{$res->{alerts}}, { type => 'danger', msg => "$err"};			
+		$res->{status} = 500;								
+	}	
+	
+	return $res;
+
+}
+
+sub related_objects_mptmysql(){
+	
+	my ($self, $c, $subject, $relation, $right, $offset, $limit)=@_;
+
+	my $res = { alerts => [], status => 200 };
+
+	my $oaiid = $c->config->{phaidra}->{proaiRepositoryIdentifier};
+
+	my $ss = qq/SELECT pKey, p FROM tMap/;
+
+	my $sth = $c->app->db_triplestore->prepare($ss) or $c->app->log->error($c->app->db_triplestore->errstr);
+	$sth->execute() or $c->app->log->error($c->app->db_triplestore->errstr);
+	my ($num,$rel);
+	$sth->bind_columns(undef, \$num, \$rel) or $c->app->log->error($c->app->db_triplestore->errstr);
+	
+	my %relmap;
+	while($sth->fetch()){	
+		$relmap{$rel} = $num; 					
+	}
+	$sth->finish();
+	
+	my $staterel = '<info:fedora/fedora-system:def/model#state>';	
+	my $statetable = 't'.$relmap{$staterel};
+
+	# if tripplestore does not know the relation or relation is no provided
+	# then there are no related objects 
+    unless (defined ($relation) && exists ($relmap{"<$relation>"}))
+    {
+    	unshift @{$res->{alerts}}, { type => 'danger', msg => "Unknown relation"};			
+		$res->{status} = 400;
+		return $res;
+    }
+
+	my $relationtable = 't'.$relmap{"<$relation>"};
+	
+	my $activestr = '<info:fedora/fedora-system:def/model#Active>';
+	
+	my $reljoin = "LEFT JOIN $relationtable ON $relationtable.o=$statetable.s";
+	my $relwhere = "$relationtable.s=?";
+	if($right){
+		$reljoin = "LEFT JOIN $relationtable ON $relationtable.s=$statetable.s";
+		$relwhere = "$relationtable.o=?";
+	}
+	
+	# group by subject, because there might be multiple titles
+	my $titsep = '#tit-sep#';
+	$ss = "
+		SELECT SQL_CALC_FOUND_ROWS $statetable.s AS subject
+		FROM
+		$statetable
+		$reljoin
+		WHERE $statetable.o = ? AND $relwhere
+		GROUP BY subject
+		ORDER BY $statetable.s DESC	
+		";
+
+	if($limit){
+		$ss .= " LIMIT $limit";
+	}
+	if($offset){
+		$ss .= " OFFSET $offset";
+	}
+
+	#$c->app->log->debug("Related objects query: ".$ss);
+	
+	$sth = $c->app->db_triplestore->prepare($ss) or $c->app->log->error($c->app->db_triplestore->errstr);
+	$sth->execute($activestr, '<info:fedora/'.$subject.'>') or $c->app->log->error($c->app->db_triplestore->errstr);
+	my ($pid);
+	$sth->bind_columns(undef, \$pid) or $c->app->log->error($c->app->db_triplestore->errstr);
+
+	my @objects;	
+        while ($sth->fetch())
+        {
+          if (defined ($oaiid) && $pid =~ m#^<info:fedora/oai:$oaiid:(.*)>$#)
+          {
+            $pid= $1;
+          }
+          elsif ($pid =~ m#^<info:fedora/(.*)>$#)
+          {
+            $pid= $1;
+          }
+          else
+          {
+            next;
+          }
+				
+          push @objects, { 
+            pid => $pid,
+            title => '',
+            titles => [],
+            cmodel => ''			
+          };			
+        }
+        $sth->finish ();
+	
+	$ss = qq/SELECT FOUND_ROWS();/;
+	$sth = $c->app->db_triplestore->prepare($ss) or $c->app->log->error($c->app->db_triplestore->errstr);
+	$sth->execute() or $c->app->log->error($c->app->db_triplestore->errstr);
+	my $count;
+	$sth->bind_columns(undef, \$count) or $c->app->log->error($c->app->db_triplestore->errstr);	
+	$sth->fetch();	
+  	$sth->finish();
+
+	# get title	
+
+	my $titlerel = '<http://purl.org/dc/elements/1.1/title>';
+	#my $modelrel = '<info:fedora/fedora-system:def/model#hasModel>';
+	#my $itemidrel = '<http://www.openarchives.org/OAI/2.0/itemID>';
+	
+	#my $itemidtable = 't'.$relmap{$itemidrel};
+	my $titletable = 't'.$relmap{$titlerel};
+	#my $modeltable = 't'.$relmap{$modelrel}; 
+	#AND $modeltable.o != ?
+	#my $fedoraobjstr = '<info:fedora/fedora-system:FedoraObject-3.0>';
+	
+        foreach my $o (@objects)
+        {		
+		$ss = qq/SELECT $titletable.o AS title, GROUP_CONCAT($titletable.o SEPARATOR '$titsep') AS titles FROM $titletable WHERE $titletable.s = ?/;  #$titletable.o AS title, GROUP_CONCAT($titletable.o SEPARATOR '$titsep') AS titles, $modeltable.o AS cmodel
+		$sth = $c->app->db_triplestore->prepare($ss) or $c->app->log->error($c->app->db_triplestore->errstr);
+		$sth->execute('<info:fedora/'.$o->{pid}.'>') or $c->app->log->error($c->app->db_triplestore->errstr);
+
+		my ($title, $titles);
+		$sth->bind_columns(undef, \$title, \$titles) or $c->app->log->error($c->app->db_triplestore->errstr);
+		
+		while($sth->fetch()){	
+		
+			my @titles = split($titsep, $titles);
+			my @titles_out;
+			my $session_lang = 'eng';
+			my $pref_title = '';
+			my $en_title = '';
+			my $text = '';
+			foreach my $t (@titles){
+				my $lang = '';
+				$text = $t;
+				if($t =~ m/"@([^@]+)$/){
+					$lang = $1;				
+					$text =~ s/$lang$//g;
+					$text =~ s/\@$//g;
+					$text =~ s/^"|"$//g;
+					# unicode escaped stuff to utf8					
+					$text =~ s/\\u([0-9a-fA-F]{4})/pack('U', hex($1))/eg;
+					
+					if($lang eq $session_lang){
+						$pref_title = $text;
+					}
+					if($lang eq 'eng'){
+						$en_title = $text;
+					}				
+				}else{
+					$text =~ s/^"|"$//g;
+				}
+				push @titles_out, {text => $text, lang=> $lang};
+			}
+			
+			if($pref_title eq ''){
+				if($en_title ne ''){
+					$pref_title = $en_title;
+				}else{
+					$pref_title = $text;	
+				}
+			}
+			
+			$o->{title} = $pref_title;
+			$o->{titles} = @titles_out;
+
+		}
+
+        $sth->finish ();
+		#cmodel? $cmodel =~ s/^<info:fedora\/cmodel:(.*)>$/$1/;
+		#$o->{cmodel}
+    }
+
+  	$res->{objects} = \@objects;
+	$res->{hits} = $count;
+	return $res;	
+}
+
+sub related {
+	
+	my($self, $c, $pid, $relation, $right, $from, $limit, $fields, $cb) = @_;
+	
+	# on frontend the first item is 1, but in triplestore its 0
+	if($from > 0){
+		$from--;	
+	}
+	
+	my $sr;
+	if($c->config->{phaidra}->{triplestore} eq "localMysqlMPTTriplestore"){		
+		$sr = $self->related_objects_mptmysql($c, $pid, $relation, $right, $from, $limit, $fields);
+	}else{
+		$sr = $self->related_objects_itql($c, $pid, $relation, $right, $from, $limit, $fields);
+	}
+	
+	if($relation eq 'info:fedora/fedora-system:def/relations-external#hasCollectionMember'){
+		
+		my %members;
+		foreach my $o (@{$sr->{objects}}){
+			$o->{'pos'} = undef;	
+			$members{$o->{pid}} = $o;			
+		}
+		
+		# get order definition
+		my $object_model = PhaidraAPI::Model::Object->new;		
+		my $ores = $object_model->get_datastream($c, $pid, 'COLLECTIONORDER', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});
+		#push @{$sr->{alerts}}, $ores->{alerts} if scalar @{$ores->{alerts}} > 0;
+		#$sr->{status} = $ores->{status};
+		$c->app->log->error("Cannot get COLLECTIONORDER: ".$c->app->dumper($ores));
+		if($ores->{status} ne 200){
+			$self->$cb($sr);
+			return; 
+		}	
+		
+		# order members
+		my $xml = Mojo::DOM->new($ores->{COLLECTIONORDER});		
+		$xml->find('member[pos]')->each(sub { 
+			my $m = shift;
+			my $pid = $m->text;
+			$members{$pid}->{'pos'} = $m->{'pos'};		
+		});		
+		sub undef_sort {
+		  return 1 unless(defined($a->{'pos'}));
+		  return -1 unless(defined($b->{'pos'}));	
+		  return $a->{'pos'} <=> $b->{'pos'};
+		}
+		@{$sr->{objects}} = sort undef_sort @{$sr->{objects}}; 			
+	}
+
+	$self->$cb($sr);	
 }
 
 sub datastream_exists {
@@ -216,6 +579,7 @@ sub search {
 		$res->{status} = $sr->{status};
 		$res->{hits} = $sr->{hits};
 		$res->{objects} = \@objects;
+		
 		return $self->$cb($res);
 	}
 		
