@@ -388,10 +388,7 @@ sub related {
 		
 		# get order definition
 		my $object_model = PhaidraAPI::Model::Object->new;		
-		my $ores = $object_model->get_datastream($c, $pid, 'COLLECTIONORDER', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});
-		#push @{$sr->{alerts}}, $ores->{alerts} if scalar @{$ores->{alerts}} > 0;
-		#$sr->{status} = $ores->{status};
-		$c->app->log->error("Cannot get COLLECTIONORDER: ".$c->app->dumper($ores));
+		my $ores = $object_model->get_datastream($c, $pid, 'COLLECTIONORDER', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});		
 		if($ores->{status} ne 200){
 			$self->$cb($sr);
 			return; 

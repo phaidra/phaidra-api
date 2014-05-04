@@ -11,7 +11,7 @@ use Mojo::IOLoop::Delay;
 sub triples {
 	my $self = shift;
 	
-	my $query = $self->param('query');
+	my $query = $self->param('q');
 	my $limit = $self->param('limit');
 	
 	my $search_model = PhaidraAPI::Model::Search->new;
