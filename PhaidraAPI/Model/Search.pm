@@ -287,26 +287,25 @@ sub related_objects_mptmysql(){
 	$sth->fetch();	
   	$sth->finish();
 
-	# get title	
-
+	# get title	 and cmodel
 	my $titlerel = '<http://purl.org/dc/elements/1.1/title>';
-	#my $modelrel = '<info:fedora/fedora-system:def/model#hasModel>';
+	my $modelrel = '<info:fedora/fedora-system:def/model#hasModel>';
 	#my $itemidrel = '<http://www.openarchives.org/OAI/2.0/itemID>';
 	
 	#my $itemidtable = 't'.$relmap{$itemidrel};
 	my $titletable = 't'.$relmap{$titlerel};
-	#my $modeltable = 't'.$relmap{$modelrel}; 
-	#AND $modeltable.o != ?
-	#my $fedoraobjstr = '<info:fedora/fedora-system:FedoraObject-3.0>';
+	my $modeltable = 't'.$relmap{$modelrel}; 
+	#
+	my $fedoraobjstr = '<info:fedora/fedora-system:FedoraObject-3.0>';
 	
         foreach my $o (@objects)
         {		
-		$ss = qq/SELECT $titletable.o AS title, GROUP_CONCAT($titletable.o SEPARATOR '$titsep') AS titles FROM $titletable WHERE $titletable.s = ?/;  #$titletable.o AS title, GROUP_CONCAT($titletable.o SEPARATOR '$titsep') AS titles, $modeltable.o AS cmodel
+		$ss = qq/SELECT $titletable.o AS title, GROUP_CONCAT($titletable.o SEPARATOR '$titsep') AS titles, $modeltable.o AS cmodel FROM $titletable JOIN $modeltable ON $modeltable.s = $titletable.s WHERE $titletable.s = ? AND $modeltable.o != ?/;  #$titletable.o AS title, GROUP_CONCAT($titletable.o SEPARATOR '$titsep') AS titles, $modeltable.o AS cmodel
 		$sth = $c->app->db_triplestore->prepare($ss) or $c->app->log->error($c->app->db_triplestore->errstr);
-		$sth->execute('<info:fedora/'.$o->{pid}.'>') or $c->app->log->error($c->app->db_triplestore->errstr);
+		$sth->execute('<info:fedora/'.$o->{pid}.'>', $fedoraobjstr) or $c->app->log->error($c->app->db_triplestore->errstr);
 
-		my ($title, $titles);
-		$sth->bind_columns(undef, \$title, \$titles) or $c->app->log->error($c->app->db_triplestore->errstr);
+		my ($title, $titles, $cmodel);
+		$sth->bind_columns(undef, \$title, \$titles, \$cmodel) or $c->app->log->error($c->app->db_triplestore->errstr);
 		
 		while($sth->fetch()){	
 		
@@ -349,12 +348,12 @@ sub related_objects_mptmysql(){
 			
 			$o->{title} = $pref_title;
 			$o->{titles} = @titles_out;
+			$cmodel =~ s/^<info:fedora\/(.*)>$/$1/;
+			$o->{cmodel} = $cmodel; 
 
 		}
 
         $sth->finish ();
-		#cmodel? $cmodel =~ s/^<info:fedora\/cmodel:(.*)>$/$1/;
-		#$o->{cmodel}
     }
 
   	$res->{objects} = \@objects;
@@ -419,7 +418,7 @@ sub related {
 		  return $a->{'pos'} <=> $b->{'pos'};
 		}
 		@{$sr->{objects}} = sort undef_sort @{$sr->{objects}};
-$c->app->log->debug("XXXXX $from_orig, $limit_orig ".$c->app->dumper($sr->{objects}));
+
 		# now use 'from' and 'limit' to return only the page		
 		if($limit_orig > 0){
 			@{$sr->{objects}} = splice(@{$sr->{objects}}, $from_orig, $limit_orig);
@@ -427,7 +426,6 @@ $c->app->log->debug("XXXXX $from_orig, $limit_orig ".$c->app->dumper($sr->{objec
 			@{$sr->{objects}} = splice(@{$sr->{objects}}, $from_orig);
 		}
 		
-		$c->app->log->debug("XXXXX $from_orig, $limit_orig ".$c->app->dumper($sr->{objects}));
 	}
 
 	$self->$cb($sr);	
