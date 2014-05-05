@@ -5,6 +5,7 @@ use warnings;
 use v5.10;
 use base 'Mojolicious::Controller';
 use PhaidraAPI::Model::Object;
+use PhaidraAPI::Model::Search;
 
 sub delete {
     my $self = shift;
@@ -40,61 +41,6 @@ sub modify {
    	$self->render(json => $r, status => $r->{status}) ;
 }
 
-
-sub related {
-	
-	my $self = shift;
-	my $from = 1;
-	my $limit = 10;
-	my @fields;
-	
-	unless(defined($self->stash('pid'))){		 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;		
-		return;
-	}	
-	
-	unless(defined($self->stash('relation'))){		 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined relation' }]} , status => 400) ;		
-		return;
-	}	
-		
-	my $pid = $self->stash('pid');
-	my $relation = $self->stash('relation');
-	
-	if(defined($self->param('from'))){	
-		$from = $self->param('from');
-	}
-	
-	if(defined($self->param('limit'))){	
-		$limit = $self->param('limit');
-	}
-	
-	if(defined($self->param('fields'))){
-		@fields = $self->param('fields');
-	}
-	
-	if(!defined($fields) || (scalar @$fields < 1)) {
-		$fields = [ 'PID' ];	
-	}
-	
-	$self->render_later;
-	my $delay = Mojo::IOLoop->delay( 
-	
-		sub {
-			my $delay = shift;			
-			$object_model->related($self, $pid, $from, $limit, \@fields, $delay->begin);			
-		},
-		
-		sub { 	
-	  		my ($delay, $r) = @_;	
-			#$self->app->log->debug($self->app->dumper($r));			
-			$self->render(json => $r, status => $r->{status});	
-  		}
-	
-	);
-	$delay->wait unless $delay->ioloop->is_running;	
-	
-}
 
 
 1;

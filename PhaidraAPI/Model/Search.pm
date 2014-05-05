@@ -371,6 +371,16 @@ sub related {
 		$from--;	
 	}
 	
+	my $from_orig;
+	my $limit_orig;
+	if($relation eq 'info:fedora/fedora-system:def/relations-external#hasCollectionMember'){
+		# if we want to sort, we have to get them all, currently position is not in triplestore
+		$from_orig = $from;
+		$limit_orig = $limit;
+		$from = 0;
+		$limit = 0;
+	}
+	
 	my $sr;
 	if($c->config->{phaidra}->{triplestore} eq "localMysqlMPTTriplestore"){		
 		$sr = $self->related_objects_mptmysql($c, $pid, $relation, $right, $from, $limit, $fields);
@@ -390,6 +400,7 @@ sub related {
 		my $object_model = PhaidraAPI::Model::Object->new;		
 		my $ores = $object_model->get_datastream($c, $pid, 'COLLECTIONORDER', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});		
 		if($ores->{status} ne 200){
+			$c->app->log->error("Cannot get COLLECTIONORDER for pid: $pid and username: ".$c->stash->{basic_auth_credentials}->{username});
 			$self->$cb($sr);
 			return; 
 		}	
@@ -401,12 +412,22 @@ sub related {
 			my $pid = $m->text;
 			$members{$pid}->{'pos'} = $m->{'pos'};		
 		});		
+				
 		sub undef_sort {
 		  return 1 unless(defined($a->{'pos'}));
 		  return -1 unless(defined($b->{'pos'}));	
 		  return $a->{'pos'} <=> $b->{'pos'};
 		}
-		@{$sr->{objects}} = sort undef_sort @{$sr->{objects}}; 			
+		@{$sr->{objects}} = sort undef_sort @{$sr->{objects}};
+$c->app->log->debug("XXXXX $from_orig, $limit_orig ".$c->app->dumper($sr->{objects}));
+		# now use 'from' and 'limit' to return only the page		
+		if($limit_orig > 0){
+			@{$sr->{objects}} = splice(@{$sr->{objects}}, $from_orig, $limit_orig);
+		}else{
+			@{$sr->{objects}} = splice(@{$sr->{objects}}, $from_orig);
+		}
+		
+		$c->app->log->debug("XXXXX $from_orig, $limit_orig ".$c->app->dumper($sr->{objects}));
 	}
 
 	$self->$cb($sr);	

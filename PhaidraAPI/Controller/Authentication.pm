@@ -101,7 +101,7 @@ sub signin {
     $cookie->secure(1);
     $self->tx->res->cookies($cookie);
     
-    $self->render(json => { alerts => [{ type => 'success', msg => 'Authentication successful' }]} , status => $res->{status}) ;    
+    $self->render(json => { alerts => [{ type => 'success', msg => 'Authentication successful' }], $self->app->config->{authentication}->{token_cookie} => $session->sid} , status => $res->{status}) ;    
 }
 
 sub signout {
