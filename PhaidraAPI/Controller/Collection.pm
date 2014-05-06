@@ -123,59 +123,12 @@ sub get_collection_members {
 	
 	my $pid = $self->stash('pid');
 	
-	my $res = { alerts => [], status => 200 };
+	my $coll_model = PhaidraAPI::Model::Collection->new;
+	my $res = $coll_model->get_members($self, $pid);
 	
-	# get members
-	my $search_model = PhaidraAPI::Model::Search->new;
-	my $sr = $search_model->triples($self, "<info:fedora/$pid> <info:fedora/fedora-system:def/relations-external#hasCollectionMember> *");
-	push @{$res->{alerts}}, $sr->{alerts} if scalar @{$sr->{alerts}} > 0;
-	$res->{status} = $sr->{status};
-	if($sr->{status} ne 200){
-		$self->render(json => $res, status => $res->{status}); 
-	}	
-	
-	if($sr->{status} ne 200){
-		$self->render(json => $sr, status => $sr->{status});
-		return;
-	}
-	my %members;
-	foreach my $statement (@{$sr->{result}}){
-		@{$statement}[2] =~ m/^\<info:fedora\/([a-zA-Z\-]+:[0-9]+)\>$/g;
-		#push @members, $1;
-		$members{$1} = { 'pos' => undef };
-	}
-	
-	# get order definition
-	my $object_model = PhaidraAPI::Model::Object->new;
-	my $ores = $object_model->get_datastream($self, $pid, 'COLLECTIONORDER', $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
-	push @{$res->{alerts}}, $ores->{alerts} if scalar @{$ores->{alerts}} > 0;
-	$res->{status} = $ores->{status};
-	if($ores->{status} ne 200){
-		$self->render(json => $res, status => $res->{status}); 
-	}	
-	
-	# order members
-	my $xml = Mojo::DOM->new($ores->{COLLECTIONORDER});		
-	$xml->find('member[pos]')->each(sub { 
-		my $m = shift;
-		my $pid = $m->text;
-		$members{$pid}->{'pos'} = $m->{'pos'};		
-	});	
-
-	my @ordered_members;
-	foreach my $p (keys %members){
-		push @ordered_members, { pid => $p, 'pos' =>  $members{$p}->{'pos'}};
-	}
-	
-	sub undef_sort {
-	  return 1 unless(defined($a->{'pos'}));
-	  return -1 unless(defined($b->{'pos'}));	
-	  return $a->{'pos'} <=> $b->{'pos'};
-	}
-	@ordered_members = sort undef_sort @ordered_members; 
-	
-	$self->render(json => { members => \@ordered_members }, status => $res->{status});
+	$self->render(json => { alerts => $res->{alerts}, members => $res->{members} }, status => $res->{status});
 }
+
 
 sub order_collection_members {
 	my $self = shift;
@@ -214,6 +167,79 @@ sub order_collection_members {
 	    	$self->render(json => $res, status => $res->{status}); 
 	    }			
 	}
+			
+	$self->render(json => $res, status => $res->{status});   
+}
+
+sub order_collection_member {
+	my $self = shift;
+	
+	my $res = { alerts => [], status => 200 };
+	
+	unless(defined($self->stash('pid'))){		
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined collection pid' }]} , status => 400) ;		
+		return;
+	}
+	
+	unless(defined($self->stash('itempid'))){		
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined item pid' }]} , status => 400) ;		
+		return;
+	}		
+	
+	unless(defined($self->stash('position'))){		
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined position' }]} , status => 400) ;		
+		return;
+	}
+	
+	unless($self->stash('position') =~ m/\d+/){		
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Position must be a numeric value' }]} , status => 400) ;		
+		return;
+	}			
+	
+	my $pid = $self->stash('pid');
+	my $itempid = $self->stash('itempid');
+	my $position = $self->stash('position');				
+	
+	my $coll_model = PhaidraAPI::Model::Collection->new;
+		
+	my $r = $coll_model->get_members($self, $pid);
+	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+	$res->{status} = $r->{status};
+	if($r->{status} ne 200){
+	   	$self->render(json => $res, status => $res->{status}); 
+	}
+	
+	my @ordered_members = @{$r->{members}};
+
+	my $i = 0;
+	my $update_index = 1;
+
+	my @new_order;
+	# insert item to new position
+	$new_order[$position] = { pid => $itempid, 'pos' => $position };
+	foreach my $m (@ordered_members){
+		
+		if ($i eq $position){
+			# skip the place in new_order where we already inserted the new item
+			$i++;
+		}	
+		if($m->{pid} eq $itempid){			
+			# skip the item in ordered_members we already inserted			
+			next;
+		}		
+		if($m->{pid}){	
+			$new_order[$i] = { pid => $m->{pid}, 'pos' => $i };
+			$i++;			
+		}
+		
+	}
+		
+	$r = $coll_model->order($self, $pid, \@new_order, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+	$res->{status} = $r->{status};
+	if($r->{status} ne 200){
+	   	$self->render(json => $res, status => $res->{status}); 
+	}				
 			
 	$self->render(json => $res, status => $res->{status});   
 }

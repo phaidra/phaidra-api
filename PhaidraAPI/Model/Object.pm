@@ -171,6 +171,9 @@ sub add_datastream {
     $params{dsLocation} = $location if $location;
     #$params{altIDs}
     $params{dsLabel} = $label if $label;
+    if($dsid eq 'COLLECTIONORDER'){
+    	$params{versionable} = 0;
+    }
     #$params{versionable} = 1;
     $params{dsState} = 'A';
     #$params{formatURI}
@@ -224,6 +227,9 @@ sub modify_datastream {
     $params{dsLocation} = $location if $location;
     #$params{altIDs}
     $params{dsLabel} = $label if $label;
+    if($dsid eq 'COLLECTIONORDER'){
+    	$params{versionable} = 0;
+    }
     #$params{versionable} = 1;
     $params{dsState} = 'A';
     #$params{formatURI}

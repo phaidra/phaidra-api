@@ -32,7 +32,8 @@ sub triples {
 	$url->path("/fedora/risearch");
 	$url->query(\%params);
 	
-	my $tx = $c->ua->post($url);
+	my $ua = Mojo::UserAgent->new;
+	my $tx = $ua->post($url);
 
 	if (my $reply = $tx->success) {
 		
@@ -169,7 +170,8 @@ sub risearch_tuple ($$$)
 	$url->path("/fedora/risearch");
 	$url->query(\%params);
 	
-	my $tx = $c->ua->post($url);
+	my $ua = Mojo::UserAgent->new;
+	my $tx = $ua->post($url);
 
 	if (my $reply = $tx->success) {					
 		$res->{result} = $reply->body;
@@ -455,7 +457,8 @@ sub datastream_exists {
 	$url->path("/fedora/risearch");
 	$url->query(\%params);
 	
-	my $tx = $c->ua->post($url);
+	my $ua = Mojo::UserAgent->new;
+	my $tx = $ua->post($url);
 
 	if (my $reply = $tx->success) {
 		$res->{'exists'} = scalar ($reply->body);			  		
@@ -624,7 +627,8 @@ sub search_call() {
 		
 	my @result;
 	
-	my $tx = $c->ua->get($url);
+	my $ua = Mojo::UserAgent->new;
+	my $tx = $ua->get($url);
 
 	if (my $reply = $tx->success) {
 		my $xml = $reply->body;

@@ -142,6 +142,62 @@ sub create {
 }
 
 
+sub get_members {
+	
+	my $self = shift;
+    my $c = shift;
+    my $pid = shift;
+	
+	my $res = { members => [], alerts => [], status => 200 };
+	
+	# get members
+	my $search_model = PhaidraAPI::Model::Search->new;
+	my $sr = $search_model->triples($c, "<info:fedora/$pid> <info:fedora/fedora-system:def/relations-external#hasCollectionMember> *");
+	push @{$res->{alerts}}, $sr->{alerts} if scalar @{$sr->{alerts}} > 0;
+	$res->{status} = $sr->{status};
+	if($sr->{status} ne 200){
+		return $res; 
+	}	
+	
+	my %members;
+	foreach my $statement (@{$sr->{result}}){
+		@{$statement}[2] =~ m/^\<info:fedora\/([a-zA-Z\-]+:[0-9]+)\>$/g;
+		$members{$1} = { 'pos' => undef };
+	}
+	
+	# get order definition
+	my $object_model = PhaidraAPI::Model::Object->new;
+	my $ores = $object_model->get_datastream($c, $pid, 'COLLECTIONORDER', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});
+	push @{$res->{alerts}}, $ores->{alerts} if scalar @{$ores->{alerts}} > 0;
+	$res->{status} = $ores->{status};
+	if($ores->{status} ne 200){
+		return $res;  
+	}	
+	
+	# order members
+	my $xml = Mojo::DOM->new($ores->{COLLECTIONORDER});		
+	$xml->find('member[pos]')->each(sub { 
+		my $m = shift;
+		my $pid = $m->text;
+		$members{$pid}->{'pos'} = $m->{'pos'};		
+	});	
+
+	my @ordered_members;
+	foreach my $p (keys %members){
+		push @ordered_members, { pid => $p, 'pos' =>  $members{$p}->{'pos'}};
+	}
+	
+	sub undef_sort {
+	  return 1 unless(defined($a->{'pos'}));
+	  return -1 unless(defined($b->{'pos'}));	
+	  return $a->{'pos'} <=> $b->{'pos'};
+	}
+	@ordered_members = sort undef_sort @ordered_members; 	
+	
+	$res->{members} = \@ordered_members;
+	return $res; 
+}
+
 
 1;
 __END__
