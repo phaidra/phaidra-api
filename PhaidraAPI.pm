@@ -113,7 +113,17 @@ sub startup {
 					$self->app->log->debug("Alerts:\n".$self->dumper($json->{alerts}));
 				}	
 			}	
-		}		      	
+		}
+		
+		# CORS
+		if($self->req->headers->header('Origin')){
+			$self->res->headers->add('Access-Control-Allow-Origin' => $self->req->headers->header('Origin'));	
+		}else{
+			$self->res->headers->add('Access-Control-Allow-Origin' => $config->{authentication}->{'Access-Control-Allow-Origin'});
+		}
+		$self->res->headers->add('Access-Control-Allow-Credentials' => 'true');
+		$self->res->headers->add('Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS');
+		$self->res->headers->add('Access-Control-Allow-Headers' => 'Content-Type, '.$config->{authentication}->{token_header});				     	
 	});
      
     $self->helper(save_cred => sub {
@@ -179,6 +189,9 @@ sub startup {
 	$r->route('search/triples')  ->via('get')   ->to('search#triples');
 	$r->route('search')  ->via('get')   ->to('search#search');
 
+	# CORS
+	$r->any('*')->via('OPTIONS')->to('authentication#cors_preflight');
+	
 	$r->route('signin') 			  	->via('get')   ->to('authentication#signin');
     $r->route('signout') 			->via('get')   ->to('authentication#signout');   
     $r->route('keepalive') 			->via('get')   ->to('authentication#keepalive');   

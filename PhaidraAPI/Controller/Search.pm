@@ -222,7 +222,7 @@ sub collections_owner {
 	
 		sub {
 			my $delay = shift;
-			$search_model->search($self, $query, $from, $limit, undef, undef, $delay->begin);			
+			$search_model->search($self, $query, $from, $limit, undef, undef, undef, $delay->begin);			
 		},
 		
 		sub { 	

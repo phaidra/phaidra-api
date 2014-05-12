@@ -63,6 +63,14 @@ sub keepalive {
 	$self->render(json => { expires => $session->expires } , status => 200 ) ;
 }
 
+sub cors_preflight {
+	my $self = shift;
+	# headers are set in after_dispatch, 
+	# because these are needed for the actual request as well
+	# not just for preflight		
+	$self->render(text => '', status => 200) ;	
+}
+
 sub signin {
 	
 	my $self = shift;

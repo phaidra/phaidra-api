@@ -92,6 +92,8 @@
     	
     	"token_cookie": "XSRF-TOKEN",
     	
+    	"Access-Control-Allow-Origin": "*",
+    	
     	"ldap": {
     		"server": "",
     		
