@@ -30,9 +30,16 @@ sub metadata_tree {
  		
  		my $cacheval = $c->app->chi->get($cachekey);
   		
-    	if($cacheval){    		
-    		$c->app->log->debug("[cache hit] $cachekey");
-    	}else{    		
+  		my $miss = 1;
+  		
+  		if($cacheval){   
+  			if(scalar @{$cacheval} > 0){
+  				$miss = 0;
+  				$c->app->log->debug("[cache hit] $cachekey");		
+  			}
+  		}
+  		
+    	if($miss){
     		$c->app->log->debug("[cache miss] $cachekey");
     		
     		$cacheval = $self->get_metadata_tree($c);		
