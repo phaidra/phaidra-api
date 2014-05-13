@@ -400,6 +400,11 @@ sub related {
 		# get order definition
 		my $object_model = PhaidraAPI::Model::Object->new;		
 		my $ores = $object_model->get_datastream($c, $pid, 'COLLECTIONORDER', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});		
+		if($ores->{status} eq 404){
+			$c->app->log->info("COLLECTIONORDER for pid $pid not defined");
+			$self->$cb($sr);
+			return; 
+		}
 		if($ores->{status} ne 200){
 			$c->app->log->error("Cannot get COLLECTIONORDER for pid: $pid and username: ".$c->stash->{basic_auth_credentials}->{username});
 			$self->$cb($sr);

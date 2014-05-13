@@ -167,10 +167,20 @@ sub get_members {
 	
 	# get order definition
 	my $object_model = PhaidraAPI::Model::Object->new;
-	my $ores = $object_model->get_datastream($c, $pid, 'COLLECTIONORDER', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});
+	my $ores = $object_model->get_datastream($c, $pid, 'COLLECTIONORDER', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});	
+	if($ores->{status} eq 404){
+		$c->app->log->info("COLLECTIONORDER for pid $pid not defined");
+		my @not_ordered_members;
+		foreach my $p (keys %members){
+			push @not_ordered_members, { pid => $p, 'pos' =>  undef};
+		}
+		$res->{members} = \@not_ordered_members;
+		return $res; 
+	}	
 	push @{$res->{alerts}}, $ores->{alerts} if scalar @{$ores->{alerts}} > 0;
 	$res->{status} = $ores->{status};
-	if($ores->{status} ne 200){
+	if($ores->{status} ne 200){	
+		$c->app->log->error("Cannot get COLLECTIONORDER for pid: $pid and username: ".$c->stash->{basic_auth_credentials}->{username});
 		return $res;  
 	}	
 	
