@@ -19,6 +19,8 @@
     "log_path":"/var/log/phaidra/PhaidraAPI.log",
     
     "log_level":"debug",
+
+    "readonly": "0",
     
     "validate_uwmetadata":"1",
       

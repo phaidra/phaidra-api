@@ -198,11 +198,14 @@ sub startup {
 
 	my $apiauth = $r->bridge->to('authentication#extract_credentials');
     
-    $apiauth->route('object/:pid/modify', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('put') ->to('object#modify');
-    $apiauth->route('object/:pid', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('delete') ->to('object#delete');
-    
+    unless($self->app->config->{readonly}){
+    	$apiauth->route('object/:pid/modify', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('put') ->to('object#modify');
+	$apiauth->route('object/:pid', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('delete') ->to('object#delete');
+	$apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('post') ->to('uwmetadata#post');
+	$apiauth->route('collection/create') ->via('post') ->to('collection#create');
+    }
+
     $apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('get') ->to('uwmetadata#get');
-    $apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('post') ->to('uwmetadata#post');
     
     # does not show inactive objects, not specific to collection (but does ordering)
     $apiauth->route('object/:pid/related', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('get') ->to('search#related');
