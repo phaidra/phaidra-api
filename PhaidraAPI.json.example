@@ -21,6 +21,8 @@
     "log_level":"debug",
     
     "validate_uwmetadata":"1",
+    
+    "local_uwmetadata_tree":"1",
       
 	"directory_class": "Phaidra::Directory::Univie",
 	

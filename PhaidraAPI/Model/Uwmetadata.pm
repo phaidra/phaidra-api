@@ -10,6 +10,7 @@ use Switch;
 use Data::Dumper;
 use Mojo::ByteStream qw(b);
 use Mojo::Home;
+use Mojo::JSON qw(encode_json decode_json);
 use XML::Writer;
 use XML::LibXML;
 use lib "lib/phaidra_binding";
@@ -24,38 +25,64 @@ sub metadata_tree {
     my ($self, $c, $v) = @_;
     
     my $res = { alerts => [], status => 200 };
- 
- 	my $cachekey = 'metadata_tree_'.$v;
+ 	
  	if($v eq '1'){
  		
- 		my $cacheval = $c->app->chi->get($cachekey);
-  		
-  		my $miss = 1;
-  		
-  		if($cacheval){   
-  			if(scalar @{$cacheval} > 0){
-  				$miss = 0;
-  				$c->app->log->debug("[cache hit] $cachekey");		
-  			}
-  		}
-  		
-    	if($miss){
-    		$c->app->log->debug("[cache miss] $cachekey");
-    		
-    		$cacheval = $self->get_metadata_tree($c);		
-  
-    		$c->app->chi->set($cachekey, $cacheval, '1 day');    
-  
-  			# save and get the value. the serialization can change integers to strings so 
-  			# if we want to get the same structure for cache miss and cache hit we have to run it through
-  			# the cache serialization process even if cache miss [when we already have the structure]
-  			# so instead of using the structure created we will get the one just saved from cache.  		
-    		$cacheval = $c->app->chi->get($cachekey);
-    		#$c->app->log->debug($c->app->dumper($res));			
-    	}    	
-    	$res->{metadata_tree} = $cacheval; 		
- 		return $res;
-		
+ 		if($c->app->config->{local_uwmetadata_tree}){
+ 			
+ 			$c->app->log->debug("Reading uwmetadata tree from file");
+ 			
+	 	    # read metadata tree from file
+			my $content;
+			my $metadatapath = $home->rel_file('public/uwmetadata/tree.json');
+			open my $fh, "<", $metadatapath or push @{$res->{alerts}}, "Error reading uwmetadata/tree.json, ".$!;
+		    local $/;
+		    $content = <$fh>;
+		    close $fh;  
+		    
+		    unless(defined($content)){	    	
+		    	push @{$res->{alerts}}, "Error reading uwmetadata/tree.json, no content";
+		    	next;
+		    }
+	
+			my $metadata = decode_json($content);
+	 		$res->{metadata_tree} = $metadata->{tree};
+	 		
+ 		}else{
+
+			$c->app->log->debug("Reading uwmetadata tree from cache");	
+			
+			my $cachekey = 'metadata_tree_'.$v;
+	 		my $cacheval = $c->app->chi->get($cachekey);
+	  		
+	  		my $miss = 1;
+	  		
+	  		if($cacheval){   
+	  			if(scalar @{$cacheval} > 0){
+	  				$miss = 0;
+	  				$c->app->log->debug("[cache hit] $cachekey");		
+	  			}
+	  		}
+	  		
+	    	if($miss){
+	    		$c->app->log->debug("[cache miss] $cachekey");
+	    		
+	    		$cacheval = $self->get_metadata_tree($c);		
+	  
+	    		$c->app->chi->set($cachekey, $cacheval, '1 day');    
+	  
+	  			# save and get the value. the serialization can change integers to strings so 
+	  			# if we want to get the same structure for cache miss and cache hit we have to run it through
+	  			# the cache serialization process even if cache miss [when we already have the structure]
+	  			# so instead of using the structure created we will get the one just saved from cache.  		
+	    		$cacheval = $c->app->chi->get($cachekey);
+	    		#$c->app->log->debug($c->app->dumper($res));			
+	    	}    	
+	    	$res->{metadata_tree} = $cacheval; 	
+ 		}
+ 			
+	 	return $res;
+ 		
  	}else{
  		$c->stash( 'message' => 'Unknown metadata format version requested.');
  		$c->app->log->error($c->stash->{'message'});
