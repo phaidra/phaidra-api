@@ -198,22 +198,24 @@ sub startup {
 
 	my $apiauth = $r->bridge->to('authentication#extract_credentials');
     
-    $apiauth->route('object/:pid/modify', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('put') ->to('object#modify');
-    $apiauth->route('object/:pid', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('delete') ->to('object#delete');
-    
+    unless($self->app->config->{readonly}){
+    	$apiauth->route('object/:pid/modify', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('put') ->to('object#modify');
+	$apiauth->route('object/:pid', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('delete') ->to('object#delete');
+	$apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('post') ->to('uwmetadata#post');
+	$apiauth->route('collection/create') ->via('post') ->to('collection#create');
+	$apiauth->route('collection/:pid/members') ->via('delete') ->to('collection#remove_collection_members');
+        $apiauth->route('collection/:pid/members') ->via('post') ->to('collection#add_collection_members');
+        $apiauth->route('collection/:pid/members') ->via('put') ->to('collection#set_collection_members');
+        $apiauth->route('collection/:pid/members/order') ->via('post') ->to('collection#order_collection_members');
+        $apiauth->route('collection/:pid/members/:itempid/order/:position') ->via('post') ->to('collection#order_collection_member');
+    }
+
     $apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('get') ->to('uwmetadata#get');
-    $apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('post') ->to('uwmetadata#post');
     
     # does not show inactive objects, not specific to collection (but does ordering)
     $apiauth->route('object/:pid/related', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('get') ->to('search#related');
     
-    $apiauth->route('collection/create') ->via('post') ->to('collection#create');
     $apiauth->route('collection/:pid/members') ->via('get') ->to('collection#get_collection_members');
-    $apiauth->route('collection/:pid/members') ->via('post') ->to('collection#add_collection_members');
-    $apiauth->route('collection/:pid/members') ->via('delete') ->to('collection#remove_collection_members');
-    $apiauth->route('collection/:pid/members') ->via('put') ->to('collection#set_collection_members');
-    $apiauth->route('collection/:pid/members/order') ->via('post') ->to('collection#order_collection_members');
-    $apiauth->route('collection/:pid/members/:itempid/order/:position') ->via('post') ->to('collection#order_collection_member');
 
 	return $self;
 }

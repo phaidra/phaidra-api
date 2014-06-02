@@ -3,6 +3,10 @@ phaidra-api
 
 Prerequisities:
 
+* Install spanminus
+  
+  curl -L http://cpanmin.us | perl - --sudo App::cpanminus
+
 * Mojolicious Plugins
 
   /usr/local/bin/cpanm Mango
