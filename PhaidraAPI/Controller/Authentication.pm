@@ -123,7 +123,7 @@ sub signout {
 		$session->flush;	
 	}
 	
-	$self->render(status => 200);
+	$self->render(json => { alerts => [{ type => 'success', msg => 'You have been signed out' }]}, status => 200);
 }
 
 
