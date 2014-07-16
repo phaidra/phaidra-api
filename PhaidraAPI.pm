@@ -177,6 +177,8 @@ sub startup {
     		
 	$r->route('uwmetadata/tree')			  ->via('get')   ->to('uwmetadata#tree');
 	$r->route('uwmetadata/languages')		  ->via('get')   ->to('uwmetadata#languages');
+       $r->route('uwmetadata/json2xml')                  ->via('post')  ->to('uwmetadata#json2xml');
+       $r->route('uwmetadata/xml2json')                  ->via('post')  ->to('uwmetadata#xml2json');
 	
 	$r->route('help/tooltip')		  	  ->via('get')   ->to('help#tooltip');		
 	
