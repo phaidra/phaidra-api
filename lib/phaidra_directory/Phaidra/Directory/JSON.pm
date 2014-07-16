@@ -145,8 +145,7 @@ sub get_pers_funktion_name {
 	$c->app->log->error("This method is not implemented");
 }
   
-# getLoginData
-sub get_login_data {
+sub get_user_data {
 	my $self = shift;
 	my $c = shift;
 	my $username = shift;
