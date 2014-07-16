@@ -47,6 +47,59 @@ sub get {
     $self->render(json => { metadata => $res->{metadata}, languages => $languages}); #, alerts => [{ type => 'success', msg => $self->stash->{msg}}]});
 }
 
+sub json2xml {
+	my $self = shift;  	
+	
+	my $t0 = [gettimeofday];
+
+	my $v = $self->param('mfv');
+			
+	# default
+	unless(defined($v)){
+		$v = '1';	
+	}
+	
+	unless($v eq '1'){		 	
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Unsupported metadata format version specified' }]} , status => 400) ;		
+		return;
+	}
+	
+	my $payload = $self->req->json;
+	my $uwmetadatajson = $payload->{uwmetadata};	
+	
+	
+
+	my $t1 = tv_interval($t0);	
+	$self->app->log->debug("json2xml took $t1 s");
+	
+	
+}
+
+sub xml2json {
+	my $self = shift;  	
+	
+	my $t0 = [gettimeofday];
+
+	my $v = $self->param('mfv');
+		
+	# default
+	unless(defined($v)){
+		$v = '1';	
+	}
+	
+	unless($v eq '1'){		 	
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Unsupported metadata format version specified' }]} , status => 400) ;		
+		return;
+	}
+
+	my $uwmetadataxml = $self->req->body;
+	
+
+	$self->app->log->debug("xml2json took $t1 s");
+	
+	
+}
+
 sub post {
 	my $self = shift;  	
 	
