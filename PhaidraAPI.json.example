@@ -22,6 +22,8 @@
 
     "readonly": "0",
     
+    "allow_userdata_queries": "0",
+    
     "validate_uwmetadata":"1",
     
     "local_uwmetadata_tree":"1",
@@ -34,7 +36,7 @@
         
         "username": "username",
         
-        "password": "password",
+        "password": "password",     
         
         "org_units_languages": ["en","de"],
         
