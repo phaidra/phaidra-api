@@ -45,20 +45,20 @@ sub get_study_name {
     $self->render(json => { study_name => $names }, status => 200 );
 }
 
-sub get_name {
+sub get_user_name {
     my $self = shift;  	
-
-	my $username = $self->param('username');
+	
+	my $username = $self->stash('username');
 
 	my $name = $self->app->directory->get_name($self, $username);
 	
     $self->render(json => { name => $name }, status => 200 );
 }
 
-sub get_email {
+sub get_user_email {
     my $self = shift;  	
 
-	my $username = $self->param('username');
+	my $username = $self->stash('username');
 
 	my $email = $self->app->directory->get_email($self, $username);
 	
@@ -68,7 +68,7 @@ sub get_email {
 sub get_user_data {
     my $self = shift;  	
 
-	my $username = $self->param('username');
+	my $username = $self->stash('username');
 
 	my $user_data = $self->app->directory->get_user_data($self, $username);
 	

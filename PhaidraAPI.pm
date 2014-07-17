@@ -213,9 +213,9 @@ sub startup {
     }
     
     if($self->app->config->{allow_userdata_queries}){
-    	$apiauth->route('directory/get_user_data')  	->via('get')   ->to('directory#get_user_data');
-   		$apiauth->route('directory/get_name')  	->via('get')   ->to('directory#get_name');
-   		$apiauth->route('directory/get_email')  	->via('get')   ->to('directory#get_email');
+    	$apiauth->route('directory/user/:username/data')  	->via('get')   ->to('directory#get_user_data');
+   		$apiauth->route('directory/user/:username/name')  	->via('get')   ->to('directory#get_user_name');
+   		$apiauth->route('directory/user/:username/email')  	->via('get')   ->to('directory#get_user_email');
     }
 
     $apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('get') ->to('uwmetadata#get');
