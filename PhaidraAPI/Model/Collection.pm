@@ -62,7 +62,6 @@ sub create {
 	
 	my $self = shift;
     my $c = shift;
-    my $label = shift;
     my $metadata = shift;
     my $rights = shift;
     my $members = shift;
@@ -72,15 +71,16 @@ sub create {
     
     my $res = { alerts => [], status => 200 };
     
+    $c->app->log->debug("Creating empty object");
     # create object
     my $pid;
     my $object_model = PhaidraAPI::Model::Object->new;
-    my $res_create = $object_model->create($c, 'cmodel:Collection', $label, $username, $password);    
+    my $res_create = $object_model->create($c, 'cmodel:Collection', $username, $password);    
     if($res_create->{status} ne 200){		
 		return $res_create;
 	}
 	$pid = $res_create->{pid};
-    
+	
     # set rights
     #if($rights){
     #	my $res_rights = $object_model->set_rights($pid, $rights, $username, $password);
@@ -89,24 +89,26 @@ sub create {
 	#	}
     #}		
     
+    $c->app->log->debug("Adding metadata");
     # add metadata (just uwmetadata now)
-    my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;	
-    $metadata_model->init_system_metadata($c, $pid, $metadata);
+    my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;	    
 	my $res_md = $metadata_model->save_to_object($c, $pid, $metadata, $username, $password);	
 	if($res_md->{status} ne 200){		
 		return $res_md;
 	}
      
+    $c->app->log->debug("Activating object");
     # activate
     my $res_act = $object_model->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
     
+    $c->app->log->debug("Adding members");
     # add members
     if($members){
 	    my $members_size = scalar @{$members};
 	    if($members_size > 0){
 		    my @relationships;
 		    foreach my $member (@{$members}){
-				push @relationships, { predicate => "info:fedora/fedora-system:def/relations-external#hasCollectionMember", object => $member->{pid} };
+				push @relationships, { predicate => "info:fedora/fedora-system:def/relations-external#hasCollectionMember", object => "info:fedora/".$member->{pid} };
 		    }  	  	    	
 			my $r = $object_model->add_relationships($c, $pid, \@relationships, $username, $password);
 		  	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
@@ -138,7 +140,6 @@ sub create {
 	
 	return $res;
   	#return $self->$cb($res);	
-
 }
 
 

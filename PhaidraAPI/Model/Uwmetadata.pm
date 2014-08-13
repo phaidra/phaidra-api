@@ -517,10 +517,10 @@ sub get_metadata_tree {
 	return \@metadata_tree;
 }
 
-sub get_object_metadata {
+sub uwmetadata_2_json {
 	
-	my ($self, $c, $v, $pid, $username, $password) = @_;
-
+	my ($self, $c, $v, $uwmetadata) = @_;
+	
 	# this structure contains the metadata default structure (equals to empty uwmetadataeditor) to which
 	# we are going to load the data of some real object	
 	my $tree_res = $self->metadata_tree($c, $v); 
@@ -536,12 +536,7 @@ sub get_object_metadata {
 	my $metadata_tree_copy = dclone($metadata_tree);
 	$self->create_md_nodes_hash($c, $metadata_tree_copy, \%metadata_nodes_hash);
 	
-	# get object metadata
-	my $res = $self->get_uwmetadata($c, $pid, $username, $password);
-	if($res->{status} ne 200){
-		return $res;
-	}	
-	my $dom = Mojo::DOM->new($res->{uwmetadata});
+	my $dom = Mojo::DOM->new($uwmetadata);
 		
 	my $nsattr = $dom->find('uwmetadata')->first->attr;
 	my $nsmap  = $nsattr;
@@ -554,7 +549,22 @@ sub get_object_metadata {
 
 	$self->fill_object_metadata($c, $dom, $metadata_tree, undef, $nsmap, \%metadata_nodes_hash);
 
-	return { metadata => $metadata_tree, status => 200};
+	return { alerts => [], uwmetadata => $metadata_tree, status => 200 };
+}
+
+sub get_object_metadata {
+	
+	my ($self, $c, $v, $pid, $username, $password) = @_;
+
+	# get object metadata
+	my $res = $self->get_uwmetadata($c, $pid, $username, $password);
+	if($res->{status} ne 200){
+		return $res;
+	}	
+	
+	my $res = $self->uwmetadata_2_json($c, $v, $res->{uwmetadata});
+	
+	return { uwmetadata => $res->{uwmetadata}, status => 200 };
 }
 
 sub get_org_units_terms {
@@ -960,6 +970,17 @@ sub set_identifier() {
 	}
 }
 
+# this method finds node of given namespace and xmlname
+#
+# xxx !! DANGER !! xxx
+# A node is generally not defined only with namespace and xmlname
+# but also with the position in the tree.
+# The only node however, where the namespace and xmlname is not enough is:
+# namespace: http://phaidra.univie.ac.at/XML/metadata/lom/V1.0
+# xmlname: description
+# because there are two, one on 'general' tab and one on 'rights'
+# xxx !! xxxxxx !! xxx
+#
 sub get_json_node(){
 	my ($self, $c, $namespace, $xmlname, $metadata) = @_;
 	
@@ -995,47 +1016,118 @@ sub set_json_node_ui_value(){
 	}	
 }
 
-sub init_system_metadata() {
+# i) set identifier, or add and set if not there 
+# i) add and set upload_date if not there
+# i) add and set status if not there (default = http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_2/44 [Complete])
+# i) add and set cost if not there (default = 0)
+# i) add and set copyright if not there (default = 1)
+# i) add empty classification node if missing (validation needs it)
+sub fix_uwmetadata() {
 	my $self = shift;
 	my $c = shift;
 	my $pid = shift;
 	my $metadata = shift;
+	
+	#$c->app->log->debug("Uwmetadata before fix: ".$c->app->dumper($metadata));
 		
-	#$self->set_identifier($c, $pid, $metadata);
-	# set identifier
-	$self->set_json_node_ui_value($c, 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0', 'identifier', $metadata, $pid);
-	
-	# set upload date
+	# set identifier, or add and set if not there
+	my $n = $self->get_json_node($c, 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0', 'identifier', $metadata);
+	if(defined($n)){
+		$n->{'ui_value'} = $pid;
+	}else{
+		# $metadata[0] - general
+		my $ch = @{$metadata}[0]->{'children'};
+		splice(@{$ch}, 0, 0, {
+	    	xmlns => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0",
+	        xmlname => "identifier",
+	        datatype => "CharacterString",
+	        ui_value => $pid
+	    });	
+	}
+		
+	# add and set upload date if not there
 	# 2014-02-23T10:08:57.831Z
-	my $now = strftime("%Y-%m-%dT%H:%M:%S.000Z", localtime);
-	$self->set_json_node_ui_value($c, 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0', 'upload_date', $metadata, $now);
+	$n = $self->get_json_node($c, 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0', 'upload_date', $metadata);
+	unless($n){
+		# $metadata[1] - lifecycle
+		my $ch = @{$metadata}[1]->{'children'};		
+		my $now = strftime("%Y-%m-%dT%H:%M:%S.000Z", localtime);
+		# index 0, upload_date is first
+		splice(@{$ch}, 0, 0, {
+	    	xmlns => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0",
+	        xmlname => "upload_date",
+	        datatype => "DateTime",
+	        ui_value => $now
+	    });	
+	}
 	
-	$self->fix_uwmetadata($c, $metadata);
-}
-
-# 1) add empty classification node if missing (validation needs it)
-sub fix_uwmetadata () {
-	my ($self, $c, $metadata) = @_;
+	# add and set status if not there
+	$n = $self->get_json_node($c, 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0', 'status', $metadata);
+	unless($n){
+		# $metadata[1] - lifecycle
+		my $ch = @{$metadata}[1]->{'children'};
+		# index 1, 0 is upload_date
+		splice(@{$ch}, 1, 0, {
+	    	xmlns => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0",
+	        xmlname => "status",
+	        datatype => "Vocabulary",
+	        ui_value => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_2/44"
+	    });	
+	}
 	
+	# find the index of rights tab
 	my $i = 0;
 	my $rights_idx;
-	foreach my $n (@{$metadata}){
-		$i++;
-		if($n->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0' && $n->{xmlname} eq 'classification'){
-			return;
-		}	
+	foreach my $n (@{$metadata}){		
 		if($n->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0' && $n->{xmlname} eq 'rights'){
 			$rights_idx = $i;
 		}
-	}
+		$i++;
+	}		
 	
+	# add and set cost if not there
+	$n = $self->get_json_node($c, 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0', 'cost', $metadata);
+	unless($n){
+		my $ch = @{$metadata}[$rights_idx]->{'children'};
+		# index 0, cost is first
+		splice(@{$ch}, 0, 0, {
+	    	xmlns => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0",
+	        xmlname => "cost",
+	        datatype => "Boolean",
+	        ui_value => 0
+	    });	
+	}	
+	
+	# add and set copyright if not there
+	$n = $self->get_json_node($c, 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0', 'copyright', $metadata);
+	unless($n){
+		my $ch = @{$metadata}[$rights_idx]->{'children'};
+		# index 1, 0 is cost
+		splice(@{$ch}, 1, 0, {
+	    	xmlns => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0",
+	        xmlname => "copyright",
+	        datatype => "Boolean",
+	        ui_value => 1
+	    });	
+	}	
+	
+	# add empty classification node if missing
+	my $found = undef;
+	foreach my $n (@{$metadata}){
+		if($n->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0' && $n->{xmlname} eq 'classification'){
+			$found = 1; last;
+		}	
+	}	
 	# not found, add, after rights
-	splice(@{$metadata}, $rights_idx+1, 0, {
-    	xmlns => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0",
-        xmlname => "classification",
-        datatype => "Node"
-    });
+	unless(defined($found)){
+		splice(@{$metadata}, $rights_idx+1, 0, {
+	    	xmlns => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0",
+	        xmlname => "classification",
+	        datatype => "Node"
+	    });
+	}	
 	
+	#$c->app->log->debug("Uwmetadata after fix: ".$c->app->dumper($metadata));
 }
 
 sub save_to_object(){
@@ -1048,6 +1140,8 @@ sub save_to_object(){
 	my $password = shift;
 	
 	my $res = { alerts => [], status => 200 };
+	
+	$self->fix_uwmetadata($c, $pid, $metadata);
 	
 	my $uwmetadata = $self->json_2_uwmetadata($c, $metadata);
 	unless($uwmetadata){

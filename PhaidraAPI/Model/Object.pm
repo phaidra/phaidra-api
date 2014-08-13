@@ -69,7 +69,6 @@ sub create {
 	my $self = shift;
     my $c = shift;
     my $contentmodel = shift;   
-    my $label = shift; 
     my $username = shift;
     my $password = shift;
 
@@ -77,31 +76,36 @@ sub create {
         
     my $pid;
     
+    $c->app->log->debug("Creating empty object");
     # create empty object
-    my $r = $self->create_empty($c, $contentmodel, $label, $username, $password);
+    my $r = $self->create_empty($c, $username, $password);
     push @{$res->{alerts}}, $r->{alerts} if scalar $r->{alerts} > 0;
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
     	return $res;
-    }	
+    }	    
   	$pid = $r->{pid};
+  	$c->app->log->debug("Created pid: $pid");
   	$res->{pid} = $pid;
-  	    	  	    	
+  	    	  	    
   	my $oaiid = "oai:".$c->app->config->{phaidra}->{baseurl}.":".$pid;
   	my @relationships;
-	push @relationships, { predicate => "info:fedora/fedora-system:def/model#hasModel", object => $contentmodel };
+	push @relationships, { predicate => "info:fedora/fedora-system:def/model#hasModel", object => "info:fedora/".$contentmodel };
 	push @relationships, { predicate => "http://www.openarchives.org/OAI/2.0/itemID", object => $oaiid };  	
-  	    	
+  	    	  	
     # set cmodel and oai itemid
+    $c->app->log->debug("Set cmodel ($contentmodel) and oaiitemid ($oaiid)");
 	$r = $self->add_relationships($c, $pid, \@relationships, $username, $password);
   	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
     	return $res;
     }
-  		
+  		  	
   	# add thumbnail  	
-	$r = $self->add_datastream($c, $pid, "THUMBNAIL", "image/png", "http://".$c->app->config->{phaidra}->{staticbaseurl}."/thumbs/collection.png", undef, "THUMBNAIL label", "E", $username, $password);
+  	my $thumburl = "http://".$c->app->config->{phaidra}->{baseurl}."/preview/$pid";
+  	$c->app->log->debug("Adding thumbnail ($thumburl)");
+	$r = $self->add_datastream($c, $pid, "THUMBNAIL", "image/png", $thumburl, undef, undef, "E", $username, $password);
   	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
@@ -109,7 +113,7 @@ sub create {
     }
     
   	# add stylesheet
-  	$r = $self->add_datastream($c, $pid, "STYLESHEET", "text/xml", $c->app->config->{phaidra}->{fedorastylesheeturl}, undef, "STYLESHEET label", "E", $username, $password);
+  	$r = $self->add_datastream($c, $pid, "STYLESHEET", "text/xml", $c->app->config->{phaidra}->{fedorastylesheeturl}, undef, undef, "E", $username, $password);
   	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
@@ -160,17 +164,21 @@ sub add_datastream {
 	my $dsid = shift;
 	my $mimetype = shift;
 	my $location = shift;
-	my $dscontent = shift;
 	my $label = shift;
+	my $dscontent = shift;
 	my $controlgroup = shift;
 	my $username = shift;
 	my $password = shift;
 	
-	my %params;	
+	my %params;
+	unless(defined($label)){	
+		# the label is mandatory when adding datastream
+		$label = "Created by phaidra-api";
+	}
     $params{controlGroup} = $controlgroup if $controlgroup;
     $params{dsLocation} = $location if $location;
     #$params{altIDs}
-    $params{dsLabel} = $label if $label;
+    $params{dsLabel} = $label;
     if($dsid eq 'COLLECTIONORDER'){
     	$params{versionable} = 0;
     }
@@ -271,19 +279,17 @@ sub modify_datastream {
 sub create_empty {
 	
 	my $self = shift;
-    my $c = shift;
-    my $contentmodel = shift;   
-    my $label = shift; 
+    my $c = shift; 
     my $username = shift;
     my $password = shift;
 
     my $res = { alerts => [], status => 200 };
         
-    $label = xml_escape $label if defined($label);
     $username = xml_escape $username;
     
     my %params;
-    $params{label} = $label if $label;
+    my $label = "Created by phaidra-api";
+    $params{label} = $label;	
     $params{format} = 'info:fedora/fedora-system:FOXML-1.1';
     $params{ownerId} = $username;
     $params{logMessage} = 'PhaidraAPI object/create_empty';
@@ -315,6 +321,7 @@ sub create_empty {
   		$res->{pid} = $r->body;
   	}else {
 	  my ($err, $code) = $put->error;
+	  $c->app->log->error("Cannot create fedora object: $code:".$err);
 	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
 	  $res->{status} =  $code ? $code : 500;
 	  return $res;
@@ -368,26 +375,13 @@ sub add_relationship {
 }
 =cut
 
-
-=cut
-
-    $r = $self->add_relationship($c, $pid, "info:fedora/fedora-system:def/model#hasModel", $contentmodel, undef, undef, $username, $password);
-	push @{$res->{alerts}}, $r->{alerts} if scalar $r->{alerts} > 0;
-    $res->{status} = $r->{status};
-    if($r->{status} ne 200){
-    	return $res;
-    }
-    
-=cut
 sub add_relationship {
 	
 	my $self = shift;
     my $c = shift;
     my $pid = shift;
     my $predicate = shift;
-    my $object = shift;
-    my $isliteral = shift;
-    my $datatype = shift;
+    my $object = shift;    
     my $username = shift;
     my $password = shift;
     
@@ -410,13 +404,13 @@ sub add_relationship {
 		return $res;
 	}
 	$c->app->log->debug("Connected");	
-	my $soapres = $soap->addRelationship($pid, SOAP::Data->type(string => $predicate), SOAP::Data->type(string => "info:fedora/$object"), SOAP::Data->type(boolean => 0), undef);
+	my $soapres = $soap->addRelationship($pid, SOAP::Data->type(string => $predicate), SOAP::Data->type(string => $object), SOAP::Data->type(boolean => 0), undef);
 	
 	if($soapres->fault)
 	{
-		$c->app->log->error("Saving UWMETADATA for $pid failed.");		
+		$c->app->log->error("Adding relationships for $pid failed: ".$soapres->faultcode.": ".$soapres->faultstring);		
 		$res->{status} = 500;	
-		unshift @{$res->{alerts}}, { type => 'danger', msg => "Saving UWMETADATA failed: ".$soapres->faultcode.": ".$soapres->faultstring};
+		unshift @{$res->{alerts}}, { type => 'danger', msg => "Adding relationships for $pid failed: ".$soapres->faultcode.": ".$soapres->faultstring};
 		return $res;
 	}
   	
@@ -461,7 +455,7 @@ sub add_relationships {
 			\SOAP::Data->value(
 				SOAP::Data->name("subject")->value($pid),
 				SOAP::Data->name("predicate")->value($r->{predicate})->type("string"),
-				SOAP::Data->name("object")->value("info:fedora/".$r->{object})->type("string"),
+				SOAP::Data->name("object")->value($r->{object})->type("string"),
 				SOAP::Data->name("isLiteral")->value(0)->type("boolean"),
 				SOAP::Data->name("datatype")->value(undef)
 			)
@@ -481,6 +475,50 @@ sub add_relationships {
   	
   	return $res;
 }
+
+# not REST for purgeRelationship in Fedora Commons 3.3
+sub purge_relationship {
+	
+	my $self = shift;
+    my $c = shift;
+    my $pid = shift;
+    my $predicate = shift;
+    my $object = shift;    
+    my $username = shift;
+    my $password = shift;
+    
+    my $res = { alerts => [], status => 200 };
+    
+    $c->app->log->debug("Connecting to ".$c->app->config->{phaidra}->{fedorabaseurl}."...");
+	my $phaidra = Phaidra::API->new(
+		$c->app->config->{phaidra}->{fedorabaseurl}, 
+		$c->app->config->{phaidra}->{staticbaseurl}, 
+		$c->app->config->{phaidra}->{fedorastylesheeturl}, 
+		$c->app->config->{phaidra}->{proaiRepositoryIdentifier}, 
+		$username, 
+		$password
+	);
+		
+	my $soap = $phaidra->getSoap("apim");
+	unless(defined($soap)){
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Cannot create SOAP connection to '.$c->app->config->{phaidra}->{fedorabaseurl}};
+		$res->{status} = 500;	
+		return $res;
+	}
+	$c->app->log->debug("Connected");	
+	my $soapres = $soap->purgeRelationship($pid, SOAP::Data->type(string => $predicate), SOAP::Data->type(string => $object), SOAP::Data->type(boolean => 0), undef);
+	
+	if($soapres->fault)
+	{
+		$c->app->log->error("Removing relationships for $pid failed:".$soapres->faultcode.": ".$soapres->faultstring);		
+		$res->{status} = 500;	
+		unshift @{$res->{alerts}}, { type => 'danger', msg => "Removing relationship for $pid failed:".$soapres->faultcode.": ".$soapres->faultstring};
+		return $res;
+	}
+  	
+  	return $res;
+}
+
 
 # this method is our hack in 3.3
 sub purge_relationships {
@@ -520,7 +558,7 @@ sub purge_relationships {
 			\SOAP::Data->value(
 				SOAP::Data->name("subject")->value($pid),
 				SOAP::Data->name("predicate")->value($r->{predicate})->type("string"),
-				SOAP::Data->name("object")->value("info:fedora/".$r->{object})->type("string"),
+				SOAP::Data->name("object")->value($r->{object})->type("string"),
 				SOAP::Data->name("isLiteral")->value(0)->type("boolean"),
 				SOAP::Data->name("datatype")->value(undef)
 			)

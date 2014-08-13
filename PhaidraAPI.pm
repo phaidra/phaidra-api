@@ -174,56 +174,64 @@ sub startup {
      
     my $r = $self->routes;
     $r->namespaces(['PhaidraAPI::Controller']);
+    
+    # PUT vs POST in this API: PUT should be idempotent
     		
-	$r->route('uwmetadata/tree')			  ->via('get')   ->to('uwmetadata#tree');
-	$r->route('uwmetadata/languages')		  ->via('get')   ->to('uwmetadata#languages');
-       $r->route('uwmetadata/json2xml')                  ->via('post')  ->to('uwmetadata#json2xml');
-       $r->route('uwmetadata/xml2json')                  ->via('post')  ->to('uwmetadata#xml2json');
+	$r->route('uwmetadata/tree')                    ->via('get')    ->to('uwmetadata#tree');
+	$r->route('uwmetadata/languages')               ->via('get')    ->to('uwmetadata#languages');
+    $r->route('uwmetadata/json2xml')                ->via('post')   ->to('uwmetadata#json2xml');
+    $r->route('uwmetadata/xml2json')                ->via('post')   ->to('uwmetadata#xml2json');
 	
-	$r->route('help/tooltip')		  	  ->via('get')   ->to('help#tooltip');		
+	$r->route('help/tooltip')                       ->via('get')    ->to('help#tooltip');		
 	
-	$r->route('directory/get_org_units')  	->via('get')   ->to('directory#get_org_units');
-	$r->route('directory/get_study')  		->via('get')   ->to('directory#get_study');
-	$r->route('directory/get_study_name')  	->via('get')   ->to('directory#get_study_name');
+	$r->route('directory/get_org_units')            ->via('get')    ->to('directory#get_org_units');
+	$r->route('directory/get_study')                ->via('get')    ->to('directory#get_study');
+	$r->route('directory/get_study_name')           ->via('get')    ->to('directory#get_study_name');
 	
-	$r->route('search/owner/:username')  ->via('get')   ->to('search#owner');
-	$r->route('search/collections/owner/:username')  ->via('get')   ->to('search#collections_owner');
-	$r->route('search/triples')  ->via('get')   ->to('search#triples');
-	$r->route('search')  ->via('get')   ->to('search#search');
+	$r->route('search/owner/:username')             ->via('get')    ->to('search#owner');
+	$r->route('search/collections/owner/:username') ->via('get')    ->to('search#collections_owner');
+	$r->route('search/triples')                     ->via('get')    ->to('search#triples');
+	$r->route('search')                             ->via('get')    ->to('search#search');
 
 	# CORS
-	$r->any('*')->via('OPTIONS')->to('authentication#cors_preflight');
+	$r->any('*')                                    ->via('options')->to('authentication#cors_preflight');
 	
-	$r->route('signin') 			  	->via('get')   ->to('authentication#signin');
-    $r->route('signout') 			->via('get')   ->to('authentication#signout');   
-    $r->route('keepalive') 			->via('get')   ->to('authentication#keepalive');   
+	$r->route('signin')                             ->via('get')    ->to('authentication#signin');
+    $r->route('signout')                            ->via('get')    ->to('authentication#signout');   
+    $r->route('keepalive')                          ->via('get')    ->to('authentication#keepalive');   
 
 	my $apiauth = $r->bridge->to('authentication#extract_credentials');
     
     unless($self->app->config->{readonly}){
-    	$apiauth->route('object/:pid/modify', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('put') ->to('object#modify');
-	$apiauth->route('object/:pid', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('delete') ->to('object#delete');
-	$apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('post') ->to('uwmetadata#post');
-	$apiauth->route('collection/create') ->via('post') ->to('collection#create');
-	$apiauth->route('collection/:pid/members') ->via('delete') ->to('collection#remove_collection_members');
-        $apiauth->route('collection/:pid/members') ->via('post') ->to('collection#add_collection_members');
-        $apiauth->route('collection/:pid/members') ->via('put') ->to('collection#set_collection_members');
-        $apiauth->route('collection/:pid/members/order') ->via('post') ->to('collection#order_collection_members');
-        $apiauth->route('collection/:pid/members/:itempid/order/:position') ->via('post') ->to('collection#order_collection_member');
+	   	$apiauth->route('object/:pid/modify')                               ->via('put')      ->to('object#modify');
+		$apiauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');
+		$apiauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');
+		$apiauth->route('object/create')                                    ->via('post')     ->to('object#create');
+		$apiauth->route('object/:pid/relationship')                         ->via('put')      ->to('object#add_relationship');		
+		$apiauth->route('object/:pid/relationship')                         ->via('delete')   ->to('object#purge_relationship');
+		$apiauth->route('object/:pid/datastream/:dsid')                     ->via('put')      ->to('object#add_datastream');
+		#$apiauth->route('object/:pid/data')                                ->via('put')      ->to('object#add_octets');
+		
+		$apiauth->route('collection/create')                                ->via('post')     ->to('collection#create');
+		$apiauth->route('collection/:pid/members')                          ->via('delete')   ->to('collection#remove_collection_members');
+        $apiauth->route('collection/:pid/members')                          ->via('post')     ->to('collection#add_collection_members');
+        $apiauth->route('collection/:pid/members')                          ->via('put')      ->to('collection#set_collection_members');
+        $apiauth->route('collection/:pid/members/order')                    ->via('post')     ->to('collection#order_collection_members');
+        $apiauth->route('collection/:pid/members/:itempid/order/:position') ->via('post')     ->to('collection#order_collection_member');
     }
     
     if($self->app->config->{allow_userdata_queries}){
-    	$apiauth->route('directory/user/:username/data')  	->via('get')   ->to('directory#get_user_data');
-   		$apiauth->route('directory/user/:username/name')  	->via('get')   ->to('directory#get_user_name');
-   		$apiauth->route('directory/user/:username/email')  	->via('get')   ->to('directory#get_user_email');
+    	$apiauth->route('directory/user/:username/data')                    ->via('get')      ->to('directory#get_user_data');
+   		$apiauth->route('directory/user/:username/name')                    ->via('get')      ->to('directory#get_user_name');
+   		$apiauth->route('directory/user/:username/email')                   ->via('get')      ->to('directory#get_user_email');
     }
 
-    $apiauth->route('object/:pid/uwmetadata', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('get') ->to('uwmetadata#get');
+    $apiauth->route('object/:pid/uwmetadata')                               ->via('get')      ->to('uwmetadata#get');
     
     # does not show inactive objects, not specific to collection (but does ordering)
-    $apiauth->route('object/:pid/related', pid => qr/[a-zA-Z\-]+:[0-9]+/) ->via('get') ->to('search#related');
+    $apiauth->route('object/:pid/related')                                  ->via('get')      ->to('search#related');
     
-    $apiauth->route('collection/:pid/members') ->via('get') ->to('collection#get_collection_members');
+    $apiauth->route('collection/:pid/members')                              ->via('get')      ->to('collection#get_collection_members');
 
 	return $self;
 }

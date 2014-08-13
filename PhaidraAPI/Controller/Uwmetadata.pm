@@ -44,13 +44,15 @@ sub get {
 	my $t1 = tv_interval($t0);	
 	#$self->stash( msg => "backend load took $t1 s");
 	
-    $self->render(json => { metadata => $res->{metadata}, languages => $languages}); #, alerts => [{ type => 'success', msg => $self->stash->{msg}}]});
+    $self->render(json => { uwmetadata => $res->{uwmetadata}, languages => $languages}); #, alerts => [{ type => 'success', msg => $self->stash->{msg}}]});
 }
 
 sub json2xml {
 	my $self = shift;  	
 	
-	my $t0 = [gettimeofday];
+	my $res = { alerts => [], status => 200 };
+	
+	#my $t0 = [gettimeofday];
 
 	my $v = $self->param('mfv');
 			
@@ -67,18 +69,19 @@ sub json2xml {
 	my $payload = $self->req->json;
 	my $uwmetadatajson = $payload->{uwmetadata};	
 	
-	
+	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;	
+	my $uwmetadataxml = $metadata_model->json_2_uwmetadata($self, $uwmetadatajson);
 
-	my $t1 = tv_interval($t0);	
-	$self->app->log->debug("json2xml took $t1 s");
+	#my $t1 = tv_interval($t0);	
+	#$self->app->log->debug("json2xml took $t1 s");	
 	
-	
+	$self->render(json => { alerts => $res->{alerts}, uwmetadata => $uwmetadataxml } , status => $res->{status});
 }
 
 sub xml2json {
 	my $self = shift;  	
 	
-	my $t0 = [gettimeofday];
+	#my $t0 = [gettimeofday];
 
 	my $v = $self->param('mfv');
 		
@@ -94,9 +97,13 @@ sub xml2json {
 
 	my $uwmetadataxml = $self->req->body;
 	
-
-	$self->app->log->debug("xml2json took $t1 s");
+	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;	
+	my $res = $metadata_model->uwmetadata_2_json($self, $v, $uwmetadataxml);
 	
+	#my $t1 = tv_interval($t0);	
+	#$self->app->log->debug("xml2json took $t1 s");
+	
+	$self->render(json => { $res } , status => $res->{status});
 	
 }
 
