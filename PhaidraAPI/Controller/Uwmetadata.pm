@@ -14,18 +14,7 @@ sub get {
 	
 	my $t0 = [gettimeofday];
 
-	my $v = $self->param('mfv');
 	my $pid = $self->stash('pid');
-	
-	# default
-	unless(defined($v)){
-		$v = '1';	
-	}
-	
-	unless($v eq '1'){		 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => 'Unsupported metadata format version specified' }]} , status => 400) ;		
-		return;
-	}	
 			
 	unless(defined($pid)){		
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;		
@@ -34,7 +23,7 @@ sub get {
 		
 	# get metadata datastructure
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;	
-	my $res= $metadata_model->get_object_metadata($self, $v, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+	my $res= $metadata_model->get_object_metadata($self, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 	if($res->{status} ne 200){
 		$self->render(json => { alerts => $res->{alerts} }, $res->{status});
 	}
@@ -53,18 +42,6 @@ sub json2xml {
 	my $res = { alerts => [], status => 200 };
 	
 	#my $t0 = [gettimeofday];
-
-	my $v = $self->param('mfv');
-			
-	# default
-	unless(defined($v)){
-		$v = '1';	
-	}
-	
-	unless($v eq '1'){		 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => 'Unsupported metadata format version specified' }]} , status => 400) ;		
-		return;
-	}
 	
 	my $payload = $self->req->json;
 	my $uwmetadatajson = $payload->{uwmetadata};	
@@ -83,22 +60,10 @@ sub xml2json {
 	
 	#my $t0 = [gettimeofday];
 
-	my $v = $self->param('mfv');
-		
-	# default
-	unless(defined($v)){
-		$v = '1';	
-	}
-	
-	unless($v eq '1'){		 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => 'Unsupported metadata format version specified' }]} , status => 400) ;		
-		return;
-	}
-
 	my $uwmetadataxml = $self->req->body;
 	
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;	
-	my $res = $metadata_model->uwmetadata_2_json($self, $v, $uwmetadataxml);
+	my $res = $metadata_model->uwmetadata_2_json($self, $uwmetadataxml);
 	
 	#my $t1 = tv_interval($t0);	
 	#$self->app->log->debug("xml2json took $t1 s");
@@ -112,21 +77,11 @@ sub post {
 	
 	my $t0 = [gettimeofday];
 
-	my $v = $self->param('mfv');
 	my $pid = $self->stash('pid');
 
 	my $payload = $self->req->json;
 	my $uwmetadata = $payload->{uwmetadata};		
 	
-	# default
-	unless(defined($v)){
-		$v = '1';	
-	}
-	
-	unless($v eq '1'){		 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => 'Unsupported metadata format version specified' }]} , status => 400) ;		
-		return;
-	}	
 			
 	unless(defined($pid)){		
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;		
@@ -138,13 +93,12 @@ sub post {
 		return;
 	}
 	
-	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
-	
+	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;	
 	my $res = $metadata_model->save_to_object($self, $pid, $uwmetadata, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 	
 	my $t1 = tv_interval($t0);	
 	if($res->{status} eq 200){		
-		unshift @{$res->{alerts}}, { type => 'success', msg => "UWMetadata for $pid saved successfuly"};
+		unshift @{$res->{alerts}}, { type => 'success', msg => "UWMETADATA for $pid saved successfuly"};
 	}
 	
 	$self->render(json => { alerts => $res->{alerts} } , status => $res->{status});
@@ -155,23 +109,11 @@ sub tree {
 	
 	my $t0 = [gettimeofday];
 	
-	my $v = $self->param('mfv');
-	
-	# default
-	unless(defined($v)){
-		$v = '1';	
-	}
-	
-	unless($v eq '1'){		 	
-		$self->render(json => { alerts => [{ type => 'danger', msg => 'Unsupported metadata format version specified' }]} , status => 400) ;		
-		return;
-	}	
-	
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
 	
 	my $languages = $metadata_model->get_languages($self);
 	
-	my $res = $metadata_model->metadata_tree($self, $v);
+	my $res = $metadata_model->metadata_tree($self);
 	if($res->{status} ne 200){
 		$self->render(json => { alerts => $res->{alerts} }, $res->{status});
 	}	

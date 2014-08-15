@@ -72,7 +72,7 @@ Prerequisities:
 		
 	Morbo:
 	
-	env MOJO_REVERSE_PROXY=1 /usr/local/bin/morbo -w PhaidraAPI -w PhaidraAPI.json -w PhaidraAPI.pm -w templates -w public -w lib phaidra-api.cgi
+	env MOJO_MAX_MESSAGE_SIZE=1073741824 MOJO_REVERSE_PROXY=1 /usr/local/bin/morbo -w PhaidraAPI -w PhaidraAPI.json -w PhaidraAPI.pm -w templates -w public -w lib phaidra-api.cgi
 	
 	Apache virtual host conf (among other stuff, eg SSLEngine config):
 	

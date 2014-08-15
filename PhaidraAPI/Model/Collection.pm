@@ -36,7 +36,7 @@ sub order {
 	if($sr->{'exists'}){
 		
 		my $object_model = PhaidraAPI::Model::Object->new;
-		my $r = $object_model->modify_datastream($c, $pid, "COLLECTIONORDER", "text/xml", undef, $xml, "collection order", $username, $password);
+		my $r = $object_model->modify_datastream($c, $pid, "COLLECTIONORDER", "text/xml", undef, undef, $xml, $username, $password);
 	  	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
 	    $res->{status} = $r->{status};
 	    if($r->{status} ne 200){
@@ -46,7 +46,7 @@ sub order {
 	}else{
 		
 		my $object_model = PhaidraAPI::Model::Object->new;
-		my $r = $object_model->add_datastream($c, $pid, "COLLECTIONORDER", "text/xml", undef, $xml, "collection order", "X", $username, $password);
+		my $r = $object_model->add_datastream($c, $pid, "COLLECTIONORDER", "text/xml", undef, undef, $xml, "X", $username, $password);
 	  	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
 	    $res->{status} = $r->{status};
 	    if($r->{status} ne 200){
@@ -90,9 +90,8 @@ sub create {
     #}		
     
     $c->app->log->debug("Adding metadata");
-    # add metadata (just uwmetadata now)
-    my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;	    
-	my $res_md = $metadata_model->save_to_object($c, $pid, $metadata, $username, $password);	
+    # add metadata (just uwmetadata now)   
+	my $res_md = $object_model->save_metadata($c, $pid, $metadata, $username, $password);	
 	if($res_md->{status} ne 200){		
 		return $res_md;
 	}

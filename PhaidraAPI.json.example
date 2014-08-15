@@ -59,7 +59,9 @@
     	
     	"password": "changeme",
     	
-    	"triplestore": "localMysqlMPTTriplestore"
+    	"triplestore": "localMysqlMPTTriplestore",
+    	
+    	"defaultlabel": "Created by phaidra-api"
     
     },              
     

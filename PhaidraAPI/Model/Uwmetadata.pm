@@ -22,11 +22,9 @@ $home->detect('PhaidraAPI');
 
 sub metadata_tree {
 	
-    my ($self, $c, $v) = @_;
+    my ($self, $c) = @_;
     
     my $res = { alerts => [], status => 200 };
- 	
- 	if($v eq '1'){
  		
  		if($c->app->config->{local_uwmetadata_tree}){
  			
@@ -52,7 +50,7 @@ sub metadata_tree {
 
 			$c->app->log->debug("Reading uwmetadata tree from cache");	
 			
-			my $cachekey = 'metadata_tree_'.$v;
+			my $cachekey = 'uwmetadata_tree';
 	 		my $cacheval = $c->app->chi->get($cachekey);
 	  		
 	  		my $miss = 1;
@@ -82,14 +80,7 @@ sub metadata_tree {
  		}
  			
 	 	return $res;
- 		
- 	}else{
- 		$c->stash( 'message' => 'Unknown metadata format version requested.');
- 		$c->app->log->error($c->stash->{'message'});
- 		unshift @{$res->{alerts}}, { type => 'danger', msg => $self->stash->{'message'} };
- 		$res->{status} = 500;
-		return $res;
- 	}
+ 	
   
 }
 
@@ -519,11 +510,11 @@ sub get_metadata_tree {
 
 sub uwmetadata_2_json {
 	
-	my ($self, $c, $v, $uwmetadata) = @_;
+	my ($self, $c, $uwmetadata) = @_;
 	
 	# this structure contains the metadata default structure (equals to empty uwmetadataeditor) to which
 	# we are going to load the data of some real object	
-	my $tree_res = $self->metadata_tree($c, $v); 
+	my $tree_res = $self->metadata_tree($c); 
 	if($tree_res->{status} ne 200){		
 		return $tree_res;
 	}
@@ -554,7 +545,7 @@ sub uwmetadata_2_json {
 
 sub get_object_metadata {
 	
-	my ($self, $c, $v, $pid, $username, $password) = @_;
+	my ($self, $c, $pid, $username, $password) = @_;
 
 	# get object metadata
 	my $res = $self->get_uwmetadata($c, $pid, $username, $password);
@@ -562,9 +553,10 @@ sub get_object_metadata {
 		return $res;
 	}	
 	
-	my $res = $self->uwmetadata_2_json($c, $v, $res->{uwmetadata});
 	
-	return { uwmetadata => $res->{uwmetadata}, status => 200 };
+	my $res = $self->uwmetadata_2_json($c, $res->{uwmetadata});
+	return { uwmetadata => $res->{uwmetadata}, status => 200 };	
+	
 }
 
 sub get_org_units_terms {
@@ -939,7 +931,7 @@ sub get_uwmetadata {
   	
   	if (my $r = $get->success) {
   		$res->{status} = 200;  
-  		$res->{uwmetadata} = $r->body;
+  		$res->{'uwmetadata'} = $r->body;
   	}
 	else 
 	{
@@ -1463,9 +1455,8 @@ sub save_uwmetadata(){
 	}
 	
 	if($sr->{'exists'}){
-		
 		my $object_model = PhaidraAPI::Model::Object->new;
-		my $r = $object_model->modify_datastream($c, $pid, "UWMETADATA", "text/xml", undef, $uwmetadata, $c->app->config->{phaidra}->{uwmetadatalabel}, $username, $password);
+		my $r = $object_model->modify_datastream($c, $pid, "UWMETADATA", "text/xml", undef, $c->app->config->{phaidra}->{uwmetadatalabel}, $uwmetadata, $username, $password);
 	  	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
 	    $res->{status} = $r->{status};
 	    if($r->{status} ne 200){
@@ -1473,9 +1464,8 @@ sub save_uwmetadata(){
 	    }
 		
 	}else{
-		
 		my $object_model = PhaidraAPI::Model::Object->new;
-		my $r = $object_model->add_datastream($c, $pid, "UWMETADATA", "text/xml", undef, $uwmetadata, $c->app->config->{phaidra}->{uwmetadatalabel}, "X", $username, $password);
+		my $r = $object_model->add_datastream($c, $pid, "UWMETADATA", "text/xml", undef, $c->app->config->{phaidra}->{uwmetadatalabel}, $uwmetadata, "X", $username, $password);
 	  	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
 	    $res->{status} = $r->{status};
 	    if($r->{status} ne 200){

@@ -248,27 +248,13 @@ sub create {
 	
 	my $self = shift;
 
-	my $label = $self->param('label');
-	my $v = $self->param('mfv');
-	
+	my $label = $self->param('label');	
+		
 	my $payload = $self->req->json;
-	my $uwmetadata = $payload->{uwmetadata};
-	my $rights = $payload->{rights};
-	my $members = $payload->{members};
-	
-	# default
-	unless(defined($v)){
-		$v = '1';	
-	}
+	my $uwmetadata = $payload->{metadata}->{uwmetadata};
+	my $rights = $payload->{metadata}->{rights};
+	my $members = $payload->{members};	
 
-	unless(defined($v)){		
-		$self->render(json => { alerts => [{ type => 'danger', msg => 'Unknown metadata format version specified' }]} , status => 500) ;
-		return;
-	}
-	unless($v eq '1'){		
-		$self->render(json => { alerts => [{ type => 'danger', msg => 'Unsupported metadata format version specified' }]} , status => 500) ;		
-		return;
-	}		
 	unless(defined($uwmetadata)){		
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata provided' }]} , status => 500) ;		
 		return;
@@ -276,27 +262,7 @@ sub create {
 
 	my $coll_model = PhaidraAPI::Model::Collection->new;
 	
-=cut	
-	$self->render_later;
-	my $delay = Mojo::IOLoop->delay( 
-	
-		sub {
-			my $delay = shift;
-			my $r = $coll_model->create($self, $label, $uwmetadata, $rights, $members, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, $delay->begin);		
-			$self->render(json => $r, status => $r->{status});					
-		},
-		
-		sub { 	
-	  		my ($delay, $r) = @_;	
-			$self->app->log->debug($self->app->dumper($r));			
-			$self->render(json => $r, status => $r->{status});	
-  		}
-	
-	);
-	$delay->wait unless $delay->ioloop->is_running;
-=cut	
-	
-	my $r = $coll_model->create($self, $label, $uwmetadata, $rights, $members, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});		
+	my $r = $coll_model->create($self, $label, $metadata, $rights, $members, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});		
 	$self->render(json => $r, status => $r->{status});
 }
 

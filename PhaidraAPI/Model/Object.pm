@@ -7,8 +7,14 @@ use base qw/Mojo::Base/;
 use Mojo::Util qw/xml_escape/;
 use lib "lib/phaidra_binding";
 use Phaidra::API;
+use Switch;
 my $home = Mojo::Home->new;
 $home->detect('PhaidraAPI');
+use PhaidraAPI::Model::Uwmetadata;
+
+my %datastream_versionable = (
+	'COLLECTIONORDER' => 0	
+);
 
 sub delete {
 	my $self = shift;
@@ -73,8 +79,6 @@ sub create {
     my $password = shift;
 
     my $res = { alerts => [], status => 200 };
-        
-    my $pid;
     
     $c->app->log->debug("Creating empty object");
     # create empty object
@@ -83,9 +87,10 @@ sub create {
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
     	return $res;
-    }	    
-  	$pid = $r->{pid};
-  	$c->app->log->debug("Created pid: $pid");
+    }	
+        
+  	my $pid = $r->{pid};  	
+  	$c->app->log->debug("Created object: $pid");
   	$res->{pid} = $pid;
   	    	  	    
   	my $oaiid = "oai:".$c->app->config->{phaidra}->{baseurl}.":".$pid;
@@ -121,6 +126,139 @@ sub create {
     }
     
   	return $res;
+}
+
+sub create_full {	
+	
+	my $self = shift;
+    my $c = shift;
+    my $cmodel = shift;    
+	my $metadata = shift;
+	my $mimetype = shift;	
+	my $file = shift;
+    my $username = shift;
+    my $password = shift;
+   	
+	my $res = { alerts => [], status => 200 };
+
+  	my $size = $file->size;
+  	my $name = $file->filename;
+  	
+  	$c->app->log->debug("Got file: $name [$size]");
+  			
+	unless(defined($metadata)){	
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'No metadata provided'};
+		$res->{status} = 400;
+		return $res;				
+	}
+	unless(defined($mimetype)){	
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Undefined mimetype'};
+		$res->{status} = 400;
+		return $res;	
+	}
+		
+	# create object		
+    my $r = $self->create($c, $cmodel, $username, $password);
+   	if($r->{status} ne 200){
+   		$res->{status} = 500;
+		unshift @{$res->{alerts}}, @{$r->{alerts}};
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error creating object'};
+   		return $res;
+   	}
+	
+	my $pid = $r->{pid};
+	$res->{pid} = $pid;
+	
+	# save metadata	
+	$r = $self->save_metadata($c, $pid, $metadata, $username, $password);
+	if($r->{status} ne 200){
+   		$res->{status} = 500;
+		unshift @{$res->{alerts}}, @{$r->{alerts}};
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving metadata'};   		
+   		return $res;	
+   	}
+   	
+   	# save data
+   	my %params;
+    $params{controlGroup} = 'M';
+    $params{dsLabel} = $c->app->config->{phaidra}->{defaultlabel};    
+    $params{mimeType} = $mimetype;
+    
+    my $url = Mojo::URL->new;
+	$url->scheme('https');
+	$url->userinfo("$username:$password");
+	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
+	$url->path("/fedora/objects/$pid/datastreams/OCTETS");
+	$url->query(\%params);
+	
+	my $ua = Mojo::UserAgent->new;
+	my $post = $ua->post($url => { 'Content-Type' => $mimetype } => form => { file => { file => $file->asset->path }} );
+		
+  	unless($r = $post->success) {    	
+	  my ($err, $code) = $post->error;
+	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+	  $res->{status} =  $code ? $code : 500;
+	  return $res;
+	}
+
+	# activate
+    my $r = $self->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
+    if($r->{status} ne 200){
+   		$res->{status} = 500;
+		unshift @{$res->{alerts}}, @{$r->{alerts}};
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error activating object'};   		
+   		return $res;	
+   	}
+   	
+   	return $res;
+}
+
+sub save_metadata {
+	
+	my $self = shift;
+	my $c = shift;
+	my $pid = shift;
+	my $metadata = shift; 
+	my $username = shift;
+	my $password = shift;	
+	
+	my $res = { alerts => [], status => 200 };
+	
+	my $found = 0;
+	foreach my $f (@{$metadata->{metadata}}){
+		
+		switch ($f) {
+			
+			case "uwmetadata" { 
+				my $uwmetadata = $f->{uwmetadata};
+				# save metadata
+				my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;	
+				my $r = $metadata_model->save_to_object($c, $pid, $uwmetadata, $username, $password);
+				if($r->{status} ne 200){
+			   		$res->{status} = 500;				
+					unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving uwmetadata'};	
+			   	}	
+			   	$found = 1;		 
+			}
+		
+			case "rights" { 
+				unshift @{$res->{alerts}}, { type => 'danger', msg => 'Saving rights not yet implemented'};
+				$found = 1;
+			}
+			
+			else { 
+				$found = 1;
+				unshift @{$res->{alerts}}, { type => 'danger', msg => 'Unknown or unsupported metadata format: $f' };	
+			}
+		}
+	}
+
+	unless($found){		
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'No metadata provided' };
+		$res->{status} = 400;	
+	}
+
+	return $res;		
 }
 
 sub get_datastream {
@@ -173,16 +311,15 @@ sub add_datastream {
 	my %params;
 	unless(defined($label)){	
 		# the label is mandatory when adding datastream
-		$label = "Created by phaidra-api";
+		$label = $c->app->config->{phaidra}->{defaultlabel};
 	}
     $params{controlGroup} = $controlgroup if $controlgroup;
     $params{dsLocation} = $location if $location;
     #$params{altIDs}
-    $params{dsLabel} = $label;
-    if($dsid eq 'COLLECTIONORDER'){
-    	$params{versionable} = 0;
-    }
-    #$params{versionable} = 1;
+    $params{dsLabel} = $label;    
+    if(defined($datastream_versionable{$dsid})){
+    	$params{versionable} = $datastream_versionable{$dsid};
+    }    
     $params{dsState} = 'A';
     #$params{formatURI}
     $params{checksumType} = 'DISABLED';
@@ -226,8 +363,8 @@ sub modify_datastream {
 	my $dsid = shift;
 	my $mimetype = shift;
 	my $location = shift;
-	my $dscontent = shift;
 	my $label = shift;
+	my $dscontent = shift;
 	my $username = shift;
 	my $password = shift;
 	
@@ -288,7 +425,7 @@ sub create_empty {
     $username = xml_escape $username;
     
     my %params;
-    my $label = "Created by phaidra-api";
+    my $label = $c->app->config->{phaidra}->{defaultlabel};
     $params{label} = $label;	
     $params{format} = 'info:fedora/fedora-system:FOXML-1.1';
     $params{ownerId} = $username;
@@ -326,6 +463,9 @@ sub create_empty {
 	  $res->{status} =  $code ? $code : 500;
 	  return $res;
 	}  
+	
+	
+	
 	return $res;
 }
 

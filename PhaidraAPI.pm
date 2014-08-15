@@ -206,11 +206,14 @@ sub startup {
 	   	$apiauth->route('object/:pid/modify')                               ->via('put')      ->to('object#modify');
 		$apiauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');
 		$apiauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');
-		$apiauth->route('object/create')                                    ->via('post')     ->to('object#create');
+		$apiauth->route('object/create')                                    ->via('post')     ->to('object#create_empty');
+		$apiauth->route('object/create/:cmodel')                            ->via('post')     ->to('object#create');
 		$apiauth->route('object/:pid/relationship')                         ->via('put')      ->to('object#add_relationship');		
 		$apiauth->route('object/:pid/relationship')                         ->via('delete')   ->to('object#purge_relationship');
 		$apiauth->route('object/:pid/datastream/:dsid')                     ->via('put')      ->to('object#add_datastream');
-		#$apiauth->route('object/:pid/data')                                ->via('put')      ->to('object#add_octets');
+		$apiauth->route('object/:pid/data')                                 ->via('put')      ->to('object#add_octets');
+		
+		$apiauth->route('picture/create')                                   ->via('post')     ->to('picture#create');
 		
 		$apiauth->route('collection/create')                                ->via('post')     ->to('collection#create');
 		$apiauth->route('collection/:pid/members')                          ->via('delete')   ->to('collection#remove_collection_members');
