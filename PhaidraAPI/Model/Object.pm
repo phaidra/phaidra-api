@@ -135,17 +135,15 @@ sub create_full {
     my $cmodel = shift;    
 	my $metadata = shift;
 	my $mimetype = shift;	
-	my $file = shift;
+	my $upload = shift;
     my $username = shift;
     my $password = shift;
    	
 	my $res = { alerts => [], status => 200 };
 
-  	my $size = $file->size;
-  	my $name = $file->filename;
+  	my $size = $upload->size;
+  	my $name = $upload->filename;
   	
-  	$c->app->log->debug("Got file: $name [$size]");  	
-  			
 	unless(defined($metadata)){	
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'No metadata provided'};
 		$res->{status} = 400;
@@ -179,6 +177,7 @@ sub create_full {
    	}
    	
    	# save data
+   	$c->app->log->debug("Saving octets: $name [$size B]");  	
    	my %params;
     $params{controlGroup} = 'M';
     $params{dsLabel} = $name;    
@@ -194,7 +193,7 @@ sub create_full {
 	my $ua = Mojo::UserAgent->new;
 	my $post;
 	
-	$post = $ua->post($url => { 'Content-Type' => $mimetype } => form => { file => { file => $file->asset->path }} );	
+	$post = $ua->post($url => { 'Content-Type' => $mimetype } => form => { file => { file => $upload->asset->path }} );	
 		
   	unless($r = $post->success) {    	
 	  my ($err, $code) = $post->error;
