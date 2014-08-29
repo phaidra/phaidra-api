@@ -181,7 +181,7 @@ sub create_full {
    	# save data
    	my %params;
     $params{controlGroup} = 'M';
-    $params{dsLabel} = $c->app->config->{phaidra}->{defaultlabel};    
+    $params{dsLabel} = $name;    
     $params{mimeType} = $mimetype;
     
     my $url = Mojo::URL->new;
