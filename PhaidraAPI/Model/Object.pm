@@ -144,7 +144,7 @@ sub create_full {
   	my $size = $file->size;
   	my $name = $file->filename;
   	
-  	$c->app->log->debug("Got file: $name [$size]");
+  	$c->app->log->debug("Got file: $name [$size]");  	
   			
 	unless(defined($metadata)){	
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'No metadata provided'};
@@ -192,7 +192,9 @@ sub create_full {
 	$url->query(\%params);
 	
 	my $ua = Mojo::UserAgent->new;
-	my $post = $ua->post($url => { 'Content-Type' => $mimetype } => form => { file => { file => $file->asset->path }} );
+	my $post;
+	
+	$post = $ua->post($url => { 'Content-Type' => $mimetype } => form => { file => { file => $file->asset->path }} );	
 		
   	unless($r = $post->success) {    	
 	  my ($err, $code) = $post->error;
