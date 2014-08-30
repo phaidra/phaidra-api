@@ -8,6 +8,7 @@ use Mojo::Util qw/xml_escape/;
 use lib "lib/phaidra_binding";
 use Phaidra::API;
 use Switch;
+use File::Temp 'tempfile';
 my $home = Mojo::Home->new;
 $home->detect('PhaidraAPI');
 use PhaidraAPI::Model::Uwmetadata;
@@ -193,7 +194,11 @@ sub create_full {
 	my $ua = Mojo::UserAgent->new;
 	my $post;
 	
-	$post = $ua->post($url => { 'Content-Type' => $mimetype } => form => { file => { file => $upload->asset->path }} );	
+	if($upload->asset->is_file){
+		$post = $ua->post($url => { 'Content-Type' => $mimetype } => form => { file => { file => $upload->asset->path }} );
+	}else{
+		$post = $ua->post($url => { 'Content-Type' => $mimetype } => form => { file => { file => $upload->asset }} );			
+	}
 		
   	unless($r = $post->success) {    	
 	  my ($err, $code) = $post->error;
