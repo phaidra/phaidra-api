@@ -192,13 +192,8 @@ sub create_full {
 	$url->query(\%params);
 	
 	my $ua = Mojo::UserAgent->new;
-	my $post;
-	
-	if($upload->asset->is_file){
-		$post = $ua->post($url => { 'Content-Type' => $mimetype } => form => { file => { file => $upload->asset->path }} );
-	}else{
-		$post = $ua->post($url => { 'Content-Type' => $mimetype } => form => { file => { file => $upload->asset }} );			
-	}
+
+	my $post = $ua->post($url => { 'Content-Type' => $mimetype } => form => { file => { file => $upload->asset }} );			
 		
   	unless($r = $post->success) {    	
 	  my ($err, $code) = $post->error;
