@@ -7,6 +7,7 @@ use base qw/Mojo::Base/;
 use Mojo::Util qw/xml_escape/;
 use lib "lib/phaidra_binding";
 use Phaidra::API;
+use PhaidraAPI::Model::Rights;
 use Switch;
 use File::Temp 'tempfile';
 my $home = Mojo::Home->new;
@@ -129,7 +130,7 @@ sub create {
   	return $res;
 }
 
-sub create_full {	
+sub create_simple {	
 	
 	my $self = shift;
     my $c = shift;
@@ -175,7 +176,7 @@ sub create_full {
 		unshift @{$res->{alerts}}, @{$r->{alerts}};
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving metadata'};   		
    		return $res;	
-   	}
+   	}   	
    	
    	# save data
    	$c->app->log->debug("Saving octets: $name [$size B]");  	
@@ -226,12 +227,13 @@ sub save_metadata {
 	my $res = { alerts => [], status => 200 };
 	
 	my $found = 0;
-	foreach my $f (@{$metadata->{metadata}}){
+
+	foreach my $f (keys %{$metadata->{metadata}}){
 		
 		switch ($f) {
 			
 			case "uwmetadata" { 
-				my $uwmetadata = $f->{uwmetadata};
+				my $uwmetadata = $metadata->{metadata}->{uwmetadata};
 				# save metadata
 				my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;	
 				my $r = $metadata_model->save_to_object($c, $pid, $uwmetadata, $username, $password);
@@ -243,7 +245,15 @@ sub save_metadata {
 			}
 		
 			case "rights" { 
-				unshift @{$res->{alerts}}, { type => 'danger', msg => 'Saving rights not yet implemented'};
+				my $rights = $metadata->{metadata}->{rights};
+				my $rights_model = PhaidraAPI::Model::Rights->new;						
+				my $xml = $rights_model->json_2_xml($c, $rights);		
+				$c->app->log->debug("Saving RIGHTS for $pid");		
+				my $r = $self->add_datastream($c, $pid, "RIGHTS", "text/xml", undef, "Phaidra Permissions", $xml, "X", $username, $password);
+			  	if($r->{status} ne 200){
+			   		$res->{status} = 500;				
+					unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving uwmetadata'};	
+			   	}
 				$found = 1;
 			}
 			

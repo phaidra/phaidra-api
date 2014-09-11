@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use v5.10;
 use base 'Mojolicious::Controller';
+use Mojo::JSON qw(encode_json decode_json);
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Search;
 
@@ -58,6 +59,43 @@ sub create_empty {
    	
    	$self->render(json => $r, status => $r->{status}) ;
 }
+
+sub create_simple {
+	
+	my $self = shift;
+	my $cmodel = shift;
+	
+	my $res = { alerts => [], status => 200 };
+
+	if($self->req->is_limit_exceeded){	
+    	$self->render(json => { alerts => [{ type => 'danger', msg => 'File is too big' }]}, status => 400);		
+		return;
+    }    
+    
+	my $metadata = scalar $self->param('metadata'); 	
+	$metadata = decode_json($metadata);	
+	my $mimetype = $self->param('mimetype');
+	my $upload = $self->req->upload('file');
+  	
+  	#$self->app->log->debug($self->app->dumper($upload->asset));
+  	
+	my $object_model = PhaidraAPI::Model::Object->new;		
+    my $r = $object_model->create_simple($self, $self->stash('cmodel'), $metadata, $mimetype, $upload, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+   	if($r->{status} ne 200){
+   		$res->{status} = 500;
+		unshift @{$res->{alerts}}, @{$r->{alerts}};
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error creating '.$self->stash('cmodel').' object'};
+   		$self->render(json => $res, status => $res->{status});
+   		return;	
+   	}
+   	
+   	unshift @{$res->{alerts}}, @{$r->{alerts}};
+	$res->{status} = $r->{status};
+	$res->{pid} = $r->{pid};
+	
+	$self->render(json => $res, status => $res->{status});
+}
+
 
 sub add_relationship {
 	

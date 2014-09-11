@@ -213,7 +213,10 @@ sub startup {
 		$apiauth->route('object/:pid/datastream/:dsid')                     ->via('put')      ->to('object#add_datastream');
 		$apiauth->route('object/:pid/data')                                 ->via('put')      ->to('object#add_octets');
 		
-		$apiauth->route('picture/create')                                   ->via('post')     ->to('picture#create');
+		$apiauth->route('picture/create')                                   ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Picture');
+		$apiauth->route('document/create')                                  ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:PDFDocument');
+		$apiauth->route('video/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Video');
+		$apiauth->route('audio/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Audio');
 		
 		$apiauth->route('collection/create')                                ->via('post')     ->to('collection#create');
 		$apiauth->route('collection/:pid/members')                          ->via('delete')   ->to('collection#remove_collection_members');
