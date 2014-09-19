@@ -169,16 +169,7 @@ sub create_simple {
 	my $pid = $r->{pid};
 	$res->{pid} = $pid;
 	
-	# save metadata	
-	$r = $self->save_metadata($c, $pid, $metadata, $username, $password);
-	if($r->{status} ne 200){
-   		$res->{status} = 500;
-		unshift @{$res->{alerts}}, @{$r->{alerts}};
-		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving metadata'};   		
-   		return $res;	
-   	}   	
-   	
-   	# save data
+   	# save data (first, because these may be needed (dsinfo..) when saving metadata)
    	$c->app->log->debug("Saving octets: $name [$size B]");  	
    	my %params;
     $params{controlGroup} = 'M';
@@ -202,6 +193,15 @@ sub create_simple {
 	  $res->{status} =  $code ? $code : 500;
 	  return $res;
 	}
+
+        # save metadata
+        $r = $self->save_metadata($c, $pid, $metadata, $username, $password);
+        if($r->{status} ne 200){
+                $res->{status} = 500;
+                unshift @{$res->{alerts}}, @{$r->{alerts}};
+                unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving metadata'};
+                return $res;
+        }
 
 	# activate
     my $r = $self->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
