@@ -11,6 +11,7 @@ use Data::Dumper;
 use Mojo::ByteStream qw(b);
 use Mojo::Home;
 use Mojo::JSON qw(encode_json decode_json);
+use Mojo::Util qw(encode decode);
 use XML::Writer;
 use XML::LibXML;
 use lib "lib/phaidra_binding";
@@ -1310,7 +1311,8 @@ sub json_2_uwmetadata(){
 		NAMESPACES => 1,
         PREFIX_MAP => $prefixmap,
         FORCED_NS_DECLS => $forced_declarations,
-        DATA_MODE => 1
+        DATA_MODE => 1,
+        ENCODING => 'utf-8'
 	);
 	
 	$writer->startTag(["http://phaidra.univie.ac.at/XML/metadata/V1.0", "uwmetadata"]);
@@ -1453,6 +1455,8 @@ sub save_uwmetadata(){
 		$res->{status} = $sr->{status}; 
 		return $res;
 	}
+
+	$uwmetadata = encode 'UTF-8', $uwmetadata;
 	
 	if($sr->{'exists'}){
 		my $object_model = PhaidraAPI::Model::Object->new;

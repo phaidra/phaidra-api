@@ -5,6 +5,7 @@ use warnings;
 use v5.10;
 use base 'Mojolicious::Controller';
 use Mojo::JSON qw(encode_json decode_json);
+use Mojo::Util qw(encode decode);
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Search;
 
@@ -72,8 +73,12 @@ sub create_simple {
 		return;
     }    
     
-	my $metadata = scalar $self->param('metadata'); 	
-	$metadata = decode_json($metadata);	
+	my $metadata = $self->param('metadata'); 	
+
+	$metadata = encode( 'UTF-8', $metadata);
+
+	$metadata = decode_json($metadata);
+
 	my $mimetype = $self->param('mimetype');
 	my $upload = $self->req->upload('file');
   	
