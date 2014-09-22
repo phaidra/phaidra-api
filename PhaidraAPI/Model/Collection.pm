@@ -63,15 +63,13 @@ sub create {
 	my $self = shift;
     my $c = shift;
     my $metadata = shift;
-    my $rights = shift;
-    my $members = shift;
+    my $members = shift;    
     my $username = shift;
     my $password = shift;
     #my $cb = shift;
     
     my $res = { alerts => [], status => 200 };
     
-    $c->app->log->debug("Creating empty object");
     # create object
     my $pid;
     my $object_model = PhaidraAPI::Model::Object->new;
@@ -81,16 +79,7 @@ sub create {
 	}
 	$pid = $res_create->{pid};
 	
-    # set rights
-    #if($rights){
-    #	my $res_rights = $object_model->set_rights($pid, $rights, $username, $password);
-    #	if($res_rights->{status} ne 200){		
-	#		return $res_rights;
-	#	}
-    #}		
-    
-    $c->app->log->debug("Adding metadata");
-    # add metadata (just uwmetadata now)   
+    $c->app->log->debug("Adding metadata");  
 	my $res_md = $object_model->save_metadata($c, $pid, $metadata, $username, $password);	
 	if($res_md->{status} ne 200){		
 		return $res_md;

@@ -1190,7 +1190,7 @@ sub validate_uwmetadata(){
 	if($@){
 		$c->app->log->error("Error validating uwmetadata: $@");
 		unshift @{$res->{alerts}}, { type => 'danger', msg => $@ };
-		$res->{status} = 500;		
+		$res->{status} = 400;		
 	}
 
 	return $res;
@@ -1429,7 +1429,7 @@ sub save_uwmetadata(){
 	}
 	unless($pid =~ m/^[a-zA-Z\-]+:[0-9]+$/){
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Malformed PID: $pid'};
-		$res->{status} = 500;	
+		$res->{status} = 400;	
 		return $res;
 	}
 	

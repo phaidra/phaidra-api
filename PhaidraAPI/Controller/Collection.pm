@@ -4,6 +4,8 @@ use strict;
 use warnings;
 use v5.10;
 use base 'Mojolicious::Controller';
+use Mojo::JSON qw(encode_json decode_json);
+use Mojo::Util qw(encode decode);
 use PhaidraAPI::Model::Collection;
 use PhaidraAPI::Model::Object;
 
@@ -248,21 +250,13 @@ sub create {
 	
 	my $self = shift;
 
-	my $label = $self->param('label');	
-		
-	my $payload = $self->req->json;
-	my $uwmetadata = $payload->{metadata}->{uwmetadata};
-	my $rights = $payload->{metadata}->{rights};
-	my $members = $payload->{members};	
+	my $payload = $self->req->json;	
+	my $members = $payload->{members};
+	my $metadata = $payload->{metadata};
 
-	unless(defined($uwmetadata)){		
-		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata provided' }]} , status => 500) ;		
-		return;
-	}
-
-	my $coll_model = PhaidraAPI::Model::Collection->new;
+	my $coll_model = PhaidraAPI::Model::Collection->new;	
+	my $r = $coll_model->create($self, $metadata, $members, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});		
 	
-	my $r = $coll_model->create($self, $label, $uwmetadata, $rights, $members, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});		
 	$self->render(json => $r, status => $r->{status});
 }
 

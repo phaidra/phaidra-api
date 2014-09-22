@@ -194,14 +194,14 @@ sub create_simple {
 	  return $res;
 	}
 
-        # save metadata
-        $r = $self->save_metadata($c, $pid, $metadata, $username, $password);
-        if($r->{status} ne 200){
-                $res->{status} = 500;
-                unshift @{$res->{alerts}}, @{$r->{alerts}};
-                unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving metadata'};
-                return $res;
-        }
+    # save metadata
+    $r = $self->save_metadata($c, $pid, $metadata->{metadata}, $username, $password);
+    if($r->{status} ne 200){
+        $res->{status} = 500;
+        unshift @{$res->{alerts}}, @{$r->{alerts}};
+        unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving metadata'};
+        return $res;
+    }
 
 	# activate
     my $r = $self->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
@@ -227,14 +227,13 @@ sub save_metadata {
 	my $res = { alerts => [], status => 200 };
 	
 	my $found = 0;
-
-	foreach my $f (keys %{$metadata->{metadata}}){
+	my $found_bib = 0;
+	foreach my $f (keys %{$metadata}){
 		
 		switch ($f) {
 			
 			case "uwmetadata" { 
-				my $uwmetadata = $metadata->{metadata}->{uwmetadata};
-				# save metadata
+				my $uwmetadata = $metadata->{uwmetadata};
 				my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;	
 				my $r = $metadata_model->save_to_object($c, $pid, $uwmetadata, $username, $password);
 				if($r->{status} ne 200){
@@ -242,17 +241,18 @@ sub save_metadata {
 					unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving uwmetadata'};	
 			   	}	
 			   	$found = 1;		 
+			   	$found_bib = 1;
 			}
 		
 			case "rights" { 
-				my $rights = $metadata->{metadata}->{rights};
+				my $rights = $metadata->{rights};
 				my $rights_model = PhaidraAPI::Model::Rights->new;						
 				my $xml = $rights_model->json_2_xml($c, $rights);		
 				$c->app->log->debug("Saving RIGHTS for $pid");		
 				my $r = $self->add_datastream($c, $pid, "RIGHTS", "text/xml", undef, "Phaidra Permissions", $xml, "X", $username, $password);
 			  	if($r->{status} ne 200){
 			   		$res->{status} = 500;				
-					unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving uwmetadata'};	
+					unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving rights'};	
 			   	}
 				$found = 1;
 			}
@@ -266,6 +266,11 @@ sub save_metadata {
 
 	unless($found){		
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'No metadata provided' };
+		$res->{status} = 400;	
+	}
+	
+	unless($found_bib){		
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'No bibliographical metadata provided' };
 		$res->{status} = 400;	
 	}
 
