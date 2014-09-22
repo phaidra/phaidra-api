@@ -262,7 +262,7 @@ sub create {
 
 	my $coll_model = PhaidraAPI::Model::Collection->new;
 	
-	my $r = $coll_model->create($self, $label, $metadata, $rights, $members, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});		
+	my $r = $coll_model->create($self, $label, $uwmetadata, $rights, $members, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});		
 	$self->render(json => $r, status => $r->{status});
 }
 
