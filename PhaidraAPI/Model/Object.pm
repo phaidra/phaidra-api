@@ -204,7 +204,7 @@ sub create_simple {
     }
 
 	# activate
-    my $r = $self->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
+    $r = $self->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
     if($r->{status} ne 200){
    		$res->{status} = 500;
 		unshift @{$res->{alerts}}, @{$r->{alerts}};

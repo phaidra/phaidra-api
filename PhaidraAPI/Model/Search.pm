@@ -545,7 +545,7 @@ sub search {
 		$sort = "$sort,".($reverse ? 'true' : 'false');
 	}
 
-	my $hitPageStart = $from;
+	my $hitPageStart = $from eq 0 ? 1 : $from;
 	my $hitPageSize = $limit;
 	my $snippetsMax = 0;
 	my $fieldMaxLength = 200;
@@ -561,8 +561,7 @@ sub search {
 	}
 	
 	if($limit ne 0 && $limit < 50){
-		my $res = $self->search_call($c, 'gfindObjects', $query, $hitPageStart, $hitPageSize, 200, $fieldMaxLength, $restXslt, $sortFields, $fields);
-		return $self->$cb($res);	
+		return $self->$cb($self->search_call($c, 'gfindObjects', $query, $hitPageStart, $hitPageSize, 200, $fieldMaxLength, $restXslt, $sortFields, $fields));	
 	}else{
 		# read in chunks	
 		my $sr;
@@ -571,12 +570,28 @@ sub search {
 		my $pagesize = 50; # default by gsearch anyway, so mostly it won't deliver more
 		my $total = 0;
 		my $read = 0;
-		my $done = 1;
+		my $done = 0;
 		my $i = 0;
 		my @objects;
-		while(!$done || $sr->{status} ne 200){
-			$i++;			
-			$done = 1;
+		while(!$done){
+			
+			$done = 1; # we'll set this to 0 later if it seems we are not finished
+			
+			$i++;
+			
+			if($i > 10000){
+				$c->app->log->warning("search loop reached 10000 iterations, possibly infinite cycle");
+			}
+			
+			#my $log;			
+			#$log->{from} = $from;
+			#$log->{pagesize} = $pagesize;
+			#$log->{total} = $total;
+			#$log->{'read'} = $read;
+			#$log->{done} = $done;
+			#$log->{i} = $i;
+			#$log->{limit} = $limit;			
+			#$c->app->log->debug($c->app->dumper($log));
 			
 			if(($read+$pagesize) > $limit && $limit ne 0){				
 				$pagesize = $limit-$read;				
@@ -597,11 +612,14 @@ sub search {
 						$done = 0;	
 					}
 				}else{
-					# we read until limit
-					if($read < $limit){
+					# we read until limit or until total, if its lower
+					if(($read < $limit) && ($read < $total)){
 						$done = 0;	
 					}
 				}
+			}else{
+				$done = 1; # should be already anyway
+				unshift @{$res->{alerts}}, $sr->{alerts};
 			}
 		}
 		$res->{status} = $sr->{status};

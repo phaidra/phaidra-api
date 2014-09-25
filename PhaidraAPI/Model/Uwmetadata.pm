@@ -555,7 +555,7 @@ sub get_object_metadata {
 	}	
 	
 	
-	my $res = $self->uwmetadata_2_json($c, $res->{uwmetadata});
+	$res = $self->uwmetadata_2_json($c, $res->{uwmetadata});
 	return { uwmetadata => $res->{uwmetadata}, status => 200 };	
 	
 }
