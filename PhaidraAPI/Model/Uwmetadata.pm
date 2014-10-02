@@ -1044,14 +1044,16 @@ sub fix_uwmetadata() {
 	unless($n){
 		# $metadata[1] - lifecycle
 		my $ch = @{$metadata}[1]->{'children'};		
-		my $now = strftime("%Y-%m-%dT%H:%M:%S.000Z", localtime);
 		# index 0, upload_date is first
 		splice(@{$ch}, 0, 0, {
 	    	xmlns => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0",
 	        xmlname => "upload_date",
 	        datatype => "DateTime",
-	        ui_value => $now
+	        ui_value => strftime("%Y-%m-%dT%H:%M:%S.000Z", localtime)
 	    });	
+	}
+	if($n->{ui_value} eq ''){
+		$n->{ui_value} = strftime("%Y-%m-%dT%H:%M:%S.000Z", localtime)
 	}
 	
 	# add and set status if not there
@@ -1066,6 +1068,9 @@ sub fix_uwmetadata() {
 	        datatype => "Vocabulary",
 	        ui_value => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_2/44"
 	    });	
+	}
+	if($n->{ui_value} eq ''){
+		$n->{ui_value} = "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_2/44";
 	}
 	
 	# find the index of rights tab
@@ -1089,6 +1094,9 @@ sub fix_uwmetadata() {
 	        datatype => "Boolean",
 	        ui_value => 0
 	    });	
+	}
+	if($n->{ui_value} eq ''){
+		$n->{ui_value} = 0;
 	}	
 	
 	# add and set copyright if not there
@@ -1103,6 +1111,9 @@ sub fix_uwmetadata() {
 	        ui_value => 1
 	    });	
 	}	
+	if($n->{ui_value} eq ''){
+		$n->{ui_value} = 1;
+	}
 	
 	# add empty classification node if missing
 	my $found = undef;

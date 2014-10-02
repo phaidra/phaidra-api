@@ -9,6 +9,8 @@ use lib "lib/phaidra_binding";
 use Phaidra::API;
 use PhaidraAPI::Model::Rights;
 use Switch;
+use IO::Scalar;
+use File::MimeInfo;
 use File::Temp 'tempfile';
 my $home = Mojo::Home->new;
 $home->detect('PhaidraAPI');
@@ -130,6 +132,27 @@ sub create {
   	return $res;
 }
 
+sub get_mimetype(){
+	my ($self, $c, $asset) = @_;
+	my $mimetype = undef;
+	
+	if($asset->is_file){
+		# todo: maybe it won't be bad to look into the request headers as well
+		
+		$mimetype = File::MimeInfo::Magic::magic($asset->path);
+		unless(defined($mimetype)){			
+			$mimetype = File::MimeInfo::Magic::globs($asset->path);
+			unless(defined($mimetype)){
+			    $mimetype = mimetype($asset->path);
+			} 
+		}
+	}else{
+		$mimetype = File::MimeInfo::Magic::magic(new IO::Scalar($asset->slurp));
+	}
+
+	return $mimetype;
+}
+
 sub create_simple {	
 	
 	my $self = shift;
@@ -150,12 +173,7 @@ sub create_simple {
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'No metadata provided'};
 		$res->{status} = 400;
 		return $res;				
-	}
-	unless(defined($mimetype)){	
-		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Undefined mimetype'};
-		$res->{status} = 400;
-		return $res;	
-	}
+	}	
 		
 	# create object		
     my $r = $self->create($c, $cmodel, $username, $password);
@@ -169,12 +187,16 @@ sub create_simple {
 	my $pid = $r->{pid};
 	$res->{pid} = $pid;
 	
-   	# save data (first, because these may be needed (dsinfo..) when saving metadata)
+   	# save data first, because these may be needed (dsinfo..) when saving metadata
    	$c->app->log->debug("Saving octets: $name [$size B]");  	
    	my %params;
     $params{controlGroup} = 'M';
-    $params{dsLabel} = $name;    
-    $params{mimeType} = $mimetype;
+    $params{dsLabel} = $name;           
+    unless(defined($mimetype)){	
+    	$mimetype = $self->get_mimetype($c, $upload->asset);
+		unshift @{$res->{alerts}}, { type => 'info', msg => "Undefined mimetype, using magic: $mimetype" };
+	}
+	$params{mimeType} = $mimetype;
     
     my $url = Mojo::URL->new;
 	$url->scheme('https');
