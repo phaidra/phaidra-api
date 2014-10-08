@@ -24,7 +24,7 @@ $home->detect('PhaidraAPI');
 sub metadata_tree {
 	
     my ($self, $c) = @_;
-    
+    $self->get_metadata_tree($c);		
     my $res = { alerts => [], status => 200 };
  		
  		if($c->app->config->{local_uwmetadata_tree}){
@@ -374,7 +374,7 @@ sub get_metadata_tree {
 			$vocabulary{description} = $desc;
 			
 			# there's none, i'm fabricating this
-			$vocabulary{namespace} = $element->{xmlns}.'/voc_'.$element->{vid}.'/';
+			$vocabulary{namespace} = $element->{xmlns}.'/voc_'.$element->{vid}.'/';			
 			
 			# get vocabulary values/codes
 			$ss = qq/SELECT veid, entry, isocode FROM vocabulary_entry WHERE vid = (?);/;

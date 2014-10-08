@@ -80,8 +80,7 @@ sub post {
 	my $pid = $self->stash('pid');
 
 	my $payload = $self->req->json;
-	my $uwmetadata = $payload->{uwmetadata};		
-	
+	my $uwmetadata = $payload->{uwmetadata};			
 			
 	unless(defined($pid)){		
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;		

@@ -192,6 +192,10 @@ sub startup {
 	$r->route('search/collections/owner/:username') ->via('get')    ->to('search#collections_owner');
 	$r->route('search/triples')                     ->via('get')    ->to('search#triples');
 	$r->route('search')                             ->via('get')    ->to('search#search');
+	
+	$r->route('terms/label')                   		->via('get')    ->to('terms#label');
+	$r->route('terms/children')                		->via('get')    ->to('terms#children');
+	$r->route('terms/search')                       ->via('get')    ->to('terms#search');
 
 	# CORS
 	$r->any('*')                                    ->via('options')->to('authentication#cors_preflight');
