@@ -24,7 +24,7 @@ $home->detect('PhaidraAPI');
 sub metadata_tree {
 	
     my ($self, $c) = @_;
-    $self->get_metadata_tree($c);		
+
     my $res = { alerts => [], status => 200 };
  		
  		if($c->app->config->{local_uwmetadata_tree}){
