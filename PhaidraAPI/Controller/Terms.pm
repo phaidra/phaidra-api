@@ -201,7 +201,6 @@ sub children {
 		my %classes;
 		my %isocodes;
 		while($sth->fetch){
-			$self->app->log->debug("$vid, $entry, $isocode");
 			$classes{$vid}{$isocode} = $entry;
 			$isocodes{$isocode} = 1;
 		}
@@ -229,9 +228,9 @@ sub children {
 	my %isocodes;	
 	my $ss = "SELECT t.tid, t.upstream_identifier, tv.term_id, ve.entry, ve.isocode, tv.preferred FROM taxon t LEFT JOIN taxon_vocentry tv ON tv.tid = t.tid LEFT JOIN vocabulary_entry ve ON tv.veid = ve.veid WHERE t.cid = (?)";
 	if($r->{tid}){
-		$ss .= "AND t.tid_parent = (?);"	
+		$ss .= "AND t.tid_parent = (?);";
 	}else{
-		$ss .= "AND t.tid_parent IS NULL;"
+		$ss .= "AND t.tid_parent IS NULL;";
 	}
 	my $sth = $self->app->db_metadata->prepare($ss) or $self->app->log->error($self->app->db_metadata->errstr);
 	if($r->{tid}){
@@ -288,5 +287,74 @@ sub children {
 	$self->render(json => $res, status => $res->{status});
 }
 
+sub search {
+	
+    my $self = shift;  
+    
+    my $res = { alerts => [], status => 200 };	
+
+	my $q = $self->param('q');
+	
+	# get a list of all classifications
+	my ($cid, $vid, $entry, $isocode);
+	my $ss = "SELECT c.cid, c.vid, ve.entry, ve.isocode FROM classification_db c LEFT JOIN vocabulary_entry ve on c.veid = ve.veid;";
+	my $sth = $self->app->db_metadata->prepare($ss) or $self->app->log->error($self->app->db_metadata->errstr);
+	$sth->execute();
+	$sth->bind_columns(undef, \$cid, \$vid, \$entry, \$isocode);		
+	my %classes;
+	my %isocodes;
+	while($sth->fetch){	
+		$classes{$cid}{$isocode} = $entry;
+		$classes{$cid}{vid} = $vid;
+		$isocodes{$isocode} = 1;
+	}
+	$sth->finish;
+    
+    my @classes;
+    foreach my $cid (keys %classes){
+    	
+    	my %class;
+    	$class{uri} = "$classification_ns/voc_$vid";
+    	foreach my $iso (keys %isocodes){
+    		 $class{$iso} = $classes{$cid}{$iso};
+    	}
+    	
+    	# get search results for each classification
+    	my $limit = $self->app->{config}->{terms}->{search_results_limit};
+    	my ($veid, $isocode, $entry ,$vid, $tid, $upstream_identifier, $term_id, $preferred);
+    	$ss = "SELECT ve.veid, ve.isocode, ve.entry, ve.vid, t.tid, t.upstream_identifier, tv.term_id, tv.preferred FROM vocabulary_entry ve LEFT JOIN taxon_vocentry tv ON ve.veid = tv.veid LEFT JOIN taxon t on tv.tid = t.tid  WHERE MATCH (entry) AGAINST(?) AND tv.TID IS NOT NULL AND t.cid = (?) LIMIT $limit;";
+		$sth = $self->app->db_metadata->prepare($ss) or $self->app->log->error($self->app->db_metadata->errstr);
+		$sth->execute($q, $cid);
+		$sth->bind_columns(undef, \$veid, \$isocode, \$entry ,\$vid, \$tid, \$upstream_identifier, \$term_id, \$preferred);
+		my %terms;
+		while($sth->fetch){		
+			
+			#$self->app->log->debug("veid=$veid iso=$isocode entry=$entry vid=$vid tid=$tid upid=$upstream_identifier term=$term_id pref=$preferred");
+
+			$terms{$tid.$term_id}{upstream_identifier} = $upstream_identifier;
+			$terms{$tid.$term_id}{vid} = $vid;
+			$terms{$tid.$term_id}{preferred} = $preferred;
+			$terms{$tid.$term_id}{term_id} = $term_id;
+			$terms{$tid.$term_id}{$isocode} = $entry;
+			$terms{$tid.$term_id}{tid} = $tid; # we will make it array later
+			$isocodes{$isocode} = 1;
+		}		
+				
+		# make array
+		my @terms;
+		foreach my $id (keys %terms){
+			push @terms, $terms{$id};
+		}
+				
+		$class{terms} = \@terms;	
+		
+		push @classes, \%class;	
+	}		
+	$sth->finish;
+	undef $sth;
+	
+	$res->{terms} = \@classes;
+	$self->render(json => $res, status => $res->{status});
+}
 
 1;

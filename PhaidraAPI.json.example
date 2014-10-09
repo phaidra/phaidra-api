@@ -27,6 +27,10 @@
     "validate_uwmetadata":"1",
     
     "local_uwmetadata_tree":"1",
+    
+    "terms": {
+    	"search_results_limit": 50
+    },
       
 	"directory_class": "Phaidra::Directory::Univie",
 	
