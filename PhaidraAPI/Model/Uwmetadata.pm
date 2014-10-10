@@ -18,6 +18,7 @@ use lib "lib/phaidra_binding";
 use Phaidra::API;
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Search;
+use PhaidraAPI::Model::Terms;
 my $home = Mojo::Home->new;
 $home->detect('PhaidraAPI');
 
@@ -540,8 +541,71 @@ sub uwmetadata_2_json {
     }
 
 	$self->fill_object_metadata($c, $dom, $metadata_tree, undef, $nsmap, \%metadata_nodes_hash);
+	
+	# fix taxonpath nodes (we first needed them filled)
+	$self->fix_taxonpath_nodes($c, $metadata_tree);
 
 	return { alerts => [], uwmetadata => $metadata_tree, status => 200 };
+}
+
+# for 'source' and 'taxon' nodes set the values to include namespace & classification id 
+# also fill in the classification name labels and taxon labels
+sub fix_taxonpath_nodes {
+	my ($self, $c, $metadata_tree) = @_;
+	
+	my $cls_node = $self->get_json_node($c, 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0', 'classification', $metadata_tree);
+	
+	return unless $cls_node;
+	return unless $cls_node->{children};
+	
+	my $terms_model = PhaidraAPI::Model::Terms->new;
+	
+	foreach my $cls_child (@{$cls_node->{children}}){
+		if($cls_child->{xmlname} eq 'taxonpath'){
+			if($cls_child->{children}){
+				
+				# change value of the 'source' and remember the old value (classification id)
+				my $cls_id;	
+				foreach my $taxpath_child (@{$cls_child->{children}}){									
+					if($taxpath_child->{xmlname} eq 'source'){
+						$cls_id = $taxpath_child->{ui_value};
+						my $source_val = $PhaidraAPI::Model::Terms::classification_ns."/cls_$cls_id";
+						$taxpath_child->{value} = $source_val; 
+		    			$taxpath_child->{loaded_value} = $source_val;
+		    			$taxpath_child->{ui_value} = $source_val;
+		    			$taxpath_child->{loaded_ui_value} = $source_val;
+		    			
+		    			my $r = $terms_model->label($c, $source_val);
+		    			if($r->{status} eq 200){
+		    				$taxpath_child->{value_labels} = $r->{labels};
+		    			}else{
+		    				$c->app->log->error("Could not get terms for $source_val: ".$c->app->dumper($r))	
+		    			}
+		    			
+					}								
+				}
+				
+				# use the classification id to update the taxon values
+				foreach my $taxpath_child (@{$cls_child->{children}}){									
+					if($taxpath_child->{xmlname} eq 'taxon'){
+						my $tax_id = $taxpath_child->{ui_value};
+						my $tax_val = $PhaidraAPI::Model::Terms::classification_ns."/cls_$cls_id/$tax_id";
+						$taxpath_child->{value} = $tax_val; 
+		    			$taxpath_child->{loaded_value} = $tax_val;
+		    			$taxpath_child->{ui_value} = $tax_val;
+		    			$taxpath_child->{loaded_ui_value} = $tax_val;
+		    			
+		    			my $r = $terms_model->label($c, $tax_val);
+		    			if($r->{status} eq 200){
+		    				$taxpath_child->{value_labels} = $r->{labels};
+		    			}else{
+		    				$c->app->log->error("Could not get terms for $tax_val: ".$c->app->dumper($r))	
+		    			}
+					}								
+				}
+			}			
+		}
+	} 
 }
 
 sub get_object_metadata {
@@ -677,10 +741,6 @@ sub fill_object_metadata {
 
 			if($e->text){
 	    		# fill in values
-	    		#
-	    		# if the node has a vocabulary, then it's a select box 
-	    		# so there is a difference between
-	    		# value (value) and text (ui_value)    		
 	    		if(defined($node->{vocabularies})){
 	    			
 	    			foreach my $voc (@{$node->{vocabularies}}){
@@ -704,8 +764,7 @@ sub fill_object_metadata {
 							    			foreach my $voc (@{$node->{vocabularies}}){
 							    				$voc->{terms} = $self->get_org_units_terms($c, $faculty->text, "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_department/");	
 							    			}
-							    		}
-							    		
+							    		}							    		
 							    	}
 							    	last;
 							    }
