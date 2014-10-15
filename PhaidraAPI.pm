@@ -61,6 +61,7 @@ sub startup {
 				dsn      => $config->{phaidra_db}->{dsn},
                 username => $config->{phaidra_db}->{username},
                 password => $config->{phaidra_db}->{password},
+                options  => { mysql_auto_reconnect => 1}
     };
 
 	if($config->{phaidra}->{triplestore} eq 'localMysqlMPTTriplestore'){
@@ -68,6 +69,7 @@ sub startup {
 				dsn      => $config->{localMysqlMPTTriplestore}->{dsn},
                 username => $config->{localMysqlMPTTriplestore}->{username},
                 password => $config->{localMysqlMPTTriplestore}->{password},
+                options  => { mysql_auto_reconnect => 1}
     	};
 	}           
 

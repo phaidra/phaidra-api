@@ -233,15 +233,15 @@ sub children {
 	
 	unless($r->{cid}){
 		# no vocabulary id specified, return all the classification ids
-		my ($vid, $entry, $isocode);
-		my $ss = "SELECT c.vid, ve.entry, ve.isocode FROM classification_db c LEFT JOIN vocabulary_entry ve on c.veid = ve.veid;";
+		my ($cid, $entry, $isocode);
+		my $ss = "SELECT c.cid, ve.entry, ve.isocode FROM classification_db c LEFT JOIN vocabulary_entry ve on c.veid = ve.veid;";
 		my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
 		$sth->execute();
-		$sth->bind_columns(undef, \$vid, \$entry, \$isocode);		
+		$sth->bind_columns(undef, \$cid, \$entry, \$isocode);		
 		my %classes;
 		my %isocodes;
 		while($sth->fetch){
-			$classes{$vid}{$isocode} = $entry;
+			$classes{$cid}{$isocode} = $entry;
 			$isocodes{$isocode} = 1;
 		}
 		$sth->finish;
@@ -249,11 +249,11 @@ sub children {
 
     	# create an array (just as in the metadata tree)
     	my @classes;
-    	foreach my $vid (keys %classes){
+    	foreach my $cid (keys %classes){
     		my %class;
-    		$class{uri} = "$classification_ns/voc_$vid";
+    		$class{uri} = "$classification_ns/cls_$cid";
     		foreach my $iso (keys %isocodes){
-    			 $class{$iso} = $classes{$vid}{$iso};
+    			 $class{$iso} = $classes{$cid}{$iso};
     		}
     		push @classes, \%class;
     	}
@@ -299,7 +299,7 @@ sub children {
     # create an array (just as in the metadata tree)
     foreach my $tid (keys %children){
     	my %child;
-    	$child{uri} = $r->{xmlns}.'/voc_'.$r->{vid}.'/'.$tid;    	
+    	$child{uri} = $r->{xmlns}.'/cls_'.$r->{cid}.'/'.$tid;    	
     	$child{upstream_identifier} = $children{$tid}{upstream_identifier};        	
     	foreach my $iso (keys %isocodes){
     		if($children{$tid}{preferred}{$iso}){    		

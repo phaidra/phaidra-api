@@ -577,6 +577,7 @@ sub fix_taxonpath_nodes {
 		    			
 		    			my $r = $terms_model->label($c, $source_val);
 		    			if($r->{status} eq 200){
+		    				#$c->app->log->debug($c->app->dumper($r));
 		    				$taxpath_child->{value_labels} = $r->{labels};
 		    			}else{
 		    				$c->app->log->error("Could not get terms for $source_val: ".$c->app->dumper($r))	
@@ -597,6 +598,7 @@ sub fix_taxonpath_nodes {
 		    			
 		    			my $r = $terms_model->label($c, $tax_val);
 		    			if($r->{status} eq 200){
+		    				#$c->app->log->debug($c->app->dumper($r));
 		    				$taxpath_child->{value_labels} = $r->{labels};
 		    			}else{
 		    				$c->app->log->error("Could not get terms for $tax_val: ".$c->app->dumper($r))	
@@ -1465,6 +1467,20 @@ sub json_2_uwmetadata_rec(){
 				if($child->{value} =~ m/($child->{xmlns})\/voc_(\d+)\/(\w+)/){					
 					$writer->characters($3);
 				}
+				
+			}elsif($child->{datatype} eq 'ClassificationSource'){
+			
+				# eg http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/cls_7
+				if($child->{value} =~ m/($child->{xmlns})\/cls_(\d+)/){					
+					$writer->characters($2);
+				}
+				
+			}elsif($child->{datatype} eq 'Taxon'){
+			
+				# http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/cls_7/169426
+				if($child->{value} =~ m/($child->{xmlns})\/cls_(\d+)\/(\w+)/){					
+					$writer->characters($3);
+				}			
 			
 			}else{
 				if($child->{datatype} eq 'Boolean'){
