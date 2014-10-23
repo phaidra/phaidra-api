@@ -154,47 +154,54 @@ sub get_members {
 		$members{$1} = { 'pos' => undef };
 	}
 	
-	# get order definition
-	my $object_model = PhaidraAPI::Model::Object->new;
-	my $ores = $object_model->get_datastream($c, $pid, 'COLLECTIONORDER', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});	
-	if($ores->{status} eq 404){
-		$c->app->log->info("COLLECTIONORDER for pid $pid not defined");
-		my @not_ordered_members;
-		foreach my $p (keys %members){
-			push @not_ordered_members, { pid => $p, 'pos' =>  undef};
+	# check order definition
+	my $search_model = PhaidraAPI::Model::Search->new;
+	my $sr = $search_model->datastream_exists($c, $pid, 'COLLECTIONORDER');
+	if($sr->{status} ne 200){
+		$c->app->log->error("Cannot find out if COLLECTIONORDER exists for pid: $pid and username: ".$c->stash->{basic_auth_credentials}->{username}); 
+	}else{
+		if($sr->{'exists'}){
+			my $object_model = PhaidraAPI::Model::Object->new;
+			my $ores = $object_model->get_datastream($c, $pid, 'COLLECTIONORDER', undef, undef, 1);
+			if($ores->{status} ne 200){	
+				$c->app->log->error("Cannot get COLLECTIONORDER for pid: $pid and username: ".$c->stash->{basic_auth_credentials}->{username}); 
+			}else{
+				push @{$res->{alerts}}, $ores->{alerts} if scalar @{$ores->{alerts}} > 0;
+				$res->{status} = $ores->{status};
+				
+				my $xml = Mojo::DOM->new($ores->{COLLECTIONORDER});		
+				$xml->find('member[pos]')->each(sub { 
+					my $m = shift;
+					my $pid = $m->text;
+					$members{$pid}->{'pos'} = $m->{'pos'};		
+				});
+				
+				my @ordered_members;
+				foreach my $p (keys %members){
+					push @ordered_members, { pid => $p, 'pos' =>  $members{$p}->{'pos'}};
+				}
+				
+				sub undef_sort {
+				  return 1 unless(defined($a->{'pos'}));
+				  return -1 unless(defined($b->{'pos'}));	
+				  return $a->{'pos'} <=> $b->{'pos'};
+				}
+				@ordered_members = sort undef_sort @ordered_members; 	
+				
+				$res->{members} = \@ordered_members;
+				return $res;
+			}
 		}
-		$res->{members} = \@not_ordered_members;
-		return $res; 
-	}	
-	push @{$res->{alerts}}, $ores->{alerts} if scalar @{$ores->{alerts}} > 0;
-	$res->{status} = $ores->{status};
-	if($ores->{status} ne 200){	
-		$c->app->log->error("Cannot get COLLECTIONORDER for pid: $pid and username: ".$c->stash->{basic_auth_credentials}->{username});
-		return $res;  
-	}	
+	}
 	
-	# order members
-	my $xml = Mojo::DOM->new($ores->{COLLECTIONORDER});		
-	$xml->find('member[pos]')->each(sub { 
-		my $m = shift;
-		my $pid = $m->text;
-		$members{$pid}->{'pos'} = $m->{'pos'};		
-	});	
-
-	my @ordered_members;
+	# return non-ordered members	
+	my @not_ordered_members;
 	foreach my $p (keys %members){
-		push @ordered_members, { pid => $p, 'pos' =>  $members{$p}->{'pos'}};
+		push @not_ordered_members, { pid => $p, 'pos' =>  undef};
 	}
-	
-	sub undef_sort {
-	  return 1 unless(defined($a->{'pos'}));
-	  return -1 unless(defined($b->{'pos'}));	
-	  return $a->{'pos'} <=> $b->{'pos'};
-	}
-	@ordered_members = sort undef_sort @ordered_members; 	
-	
-	$res->{members} = \@ordered_members;
-	return $res; 
+	$res->{members} = \@not_ordered_members;
+	return $res;
+
 }
 
 

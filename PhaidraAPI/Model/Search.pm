@@ -397,35 +397,37 @@ sub related {
 			$members{$o->{pid}} = $o;			
 		}
 		
-		# get order definition
-		my $object_model = PhaidraAPI::Model::Object->new;		
-		my $ores = $object_model->get_datastream($c, $pid, 'COLLECTIONORDER', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});		
-		if($ores->{status} eq 404){
-			$c->app->log->info("COLLECTIONORDER for pid $pid not defined");
-			$self->$cb($sr);
-			return; 
-		}
-		if($ores->{status} ne 200){
-			$c->app->log->error("Cannot get COLLECTIONORDER for pid: $pid and username: ".$c->stash->{basic_auth_credentials}->{username});
-			$self->$cb($sr);
-			return; 
+		my $search_model = PhaidraAPI::Model::Search->new;
+		my $ce = $search_model->datastream_exists($c, $pid, 'COLLECTIONORDER');
+		if($ce->{status} ne 200){
+			$c->app->log->error("Cannot find out if COLLECTIONORDER exists for pid: $pid and username: ".$c->stash->{basic_auth_credentials}->{username}); 
+		}else{
+			if($ce->{'exists'}){
+				my $object_model = PhaidraAPI::Model::Object->new;
+				my $ores = $object_model->get_datastream($c, $pid, 'COLLECTIONORDER', undef, undef, 1);
+				if($ores->{status} ne 200){	
+					$c->app->log->error("Cannot get COLLECTIONORDER for pid: $pid and username: ".$c->stash->{basic_auth_credentials}->{username}); 
+				}else{
+					
+					# order members
+					my $xml = Mojo::DOM->new($ores->{COLLECTIONORDER});		
+					$xml->find('member[pos]')->each(sub { 
+						my $m = shift;
+						my $pid = $m->text;
+						$members{$pid}->{'pos'} = $m->{'pos'};		
+					});		
+							
+					sub undef_sort {
+					  return 1 unless(defined($a->{'pos'}));
+					  return -1 unless(defined($b->{'pos'}));	
+					  return $a->{'pos'} <=> $b->{'pos'};
+					}
+					@{$sr->{objects}} = sort undef_sort @{$sr->{objects}};
+								
+				}
+			}
 		}	
 		
-		# order members
-		my $xml = Mojo::DOM->new($ores->{COLLECTIONORDER});		
-		$xml->find('member[pos]')->each(sub { 
-			my $m = shift;
-			my $pid = $m->text;
-			$members{$pid}->{'pos'} = $m->{'pos'};		
-		});		
-				
-		sub undef_sort {
-		  return 1 unless(defined($a->{'pos'}));
-		  return -1 unless(defined($b->{'pos'}));	
-		  return $a->{'pos'} <=> $b->{'pos'};
-		}
-		@{$sr->{objects}} = sort undef_sort @{$sr->{objects}};
-
 		# now use 'from' and 'limit' to return only the page		
 		if($limit_orig > 0){
 			@{$sr->{objects}} = splice(@{$sr->{objects}}, $from_orig, $limit_orig);

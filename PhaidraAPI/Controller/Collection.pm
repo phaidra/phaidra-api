@@ -121,6 +121,7 @@ sub set_collection_members {
 }
 
 sub get_collection_members {
+	
 	my $self = shift;
 	
 	my $pid = $self->stash('pid');

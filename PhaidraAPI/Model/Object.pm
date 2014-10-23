@@ -299,6 +299,10 @@ sub save_metadata {
 	return $res;		
 }
 
+# by using intcallauth it is possible to bypass the 'owner' policies
+# this might be needed eg because fedora always requires authentication
+# (api property, it's not because of policies)
+# even for datastreams which are actually public, like DC, COLLECTIONORDER etc
 sub get_datastream {
 	
 	my $self = shift;
@@ -307,12 +311,18 @@ sub get_datastream {
 	my $dsid = shift; 
 	my $username = shift;
 	my $password = shift;
+	my $intcallauth = shift;
 	
 	my $res = { alerts => [], status => 200 };
 	
 	my $url = Mojo::URL->new;
 	$url->scheme('https');
-	$url->userinfo("$username:$password");
+	
+	if($intcallauth){
+		$url->userinfo($c->app->config->{phaidra}->{intcallusername}.':'.$c->app->config->{phaidra}->{intcallpassword});
+	}else{
+		$url->userinfo("$username:$password");	
+	}
 	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
 	$url->path("/fedora/objects/$pid/datastreams/$dsid/content");	
 	

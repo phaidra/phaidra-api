@@ -59,13 +59,13 @@
     	
     	"proaiRepositoryIdentifier": "",
     	
-    	"username": "changeme",
-    	
-    	"password": "changeme",
-    	
     	"triplestore": "localMysqlMPTTriplestore",
     	
-    	"defaultlabel": "Created by phaidra-api"
+    	"defaultlabel": "Created by phaidra-api",
+    	
+    	"intcallusername": "changeme",
+    	
+    	"intcallpassword": "changeme"
     
     },              
     

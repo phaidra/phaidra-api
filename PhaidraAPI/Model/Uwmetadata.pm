@@ -29,7 +29,6 @@ sub metadata_tree {
     my $res = { alerts => [], status => 200 };
  		
  		if($c->app->config->{local_uwmetadata_tree}){
- 			
  			$c->app->log->debug("Reading uwmetadata tree from file");
  			
 	 	    # read metadata tree from file
@@ -400,7 +399,7 @@ sub get_metadata_tree {
 				}
 				
 				$vocabulary{'terms'}->{$termkey}->{uri} = $vocabulary{namespace}.$termkey; # this gets overwritten for the same entry
-				$vocabulary{'terms'}->{$termkey}->{$isocode} = $entry; # this should always contain another language for the same entry								
+				$vocabulary{'terms'}->{$termkey}->{labels}->{$isocode} = $entry; # this should always contain another language for the same entry								
 			}
 			
 			# [x] ... we remove the id hash
@@ -440,7 +439,7 @@ sub get_metadata_tree {
 				
 				foreach my $u (@$org_units){
 					$vocabulary{'terms'}->{$u->{value}}->{uri} = $vocabulary{namespace}.$u->{value};
-					$vocabulary{'terms'}->{$u->{value}}->{$lang} = $u->{name};
+					$vocabulary{'terms'}->{$u->{value}}->{labels}->{$lang} = $u->{name};
 										
 				}											
 			}
@@ -478,7 +477,7 @@ sub get_metadata_tree {
 				
 				foreach my $sp (@$study_plans){
 					$vocabulary{'terms'}->{$sp->{value}}->{uri} = $vocabulary{namespace}.$sp->{value};
-					$vocabulary{'terms'}->{$sp->{value}}->{$lang} = $sp->{name};
+					$vocabulary{'terms'}->{$sp->{value}}->{labels}->{$lang} = $sp->{name};
 										
 				}											
 			}

@@ -206,6 +206,11 @@ sub startup {
     $r->route('signout')                            ->via('get')    ->to('authentication#signout');   
     $r->route('keepalive')                          ->via('get')    ->to('authentication#keepalive');   
 
+	$r->route('collection/:pid/members')            ->via('get')    ->to('collection#get_collection_members');
+	# does not show inactive objects, not specific to collection (but does ordering)
+    $r->route('object/:pid/related')                                  ->via('get')      ->to('search#related');
+    $r->route('object/:pid/uwmetadata')                               ->via('get')      ->to('uwmetadata#get');
+
 	my $apiauth = $r->bridge->to('authentication#extract_credentials');
     
     unless($self->app->config->{readonly}){
@@ -237,13 +242,6 @@ sub startup {
    		$apiauth->route('directory/user/:username/name')                    ->via('get')      ->to('directory#get_user_name');
    		$apiauth->route('directory/user/:username/email')                   ->via('get')      ->to('directory#get_user_email');
     }
-
-    $apiauth->route('object/:pid/uwmetadata')                               ->via('get')      ->to('uwmetadata#get');
-    
-    # does not show inactive objects, not specific to collection (but does ordering)
-    $apiauth->route('object/:pid/related')                                  ->via('get')      ->to('search#related');
-    
-    $apiauth->route('collection/:pid/members')                              ->via('get')      ->to('collection#get_collection_members');
 
 	return $self;
 }

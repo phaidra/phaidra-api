@@ -55,7 +55,7 @@ sub label {
 			$taxon{upstream_identifier} = $upstream_identifier;
 			
 			if($preferred){
-				$taxon{$isocode} = $entry;
+				$taxon{labels}{$isocode} = $entry;
 				$taxon{term_id} = $term_id;						
 			}else{
 				$taxon{nonpreferred}{$term_id}{$isocode} = $entry;
@@ -72,7 +72,7 @@ sub label {
 	    	my %t;
 	    	$t{term_id} = $termid;
 	    	foreach my $iso (keys %{$taxon{nonpreferred}{$termid}}){
-	   			$t{$iso} = $taxon{nonpreferred}{$termid}{$iso};
+	   			$t{labels}{$iso} = $taxon{nonpreferred}{$termid}{$iso};
 	    	}
 	    	push @nonpreferred, \%t;
 	    } 
@@ -253,7 +253,7 @@ sub children {
     		my %class;
     		$class{uri} = "$classification_ns/cls_$cid";
     		foreach my $iso (keys %isocodes){
-    			 $class{$iso} = $classes{$cid}{$iso};
+    			 $class{labels}{$iso} = $classes{$cid}{$iso};
     		}
     		push @classes, \%class;
     	}
@@ -303,7 +303,7 @@ sub children {
     	$child{upstream_identifier} = $children{$tid}{upstream_identifier};        	
     	foreach my $iso (keys %isocodes){
     		if($children{$tid}{preferred}{$iso}){    		
-    			$child{$iso} = $children{$tid}{preferred}{$iso};
+    			$child{labels}{$iso} = $children{$tid}{preferred}{$iso};
     			$child{term_id} = $children{$tid}{preferred}{term_id};
     		}    		    			
     	}
@@ -312,7 +312,7 @@ sub children {
     			my %ch;
     			$ch{term_id} = $termid;
     			foreach my $iso (keys %{$children{$tid}{nonpreferred}{$termid}}){
-   					$ch{$iso} = $children{$tid}{nonpreferred}{$termid}{$iso};
+   					$ch{labels}{$iso} = $children{$tid}{nonpreferred}{$termid}{$iso};
     			}
     			push @{$child{nonpreferred}}, \%ch;
     		}    		
