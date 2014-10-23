@@ -198,6 +198,8 @@ sub startup {
 	$r->route('terms/label')                   		->via('get')    ->to('terms#label');
 	$r->route('terms/children')                		->via('get')    ->to('terms#children');
 	$r->route('terms/search')                       ->via('get')    ->to('terms#search');
+	$r->route('terms/taxonpath')                    ->via('get')    ->to('terms#taxonpath');
+	$r->route('terms/parent')                       ->via('get')    ->to('terms#parent');
 
 	# CORS
 	$r->any('*')                                    ->via('options')->to('authentication#cors_preflight');

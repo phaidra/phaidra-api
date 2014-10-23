@@ -24,6 +24,24 @@ sub children {
     $self->render(json => $res, status => $res->{status});
 }
 
+sub parent {
+    my $self = shift; 
+       
+    my $terms_model = PhaidraAPI::Model::Terms->new;
+    my $res = $terms_model->parent($self, $self->param('uri'));   
+    
+    $self->render(json => $res, status => $res->{status});
+}
+
+sub taxonpath {
+    my $self = shift; 
+       
+    my $terms_model = PhaidraAPI::Model::Terms->new;
+    my $res = $terms_model->taxonpath($self, $self->param('uri'));   
+    
+    $self->render(json => $res, status => $res->{status});
+}
+
 sub search {
     my $self = shift; 
        
@@ -32,5 +50,6 @@ sub search {
     
     $self->render(json => $res, status => $res->{status});
 }
+
 
 1;

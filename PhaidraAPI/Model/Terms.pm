@@ -28,91 +28,103 @@ our %voc_ids = (
 # FIXME get this from database
 our @cls_ids = ('1','2','3','4','5','6','7','8','9','10','11','12','13','14','15');
 
+sub _get_taxon_labels {
+	my $self = shift;
+    my $c = shift;
+    my $cid = shift;
+    my $tid = shift;
+	
+	my ($entry, $isocode, $preferred, $upstream_identifier, $term_id);
+	my $ss = "SELECT t.upstream_identifier, tv.term_id, ve.entry, ve.isocode, tv.preferred FROM taxon t LEFT JOIN taxon_vocentry tv ON tv.tid = t.tid LEFT JOIN vocabulary_entry ve ON tv.veid = ve.veid WHERE t.cid = (?) and t.tid = (?)";
+	my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+	$sth->execute($cid, $tid);
+	$sth->bind_columns(undef, \$upstream_identifier, \$term_id, \$entry, \$isocode, \$preferred);
+	my %taxon;
+	my %isocodes;
+	while($sth->fetch){
+			
+		$taxon{upstream_identifier} = $upstream_identifier;
+			
+		if($preferred){
+			$taxon{labels}{$isocode} = $entry;
+			$taxon{term_id} = $term_id;						
+		}else{
+			$taxon{nonpreferred}{$term_id}{$isocode} = $entry;
+		}	
+				
+		$isocodes{$isocode} = 1;
+	}		
+	$sth->finish;
+	undef $sth;
+	    
+	# make nonpreferred an array
+	my @nonpreferred;
+	foreach my $termid (keys %{$taxon{nonpreferred}}){
+	 	my %t;
+	   	$t{term_id} = $termid;
+	   	foreach my $iso (keys %{$taxon{nonpreferred}{$termid}}){
+			$t{labels}{$iso} = $taxon{nonpreferred}{$termid}{$iso};
+	   	}
+	   	push @nonpreferred, \%t;
+	} 
+	$taxon{nonpreferred} = \@nonpreferred;
+	    
+	return \%taxon;
+}
+
+sub _get_vocab_labels {
+	my $self = shift;
+    my $c = shift;
+	my $vid = shift; 
+	my $veid = shift;
+	my $cid = shift;
+	
+	my %labels;
+	
+	# cid provided but tid not, this means we want to resolve the name of the classification
+	# so get the vid & veid of the classification name and continue as for vocabulary entries 
+	if($cid){
+		my $ss = qq/SELECT vid, veid FROM classification_db WHERE cid = (?);/;
+		my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+		$sth->execute($cid);
+		$sth->bind_columns(undef, \$vid, \$veid);
+		$sth->fetch;
+	}
+		
+	my $ss = qq/SELECT entry, isocode FROM vocabulary_entry WHERE vid = (?) AND veid = (?);/;
+	my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+	$sth->execute($vid, $veid);
+			
+	my $entry; # value label (eg 'Wood-engraver')
+	my $isocode; # 2 letter isocode defining language of the entry
+				
+	$sth->bind_columns(undef, \$entry, \$isocode);
+				 
+	while($sth->fetch) {				
+		$labels{$isocode} = $entry; # this should always contain another language for the same entry								
+	}
+	$sth->finish;
+	undef $sth;
+	
+	return \%labels;	
+}
+
 sub label {
     my $self = shift;
     my $c = shift;
     my $uri = shift;    
     
     my $res = { alerts => [], status => 200 };	
-
-	my %labels;
 	
 	my $r = $self->_parse_uri($c, $uri);
 	if($r->{status} != 200){		
 		return $r;
 	}
 		
-	if($r->{tid}){
-		my ($entry, $isocode, $preferred, $upstream_identifier, $term_id);
-		my $ss = "SELECT t.upstream_identifier, tv.term_id, ve.entry, ve.isocode, tv.preferred FROM taxon t LEFT JOIN taxon_vocentry tv ON tv.tid = t.tid LEFT JOIN vocabulary_entry ve ON tv.veid = ve.veid WHERE t.cid = (?) and t.tid = (?)";
-		my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
-		$sth->execute($r->{cid}, $r->{tid});
-		$sth->bind_columns(undef, \$upstream_identifier, \$term_id, \$entry, \$isocode, \$preferred);
-		my %taxon;
-		my %isocodes;
-		while($sth->fetch){
-			
-			$taxon{upstream_identifier} = $upstream_identifier;
-			
-			if($preferred){
-				$taxon{labels}{$isocode} = $entry;
-				$taxon{term_id} = $term_id;						
-			}else{
-				$taxon{nonpreferred}{$term_id}{$isocode} = $entry;
-			}	
-				
-			$isocodes{$isocode} = 1;
-		}		
-		$sth->finish;
-	    undef $sth;
-	    
-	    # make nonpreferred an array
-	    my @nonpreferred;
-	    foreach my $termid (keys %{$taxon{nonpreferred}}){
-	    	my %t;
-	    	$t{term_id} = $termid;
-	    	foreach my $iso (keys %{$taxon{nonpreferred}{$termid}}){
-	   			$t{labels}{$iso} = $taxon{nonpreferred}{$termid}{$iso};
-	    	}
-	    	push @nonpreferred, \%t;
-	    } 
-	    $taxon{nonpreferred} = \@nonpreferred;
-	    
-	    $res->{labels} = \%taxon;	
-	    
-	}else{
-		
-		my $vid = $r->{vid};
-		my $veid = $r->{veid};
-		
-		# cid provided but tid not, this means we want to resolve the name of the classification
-		# so get the vid & veid of the classification name and continue as for vocabulary entries 
-		if($r->{cid}){
-			my $ss = qq/SELECT vid, veid FROM classification_db WHERE cid = (?);/;
-			my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
-			$sth->execute($r->{cid});
-			$sth->bind_columns(undef, \$vid, \$veid);
-			$sth->fetch;
-		}
-		
-		my $ss = qq/SELECT entry, isocode FROM vocabulary_entry WHERE vid = (?) AND veid = (?);/;
-		my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
-		$sth->execute($vid, $veid);
-			
-		my $entry; # value label (eg 'Wood-engraver')
-		my $isocode; # 2 letter isocode defining language of the entry
-				
-		$sth->bind_columns(undef, \$entry, \$isocode);
-				 
-		while($sth->fetch) {				
-			$labels{$isocode} = $entry; # this should always contain another language for the same entry								
-		}
-		$sth->finish;
-	    undef $sth;
-		
-		#$c->app->log->debug("Resolved: ".$c->app->dumper(\%labels));
-	
-		$res->{labels} = \%labels;	
+	if($r->{tid}){			
+		$res->{labels} = $self->_get_taxon_labels($c, $r->{cid}, $r->{tid});	    
+	}else{		
+		$res->{labels} = $self->_get_vocab_labels($c, $r->{vid}, $r->{veid}, $r->{cid});
 	}
 
 	return $res;
@@ -226,13 +238,13 @@ sub children {
 	}
 	
 	if($r->{xmlns} ne $classification_ns){		
-		push @{$res->{alerts}}, { type => 'danger', msg => 'Children can be obtained only for classifications.' };
+		push @{$res->{alerts}}, { type => 'danger', msg => 'Children can only be obtained for a classification.' };
 		$res->{status} = 400;
 		return $res;
 	}
 	
 	unless($r->{cid}){
-		# no vocabulary id specified, return all the classification ids
+		# no classification id specified, return all the classification ids
 		my ($cid, $entry, $isocode);
 		my $ss = "SELECT c.cid, ve.entry, ve.isocode FROM classification_db c LEFT JOIN vocabulary_entry ve on c.veid = ve.veid;";
 		my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
@@ -325,6 +337,131 @@ sub children {
 	$res->{terms} = \@children;
 	
 	return $res;	
+}
+
+sub taxonpath{
+	my $self = shift;
+    my $c = shift;  
+    my $uri = shift;    
+    
+    my $res = { alerts => [], status => 200 };	
+    
+    my @taxonpath;
+    
+    my $r = $self->_parse_uri($c, $uri);
+	if($r->{status} != 200){				
+		return $r;
+	}
+	
+	if($r->{xmlns} ne $classification_ns){		
+		push @{$res->{alerts}}, { type => 'danger', msg => 'Taxon path can only be obtained for a classification.' };
+		$res->{status} = 400;
+		return $res;
+	}
+	
+	unless($r->{cid}){
+		push @{$res->{alerts}}, { type => 'danger', msg => 'To get taxon path the uri must specify the classification id' };
+		$res->{status} = 400;
+		return $res;
+	}
+	
+	unless($r->{tid}){
+		push @{$res->{alerts}}, { type => 'danger', msg => 'To get taxon path the uri must specify the taxon id' };
+		$res->{status} = 400;
+		return $res;
+	}	
+    
+    my $labels = $self->_get_taxon_labels($c, $r->{cid}, $r->{tid});
+    $labels->{uri} = $uri;
+    unshift @taxonpath, $labels;
+        
+    my $ptid = $r->{tid};
+    my $cnt = 0;
+    while($ptid){
+    	
+    	if($cnt > 50){
+    		# nah..
+    		push @{$res->{alerts}}, { type => 'danger', msg => 'Too many cycles' };
+			$res->{status} = 500;
+			return $res;
+    	}
+    	$cnt++;    	
+    	$ptid = $self->_get_parent_tid($c, $r->{cid}, $ptid);
+    	$c->app->log->debug("ptid: $ptid");
+    	if($ptid){
+    		my $puri = $r->{xmlns}.'/cls_'.$r->{cid}.'/'.$ptid;
+    		my $plabels = $self->_get_taxon_labels($c, $r->{cid}, $ptid);
+    		$plabels->{uri} = $puri;
+    		unshift @taxonpath, $plabels;
+    	}else{
+    		# first time there is no tid it means we reached the root - classificatio
+    		# we need to get the data for the 'source' element
+    		my $curi = $r->{xmlns}.'/cls_'.$r->{cid};
+    		my $clabels = $self->_get_vocab_labels($c, undef, undef, $r->{cid});
+    		unshift @taxonpath, { uri => $curi, labels => $clabels };
+    	}
+    }
+	
+	$res->{taxonpath} = \@taxonpath;
+	return $res;
+}
+
+sub _get_parent_tid {
+	my $self = shift;  
+    my $c = shift;
+    my $cid = shift;
+    my $tid = shift;
+	
+	my $ptid;
+	my $ss = "SELECT TID_parent FROM taxon WHERE cid = (?) AND tid = (?);";
+	my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+	$sth->execute($cid, $tid);
+	$sth->bind_columns(undef, \$ptid);		
+	$sth->fetch;	
+	$sth->finish;
+	#$c->app->log->debug("parent of $tid is $ptid");
+	return $ptid;
+}
+
+sub parent {
+	my $self = shift;  
+    my $c = shift;
+    my $uri = shift;
+    
+    my $res = { alerts => [], status => 200 };	
+    
+    my %parent;
+    
+    my $r = $self->_parse_uri($c, $uri);
+	if($r->{status} != 200){				
+		return $r;
+	}
+	
+	if($r->{xmlns} ne $classification_ns){		
+		push @{$res->{alerts}}, { type => 'danger', msg => 'Parent can only be obtained for a classification.' };
+		$res->{status} = 400;
+		return $res;
+	}
+	
+	unless($r->{cid}){
+		push @{$res->{alerts}}, { type => 'danger', msg => 'To get the parent the uri must specify the classification id' };
+		$res->{status} = 400;
+		return $res;
+	}
+	
+	unless($r->{tid}){
+		push @{$res->{alerts}}, { type => 'danger', msg => 'To get the parent the uri must specify the taxon id' };
+		$res->{status} = 400;
+		return $res;
+	}
+	
+	my $ptid = $self->_get_parent_tid($c, $r->{cid}, $r->{tid});
+	
+    $res->{parent} = $r->{xmlns}.'/cls_'.$r->{cid};
+    if($ptid){
+    	$res->{parent} .= '/'.$ptid;
+    }
+	return $res;
 }
 
 sub search {
