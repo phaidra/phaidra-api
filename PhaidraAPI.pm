@@ -212,7 +212,15 @@ sub startup {
     $r->route('object/:pid/uwmetadata')                               ->via('get')      ->to('uwmetadata#get');
 
 	my $apiauth = $r->bridge->to('authentication#extract_credentials');
-    
+
+	$apiauth->route('my/objects')                                           ->via('get')      ->to('search#my_objects');
+	
+	if($self->app->config->{allow_userdata_queries}){
+    	$apiauth->route('directory/user/:username/data')                    ->via('get')      ->to('directory#get_user_data');
+   		$apiauth->route('directory/user/:username/name')                    ->via('get')      ->to('directory#get_user_name');
+   		$apiauth->route('directory/user/:username/email')                   ->via('get')      ->to('directory#get_user_email');
+    }
+	    
     unless($self->app->config->{readonly}){
 	   	$apiauth->route('object/:pid/modify')                               ->via('put')      ->to('object#modify');
 		$apiauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');
@@ -234,17 +242,9 @@ sub startup {
         $apiauth->route('collection/:pid/members')                          ->via('post')     ->to('collection#add_collection_members');
         $apiauth->route('collection/:pid/members')                          ->via('put')      ->to('collection#set_collection_members');
         $apiauth->route('collection/:pid/members/order')                    ->via('post')     ->to('collection#order_collection_members');
-        $apiauth->route('collection/:pid/members/:itempid/order/:position') ->via('post')     ->to('collection#order_collection_member');
-        
-        $apiauth->route('my/objects')                                       ->via('get')      ->to('search#my_objects');
+        $apiauth->route('collection/:pid/members/:itempid/order/:position') ->via('post')     ->to('collection#order_collection_member');        
     }
     
-    if($self->app->config->{allow_userdata_queries}){
-    	$apiauth->route('directory/user/:username/data')                    ->via('get')      ->to('directory#get_user_data');
-   		$apiauth->route('directory/user/:username/name')                    ->via('get')      ->to('directory#get_user_name');
-   		$apiauth->route('directory/user/:username/email')                   ->via('get')      ->to('directory#get_user_email');
-    }
-
 	return $self;
 }
 
