@@ -235,6 +235,8 @@ sub startup {
         $apiauth->route('collection/:pid/members')                          ->via('put')      ->to('collection#set_collection_members');
         $apiauth->route('collection/:pid/members/order')                    ->via('post')     ->to('collection#order_collection_members');
         $apiauth->route('collection/:pid/members/:itempid/order/:position') ->via('post')     ->to('collection#order_collection_member');
+        
+        $apiauth->route('my/objects')                                       ->via('get')      ->to('search#my_objects');
     }
     
     if($self->app->config->{allow_userdata_queries}){

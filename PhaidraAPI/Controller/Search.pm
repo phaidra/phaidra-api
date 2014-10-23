@@ -139,6 +139,12 @@ sub search {
 		
 }
 
+sub my_objects {
+	my $self = shift;	
+	$self->stash->{'username'} = $self->stash->{basic_auth_credentials}->{username};
+	$self->owner();
+}
+
 sub owner {
 	my $self = shift;	
 	my $from = 1;
