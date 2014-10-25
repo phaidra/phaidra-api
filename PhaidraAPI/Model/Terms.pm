@@ -493,7 +493,7 @@ sub search {
     	my %class;
     	$class{uri} = "$classification_ns/voc_$vid";
     	foreach my $iso (keys %isocodes){
-    		 $class{$iso} = $classes{$cid}{$iso};
+    		 $class{labels}{$iso} = $classes{$cid}{$iso};
     	}
     	
     	# get search results for each classification
@@ -513,7 +513,7 @@ sub search {
 			$terms{$tid.$term_id}{vid} = $vid;
 			$terms{$tid.$term_id}{preferred} = $preferred;
 			$terms{$tid.$term_id}{term_id} = $term_id;
-			$terms{$tid.$term_id}{$isocode} = $entry;
+			$terms{$tid.$term_id}{labels}{$isocode} = $entry;
 			$terms{$tid.$term_id}{tid} = $tid; # we will make it array later
 			$isocodes{$isocode} = 1;
 		}		
