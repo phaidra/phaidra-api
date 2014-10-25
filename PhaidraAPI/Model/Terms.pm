@@ -491,7 +491,7 @@ sub search {
     foreach my $cid (keys %classes){
     	
     	my %class;
-    	$class{uri} = "$classification_ns/voc_$vid";
+    	$class{uri} = "$classification_ns/cls_$cid";
     	foreach my $iso (keys %isocodes){
     		 $class{labels}{$iso} = $classes{$cid}{$iso};
     	}
@@ -510,11 +510,10 @@ sub search {
 			#$c->app->log->debug("veid=$veid iso=$isocode entry=$entry vid=$vid tid=$tid upid=$upstream_identifier term=$term_id pref=$preferred");
 
 			$terms{$tid.$term_id}{upstream_identifier} = $upstream_identifier;
-			$terms{$tid.$term_id}{vid} = $vid;
 			$terms{$tid.$term_id}{preferred} = $preferred;
 			$terms{$tid.$term_id}{term_id} = $term_id;
 			$terms{$tid.$term_id}{labels}{$isocode} = $entry;
-			$terms{$tid.$term_id}{tid} = $tid; # we will make it array later
+			$terms{$tid.$term_id}{uri} = "$classification_ns/cls_$cid/$tid";
 			$isocodes{$isocode} = 1;
 		}		
 				
