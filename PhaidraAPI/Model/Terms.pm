@@ -182,8 +182,6 @@ sub _parse_uri {
 		last if $xmlns eq $ns;
 	}
 		
-	# $c->app->log->debug("xmlns=$xmlns vid=$vid id=$id");
-		
 	unless($xmlns){
 		push @{$res->{alerts}}, { type => 'danger', msg => 'Cannot parse URI' };
 		$res->{status} = 400;
@@ -217,7 +215,7 @@ sub _parse_uri {
 
 	$res->{xmlns} = $xmlns;
 	
-	#$c->app->log->debug("Parsing uri: ".$c->app->dumper($res));
+	$c->app->log->debug("Parsing uri: ".$c->app->dumper($res));
 	
 	return $res;
 }
@@ -270,6 +268,7 @@ sub children {
     		push @classes, \%class;
     	}
     	
+    	@classes = sort { $a->{labels}->{en} cmp $b->{labels}->{en} } @classes;
 		$res->{terms} = \@classes;
 		return $res;
 	}
@@ -326,16 +325,17 @@ sub children {
     			foreach my $iso (keys %{$children{$tid}{nonpreferred}{$termid}}){
    					$ch{labels}{$iso} = $children{$tid}{nonpreferred}{$termid}{$iso};
     			}
-    			push @{$child{nonpreferred}}, \%ch;
-    		}    		
+    			push @{$child{nonpreferred}}, \%ch;    			
+    		}
+    		@{$child{nonpreferred}} = sort { $a->{labels}->{en} cmp $b->{labels}->{en} } @{$child{nonpreferred}};    		
     	}
     	push @children, \%child;
     }
-    
-    #$c->app->log->debug("ch: ".$c->app->dumper(\@children));
-    
+
+    @children = sort { $a->{labels}->{en} cmp $b->{labels}->{en} } @children;
+
 	$res->{terms} = \@children;
-	
+
 	return $res;	
 }
 
@@ -387,14 +387,14 @@ sub taxonpath{
     	}
     	$cnt++;    	
     	$ptid = $self->_get_parent_tid($c, $r->{cid}, $ptid);
-    	$c->app->log->debug("ptid: $ptid");
+    	#$c->app->log->debug("ptid: $ptid");
     	if($ptid){
     		my $puri = $r->{xmlns}.'/cls_'.$r->{cid}.'/'.$ptid;
     		my $plabels = $self->_get_taxon_labels($c, $r->{cid}, $ptid);
     		$plabels->{uri} = $puri;
     		unshift @taxonpath, $plabels;
     	}else{
-    		# first time there is no tid it means we reached the root - classificatio
+    		# first time there is no tid it means we reached the root - classification
     		# we need to get the data for the 'source' element
     		my $curi = $r->{xmlns}.'/cls_'.$r->{cid};
     		my $clabels = $self->_get_vocab_labels($c, undef, undef, $r->{cid});
