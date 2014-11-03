@@ -23,133 +23,137 @@ my $home = Mojo::Home->new;
 $home->detect('PhaidraAPI');
 
 sub metadata_tree {
-	
+
     my ($self, $c) = @_;
 
     my $res = { alerts => [], status => 200 };
- 		
+
  		if($c->app->config->{local_uwmetadata_tree}){
  			$c->app->log->debug("Reading uwmetadata tree from file");
- 			
+
 	 	    # read metadata tree from file
 			my $content;
 			my $metadatapath = $home->rel_file('public/uwmetadata/tree.json');
 			open my $fh, "<", $metadatapath or push @{$res->{alerts}}, "Error reading uwmetadata/tree.json, ".$!;
 		    local $/;
 		    $content = <$fh>;
-		    close $fh;  
-		    
-		    unless(defined($content)){	    	
+		    close $fh;
+
+		    unless(defined($content)){
 		    	push @{$res->{alerts}}, "Error reading uwmetadata/tree.json, no content";
 		    	next;
 		    }
-	
+
 			my $metadata = decode_json($content);
 	 		$res->{metadata_tree} = $metadata->{tree};
-	 		
+
  		}else{
 
-			$c->app->log->debug("Reading uwmetadata tree from cache");	
-			
+			$c->app->log->debug("Reading uwmetadata tree from cache");
+
 			my $cachekey = 'uwmetadata_tree';
 	 		my $cacheval = $c->app->chi->get($cachekey);
-	  		
+
 	  		my $miss = 1;
-	  		
-	  		if($cacheval){   
+
+	  		if($cacheval){
 	  			if(scalar @{$cacheval} > 0){
 	  				$miss = 0;
-	  				$c->app->log->debug("[cache hit] $cachekey");		
+	  				$c->app->log->debug("[cache hit] $cachekey");
 	  			}
 	  		}
-	  		
+
 	    	if($miss){
 	    		$c->app->log->debug("[cache miss] $cachekey");
-	    		
-	    		$cacheval = $self->get_metadata_tree($c);		
-	  
-	    		$c->app->chi->set($cachekey, $cacheval, '1 day');    
-	  
-	  			# save and get the value. the serialization can change integers to strings so 
+
+	    		$cacheval = $self->get_metadata_tree($c);
+
+	    		$c->app->chi->set($cachekey, $cacheval, '1 day');
+
+	  			# save and get the value. the serialization can change integers to strings so
 	  			# if we want to get the same structure for cache miss and cache hit we have to run it through
 	  			# the cache serialization process even if cache miss [when we already have the structure]
-	  			# so instead of using the structure created we will get the one just saved from cache.  		
+	  			# so instead of using the structure created we will get the one just saved from cache.
 	    		$cacheval = $c->app->chi->get($cachekey);
-	    		#$c->app->log->debug($c->app->dumper($res));			
-	    	}    	
-	    	$res->{metadata_tree} = $cacheval; 	
+	    		#$c->app->log->debug($c->app->dumper($res));
+	    	}
+	    	$res->{metadata_tree} = $cacheval;
  		}
- 			
+
 	 	return $res;
- 	
-  
+
+
 }
 
 sub get_languages {
 	my ($self, $c) = @_;
-	
+
 	my $cachekey = 'languages';
-	
+
 	my $res = $c->app->chi->get($cachekey);
-  		
-    if($res){    		
+
+    if($res){
     	$c->app->log->debug("[cache hit] $cachekey");
-    }else{    		
+    }else{
     	$c->app->log->debug("[cache miss] $cachekey");
-	
+
 		my %l;
-		
+
 		my $sth;
 		my $ss;
-		
+
 		$ss = qq/SELECT l.isocode, ve.isocode, ve.entry FROM language AS l LEFT JOIN vocabulary_entry AS ve ON l.VEID = ve.VEID/;
 		$sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
 		$sth->execute();
 		my $isocode;
 		my $ve_isocode;
-		my $ve_entry;			
-		$sth->bind_columns(undef, \$isocode, \$ve_isocode, \$ve_entry);				 
-		while($sth->fetch) {		
-			$l{$isocode}{$ve_isocode} = $ve_entry if defined($ve_isocode); 
+		my $ve_entry;
+		$sth->bind_columns(undef, \$isocode, \$ve_isocode, \$ve_entry);
+		while($sth->fetch) {
+			$l{$isocode}{$ve_isocode} = $ve_entry if defined($ve_isocode);
 			#$l->{$isocode}{isocode} = {$ve_isocode} = $ve_entry ;
 		}
-		
-		$c->app->chi->set($cachekey, \%l, '1 day');    
-  
+		$l{'xx'}{'en'} = 'Not applicable';
+		$l{'xx'}{'de'} = 'Nicht anwendbar';
+		$l{'xx'}{'it'} = 'Non applicabile';
+		$l{'xx'}{'sr'} = 'Nije primenljivo';
+
+		$c->app->chi->set($cachekey, \%l, '1 day');
+
   		$res = $c->app->chi->get($cachekey);
     }
-	
+
 	#$c->app->log->debug($c->app->dumper($res));
 	return $res;
 }
 
 sub get_metadata_tree {
-	
+
 	my ($self, $c) = @_;
-	
+
 	my %format;
 	my @metadata_tree;
 	my %id_hash;
 	my %license_veid_lid_map;
-	
+
 	my $sth;
 	my $ss;
-	
+
 	# create mapping of veid to licence id
 	$ss = qq/SELECT LID, name FROM licenses/;
 	$sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
 	$sth->execute();
 	my $l_lid;
-	my $l_veid;			
-	$sth->bind_columns(undef, \$l_lid, \$l_veid);				 
+	my $l_veid;
+	$sth->bind_columns(undef, \$l_lid, \$l_veid);
 	while($sth->fetch) {
-		$license_veid_lid_map{$l_veid} = $l_lid; 
+		$license_veid_lid_map{$l_veid} = $l_lid;
 	}
-	
+
 	#$c->app->log->debug($c->app->dumper(\%license_veid_lid_map));
-	
-	$ss = qq/SELECT 
-			m.MID, m.VEID, m.xmlname, m.xmlns, m.lomref, 
+
+	$ss = qq/SELECT
+			m.MID, m.VEID, m.xmlname, m.xmlns, m.lomref,
 			m.searchable, m.mandatory, m.autofield, m.editable, m.OID,
 			m.datatype, m.valuespace, m.MID_parent, m.cardinality, m.ordered, m.fgslabel,
 			m.VID, m.defaultvalue, m.sequence
@@ -157,8 +161,8 @@ sub get_metadata_tree {
 			ORDER BY m.sequence, m.MID ASC/;
 	$sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
 	$sth->execute();
-	
-	my $mid; # id of the element 
+
+	my $mid; # id of the element
 	my $veid; # id of the vocabulary entry defining the label of the element (in multiple languages)
 	my $xmlname; # name of the element (name and namespace constitute URI)
 	my $xmlns; # namespace of the element (name and namespace constitute URI)
@@ -167,7 +171,7 @@ sub get_metadata_tree {
 	my $mandatory; # 1 if the element is mandatory
 	my $autofield; # ? i found no use for this one
 	my $editable; # 1 if the element is available in uwmetadataeditor
-	my $oid; # this was meant for metadata-owner feature 
+	my $oid; # this was meant for metadata-owner feature
 	my $datatype; # Phaidra datatype (/usr/local/fedora/cronjobs/XSD/datatypes.xsd)
 	my $valuespace; # regex constraining the value
 	my $mid_parent; # introduces structure, eg firstname is under entity, etc
@@ -177,34 +181,34 @@ sub get_metadata_tree {
 	my $vid; # if defined then id of the controlled vocabulary which represents the possible values
 	my $defaultvalue; # currently there's only #FIRSTNAME, #LASTNAME and #TODAY or NULL
 	my $field_order; # order of the element among it's siblings
-	
+
 	$sth->bind_columns(undef, \$mid, \$veid, \$xmlname, \$xmlns, \$lomref, \$searchable, \$mandatory, \$autofield, \$editable, \$oid, \$datatype, \$valuespace, \$mid_parent, \$cardinality, \$ordered, \$fgslabel, \$vid, \$defaultvalue, \$field_order);
-	
+
 	# fill the hash with raw table data
 	my $i = 0;
-	while($sth->fetch) {		
-		$i++;	
+	while($sth->fetch) {
+		$i++;
 		$format{$mid} = {
 			mid => $mid, # needed for sort
-			# not needed #debug_id => int(rand(9999)), 
-			veid => $veid, 
-			xmlname => $xmlname, 
-			xmlns => $xmlns, 
-			# not needed #lomref => $lomref, 
-			# not needed #searchable => $searchable, 
-			mandatory => ($mandatory eq 'N' ? 0 : 1), 
-			# not needed #autofield => $autofield, 
-			# not needed #editable => $editable, 
-			# not needed #oid => $oid, 
-			datatype => $datatype,  
-			mid_parent => $mid_parent, 
-			cardinality => $cardinality, 
-			ordered => ($ordered eq 'Y' ? 1 : 0), 
-			# not needed #fgslabel => $fgslabel, 
-			vid => $vid, 
-			# not needed #defaultvalue => $defaultvalue, 
+			# not needed #debug_id => int(rand(9999)),
+			veid => $veid,
+			xmlname => $xmlname,
+			xmlns => $xmlns,
+			# not needed #lomref => $lomref,
+			# not needed #searchable => $searchable,
+			mandatory => ($mandatory eq 'N' ? 0 : 1),
+			# not needed #autofield => $autofield,
+			# not needed #editable => $editable,
+			# not needed #oid => $oid,
+			datatype => $datatype,
+			mid_parent => $mid_parent,
+			cardinality => $cardinality,
+			ordered => ($ordered eq 'Y' ? 1 : 0),
+			# not needed #fgslabel => $fgslabel,
+			vid => $vid,
+			# not needed #defaultvalue => $defaultvalue,
 			field_order => (defined($field_order) ? $field_order : 9999), # as defined in metadata format, value must be defined because we are going to sort by this
-			data_order => '', # as defined in object's metadata (for objects which have 'ordered = 1')		
+			data_order => '', # as defined in object's metadata (for objects which have 'ordered = 1')
 			help_id => 'helpmeta_'.$mid, # used ot get the help tooltip content via ajax
 			value => '', # what's expected in uwmetadata
 			value_lang => '', # language of the value if any
@@ -218,9 +222,9 @@ sub get_metadata_tree {
 			hidden => 0, # we will specify later which fields are to be hidden
 			disabled => 0 # we will specify later which fields are to be disabled
 		};
-		
+
 		$format{$mid}->{input_regex} = $valuespace;
-		
+
 		# mapping of "Phaidra Datatypes" to form input types
 		#
 		# possible values (with schema restrictions):
@@ -240,55 +244,55 @@ sub get_metadata_tree {
 		#  Curriculum (string)
 		#  Taxon (int)
 		#
-		# at the beginning just a basic definition, for some fields we will redefine this later 
-		# because eg description is just defined as LangString, the same way as eg title, but description must be textarea 
+		# at the beginning just a basic definition, for some fields we will redefine this later
+		# because eg description is just defined as LangString, the same way as eg title, but description must be textarea
 		# not just a simple text input
 		switch ($datatype) {
-			
-			case "LangString" { 
+
+			case "LangString" {
 				$format{$mid}->{input_type} = "input_text_lang";
-				$format{$mid}->{value_lang} =  $c->app->config->{defaults}->{metadata_field_language}; 
+				$format{$mid}->{value_lang} =  $c->app->config->{defaults}->{metadata_field_language};
 			}
-			
+
 			case "DateTime"	{ $format{$mid}->{input_type} = "input_datetime" }
-						
-			case "Vocabulary" { $format{$mid}->{input_type} = "select" }			
+
+			case "Vocabulary" { $format{$mid}->{input_type} = "select" }
 			case "License" { $format{$mid}->{input_type} = "select" }
 			case "Faculty" { $format{$mid}->{input_type} = "select" }
 			case "Department" { $format{$mid}->{input_type} = "select" }
 			case "SPL" { $format{$mid}->{input_type} = "select" }
 			case "Curriculum" { $format{$mid}->{input_type} = "select" }
-			
+
 			case "Language" { $format{$mid}->{input_type} = "language_select" }
-			
+
 			case "Boolean"	{
 				if($format{$mid}->{mandatory}){
 					$format{$mid}->{input_type} = "select_yesno";
-				}else{ 
+				}else{
 					$format{$mid}->{input_type} = "input_checkbox";
-				} 
+				}
 			}
-			
+
 			case "Node"	{ $format{$mid}->{input_type} = "node" }
-			
-			case "CharacterString" { $format{$mid}->{input_type} = "input_text" }						
+
+			case "CharacterString" { $format{$mid}->{input_type} = "input_text" }
 			case "GPS" { $format{$mid}->{input_type} = "input_text" }
 			case "Duration" { $format{$mid}->{input_type} = "input_duration" }
-			case "FileSize" { $format{$mid}->{input_type} = "input_text" }			
+			case "FileSize" { $format{$mid}->{input_type} = "input_text" }
 			else { $format{$mid}->{input_type} = "input_text" }
 		}
-		
+
 		# special input types
 		switch ($format{$mid}->{xmlname}) {
-			case "description"	{ 
+			case "description"	{
 				$format{$mid}->{input_type} = "input_textarea_lang";
-				$format{$mid}->{value_lang} =  $c->app->config->{defaults}->{metadata_field_language}; 
+				$format{$mid}->{value_lang} =  $c->app->config->{defaults}->{metadata_field_language};
 				}
 			case "identifier" {
 				# because there is also an 'identifier' in the http://phaidra.univie.ac.at/XML/metadata/extended/V1.0 namespace
 				if($format{$mid}->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0'){
-					$format{$mid}->{input_type} = "static";					
-				}				
+					$format{$mid}->{input_type} = "static";
+				}
 			}
 			case "upload_date" {
 				$format{$mid}->{input_type} = "static";
@@ -297,24 +301,24 @@ sub get_metadata_tree {
 				$format{$mid}->{input_type} = "label_only";
 			}
 		}
-		
+
 		# hidden fields
 		switch ($format{$mid}->{xmlname}) {
 			case "irdata" { $format{$mid}->{hidden} = 1 } # system field
 			case "metadataqualitycheck" { $format{$mid}->{hidden} = 1 } # system field
 			case "classification" { $format{$mid}->{hidden} = 1 } # i think this should be edited elsewhere
 			case "annotation" { $format{$mid}->{hidden} = 1 } # was removed from editor
-			case "etheses" { $format{$mid}->{hidden} = 1 } # should not be edited in phaidra (i guess..)			
+			case "etheses" { $format{$mid}->{hidden} = 1 } # should not be edited in phaidra (i guess..)
 		}
-		
+
 		# if field is ordered, set seq to 0
 		if($format{$mid}->{ordered}){
 			$format{$mid}->{data_order} = '0';
-		}	
-		
-		$id_hash{$mid} = $format{$mid}; # we will use this later for direct id -> element access 		
-	}	 	
-	
+		}
+
+		$id_hash{$mid} = $format{$mid}; # we will use this later for direct id -> element access
+	}
+
 	# create the hierarchy
 	my @todelete;
 	my %parents;
@@ -322,180 +326,180 @@ sub get_metadata_tree {
 		if($format{$key}{mid_parent}){
 			$parents{$format{$key}{mid_parent}} = $format{$format{$key}{mid_parent}};
 			push @todelete, $key;
-			push @{$format{$format{$key}{mid_parent}}{children}}, $format{$key};			
+			push @{$format{$format{$key}{mid_parent}}{children}}, $format{$key};
 		}
-	}	
+	}
 	delete @format{@todelete};
-	
+
 	# now just as children are just an array, also the top level will be only an array
 	# we do this because we don't want to hardcode the mids anywhere
 	# we should just work with namespace and name
-	while ( my ($key, $element) = each %format ){	
+	while ( my ($key, $element) = each %format ){
 		push @metadata_tree, $element;
 	}
-	
+
 	# and sort it
-	@metadata_tree = sort { $a->{field_order} <=> $b->{field_order} ||  $a->{mid} <=> $b->{mid} } @metadata_tree;	
-	
+	@metadata_tree = sort { $a->{field_order} <=> $b->{field_order} ||  $a->{mid} <=> $b->{mid} } @metadata_tree;
+
 	# and sort the children
 	foreach my $key (keys %parents){
-		@{$id_hash{$key}{children}} = sort { $a->{field_order} <=> $b->{field_order} ||  $a->{mid} <=> $b->{mid} } @{$parents{$key}{children}};		
+		@{$id_hash{$key}{children}} = sort { $a->{field_order} <=> $b->{field_order} ||  $a->{mid} <=> $b->{mid} } @{$parents{$key}{children}};
 	}
-	
+
 	# get the element labels
 	$ss = qq/SELECT m.mid, ve.entry, ve.isocode FROM metadata AS m LEFT JOIN vocabulary_entry AS ve ON ve.veid = m.veid;/;
 	$sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
-	$sth->execute();	
+	$sth->execute();
 
 	my $entry; # element label (name of the field, eg 'Title')
-	my $isocode; # 2 letter isocode defining language of the entry	
-	
-	$sth->bind_columns(undef, \$mid, \$entry, \$isocode);	
-	while($sth->fetch) {		
-		$id_hash{$mid}->{'labels'}->{$isocode} = $entry;		 			
+	my $isocode; # 2 letter isocode defining language of the entry
+
+	$sth->bind_columns(undef, \$mid, \$entry, \$isocode);
+	while($sth->fetch) {
+		$id_hash{$mid}->{'labels'}->{$isocode} = $entry;
 	}
 
 	# get the vocabularies (HINT: this crap will be overwritten when we have vocabulary server)
-	while ( my ($key, $element) = each %id_hash ){	
+	while ( my ($key, $element) = each %id_hash ){
 		if($element->{vid}){
 
 			my %vocabulary;
-			
+
 			# get vocabulary info
 			$ss = qq/SELECT description FROM vocabulary WHERE vid = (?);/;
 			$sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
 			$sth->execute($element->{vid});
-			
+
 			my $desc; # some short text describing the vocabulary (it's not multilanguage, sorry)
-			
+
 			$sth->bind_columns(undef, \$desc);
 			$sth->fetch;
-			
+
 			$vocabulary{description} = $desc;
-			
+
 			# there's none, i'm fabricating this
-			$vocabulary{namespace} = $element->{xmlns}.'/voc_'.$element->{vid}.'/';			
-			
+			$vocabulary{namespace} = $element->{xmlns}.'/voc_'.$element->{vid}.'/';
+
 			# get vocabulary values/codes
 			$ss = qq/SELECT veid, entry, isocode FROM vocabulary_entry WHERE vid = (?);/;
 			$sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
 			$sth->execute($element->{vid});
-			
+
 			my $veid; # the code, together with namespace this creates URI, that's the current hack
 			my $entry; # value label (eg 'Wood-engraver')
 			my $isocode; # 2 letter isocode defining language of the entry
-			
+
 			$sth->bind_columns(undef, \$veid, \$entry, \$isocode);
-			
-			# fetching data using hash, so that we quickly find the place for the entry but later ... [x] 
+
+			# fetching data using hash, so that we quickly find the place for the entry but later ... [x]
 			while($sth->fetch) {
-				
+
 				my $termkey;
-				if($element->{vid} == 21){		
-					# license metadata field uses license id as value, not veid		
+				if($element->{vid} == 21){
+					# license metadata field uses license id as value, not veid
 					$termkey = $license_veid_lid_map{$veid};
-				}else{				
-					$termkey = $veid; 
+				}else{
+					$termkey = $veid;
 				}
-				
+
 				$vocabulary{'terms'}->{$termkey}->{uri} = $vocabulary{namespace}.$termkey; # this gets overwritten for the same entry
-				$vocabulary{'terms'}->{$termkey}->{labels}->{$isocode} = $entry; # this should always contain another language for the same entry								
+				$vocabulary{'terms'}->{$termkey}->{labels}->{$isocode} = $entry; # this should always contain another language for the same entry
 			}
-			
+
 			# [x] ... we remove the id hash
 			# because we should work with URI - namespace and code, ignoring the current 'id' structure
 
 			my @termarray;
-			while ( my ($key, $element) = each %{$vocabulary{'terms'}} ){	
+			while ( my ($key, $element) = each %{$vocabulary{'terms'}} ){
 				push @termarray, $element;
 			}
 			$vocabulary{'terms'} = \@termarray;
-			
+
 			# maybe we want to support multiple vocabularies for one field in future
 			push @{$element->{vocabularies}}, \%vocabulary;
-					
-		}		
+
+		}
 		# get organisational structure vocabularies
-		# faculties and stdy plans at the moment, 
+		# faculties and stdy plans at the moment,
 		# departments depends on chosen faculty and curriculums on chosen study plan
 		# so we won't load departments and curriculums (although this is a bit uni specific)
 		elsif($element->{datatype} eq "Faculty"){
-			
+
 			my %vocabulary;
-			
+
 			$vocabulary{namespace} = $element->{xmlns}.'/voc_'.$element->{xmlname}.'/';
 			my $langs = $c->app->config->{directory}->{org_units_languages};
 			foreach my $lang (@$langs){
-				
+
 				my $res = $c->app->directory->get_org_units($c, undef, $lang);
 				if(exists($res->{alerts})){
 					if($res->{status} != 200){
 						# there are only alerts
-						return { alerts => $res->{alerts}, status => $res->{status} }; 
+						return { alerts => $res->{alerts}, status => $res->{status} };
 					}
 				}
-				
+
 				my $org_units = $res->{org_units};
-				
+
 				foreach my $u (@$org_units){
 					$vocabulary{'terms'}->{$u->{value}}->{uri} = $vocabulary{namespace}.$u->{value};
 					$vocabulary{'terms'}->{$u->{value}}->{labels}->{$lang} = $u->{name};
-										
-				}											
+
+				}
 			}
 			my @termarray;
-			while ( my ($key, $element) = each %{$vocabulary{'terms'}} ){	
+			while ( my ($key, $element) = each %{$vocabulary{'terms'}} ){
 				push @termarray, $element;
 			}
 			$vocabulary{'terms'} = \@termarray;
-			
+
 			push @{$element->{vocabularies}}, \%vocabulary;
-			
+
 		}elsif($element->{datatype} eq "Department"){
 			my %vocabulary;
 			$vocabulary{namespace} = $element->{xmlns}.'/voc_'.$element->{xmlname}.'/';
 			$vocabulary{terms} = [];
 			push @{$element->{vocabularies}}, \%vocabulary;
-				
+
 		}elsif($element->{datatype} eq "SPL"){
-			
+
 			my %vocabulary;
-			
+
 			$vocabulary{namespace} = $element->{xmlns}.'/voc_'.$element->{xmlname}.'/';
 			my $langs = $c->app->config->{directory}->{study_plans_languages};
 			foreach my $lang (@$langs){
-				
+
 				my $res = $c->app->directory->get_study_plans($c, undef, $lang);
 				if(exists($res->{alerts})){
 					if($res->{status} != 200){
 						# there are only alerts
-						return { alerts => $res->{alerts}, status => $res->{status} }; 
+						return { alerts => $res->{alerts}, status => $res->{status} };
 					}
 				}
-				
+
 				my $study_plans = $res->{study_plans};
-				
+
 				foreach my $sp (@$study_plans){
 					$vocabulary{'terms'}->{$sp->{value}}->{uri} = $vocabulary{namespace}.$sp->{value};
 					$vocabulary{'terms'}->{$sp->{value}}->{labels}->{$lang} = $sp->{name};
-										
-				}											
+
+				}
 			}
 			my @termarray;
-			while ( my ($key, $element) = each %{$vocabulary{'terms'}} ){	
+			while ( my ($key, $element) = each %{$vocabulary{'terms'}} ){
 				push @termarray, $element;
 			}
 			$vocabulary{'terms'} = \@termarray;
-			
-			push @{$element->{vocabularies}}, \%vocabulary;						
-		
+
+			push @{$element->{vocabularies}}, \%vocabulary;
+
 		}elsif($element->{datatype} eq "Curriculum"){
 			my %vocabulary;
 			$vocabulary{namespace} = $element->{xmlns}.'/voc_'.$element->{xmlname}.'/';
 			$vocabulary{terms} = [];
 			push @{$element->{vocabularies}}, \%vocabulary;
 		}
-		
+
 	}
 
 	# delete ids, we don't need them
@@ -505,124 +509,124 @@ sub get_metadata_tree {
 		delete $element->{mid_parent};
 		delete $element->{mid};
 	}
-	
+
 	return \@metadata_tree;
 }
 
 sub uwmetadata_2_json {
-	
+
 	my ($self, $c, $uwmetadata) = @_;
-	
+
 	# this structure contains the metadata default structure (equals to empty uwmetadataeditor) to which
-	# we are going to load the data of some real object	
-	my $tree_res = $self->metadata_tree($c); 
-	if($tree_res->{status} ne 200){		
+	# we are going to load the data of some real object
+	my $tree_res = $self->metadata_tree($c);
+	if($tree_res->{status} ne 200){
 		return $tree_res;
 	}
-	
+
 	my $metadata_tree = $tree_res->{metadata_tree};
-	
+
 	# this is a hash where the key is 'ns/id' and value is a default representation of a node
 	# -> we use this when adding nodes (eg a second title) to get a new empty node
 	my %metadata_nodes_hash;
 	my $metadata_tree_copy = dclone($metadata_tree);
 	$self->create_md_nodes_hash($c, $metadata_tree_copy, \%metadata_nodes_hash);
-	
+
 	my $dom = Mojo::DOM->new($uwmetadata);
-		
+
 	my $nsattr = $dom->find('uwmetadata')->first->attr;
 	my $nsmap  = $nsattr;
 	# replace xmlns:ns0 with ns0
 	foreach my $key (keys %{$nsmap}) {
-		my $newkey = $key;		
+		my $newkey = $key;
 		$newkey =~ s/xmlns://g;
-		$nsmap->{$newkey} = delete $nsmap->{$key}; 
+		$nsmap->{$newkey} = delete $nsmap->{$key};
     }
 
 	$self->fill_object_metadata($c, $dom, $metadata_tree, undef, $nsmap, \%metadata_nodes_hash);
-	
+
 	# fix taxonpath nodes (we first needed them filled)
 	$self->fix_taxonpath_nodes($c, $metadata_tree);
 
 	return { alerts => [], uwmetadata => $metadata_tree, status => 200 };
 }
 
-# for 'source' and 'taxon' nodes set the values to include namespace & classification id 
+# for 'source' and 'taxon' nodes set the values to include namespace & classification id
 # also fill in the classification name labels and taxon labels
 sub fix_taxonpath_nodes {
 	my ($self, $c, $metadata_tree) = @_;
-	
+
 	my $cls_node = $self->get_json_node($c, 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0', 'classification', $metadata_tree);
-	
+
 	return unless $cls_node;
 	return unless $cls_node->{children};
-	
+
 	my $terms_model = PhaidraAPI::Model::Terms->new;
-	
+
 	foreach my $cls_child (@{$cls_node->{children}}){
 		if($cls_child->{xmlname} eq 'taxonpath'){
 			if($cls_child->{children}){
-				
+
 				# change value of the 'source' and remember the old value (classification id)
-				my $cls_id;	
-				foreach my $taxpath_child (@{$cls_child->{children}}){									
+				my $cls_id;
+				foreach my $taxpath_child (@{$cls_child->{children}}){
 					if($taxpath_child->{xmlname} eq 'source'){
 						$cls_id = $taxpath_child->{ui_value};
 						my $source_val = $PhaidraAPI::Model::Terms::classification_ns."/cls_$cls_id";
-						$taxpath_child->{value} = $source_val; 
+						$taxpath_child->{value} = $source_val;
 		    			$taxpath_child->{loaded_value} = $source_val;
 		    			$taxpath_child->{ui_value} = $source_val;
 		    			$taxpath_child->{loaded_ui_value} = $source_val;
-		    			
+
 		    			my $r = $terms_model->label($c, $source_val);
 		    			if($r->{status} eq 200){
 		    				#$c->app->log->debug($c->app->dumper($r));
 		    				$taxpath_child->{value_labels} = $r->{labels};
 		    			}else{
-		    				$c->app->log->error("Could not get terms for $source_val: ".$c->app->dumper($r))	
+		    				$c->app->log->error("Could not get terms for $source_val: ".$c->app->dumper($r))
 		    			}
-		    			
-					}								
+
+					}
 				}
-				
+
 				# use the classification id to update the taxon values
-				foreach my $taxpath_child (@{$cls_child->{children}}){									
+				foreach my $taxpath_child (@{$cls_child->{children}}){
 					if($taxpath_child->{xmlname} eq 'taxon'){
 						my $tax_id = $taxpath_child->{ui_value};
 						my $tax_val = $PhaidraAPI::Model::Terms::classification_ns."/cls_$cls_id/$tax_id";
-						$taxpath_child->{value} = $tax_val; 
+						$taxpath_child->{value} = $tax_val;
 		    			$taxpath_child->{loaded_value} = $tax_val;
 		    			$taxpath_child->{ui_value} = $tax_val;
 		    			$taxpath_child->{loaded_ui_value} = $tax_val;
-		    			
+
 		    			my $r = $terms_model->label($c, $tax_val);
 		    			if($r->{status} eq 200){
 		    				#$c->app->log->debug($c->app->dumper($r));
 		    				$taxpath_child->{value_labels} = $r->{labels};
 		    			}else{
-		    				$c->app->log->error("Could not get terms for $tax_val: ".$c->app->dumper($r))	
+		    				$c->app->log->error("Could not get terms for $tax_val: ".$c->app->dumper($r))
 		    			}
-					}								
+					}
 				}
-			}			
+			}
 		}
-	} 
+	}
 }
 
 sub get_object_metadata {
-	
+
 	my ($self, $c, $pid, $username, $password) = @_;
 
 	# get object metadata
 	my $res = $self->get_uwmetadata($c, $pid, $username, $password);
 	if($res->{status} ne 200){
 		return $res;
-	}	
-	
-	
+	}
+
+
 	$res = $self->uwmetadata_2_json($c, $res->{uwmetadata});
-	return { uwmetadata => $res->{uwmetadata}, status => 200 };	
-	
+	return { uwmetadata => $res->{uwmetadata}, status => 200 };
+
 }
 
 sub get_org_units_terms {
@@ -630,78 +634,78 @@ sub get_org_units_terms {
 	my $c = shift;
 	my $parent_id = shift;
 	my $value_namespace = shift;
-	
+
 	my %vocabulary;
 	my $langs = $c->app->config->{directory}->{org_units_languages};
 	foreach my $lang (@$langs){
-				
+
 		my $res = $c->app->directory->get_org_units($c, $parent_id, $lang);
-				
+
 		my $org_units = $res->{org_units};
-				
-		foreach my $u (@$org_units){	
+
+		foreach my $u (@$org_units){
 			$vocabulary{'terms'}->{$u->{value}}->{uri} = $value_namespace.$u->{value};
-			$vocabulary{'terms'}->{$u->{value}}->{$lang} = $u->{name};								
-		}											
+			$vocabulary{'terms'}->{$u->{value}}->{$lang} = $u->{name};
+		}
 	}
 	my @termarray;
-	while ( my ($key, $element) = each %{$vocabulary{'terms'}} ){	
+	while ( my ($key, $element) = each %{$vocabulary{'terms'}} ){
 		push @termarray, $element;
 	}
-	
+
 	return \@termarray;
 }
 
 sub get_study_terms {
-	
+
 	my $self = shift;
 	my $c = shift;
 	my $spl = shift;
 	my $ids = shift;
 	my $values_namespace = shift;
-	
-	my %vocabulary;	
+
+	my %vocabulary;
 	my $langs = $c->app->config->{directory}->{study_plans_languages};
-	
+
 	foreach my $lang (@$langs){
 		my $res = $c->app->directory->get_study($c, $spl, $ids, $lang);
-					
+
 		my $study = $res->{'study'};
-					
-		foreach my $s (@$study){	
+
+		foreach my $s (@$study){
 			$vocabulary{'terms'}->{$s->{value}}->{uri} = $values_namespace.$s->{value};
-			$vocabulary{'terms'}->{$s->{value}}->{$lang} = $s->{name};								
-		}	
-	}										
-	
+			$vocabulary{'terms'}->{$s->{value}}->{$lang} = $s->{name};
+		}
+	}
+
 	my @termarray;
-	while ( my ($key, $element) = each %{$vocabulary{'terms'}} ){	
+	while ( my ($key, $element) = each %{$vocabulary{'terms'}} ){
 		push @termarray, $element;
 	}
-	
+
 	return \@termarray;
 }
 
 sub get_study_name {
-	
+
 	my $self = shift;
 	my $c = shift;
 	my $spl = shift;
 	my $ids = shift;
-	
+
 	my $langs = $c->app->config->{directory}->{study_plans_languages};
-	
+
 	my %names;
 	foreach my $lang (@$langs){
 		my $name = $c->app->directory->get_study_name($c, $spl, $ids, $lang);
-		$names{$lang} = $name;				
-	}										
-	
+		$names{$lang} = $name;
+	}
+
 	return \%names;
 }
 
 sub fill_object_metadata {
-	
+
 	my $self = shift;
 	my $c = shift;
 	my $uwmetadata = shift;
@@ -709,23 +713,23 @@ sub fill_object_metadata {
 	my $metadata_tree_parent = shift;
 	my $nsmap = shift;
 	my $metadata_nodes_hash = shift;
-	
+
 	my $tidy = shift;
 	$tidy .= '  ';
-			
+
 	unless(defined($metadata_tree_parent)){
 		my %h = (
 			'children' => $metadata_tree
-		);	
+		);
 		$metadata_tree_parent = \%h;
 	}
-			
+
 	for my $e ($uwmetadata->children->each) {
-		
-		#$self->app->log->debug($self->app->dumper($e));		
-		
+
+		#$self->app->log->debug($self->app->dumper($e));
+
 	    my $type = $e->type;
-	    
+
 	    # type looks like this: ns1:general
 	    # get namespace and identifier from it
 	    # namespace = 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0'
@@ -734,28 +738,28 @@ sub fill_object_metadata {
 	    my $ns = $1;
 	    my $id = $2;
 	    my $node;
-	    if($id ne 'uwmetadata'){	    
+	    if($id ne 'uwmetadata'){
 		    # search this node in the metadata tree
 		    # get one where metadata from uwmetadata were not yet loaded
 		    $ns = $nsmap->{$ns};
-		    $node = $self->get_empty_node($c, $ns, $id, $metadata_tree_parent, $metadata_nodes_hash); 
+		    $node = $self->get_empty_node($c, $ns, $id, $metadata_tree_parent, $metadata_nodes_hash);
 
 			if($e->text){
 	    		# fill in values
 	    		if(defined($node->{vocabularies})){
-	    			
+
 	    			foreach my $voc (@{$node->{vocabularies}}){
 		    			my $node_value = $e->text;
-		    			
+
 		    			$node->{value} = $voc->{namespace}.$node_value;
 		    			$node->{loaded_value} = $voc->{namespace}.$node_value;
 		    			$node->{ui_value} = $voc->{namespace}.$node_value;
 		    			$node->{loaded_ui_value} = $voc->{namespace}.$node_value;
 	    			}
-	    				    			
+
 	    			if($node->{xmlname} eq 'department'){
-	    			
-	    				# get the selected faculty, if any, and fill the department vocabulary	
+
+	    				# get the selected faculty, if any, and fill the department vocabulary
 		    			if($e->parent){
 		    				my $faculty = undef;
 			    			for my $child ($e->parent->children->each) {
@@ -763,19 +767,19 @@ sub fill_object_metadata {
 							    	if($faculty){
 							    		if($faculty->text){
 							    			foreach my $voc (@{$node->{vocabularies}}){
-							    				$voc->{terms} = $self->get_org_units_terms($c, $faculty->text, "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_department/");	
+							    				$voc->{terms} = $self->get_org_units_terms($c, $faculty->text, "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_department/");
 							    			}
-							    		}							    		
+							    		}
 							    	}
 							    	last;
 							    }
 							    $faculty = $child;
 							}
-		    			}	    			
+		    			}
 	    			}
-	    			
+
 	    			if($node->{xmlname} eq 'kennzahl'){
-	    				# get the previous sibling and study plan and fill the study plan vocabulary	
+	    				# get the previous sibling and study plan and fill the study plan vocabulary
 		    			if($e->parent){
 		    				my $prev = undef;
 		    				my $spl = undef;
@@ -784,10 +788,10 @@ sub fill_object_metadata {
  							my $last_kennzahl = 0;
 			    			for my $child ($e->parent->children->each) {
 
-			    				if($e->parent->children->reverse->first->tree eq $e->tree){			    					
-			    					$last_kennzahl = 1;			    					
+			    				if($e->parent->children->reverse->first->tree eq $e->tree){
+			    					$last_kennzahl = 1;
 			    				}
-			    				
+
 			    				my $child_type = $child->type;
 			    				$child_type =~ m/(ns\d+):([0-9a-zA-Z_]+)/;
 							    my $ns = $1;
@@ -801,38 +805,38 @@ sub fill_object_metadata {
 							    	if($child->tree eq $e->tree){
 							    		$current_seq = $child->attr('seq');
 							    	}
-							    }							    
-							}							
+							    }
+							}
 							@$ids_all = sort { $a->{seq} <=> $b->{seq} } @$ids_all;
 
 							# for the get_study method we need all the ids until the current one
 							my @ids;
 							for my $id (@$ids_all){
 								if($id->{seq} eq $current_seq){
-									last;	
+									last;
 								}else{
-									push @ids, $id->{text}; 	
-								}									
+									push @ids, $id->{text};
+								}
 							}
-												    		
+
 							foreach my $voc (@{$node->{vocabularies}}){
-								$voc->{terms} = $self->get_study_terms($c, $spl, \@ids, "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_kennzahl/");	
-							}							    		
-							
+								$voc->{terms} = $self->get_study_terms($c, $spl, \@ids, "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_kennzahl/");
+							}
+
 							# try to get the study name
 							if($last_kennzahl){
-							
+
 								my @ids;
-								for my $id (@$ids_all){							
-									push @ids, $id->{text}; 	
-								}									
-															
+								for my $id (@$ids_all){
+									push @ids, $id->{text};
+								}
+
 								$metadata_tree_parent->{study_name} = $self->get_study_name($c, $spl, \@ids);
-																
+
 							}
-		    			}	
+		    			}
 	    			}
-	    			
+
 	    		}elsif($node->{input_type} eq "input_checkbox" || $node->{input_type} eq "select_yesno"){
 	    			my $v;
 	    			if($e->text eq 'yes'){
@@ -854,15 +858,15 @@ sub fill_object_metadata {
 	    		}
 
 			}
-			
-			if(defined($e->attr)){			
+
+			if(defined($e->attr)){
 			   	if($e->attr->{language}){
 			    	$node->{value_lang} = $e->attr->{language};
 			    	$node->{loaded_value_lang} = $e->attr->{language};
 			   	}
-			   	if(defined($e->attr->{seq}) && $node->{ordered}){			   		
-			   		$node->{data_order} = $e->attr->{seq}; 	
-			   		@{$metadata_tree_parent->{children}} = sort { sort_ordered($a) <=> sort_ordered($b) } @{$metadata_tree_parent->{children}};			   				
+			   	if(defined($e->attr->{seq}) && $node->{ordered}){
+			   		$node->{data_order} = $e->attr->{seq};
+			   		@{$metadata_tree_parent->{children}} = sort { sort_ordered($a) <=> sort_ordered($b) } @{$metadata_tree_parent->{children}};
 			  	}
 			}
 	    }
@@ -870,11 +874,11 @@ sub fill_object_metadata {
 	    	$self->fill_object_metadata($c, $e, $metadata_tree, $node, $nsmap, $metadata_nodes_hash, $tidy);
 	    }
 	}
-	
+
 }
 
 sub sort_ordered {
-	
+
 	my $node = shift;
 
 	# upload_date, version, etc needs to be ordered by field_order, as well as contribute
@@ -895,113 +899,113 @@ sub sort_ordered {
 	# </ns1:lifecycle>
 
 	if($node->{data_order} eq ''){
-		return int($node->{field_order});	
-	}else{		
+		return int($node->{field_order});
+	}else{
 		return int($node->{field_order}) + ("0.".$node->{data_order});
-	}		
-	
+	}
+
 }
 
 sub get_empty_node {
-	
+
 	my $self = shift;
 	my $c = shift;
 	my $ns = shift;
 	my $id = shift;
 	my $parent = shift;
 	my $metadata_nodes_hash = shift;
-	
+
 	#$c->app->log->debug("searching empty node $id under ".$parent->{xmlname}.' ['.$parent->{debug_id}.']');
-	
+
 	my $node;
 	my $i = 0;
 	foreach my $n (@{$parent->{children}}){
-			
+
 		$i++;
-			
+
 		my $xmlns = $n->{xmlns};
-		my $xmlname = $n->{xmlname};	
+		my $xmlname = $n->{xmlname};
 		my $children_size = defined($n->{children}) ? scalar (@{$n->{children}}) : 0;
-			
+
 		if(($xmlns eq $ns) && ($xmlname eq $id)){
 			#$c->app->log->debug("found ".($n->{loaded} ? "used" : "empty")." node ".$xmlname.' ['.$n->{debug_id}.']');
-		
+
 			# found it! is this node already used?
 			if($n->{loaded}){
-				# yes, create a new one					
+				# yes, create a new one
 				my $new_node = dclone($metadata_nodes_hash->{$xmlns.'/'.$xmlname});
 				# and add it to the structure
 				splice @{$parent->{children}}, $i, 0, $new_node;
 				$node = $new_node;
 			}else{
 				# no, use the found one
-				$node = $n;	
-			}			
-			
+				$node = $n;
+			}
+
 			$node->{loaded} = 1;
 		}
-		
-		elsif($children_size > 0){					
-			$node = $self->get_empty_node($c, $ns, $id, $n, $metadata_nodes_hash);			
+
+		elsif($children_size > 0){
+			$node = $self->get_empty_node($c, $ns, $id, $n, $metadata_nodes_hash);
 		}
-		
+
 		last if defined $node;
 	}
-	
-	return $node;	
+
+	return $node;
 }
 
 
 sub create_md_nodes_hash {
-	
+
 	my $self = shift;
 	my $c = shift;
 	my $children = shift;
 	my $h = shift;
 
 	foreach my $n (@{$children}){
-		
+
 		$h->{$n->{xmlns}.'/'.$n->{xmlname}} = $n;
-					
-		my $children_size = defined($n->{children}) ? scalar (@{$n->{children}}) : 0;		
-		if($children_size > 0){						
-			$self->create_md_nodes_hash($c, $n->{children}, $h);			
+
+		my $children_size = defined($n->{children}) ? scalar (@{$n->{children}}) : 0;
+		if($children_size > 0){
+			$self->create_md_nodes_hash($c, $n->{children}, $h);
 		}
-		
+
 	}
-	
+
 }
 
 sub get_uwmetadata {
-	
+
 	my $self = shift;
 	my $c = shift;
-	my $pid = shift; 
+	my $pid = shift;
 	my $username = shift;
 	my $password = shift;
-	
+
 	my $res = { alerts => [], status => 200 };
-	
+
 	my $url = Mojo::URL->new;
 	$url->scheme('https');
 	$url->userinfo("$username:$password");
 	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
-	$url->path("/fedora/get/$pid/bdef:Asset/getUWMETADATA");	
-	
-  	my $get = Mojo::UserAgent->new->get($url);  	
-  	
+	$url->path("/fedora/get/$pid/bdef:Asset/getUWMETADATA");
+
+  	my $get = Mojo::UserAgent->new->get($url);
+
   	if (my $r = $get->success) {
-  		$res->{status} = 200;  
+  		$res->{status} = 200;
   		$res->{'uwmetadata'} = $r->body;
   	}
-	else 
+	else
 	{
 	  my ($err, $code) = $get->error;
 	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
 	  $res->{status} =  $code ? $code : 500;
 	}
-	
-	return $res;		
+
+	return $res;
 }
 
 sub set_identifier() {
@@ -1009,11 +1013,11 @@ sub set_identifier() {
 	my $c = shift;
 	my $pid = shift;
 	my $metadata = shift;
-	
+
 	foreach my $n (@{$metadata}){
 		if($n->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0' && $n->{xmlname} eq 'identifier'){
 			$n->{value} = $pid;
-			last; 
+			last;
 		}else{
 			my $children_size = defined($n->{children}) ? scalar (@{$n->{children}}) : 0;
 			if($children_size > 0){
@@ -1036,7 +1040,7 @@ sub set_identifier() {
 #
 sub get_json_node(){
 	my ($self, $c, $namespace, $xmlname, $metadata) = @_;
-	
+
 	my $ret;
 	foreach my $n (@{$metadata}){
 		if($n->{xmlns} eq $namespace && $n->{xmlname} eq $xmlname){
@@ -1046,30 +1050,30 @@ sub get_json_node(){
 			my $children_size = defined($n->{children}) ? scalar (@{$n->{children}}) : 0;
 			if($children_size > 0){
 				$ret = $self->get_json_node($c, $namespace, $xmlname, $n->{children});
-				last if($ret);			
+				last if($ret);
 			}
 		}
 	}
 	return $ret;
 }
 
-sub set_json_node_value(){	
+sub set_json_node_value(){
 	my ($self, $c, $namespace, $xmlname, $metadata, $value) = @_;
-	my $n = $self->get_json_node($c, $namespace, $xmlname, $metadata);	
+	my $n = $self->get_json_node($c, $namespace, $xmlname, $metadata);
 	if($n){
 		$n->{'value'} = $value;
-	}	
+	}
 }
 
-sub set_json_node_ui_value(){	
+sub set_json_node_ui_value(){
 	my ($self, $c, $namespace, $xmlname, $metadata, $value) = @_;
-	my $n = $self->get_json_node($c, $namespace, $xmlname, $metadata);	
+	my $n = $self->get_json_node($c, $namespace, $xmlname, $metadata);
 	if($n){
 		$n->{'ui_value'} = $value;
-	}	
+	}
 }
 
-# i) set identifier, or add and set if not there 
+# i) set identifier, or add and set if not there
 # i) add and set upload_date if not there
 # i) add and set status if not there (default = http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_2/44 [Complete])
 # i) add and set cost if not there (default = 0)
@@ -1080,9 +1084,9 @@ sub fix_uwmetadata() {
 	my $c = shift;
 	my $pid = shift;
 	my $metadata = shift;
-	
+
 	#$c->app->log->debug("Uwmetadata before fix: ".$c->app->dumper($metadata));
-		
+
 	# set identifier, or add and set if not there
 	my $n = $self->get_json_node($c, 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0', 'identifier', $metadata);
 	if(defined($n)){
@@ -1095,27 +1099,27 @@ sub fix_uwmetadata() {
 	        xmlname => "identifier",
 	        datatype => "CharacterString",
 	        ui_value => $pid
-	    });	
+	    });
 	}
-		
+
 	# add and set upload date if not there
 	# 2014-02-23T10:08:57.831Z
 	$n = $self->get_json_node($c, 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0', 'upload_date', $metadata);
 	unless($n){
 		# $metadata[1] - lifecycle
-		my $ch = @{$metadata}[1]->{'children'};		
+		my $ch = @{$metadata}[1]->{'children'};
 		# index 0, upload_date is first
 		splice(@{$ch}, 0, 0, {
 	    	xmlns => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0",
 	        xmlname => "upload_date",
 	        datatype => "DateTime",
 	        ui_value => strftime("%Y-%m-%dT%H:%M:%S.000Z", localtime)
-	    });	
+	    });
 	}
 	if($n->{ui_value} eq ''){
 		$n->{ui_value} = strftime("%Y-%m-%dT%H:%M:%S.000Z", localtime)
 	}
-	
+
 	# add and set status if not there
 	$n = $self->get_json_node($c, 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0', 'status', $metadata);
 	unless($n){
@@ -1127,22 +1131,22 @@ sub fix_uwmetadata() {
 	        xmlname => "status",
 	        datatype => "Vocabulary",
 	        ui_value => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_2/44"
-	    });	
+	    });
 	}
 	if($n->{ui_value} eq ''){
 		$n->{ui_value} = "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_2/44";
 	}
-	
+
 	# find the index of rights tab
 	my $i = 0;
 	my $rights_idx;
-	foreach my $n (@{$metadata}){		
+	foreach my $n (@{$metadata}){
 		if($n->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0' && $n->{xmlname} eq 'rights'){
 			$rights_idx = $i;
 		}
 		$i++;
-	}		
-	
+	}
+
 	# add and set cost if not there
 	$n = $self->get_json_node($c, 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0', 'cost', $metadata);
 	unless($n){
@@ -1153,12 +1157,12 @@ sub fix_uwmetadata() {
 	        xmlname => "cost",
 	        datatype => "Boolean",
 	        ui_value => 0
-	    });	
+	    });
 	}
 	if($n->{ui_value} eq ''){
 		$n->{ui_value} = 0;
-	}	
-	
+	}
+
 	# add and set copyright if not there
 	$n = $self->get_json_node($c, 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0', 'copyright', $metadata);
 	unless($n){
@@ -1169,19 +1173,19 @@ sub fix_uwmetadata() {
 	        xmlname => "copyright",
 	        datatype => "Boolean",
 	        ui_value => 1
-	    });	
-	}	
+	    });
+	}
 	if($n->{ui_value} eq ''){
 		$n->{ui_value} = 1;
 	}
-	
+
 	# add empty classification node if missing
 	my $found = undef;
 	foreach my $n (@{$metadata}){
 		if($n->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0' && $n->{xmlname} eq 'classification'){
 			$found = 1; last;
-		}	
-	}	
+		}
+	}
 	# not found, add, after rights
 	unless(defined($found)){
 		splice(@{$metadata}, $rights_idx+1, 0, {
@@ -1189,31 +1193,31 @@ sub fix_uwmetadata() {
 	        xmlname => "classification",
 	        datatype => "Node"
 	    });
-	}	
-	
+	}
+
 	#$c->app->log->debug("Uwmetadata after fix: ".$c->app->dumper($metadata));
 }
 
 sub save_to_object(){
-	
+
 	my $self = shift;
 	my $c = shift;
 	my $pid = shift;
 	my $metadata = shift;
 	my $username = shift;
 	my $password = shift;
-	
+
 	my $res = { alerts => [], status => 200 };
-	
+
 	$self->fix_uwmetadata($c, $pid, $metadata);
-	
+
 	my $uwmetadata = $self->json_2_uwmetadata($c, $metadata);
 	unless($uwmetadata){
 		$res->{status} = 500;
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error coverting metadata'};
 		return $res
 	}
-	
+
 	my $saveres = $self->save_uwmetadata($c, $pid, $uwmetadata, $username, $password);
 	if($saveres->{status} != 200){
 		$res->{status} = 500;
@@ -1223,21 +1227,21 @@ sub save_to_object(){
 	}else{
 		unshift @{$res->{alerts}}, @{$saveres->{alerts}};
 	}
-	
+
 	return $res
 }
 
 sub validate_uwmetadata(){
-	
+
 	my $self = shift;
-	my $c = shift;	
+	my $c = shift;
 	my $pid = shift;
-	my $uwmetadata = shift;	
-	
+	my $uwmetadata = shift;
+
 	my $res = { alerts => [], status => 200 };
 
 	my $xsdpath = $home->rel_file('public/xsd/uwmetadata/ns0.xsd');
-	
+
 	unless(-f $xsdpath){
 		unshift @{$res->{alerts}}, { type => 'danger', msg => "Cannot find XSD files: $xsdpath"};
 		$res->{status} = 500;
@@ -1248,65 +1252,65 @@ sub validate_uwmetadata(){
 
 	eval {
 		my $document = $parser->parse_string($uwmetadata);
-		
+
 		unless(defined($pid)){
 			$self->add_dummy_metadata($c, $document);
-		}	
-		
-		#$c->app->log->debug("Validating: ".$document->toString(1));	
-		
-		$schema->validate($document) 
+		}
+
+		#$c->app->log->debug("Validating: ".$document->toString(1));
+
+		$schema->validate($document)
 	};
-		
+
 	if($@){
 		$c->app->log->error("Error validating uwmetadata: $@");
 		unshift @{$res->{alerts}}, { type => 'danger', msg => $@ };
-		$res->{status} = 400;		
+		$res->{status} = 400;
 	}
 
 	return $res;
 }
 
 sub add_dummy_metadata(){
-	
+
 	my $self = shift;
-	my $c = shift;	
+	my $c = shift;
 	my $doc = shift;
-	
+
 	my $cfg;
 	foreach my $node ($doc->findnodes('//namespace::*')) {
     	$cfg->{namespace}{$node->getLocalName()} = $node->getValue();
     	$cfg->{short}{$node->getValue()} = $node->getLocalName();
 	}
-	
-	my $xc = XML::LibXML::XPathContext->new($doc);	
+
+	my $xc = XML::LibXML::XPathContext->new($doc);
 	for my $ns (keys %{$cfg->{namespace}})
 	{
 		$xc->registerNs($ns => $cfg->{namespace}->{$ns});
 	}
-	
+
 	my $uwmetans = $cfg->{short}->{"http://phaidra.univie.ac.at/XML/metadata/V1.0"};
 	my $lomns = $cfg->{short}->{"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"};
-		
-	# add pid	
+
+	# add pid
 	my $xpath = "/$uwmetans:uwmetadata/$lomns:general";
 	my $nodeset = $xc->findnodes($xpath);
 	my $generalnode;
 	foreach my $gnode ($nodeset->get_nodelist){
 		$generalnode = $gnode;
 		last;
-	}			
-	$xpath = "/$uwmetans:uwmetadata/$lomns:general/$lomns:identifier";	
-	$nodeset = $xc->findnodes($xpath);	
+	}
+	$xpath = "/$uwmetans:uwmetadata/$lomns:general/$lomns:identifier";
+	$nodeset = $xc->findnodes($xpath);
 	my $pidnode = undef;
 	foreach my $node ($nodeset->get_nodelist){
-		$pidnode = $node;	
-		my $pidnodenew = $doc->parse_balanced_chunk('<'.$lomns.':identifier xmlns:'.$lomns.'="http://phaidra.univie.ac.at/XML/metadata/extended/V1.0">o:1</'.$lomns.':identifier>');	
+		$pidnode = $node;
+		my $pidnodenew = $doc->parse_balanced_chunk('<'.$lomns.':identifier xmlns:'.$lomns.'="http://phaidra.univie.ac.at/XML/metadata/extended/V1.0">o:1</'.$lomns.':identifier>');
 		$generalnode->insertAfter($pidnodenew, $pidnode);
 		$generalnode->removeChild($pidnode);
-		last;	 
+		last;
 	}
-	
+
 	#add upload_date
 	$xpath = "/$uwmetans:uwmetadata/$lomns:lifecycle";
 	$nodeset = $xc->findnodes($xpath);
@@ -1314,29 +1318,29 @@ sub add_dummy_metadata(){
 	foreach my $lnode ($nodeset->get_nodelist){
 		$lifecyclenode = $lnode;
 		last;
-	}			
-	$xpath = "/$uwmetans:uwmetadata/$lomns:lifecycle/$lomns:upload_date";	
-	$nodeset = $xc->findnodes($xpath);	
+	}
+	$xpath = "/$uwmetans:uwmetadata/$lomns:lifecycle/$lomns:upload_date";
+	$nodeset = $xc->findnodes($xpath);
 	my $upload_date_node = undef;
 	foreach my $node ($nodeset->get_nodelist){
-		$upload_date_node = $node;	
-		my $upload_date_node_new = $doc->parse_balanced_chunk('<'.$lomns.':upload_date xmlns:'.$lomns.'="http://phaidra.univie.ac.at/XML/metadata/extended/V1.0">1970-01-01T00:00:00.000Z</'.$lomns.':upload_date>');	
+		$upload_date_node = $node;
+		my $upload_date_node_new = $doc->parse_balanced_chunk('<'.$lomns.':upload_date xmlns:'.$lomns.'="http://phaidra.univie.ac.at/XML/metadata/extended/V1.0">1970-01-01T00:00:00.000Z</'.$lomns.':upload_date>');
 		$generalnode->insertAfter($upload_date_node_new, $upload_date_node);
 		$generalnode->removeChild($upload_date_node);
-		last;	 
+		last;
 	}
 }
 
 sub json_2_uwmetadata(){
-	
+
 	my $self = shift;
-	my $c = shift;	
+	my $c = shift;
 	my $metadata = shift;
 
 	# 1) unfortunately in UWMETADATA, the namespace prefixes are numbered (ns0, ns1,...)
 	# 2) unfortunately the namespace prefixes are numbered rather randomly
 	# 3) unfortunately some scripts have the prefixes hardcoded (@xyz = $class->getChildrenByTagName("ns7:source");)
-	# If this api would only edit objects, we could now sacrifice one call to get the current uwmetadata and read out 
+	# If this api would only edit objects, we could now sacrifice one call to get the current uwmetadata and read out
 	# the prefix-namespace mapping, so that we don't change a thing.
 	# But this api also creates objects, so it will impose it's prefix-namespace mapping anyway.
 	# To be transparent, we should just number the namespaces as they appear in this json tree, but some
@@ -1344,9 +1348,9 @@ sub json_2_uwmetadata(){
 	# might create problems. So to minimize the damage, we will simply statically define the mapping here,
 	# in the way they usually occure in an object. Howgh.
 	my $prefixmap = {
-		"http://phaidra.univie.ac.at/XML/metadata/V1.0" => 'ns0', 
-		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0" => 'ns1',  	
-		"http://phaidra.univie.ac.at/XML/metadata/extended/V1.0" => 'ns2', 
+		"http://phaidra.univie.ac.at/XML/metadata/V1.0" => 'ns0',
+		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0" => 'ns1',
+		"http://phaidra.univie.ac.at/XML/metadata/extended/V1.0" => 'ns2',
 		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity" => 'ns3',
 		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/requirement" => 'ns4',
 		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational" => 'ns5',
@@ -1355,14 +1359,14 @@ sub json_2_uwmetadata(){
 		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization" => 'ns8',
 		"http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0" =>	'ns9',
 		"http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0" => 'ns10',
-		"http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0/entity" => 'ns11', 
+		"http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0/entity" => 'ns11',
 		"http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0" => 'ns12',
 		"http://phaidra.univie.ac.at/XML/metadata/etheses/V1.0" => 'ns13'
 	};
 	my $forced_declarations = [
-		"http://phaidra.univie.ac.at/XML/metadata/V1.0", 
-		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0",  	
-		"http://phaidra.univie.ac.at/XML/metadata/extended/V1.0", 
+		"http://phaidra.univie.ac.at/XML/metadata/V1.0",
+		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0",
+		"http://phaidra.univie.ac.at/XML/metadata/extended/V1.0",
 		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity",
 		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/requirement",
 		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational",
@@ -1371,13 +1375,13 @@ sub json_2_uwmetadata(){
 		"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization",
 		"http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0",
 		"http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0",
-		"http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0/entity", 
+		"http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0/entity",
 		"http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0",
 		"http://phaidra.univie.ac.at/XML/metadata/etheses/V1.0"
 	];
-	
+
 	my $xml = '';
-	my $writer = XML::Writer->new( 
+	my $writer = XML::Writer->new(
 		OUTPUT => \$xml,
 		NAMESPACES => 1,
         PREFIX_MAP => $prefixmap,
@@ -1385,11 +1389,11 @@ sub json_2_uwmetadata(){
         DATA_MODE => 1,
         ENCODING => 'utf-8'
 	);
-	
+
 	$writer->startTag(["http://phaidra.univie.ac.at/XML/metadata/V1.0", "uwmetadata"]);
 	$self->json_2_uwmetadata_rec($c, $metadata, $writer);
 	$writer->endTag(["http://phaidra.univie.ac.at/XML/metadata/V1.0", "uwmetadata"]);
-	
+
 	$writer->end();
 	#$c->app->log->debug($xml);
 	return $xml;
@@ -1404,22 +1408,22 @@ sub json_2_uwmetadata(){
 # - data_order (if any)
 # - language (if any)
 sub json_2_uwmetadata_rec(){
-	
+
 	my $self = shift;
-	my $c = shift;	
+	my $c = shift;
 	my $children = shift;
-	my $writer = shift;		
-	
+	my $writer = shift;
+
 	foreach my $child (@{$children}){
-		
+
 		my $children_size = defined($child->{children}) ? scalar (@{$child->{children}}) : 0;
-		
+
 		# some elements are not allowed to be empty, so if these are empty
 		# we cannot add them to uwmetadata (except for classification, needs to be there even if empty)
 		if($child->{ui_value} eq '' && $children_size == 0 && $child->{xmlname} ne 'classification'){
-			next;	
+			next;
 		}
-		# this way we remove source and taxon from taxonpath, 
+		# this way we remove source and taxon from taxonpath,
 		# but then the taxonpath will be empty
 		if($child->{xmlname} eq 'taxonpath'){
 			# check 'source'
@@ -1428,7 +1432,7 @@ sub json_2_uwmetadata_rec(){
 				next;
 			}
 		}
-		
+
 		my %attrs;
 		if($child->{ordered}){
 			$attrs{seq} = $child->{data_order};
@@ -1436,17 +1440,17 @@ sub json_2_uwmetadata_rec(){
 		if($child->{value_lang} ne ''){
 			$attrs{language} = $child->{value_lang};
 		}
-	
+
 		if (%attrs){
 			$writer->startTag([$child->{xmlns}, $child->{xmlname}], %attrs);
 		}else{
 			$writer->startTag([$child->{xmlns}, $child->{xmlname}]);
 		}
-		
+
 		if($children_size > 0){
 			$self->json_2_uwmetadata_rec($c, $child->{children}, $writer);
-		}else{				
-			
+		}else{
+
 			# copy the 'ui_value' to 'value' (or transform, if needed)
 			if($child->{value} eq ''){
 				$child->{value} = $child->{ui_value};
@@ -1454,33 +1458,33 @@ sub json_2_uwmetadata_rec(){
 
 			# hack, until vocabulary server
 			if(
-				$child->{datatype} eq 'Vocabulary' || 
+				$child->{datatype} eq 'Vocabulary' ||
 				$child->{datatype} eq 'License' ||
 				$child->{datatype} eq 'Faculty' ||
 				$child->{datatype} eq 'Department' ||
 				$child->{datatype} eq 'SPL' ||
 				$child->{datatype} eq 'Curriculum'
 			){
-			
+
 				# eg http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_21/6
-				if($child->{value} =~ m/($child->{xmlns})\/voc_(\d+)\/(\w+)/){					
+				if($child->{value} =~ m/($child->{xmlns})\/voc_(\d+)\/(\w+)/){
 					$writer->characters($3);
 				}
-				
+
 			}elsif($child->{datatype} eq 'ClassificationSource'){
-			
+
 				# eg http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/cls_7
-				if($child->{value} =~ m/($child->{xmlns})\/cls_(\d+)/){					
+				if($child->{value} =~ m/($child->{xmlns})\/cls_(\d+)/){
 					$writer->characters($2);
 				}
-				
+
 			}elsif($child->{datatype} eq 'Taxon'){
-			
+
 				# http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/cls_7/169426
-				if($child->{value} =~ m/($child->{xmlns})\/cls_(\d+)\/(\w+)/){					
+				if($child->{value} =~ m/($child->{xmlns})\/cls_(\d+)\/(\w+)/){
 					$writer->characters($3);
-				}			
-			
+				}
+
 			}else{
 				if($child->{datatype} eq 'Boolean'){
 					$writer->characters($child->{value} ? 'yes' : 'no');
@@ -1489,35 +1493,35 @@ sub json_2_uwmetadata_rec(){
 						$writer->characters($child->{value});
 					}
 				}
-			}	
+			}
 		}
-		
-		$writer->endTag([$child->{xmlns}, $child->{xmlname}]);	
-	}		
+
+		$writer->endTag([$child->{xmlns}, $child->{xmlname}]);
+	}
 }
 
 sub save_uwmetadata(){
-	
+
 	my $self = shift;
-	my $c = shift;	
+	my $c = shift;
 	my $pid = shift;
-	my $uwmetadata = shift;	
+	my $uwmetadata = shift;
 	my $username = shift;
 	my $password = shift;
-	
+
 	my $res = { alerts => [], status => 200 };
-	
+
 	unless(defined($pid)){
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Missing PID. UWMETADATA datastream can only be saved to an existing object.'};
-		$res->{status} = 500;	
+		$res->{status} = 500;
 		return $res;
 	}
 	unless($pid =~ m/^[a-zA-Z\-]+:[0-9]+$/){
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Malformed PID: $pid'};
-		$res->{status} = 400;	
+		$res->{status} = 400;
 		return $res;
 	}
-	
+
 	if($c->app->config->{validate_uwmetadata}){
 		my $valres = $self->validate_uwmetadata($c, $pid, $uwmetadata);
 		if($valres->{status} != 200){
@@ -1531,18 +1535,18 @@ sub save_uwmetadata(){
 			unshift @{$res->{alerts}}, @{$valres->{alerts}};
 		}
 	}
-	
+
 	# does it already exists? we have to use modify instead of add method if it does
 	my $search_model = PhaidraAPI::Model::Search->new;
 	my $sr = $search_model->datastream_exists($c, $pid, 'UWMETADATA');
 	if($sr->{status} ne 200){
 		unshift @{$res->{alerts}}, @{$sr->{alerts}};
-		$res->{status} = $sr->{status}; 
+		$res->{status} = $sr->{status};
 		return $res;
 	}
 
 	$uwmetadata = encode 'UTF-8', $uwmetadata;
-	
+
 	if($sr->{'exists'}){
 		my $object_model = PhaidraAPI::Model::Object->new;
 		my $r = $object_model->modify_datastream($c, $pid, "UWMETADATA", "text/xml", undef, $c->app->config->{phaidra}->{uwmetadatalabel}, $uwmetadata, $username, $password);
@@ -1551,7 +1555,7 @@ sub save_uwmetadata(){
 	    if($r->{status} ne 200){
 	    	return $res;
 	    }
-		
+
 	}else{
 		my $object_model = PhaidraAPI::Model::Object->new;
 		my $r = $object_model->add_datastream($c, $pid, "UWMETADATA", "text/xml", undef, $c->app->config->{phaidra}->{uwmetadatalabel}, $uwmetadata, "X", $username, $password);
@@ -1559,11 +1563,11 @@ sub save_uwmetadata(){
 	    $res->{status} = $r->{status};
 	    if($r->{status} ne 200){
 	    	return $res;
-	    }	
-		
+	    }
+
 	}
 	$c->app->log->debug("Saving UWMETADATA for $pid successful.");
-	
+
 	return $res;
 }
 
