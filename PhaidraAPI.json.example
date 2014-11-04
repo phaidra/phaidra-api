@@ -1,91 +1,91 @@
 {
 	"hypnotoad": {
-	
+
         "listen": ["http://*:3000"],
-        
+
         "proxy": 1
     },
 
 	"mode":"production",
-	
+
 	"secret":"changeme",
-	
+
 	"enc_key":"changeme",
-	
+
 	"session_expiration":"7200",
 
     "inactivity_timeout":"7200",
-	
+
     "log_path":"/var/log/phaidra/PhaidraAPI.log",
-    
+
     "log_level":"debug",
 
     "readonly": "0",
-    
+
     "allow_userdata_queries": "0",
-    
-    "validate_uwmetadata":"1",
-    
-    "local_uwmetadata_tree":"1",
-    
+
+    "validate_uwmetadata":"/var/www/phaidra-api/public/xsd/uwmetadata/ns0.xsd",
+
+    "local_uwmetadata_tree":"/var/www/phaidra-api/public/uwmetadata/tree.json",
+
     "terms": {
     	"search_results_limit": 50
     },
-      
+
 	"directory_class": "Phaidra::Directory::Univie",
-	
-	"directory": {	        
-	
+
+	"directory": {
+
         "connect_string": "dbi:Oracle:DB",
-        
+
         "username": "username",
-        
-        "password": "password",     
-        
+
+        "password": "password",
+
         "org_units_languages": ["en","de"],
-        
+
         "study_plans_languages": ["de"]
-	}, 
-    
+	},
+
     "phaidra": {
-    
+
     	"baseurl": "phaidra-instance.univie.ac.at",
-    	
+
     	"fedorabaseurl": "",
-    	
+
     	"staticbaseurl": "",
-    	
+
     	"fedorastylesheeturl": "",
-    	
+
     	"proaiRepositoryIdentifier": "",
-    	
+
     	"triplestore": "localMysqlMPTTriplestore",
-    	
+
     	"defaultlabel": "Created by phaidra-api",
-    	
+
     	"intcallusername": "changeme",
-    	
+
     	"intcallpassword": "changeme"
-    
-    },              
-    
+
+    },
+
     "localMysqlMPTTriplestore": {
     	"dsn":"dbi:mysql:db_name:db_host",
-    	
+
     	"username":"changeme",
-    	
+
     	"password":"changeme"
     },
-    
+
     "phaidra_db": {
-    
+
     	"dsn":"dbi:mysql:db_name:db_host",
-    	
+
     	"username":"changeme",
-    	
+
     	"password":"changeme"
     },
-    
+
     "mongodb": {
         "host": "host",
         "port": "27017",
@@ -93,35 +93,35 @@
         "password": "password",
         "database": "database"
     },
-    
+
     "authentication": {
-    
+
     	"realm": "Phaidra",
-    	
+
     	"token_header": "X-XSRF-TOKEN",
-    	
+
     	"token_cookie": "XSRF-TOKEN",
-    	
+
     	"Access-Control-Allow-Origin": "*",
-    	
+
     	"ldap": {
     		"server": "",
-    		
+
     		"port": "",
-    		
+
     		"useridattribute": "",
-    		
+
     		"usersearchbase": "",
-    		
-        	"usersearchfilter": "",   
-        			
+
+        	"usersearchfilter": "",
+
     		"userattributes": "",
-    		
+
     		"securityprincipal": "",
-    		
+
     		"securitycredentials": ""
     	}
-    	
+
     }
- 
+
 }

@@ -9,7 +9,6 @@ use POSIX qw/strftime/;
 use Switch;
 use Data::Dumper;
 use Mojo::ByteStream qw(b);
-use Mojo::Home;
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::Util qw(encode decode);
 use XML::Writer;
@@ -19,8 +18,6 @@ use Phaidra::API;
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Terms;
-my $home = Mojo::Home->new;
-$home->detect('PhaidraAPI');
 
 sub metadata_tree {
 
@@ -33,14 +30,13 @@ sub metadata_tree {
 
 	 	    # read metadata tree from file
 			my $content;
-			my $metadatapath = $home->rel_file('public/uwmetadata/tree.json');
-			open my $fh, "<", $metadatapath or push @{$res->{alerts}}, "Error reading uwmetadata/tree.json, ".$!;
+			open my $fh, "<", $c->app->config->{local_uwmetadata_tree} or push @{$res->{alerts}}, "Error reading local_uwmetadata_tree, ".$!;
 		    local $/;
 		    $content = <$fh>;
 		    close $fh;
 
 		    unless(defined($content)){
-		    	push @{$res->{alerts}}, "Error reading uwmetadata/tree.json, no content";
+		    	push @{$res->{alerts}}, "Error reading local_uwmetadata_tree, no content";
 		    	next;
 		    }
 
@@ -1240,7 +1236,7 @@ sub validate_uwmetadata(){
 
 	my $res = { alerts => [], status => 200 };
 
-	my $xsdpath = $home->rel_file('public/xsd/uwmetadata/ns0.xsd');
+	my $xsdpath = $c->app->config->{validate_uwmetadata};
 
 	unless(-f $xsdpath){
 		unshift @{$res->{alerts}}, { type => 'danger', msg => "Cannot find XSD files: $xsdpath"};
