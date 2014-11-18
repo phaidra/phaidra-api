@@ -1210,14 +1210,16 @@ sub save_to_object(){
 	my $uwmetadata = $self->json_2_uwmetadata($c, $metadata);
 	unless($uwmetadata){
 		$res->{status} = 500;
-		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error coverting metadata'};
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error converting metadata'};
 		return $res
 	}
 
 	my $saveres = $self->save_uwmetadata($c, $pid, $uwmetadata, $username, $password);
 	if($saveres->{status} != 200){
-		$res->{status} = 500;
-		unshift @{$res->{alerts}}, @{$saveres->{alerts}};
+		$res->{status} = $saveres->{status};
+    foreach my $a ( @{$saveres->{alerts}} ){
+		    unshift @{$res->{alerts}}, $a;
+    }
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving metadata to object'};
 		return $res;
 	}else{
@@ -1521,13 +1523,16 @@ sub save_uwmetadata(){
 	if($c->app->config->{validate_uwmetadata}){
 		my $valres = $self->validate_uwmetadata($c, $pid, $uwmetadata);
 		if($valres->{status} != 200){
-			$c->app->log->info("Validating UWMETADATA for object $pid...failed:".$c->app->dumper($valres->{alerts}));
+			$c->app->log->info("Validating UWMETADATA for object $pid failed:".$c->app->dumper($valres->{alerts}));
 			$res->{status} = $valres->{status};
-			unshift @{$res->{alerts}}, @{$valres->{alerts}};
+      foreach my $a ( @{$valres->{alerts}} ){
+          unshift @{$res->{alerts}}, $a;
+      }
 			unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error validating metadata'};
+
 			return $res;
 		}else{
-			$c->app->log->info("Validating UWMETADATA for object $pid...success.");
+			$c->app->log->info("Validating UWMETADATA for object $pid success.");
 			unshift @{$res->{alerts}}, @{$valres->{alerts}};
 		}
 	}

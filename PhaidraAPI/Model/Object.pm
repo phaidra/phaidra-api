@@ -217,8 +217,10 @@ sub create_simple {
     # save metadata
     $r = $self->save_metadata($c, $pid, $metadata->{metadata}, $username, $password);
     if($r->{status} ne 200){
-        $res->{status} = 500;
-        unshift @{$res->{alerts}}, @{$r->{alerts}};
+        $res->{status} = $r->{status};
+				foreach my $a (@{$r->{alerts}}){
+        	unshift @{$res->{alerts}}, $a;
+				}
         unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving metadata'};
         return $res;
     }
@@ -226,8 +228,10 @@ sub create_simple {
 	# activate
     $r = $self->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
     if($r->{status} ne 200){
-   		$res->{status} = 500;
-		unshift @{$res->{alerts}}, @{$r->{alerts}};
+   		$res->{status} = $r->{status};
+		foreach my $a (@{$r->{alerts}}){
+			unshift @{$res->{alerts}}, $a;
+		}
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error activating object'};
    		return $res;
    	}
@@ -257,9 +261,12 @@ sub save_metadata {
 				my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
 				my $r = $metadata_model->save_to_object($c, $pid, $uwmetadata, $username, $password);
 				if($r->{status} ne 200){
-			   		$res->{status} = 500;
-					unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving uwmetadata'};
-			   	}
+			   		$res->{status} = $r->{status};
+						foreach my $a (@{$r->{alerts}}){
+							unshift @{$res->{alerts}}, $a;
+						}
+						unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving uwmetadata'};
+			  }
 			   	$found = 1;
 			   	$found_bib = 1;
 			}
