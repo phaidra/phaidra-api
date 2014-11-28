@@ -8,6 +8,7 @@ use Mojo::Util qw/xml_escape/;
 use lib "lib/phaidra_binding";
 use Phaidra::API;
 use PhaidraAPI::Model::Rights;
+use PhaidraAPI::Model::Geo;
 use Switch;
 use IO::Scalar;
 use File::MimeInfo;
@@ -249,7 +250,7 @@ sub save_metadata {
 	my $password = shift;
 
 	my $res = { alerts => [], status => 200 };
-
+	$c->app->log->debug("Adding metadata");
 	my $found = 0;
 	my $found_bib = 0;
 	foreach my $f (keys %{$metadata}){
@@ -257,6 +258,7 @@ sub save_metadata {
 		switch ($f) {
 
 			case "uwmetadata" {
+				$c->app->log->debug("Adding uwmetadata");
 				my $uwmetadata = $metadata->{uwmetadata};
 				my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
 				my $r = $metadata_model->save_to_object($c, $pid, $uwmetadata, $username, $password);
@@ -272,21 +274,35 @@ sub save_metadata {
 			}
 
 			case "rights" {
+				$c->app->log->debug("Saving RIGHTS for $pid");
 				my $rights = $metadata->{rights};
 				my $rights_model = PhaidraAPI::Model::Rights->new;
 				my $xml = $rights_model->json_2_xml($c, $rights);
-				$c->app->log->debug("Saving RIGHTS for $pid");
 				my $r = $self->add_datastream($c, $pid, "RIGHTS", "text/xml", undef, "Phaidra Permissions", $xml, "X", $username, $password);
-			  	if($r->{status} ne 200){
-			   		$res->{status} = 500;
-					unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving rights'};
-			   	}
+			  if($r->{status} ne 200){
+			    $res->{status} = 500;
+				  unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving rights'};
+			  }
+				$found = 1;
+			}
+
+			case "geo" {
+				$c->app->log->debug("Saving GEO for $pid");
+				my $geo = $metadata->{geo};
+				my $geo_model = PhaidraAPI::Model::Geo->new;
+				my $xml = $geo_model->json_2_xml($c, $geo);
+				my $r = $self->add_datastream($c, $pid, "GEO", "text/xml", undef, "Georeferencing", $xml, "X", $username, $password);
+				if($r->{status} ne 200){
+					$res->{status} = 500;
+					unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving geo'};
+				}
 				$found = 1;
 			}
 
 			else {
+				$c->app->log->error("Unknown or unsupported metadata format: $f");
 				$found = 1;
-				unshift @{$res->{alerts}}, { type => 'danger', msg => 'Unknown or unsupported metadata format: $f' };
+				unshift @{$res->{alerts}}, { type => 'danger', msg => "Unknown or unsupported metadata format: $f" };
 			}
 		}
 	}
