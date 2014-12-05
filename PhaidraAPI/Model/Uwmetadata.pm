@@ -573,41 +573,46 @@ sub fix_taxonpath_nodes {
 				my $cls_id;
 				foreach my $taxpath_child (@{$cls_child->{children}}){
 					if($taxpath_child->{xmlname} eq 'source'){
-						$cls_id = $taxpath_child->{ui_value};
-						my $source_val = $PhaidraAPI::Model::Terms::classification_ns."/cls_$cls_id";
-						$taxpath_child->{value} = $source_val;
-		    			$taxpath_child->{loaded_value} = $source_val;
-		    			$taxpath_child->{ui_value} = $source_val;
-		    			$taxpath_child->{loaded_ui_value} = $source_val;
+						
+						if($taxpath_child->{ui_value} ne ''){
+							$cls_id = $taxpath_child->{ui_value};
+							my $source_val = $PhaidraAPI::Model::Terms::classification_ns."/cls_$cls_id";
+							$taxpath_child->{value} = $source_val;
+			    			$taxpath_child->{loaded_value} = $source_val;
+			    			$taxpath_child->{ui_value} = $source_val;
+			    			$taxpath_child->{loaded_ui_value} = $source_val;
+						
 
-		    			my $r = $terms_model->label($c, $source_val);
-		    			if($r->{status} eq 200){
-		    				#$c->app->log->debug($c->app->dumper($r));
-		    				$taxpath_child->{value_labels} = $r->{labels};
-		    			}else{
-		    				$c->app->log->error("Could not get terms for $source_val: ".$c->app->dumper($r))
-		    			}
-
+			    			my $r = $terms_model->label($c, $source_val);
+			    			if($r->{status} eq 200){
+			    				#$c->app->log->debug($c->app->dumper($r));
+			    				$taxpath_child->{value_labels} = $r->{labels};
+			    			}else{
+			    				$c->app->log->error("Could not get terms for $source_val: ".$c->app->dumper($r))
+			    			}
+						}
 					}
 				}
 
 				# use the classification id to update the taxon values
 				foreach my $taxpath_child (@{$cls_child->{children}}){
 					if($taxpath_child->{xmlname} eq 'taxon'){
-						my $tax_id = $taxpath_child->{ui_value};
-						my $tax_val = $PhaidraAPI::Model::Terms::classification_ns."/cls_$cls_id/$tax_id";
-						$taxpath_child->{value} = $tax_val;
-		    			$taxpath_child->{loaded_value} = $tax_val;
-		    			$taxpath_child->{ui_value} = $tax_val;
-		    			$taxpath_child->{loaded_ui_value} = $tax_val;
-
-		    			my $r = $terms_model->label($c, $tax_val);
-		    			if($r->{status} eq 200){
-		    				#$c->app->log->debug($c->app->dumper($r));
-		    				$taxpath_child->{value_labels} = $r->{labels};
-		    			}else{
-		    				$c->app->log->error("Could not get terms for $tax_val: ".$c->app->dumper($r))
-		    			}
+						if($taxpath_child->{ui_value} ne ''){
+							my $tax_id = $taxpath_child->{ui_value};
+							my $tax_val = $PhaidraAPI::Model::Terms::classification_ns."/cls_$cls_id/$tax_id";
+							$taxpath_child->{value} = $tax_val;
+			    			$taxpath_child->{loaded_value} = $tax_val;
+			    			$taxpath_child->{ui_value} = $tax_val;
+			    			$taxpath_child->{loaded_ui_value} = $tax_val;
+	
+			    			my $r = $terms_model->label($c, $tax_val);
+			    			if($r->{status} eq 200){
+			    				#$c->app->log->debug($c->app->dumper($r));
+			    				$taxpath_child->{value_labels} = $r->{labels};
+			    			}else{
+			    				$c->app->log->error("Could not get terms for $tax_val: ".$c->app->dumper($r))
+			    			}
+						}
 					}
 				}
 			}
@@ -868,23 +873,7 @@ sub fill_object_metadata {
 			   	}
 			   	if(defined($e->attr->{seq}) && $node->{ordered}){
 			   		$node->{data_order} = $e->attr->{seq};
-$c->app->log->debug("XXXXXXXXXXXXXY------------ before sort ".$metadata_tree_parent->{xmlname});
-my $l = 0;
-if($metadata_tree_parent->{xmlname} eq 'lifecycle'){
-  foreach my $n (@{$metadata_tree_parent->{children}}){
-    $c->app->log->debug("XXXXXXXXXXXXX found ".$n->{xmlname}." at $l (sort ordered:".sort_ordered($n).")");
-    $l++;
-  }
-}
 			   		@{$metadata_tree_parent->{children}} = sort { sort_ordered($a) <=> sort_ordered($b) } @{$metadata_tree_parent->{children}};
-$c->app->log->debug("XXXXXXXXXXXXXY------------ after sort ".$metadata_tree_parent->{xmlname});
-$l = 0;
-if($metadata_tree_parent->{xmlname} eq 'lifecycle'){
-  foreach my $n (@{$metadata_tree_parent->{children}}){
-    $c->app->log->debug("XXXXXXXXXXXXX found ".$n->{xmlname}." at $l (sort ordered:".sort_ordered($n).")");
-    $l++;
-  }
-}
 			  	}
 			}
 	    }
