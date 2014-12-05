@@ -21,9 +21,15 @@ use PhaidraAPI::Model::Terms;
 
 sub metadata_tree {
 
-    my ($self, $c) = @_;
+    my ($self, $c, $nocache) = @_;
 
     my $res = { alerts => [], status => 200 };
+
+	if($nocache){
+		$c->app->log->debug("Reading uwmetadata tree from db (nocache request)");
+		$res->{metadata_tree} = $self->get_metadata_tree($c);	
+		return $res;
+	}
 
  		if($c->app->config->{local_uwmetadata_tree}){
  			$c->app->log->debug("Reading uwmetadata tree from file");
@@ -740,7 +746,7 @@ sub fill_object_metadata {
 		    $ns = $nsmap->{$ns};
 		    $node = $self->get_empty_node($c, $ns, $id, $metadata_tree_parent, $metadata_nodes_hash);
 
-			if($e->text){
+			  if($e->text){
 	    		# fill in values
 	    		if(defined($node->{vocabularies})){
 
@@ -770,9 +776,9 @@ sub fill_object_metadata {
 							    	last;
 							    }
 							    $faculty = $child;
-							}
-		    			}
-	    			}
+							  }
+		    		  }
+	    		  }
 
 	    			if($node->{xmlname} eq 'kennzahl'){
 	    				# get the previous sibling and study plan and fill the study plan vocabulary
@@ -862,7 +868,23 @@ sub fill_object_metadata {
 			   	}
 			   	if(defined($e->attr->{seq}) && $node->{ordered}){
 			   		$node->{data_order} = $e->attr->{seq};
+$c->app->log->debug("XXXXXXXXXXXXXY------------ before sort ".$metadata_tree_parent->{xmlname});
+my $l = 0;
+if($metadata_tree_parent->{xmlname} eq 'lifecycle'){
+  foreach my $n (@{$metadata_tree_parent->{children}}){
+    $c->app->log->debug("XXXXXXXXXXXXX found ".$n->{xmlname}." at $l (sort ordered:".sort_ordered($n).")");
+    $l++;
+  }
+}
 			   		@{$metadata_tree_parent->{children}} = sort { sort_ordered($a) <=> sort_ordered($b) } @{$metadata_tree_parent->{children}};
+$c->app->log->debug("XXXXXXXXXXXXXY------------ after sort ".$metadata_tree_parent->{xmlname});
+$l = 0;
+if($metadata_tree_parent->{xmlname} eq 'lifecycle'){
+  foreach my $n (@{$metadata_tree_parent->{children}}){
+    $c->app->log->debug("XXXXXXXXXXXXX found ".$n->{xmlname}." at $l (sort ordered:".sort_ordered($n).")");
+    $l++;
+  }
+}
 			  	}
 			}
 	    }
@@ -914,11 +936,8 @@ sub get_empty_node {
 	#$c->app->log->debug("searching empty node $id under ".$parent->{xmlname}.' ['.$parent->{debug_id}.']');
 
 	my $node;
-	my $i = 0;
+    my $i = 0;
 	foreach my $n (@{$parent->{children}}){
-
-		$i++;
-
 		my $xmlns = $n->{xmlns};
 		my $xmlname = $n->{xmlname};
 		my $children_size = defined($n->{children}) ? scalar (@{$n->{children}}) : 0;
@@ -929,7 +948,10 @@ sub get_empty_node {
 			# found it! is this node already used?
 			if($n->{loaded}){
 				# yes, create a new one
-				my $new_node = dclone($metadata_nodes_hash->{$xmlns.'/'.$xmlname});
+				my $new_node = dclone($metadata_nodes_hash->{$xmlns.'/'.$xmlname});				
+				if($new_node->{ordered}){
+					$new_node->{data_order} = int($n->{data_order}) + 1;
+				}
 				# and add it to the structure
 				splice @{$parent->{children}}, $i, 0, $new_node;
 				$node = $new_node;
@@ -944,6 +966,8 @@ sub get_empty_node {
 		elsif($children_size > 0){
 			$node = $self->get_empty_node($c, $ns, $id, $n, $metadata_nodes_hash);
 		}
+
+    $i++;
 
 		last if defined $node;
 	}
@@ -1208,6 +1232,7 @@ sub save_to_object(){
 	$self->fix_uwmetadata($c, $pid, $metadata);
 
 	my $uwmetadata = $self->json_2_uwmetadata($c, $metadata);
+
 	unless($uwmetadata){
 		$res->{status} = 500;
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error converting metadata'};

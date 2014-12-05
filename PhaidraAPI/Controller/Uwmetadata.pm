@@ -80,6 +80,7 @@ sub post {
 	my $pid = $self->stash('pid');
 
 	my $payload = $self->req->json;
+  
 	my $uwmetadata = $payload->{uwmetadata};
 
 	unless(defined($pid)){
@@ -108,11 +109,13 @@ sub tree {
 
 	my $t0 = [gettimeofday];
 
+	my $nocache = $self->param('nocache');
+
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
 
 	my $languages = $metadata_model->get_languages($self);
 
-	my $res = $metadata_model->metadata_tree($self);
+	my $res = $metadata_model->metadata_tree($self,$nocache);
 	if($res->{status} ne 200){
 		$self->render(json => { alerts => $res->{alerts} }, $res->{status});
 	}
