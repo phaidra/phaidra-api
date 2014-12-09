@@ -27,7 +27,7 @@ sub metadata_tree {
 
 	if($nocache){
 		$c->app->log->debug("Reading uwmetadata tree from db (nocache request)");
-		$res->{metadata_tree} = $self->get_metadata_tree($c);	
+		$res->{metadata_tree} = $self->get_metadata_tree($c);
 		return $res;
 	}
 
@@ -573,7 +573,7 @@ sub fix_taxonpath_nodes {
 				my $cls_id;
 				foreach my $taxpath_child (@{$cls_child->{children}}){
 					if($taxpath_child->{xmlname} eq 'source'){
-						
+
 						if($taxpath_child->{ui_value} ne ''){
 							$cls_id = $taxpath_child->{ui_value};
 							my $source_val = $PhaidraAPI::Model::Terms::classification_ns."/cls_$cls_id";
@@ -581,7 +581,7 @@ sub fix_taxonpath_nodes {
 			    			$taxpath_child->{loaded_value} = $source_val;
 			    			$taxpath_child->{ui_value} = $source_val;
 			    			$taxpath_child->{loaded_ui_value} = $source_val;
-						
+
 
 			    			my $r = $terms_model->label($c, $source_val);
 			    			if($r->{status} eq 200){
@@ -604,7 +604,7 @@ sub fix_taxonpath_nodes {
 			    			$taxpath_child->{loaded_value} = $tax_val;
 			    			$taxpath_child->{ui_value} = $tax_val;
 			    			$taxpath_child->{loaded_ui_value} = $tax_val;
-	
+
 			    			my $r = $terms_model->label($c, $tax_val);
 			    			if($r->{status} eq 200){
 			    				#$c->app->log->debug($c->app->dumper($r));
@@ -937,7 +937,7 @@ sub get_empty_node {
 			# found it! is this node already used?
 			if($n->{loaded}){
 				# yes, create a new one
-				my $new_node = dclone($metadata_nodes_hash->{$xmlns.'/'.$xmlname});				
+				my $new_node = dclone($metadata_nodes_hash->{$xmlns.'/'.$xmlname});
 				if($new_node->{ordered}){
 					$new_node->{data_order} = int($n->{data_order}) + 1;
 				}
@@ -1431,10 +1431,11 @@ sub json_2_uwmetadata_rec(){
 		my $children_size = defined($child->{children}) ? scalar (@{$child->{children}}) : 0;
 
 		# some elements are not allowed to be empty, so if these are empty
-		# we cannot add them to uwmetadata (except for classification, needs to be there even if empty)
-		if($child->{ui_value} eq '' && $children_size == 0 && $child->{xmlname} ne 'classification'){
+		# we cannot add them to uwmetadata (except for classification and description, needs to be there even if empty)
+		if($child->{ui_value} eq '' && $children_size == 0 && $child->{xmlname} ne 'classification' && $child->{xmlname} ne 'description'){
 			next;
 		}
+
 		# this way we remove source and taxon from taxonpath,
 		# but then the taxonpath will be empty
 		if($child->{xmlname} eq 'taxonpath'){
