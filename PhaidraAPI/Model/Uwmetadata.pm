@@ -1403,7 +1403,7 @@ sub json_2_uwmetadata(){
 	);
 
 	$writer->startTag(["http://phaidra.univie.ac.at/XML/metadata/V1.0", "uwmetadata"]);
-	$self->json_2_uwmetadata_rec($c, $metadata, $writer);
+	$self->json_2_uwmetadata_rec($c, undef, $metadata, $writer);
 	$writer->endTag(["http://phaidra.univie.ac.at/XML/metadata/V1.0", "uwmetadata"]);
 
 	$writer->end();
@@ -1423,6 +1423,7 @@ sub json_2_uwmetadata_rec(){
 
 	my $self = shift;
 	my $c = shift;
+	my $parent = shift;
 	my $children = shift;
 	my $writer = shift;
 
@@ -1430,9 +1431,18 @@ sub json_2_uwmetadata_rec(){
 
 		my $children_size = defined($child->{children}) ? scalar (@{$child->{children}}) : 0;
 
-		# some elements are not allowed to be empty, so if these are empty
-		# we cannot add them to uwmetadata (except for classification and description, needs to be there even if empty)
-		if($child->{ui_value} eq '' && $children_size == 0 && $child->{xmlname} ne 'classification' && $child->{xmlname} ne 'description'){
+		# some elements are not allowed to be empty, so if these are empty we cannot add them to uwmetadata
+		# but some special needs to be there anyway: classification and general/description
+		my $canskip = 1;
+		if($child->{xmlname} eq 'classification'){
+			$canskip = 0;
+		}
+		if(defined($parent)){
+			if($child->{xmlname} eq 'description' && $parent->{xmlname} eq 'general'){
+				$canskip = 0;
+			}		
+		}
+		if($canskip && $child->{ui_value} eq '' && $children_size == 0){
 			next;
 		}
 
@@ -1461,7 +1471,7 @@ sub json_2_uwmetadata_rec(){
 		}
 
 		if($children_size > 0){
-			$self->json_2_uwmetadata_rec($c, $child->{children}, $writer);
+			$self->json_2_uwmetadata_rec($c, $child, $child->{children}, $writer);
 		}else{
 
 			# copy the 'ui_value' to 'value' (or transform, if needed)

@@ -499,9 +499,10 @@ sub search {
     	# get search results for each classification
     	my $limit = $c->app->{config}->{terms}->{search_results_limit};
     	my ($veid, $isocode, $entry ,$vid, $tid, $upstream_identifier, $term_id, $preferred);
-    	$ss = "SELECT ve.veid, ve.isocode, ve.entry, ve.vid, t.tid, t.upstream_identifier, tv.term_id, tv.preferred FROM vocabulary_entry ve LEFT JOIN taxon_vocentry tv ON ve.veid = tv.veid LEFT JOIN taxon t on tv.tid = t.tid  WHERE MATCH (entry) AGAINST(?) AND tv.TID IS NOT NULL AND t.cid = (?) LIMIT $limit;";
+    	# we search for vocabulary entries where the query equals the upstream_identifier first, then where it matches the vocabulary entry
+    	$ss = "SELECT ve.veid, ve.isocode, ve.entry, ve.vid, t.tid, t.upstream_identifier, tv.term_id, tv.preferred FROM taxon t LEFT JOIN taxon_vocentry tv ON t.tid = tv.tid LEFT JOIN vocabulary_entry ve on tv.veid = ve.veid WHERE t.upstream_identifier = (?) AND tv.TID IS NOT NULL AND t.cid = (?) UNION SELECT ve.veid, ve.isocode, ve.entry, ve.vid, t.tid, t.upstream_identifier, tv.term_id, tv.preferred FROM vocabulary_entry ve LEFT JOIN taxon_vocentry tv ON ve.veid = tv.veid LEFT JOIN taxon t on tv.tid = t.tid  WHERE MATCH (entry) AGAINST(?) AND tv.TID IS NOT NULL AND t.cid = (?) LIMIT $limit;";
 		$sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
-		$sth->execute($q, $cid);
+		$sth->execute($q, $cid, $q, $cid);
 		$sth->bind_columns(undef, \$veid, \$isocode, \$entry ,\$vid, \$tid, \$upstream_identifier, \$term_id, \$preferred);
 		my %terms;
 		my $hits = 0;
