@@ -34,6 +34,12 @@ sub metadata_tree {
  		if($c->app->config->{local_uwmetadata_tree}){
  			$c->app->log->debug("Reading uwmetadata tree from file");
 
+      unless( -e $c->app->config->{local_uwmetadata_tree}){
+        $c->app->log->error("Error reading local_uwmetadata_tree, file ".$c->app->config->{local_uwmetadata_tree}." does not exist");
+        push @{$res->{alerts}}, "Error reading local_uwmetadata_tree";
+        $res->{status} = 500;
+        return $res;
+      }
 	 	    # read metadata tree from file
 			my $content;
 			open my $fh, "<", $c->app->config->{local_uwmetadata_tree} or push @{$res->{alerts}}, "Error reading local_uwmetadata_tree, ".$!;
@@ -42,8 +48,11 @@ sub metadata_tree {
 		    close $fh;
 
 		    unless(defined($content)){
-		    	push @{$res->{alerts}}, "Error reading local_uwmetadata_tree, no content";
-		    	next;
+          my $msg = "Error reading local_uwmetadata_tree, no content";
+          $c->app->log->error($msg);
+          push @{$res->{alerts}}, $msg;
+          $res->{status} = 500;
+          return $res;
 		    }
 
 			my $metadata = decode_json($content);
@@ -632,7 +641,7 @@ sub get_object_metadata {
 
 
 	$res = $self->uwmetadata_2_json($c, $res->{uwmetadata});
-	return { uwmetadata => $res->{uwmetadata}, status => 200 };
+	return { uwmetadata => $res->{uwmetadata}, alerts => $res->{alerts}, status => $res->{status} };
 
 }
 
@@ -1440,7 +1449,7 @@ sub json_2_uwmetadata_rec(){
 		if(defined($parent)){
 			if($child->{xmlname} eq 'description' && $parent->{xmlname} eq 'general'){
 				$canskip = 0;
-			}		
+			}
 		}
 		if($canskip && $child->{ui_value} eq '' && $children_size == 0){
 			next;

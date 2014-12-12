@@ -25,7 +25,8 @@ sub get {
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
 	my $res= $metadata_model->get_object_metadata($self, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 	if($res->{status} ne 200){
-		$self->render(json => { alerts => $res->{alerts} }, $res->{status});
+		$self->render(json => { alerts => $res->{alerts} }, status => $res->{status});
+    return;
 	}
 
 	my $languages = $metadata_model->get_languages($self);
@@ -33,7 +34,7 @@ sub get {
 	my $t1 = tv_interval($t0);
 	#$self->stash( msg => "backend load took $t1 s");
 
-    $self->render(json => { uwmetadata => $res->{uwmetadata}, languages => $languages}); #, alerts => [{ type => 'success', msg => $self->stash->{msg}}]});
+    $self->render(json => { uwmetadata => $res->{uwmetadata}, languages => $languages}, status => $res->{status}); #, alerts => [{ type => 'success', msg => $self->stash->{msg}}]});
 }
 
 sub json2xml {
@@ -80,7 +81,7 @@ sub post {
 	my $pid = $self->stash('pid');
 
 	my $payload = $self->req->json;
-  
+
 	my $uwmetadata = $payload->{uwmetadata};
 
 	unless(defined($pid)){
