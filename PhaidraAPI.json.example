@@ -25,8 +25,12 @@
     "allow_userdata_queries": "0",
 
     "validate_uwmetadata":"/var/www/phaidra-api/public/xsd/uwmetadata/ns0.xsd",
+    
+    "validate_mods":"/var/www/phaidra-api/public/xsd/mods/mods-3-5.xsd",
 
     "local_uwmetadata_tree":"/var/www/phaidra-api/public/uwmetadata/tree.json",
+    
+    "local_mods_tree":"/var/www/phaidra-api/public/mods/mods.json",
 
     "terms": {
     	"search_results_limit": 50

@@ -85,8 +85,11 @@ sub create {
 
     $c->app->log->debug("Creating empty object");
     # create empty object
-    my $r = $self->create_empty($c, $username, $password);
-    push @{$res->{alerts}}, $r->{alerts} if scalar $r->{alerts} > 0;
+    my $r = $self->create_empty($c, $username, $password); 
+   	foreach my $a (@{$r->{alerts}}){
+   		push @{$res->{alerts}}, $a;		
+   	}
+     
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
     	return $res;
@@ -103,8 +106,10 @@ sub create {
 
     # set cmodel and oai itemid
     $c->app->log->debug("Set cmodel ($contentmodel) and oaiitemid ($oaiid)");
-	$r = $self->add_relationships($c, $pid, \@relationships, $username, $password);
-  	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+	$r = $self->add_relationships($c, $pid, \@relationships, $username, $password);  	
+  	foreach my $a (@{$r->{alerts}}){
+   		push @{$res->{alerts}}, $a;		
+   	}
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
     	return $res;
@@ -114,7 +119,9 @@ sub create {
   	my $thumburl = "http://".$c->app->config->{phaidra}->{baseurl}."/preview/$pid";
   	$c->app->log->debug("Adding thumbnail ($thumburl)");
 	$r = $self->add_datastream($c, $pid, "THUMBNAIL", "image/png", $thumburl, undef, undef, "E", $username, $password);
-  	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+  	foreach my $a (@{$r->{alerts}}){
+   		push @{$res->{alerts}}, $a;		
+   	}
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
     	return $res;
@@ -122,7 +129,9 @@ sub create {
 
   	# add stylesheet
   	$r = $self->add_datastream($c, $pid, "STYLESHEET", "text/xml", $c->app->config->{phaidra}->{fedorastylesheeturl}, undef, undef, "E", $username, $password);
-  	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+  	foreach my $a (@{$r->{alerts}}){
+   		push @{$res->{alerts}}, $a;		
+   	}
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
     	return $res;
@@ -527,9 +536,9 @@ sub create_empty {
   		$res->{pid} = $r->body;
   	}else {
 	  my ($err, $code) = $put->error;
-	  $c->app->log->error("Cannot create fedora object: $code:".$err);
-	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-	  $res->{status} =  $code ? $code : 500;
+	  $c->app->log->error("Cannot create fedora object: code:".$err->{code}." message:".$err->{message});
+	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err->{message} };
+	  $res->{status} =  $err->{code} ? $err->{code} : 500;
 	  return $res;
 	}
 

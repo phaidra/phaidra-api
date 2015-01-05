@@ -183,6 +183,10 @@ sub startup {
 	$r->route('uwmetadata/languages')               ->via('get')    ->to('uwmetadata#languages');
     $r->route('uwmetadata/json2xml')                ->via('post')   ->to('uwmetadata#json2xml');
     $r->route('uwmetadata/xml2json')                ->via('post')   ->to('uwmetadata#xml2json');
+    $r->route('uwmetadata/validate')                ->via('post')   ->to('uwmetadata#validate');
+    $r->route('uwmetadata/json2xml_validate')       ->via('post')   ->to('uwmetadata#json2xml_validate');
+    
+    $r->route('mods/tree')                          ->via('get')    ->to('mods#tree');
 	
 	$r->route('help/tooltip')                       ->via('get')    ->to('help#tooltip');		
 	

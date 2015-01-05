@@ -31,60 +31,55 @@ sub metadata_tree {
 		return $res;
 	}
 
- 		if($c->app->config->{local_uwmetadata_tree}){
- 			$c->app->log->debug("Reading uwmetadata tree from file");
+ 	if($c->app->config->{local_uwmetadata_tree}){
+ 		$c->app->log->debug("Reading uwmetadata tree from file");
 
-	 	    # read metadata tree from file
-			my $content;
-			open my $fh, "<", $c->app->config->{local_uwmetadata_tree} or push @{$res->{alerts}}, "Error reading local_uwmetadata_tree, ".$!;
-		    local $/;
-		    $content = <$fh>;
-		    close $fh;
+	    # read metadata tree from file
+		my $content;
+		open my $fh, "<", $c->app->config->{local_uwmetadata_tree} or push @{$res->{alerts}}, "Error reading local_uwmetadata_tree, ".$!;
+	    local $/;
+	    $content = <$fh>;
+	    close $fh;
 
-		    unless(defined($content)){
-		    	push @{$res->{alerts}}, "Error reading local_uwmetadata_tree, no content";
-		    	next;
-		    }
+	    unless(defined($content)){
+	    	push @{$res->{alerts}}, "Error reading local_uwmetadata_tree, no content";
+	    	next;
+	    }
 
-			my $metadata = decode_json($content);
-	 		$res->{metadata_tree} = $metadata->{tree};
+		my $metadata = decode_json($content);
+		$res->{metadata_tree} = $metadata->{tree};
 
- 		}else{
+ 	}else{
 
-			$c->app->log->debug("Reading uwmetadata tree from cache");
+		$c->app->log->debug("Reading uwmetadata tree from cache");
 
-			my $cachekey = 'uwmetadata_tree';
-	 		my $cacheval = $c->app->chi->get($cachekey);
+		my $cachekey = 'uwmetadata_tree';
+		my $cacheval = $c->app->chi->get($cachekey);
+  		my $miss = 1;
 
-	  		my $miss = 1;
+  		if($cacheval){
+  			if(scalar @{$cacheval} > 0){
+  				$miss = 0;
+ 				$c->app->log->debug("[cache hit] $cachekey");
+  			}
+  		}
 
-	  		if($cacheval){
-	  			if(scalar @{$cacheval} > 0){
-	  				$miss = 0;
-	  				$c->app->log->debug("[cache hit] $cachekey");
-	  			}
-	  		}
+    	if($miss){
+    		$c->app->log->debug("[cache miss] $cachekey");
+    		$cacheval = $self->get_metadata_tree($c);
 
-	    	if($miss){
-	    		$c->app->log->debug("[cache miss] $cachekey");
+    		$c->app->chi->set($cachekey, $cacheval, '1 day');
 
-	    		$cacheval = $self->get_metadata_tree($c);
-
-	    		$c->app->chi->set($cachekey, $cacheval, '1 day');
-
-	  			# save and get the value. the serialization can change integers to strings so
-	  			# if we want to get the same structure for cache miss and cache hit we have to run it through
-	  			# the cache serialization process even if cache miss [when we already have the structure]
-	  			# so instead of using the structure created we will get the one just saved from cache.
-	    		$cacheval = $c->app->chi->get($cachekey);
-	    		#$c->app->log->debug($c->app->dumper($res));
-	    	}
-	    	$res->{metadata_tree} = $cacheval;
- 		}
-
-	 	return $res;
-
-
+  			# save and get the value. the serialization can change integers to strings so
+  			# if we want to get the same structure for cache miss and cache hit we have to run it through
+  			# the cache serialization process even if cache miss [when we already have the structure]
+  			# so instead of using the structure created we will get the one just saved from cache.
+	   		$cacheval = $c->app->chi->get($cachekey);
+	   		#$c->app->log->debug($c->app->dumper($res));
+	   	}
+	   	$res->{metadata_tree} = $cacheval;
+ 	}
+ 	return $res;
 }
 
 sub get_languages {
@@ -1266,10 +1261,11 @@ sub validate_uwmetadata(){
 		my $document = $parser->parse_string($uwmetadata);
 
 		unless(defined($pid)){
-			$self->add_dummy_metadata($c, $document);
+			$c->app->log->warn("No PID defined, adding dummy metadata");
+			$self->add_dummy_metadata($c, $parser, $document);
 		}
 
-		#$c->app->log->debug("Validating: ".$document->toString(1));
+		$c->app->log->debug("Validating: ".$document->toString(1));
 
 		$schema->validate($document)
 	};
@@ -1287,6 +1283,7 @@ sub add_dummy_metadata(){
 
 	my $self = shift;
 	my $c = shift;
+	my $parser = shift;
 	my $doc = shift;
 
 	my $cfg;
@@ -1317,7 +1314,7 @@ sub add_dummy_metadata(){
 	my $pidnode = undef;
 	foreach my $node ($nodeset->get_nodelist){
 		$pidnode = $node;
-		my $pidnodenew = $doc->parse_balanced_chunk('<'.$lomns.':identifier xmlns:'.$lomns.'="http://phaidra.univie.ac.at/XML/metadata/extended/V1.0">o:1</'.$lomns.':identifier>');
+		my $pidnodenew = $parser->parse_balanced_chunk('<'.$lomns.':identifier xmlns:'.$lomns.'="http://phaidra.univie.ac.at/XML/metadata/lom/V1.0">o:1</'.$lomns.':identifier>');
 		$generalnode->insertAfter($pidnodenew, $pidnode);
 		$generalnode->removeChild($pidnode);
 		last;
@@ -1336,7 +1333,7 @@ sub add_dummy_metadata(){
 	my $upload_date_node = undef;
 	foreach my $node ($nodeset->get_nodelist){
 		$upload_date_node = $node;
-		my $upload_date_node_new = $doc->parse_balanced_chunk('<'.$lomns.':upload_date xmlns:'.$lomns.'="http://phaidra.univie.ac.at/XML/metadata/extended/V1.0">1970-01-01T00:00:00.000Z</'.$lomns.':upload_date>');
+		my $upload_date_node_new = $parser->parse_balanced_chunk('<'.$lomns.':upload_date xmlns:'.$lomns.'="http://phaidra.univie.ac.at/XML/metadata/extended/V1.0">1970-01-01T00:00:00.000Z</'.$lomns.':upload_date>');
 		$generalnode->insertAfter($upload_date_node_new, $upload_date_node);
 		$generalnode->removeChild($upload_date_node);
 		last;
@@ -1407,7 +1404,7 @@ sub json_2_uwmetadata(){
 	$writer->endTag(["http://phaidra.univie.ac.at/XML/metadata/V1.0", "uwmetadata"]);
 
 	$writer->end();
-	#$c->app->log->debug($xml);
+	#$c->app->log->debug("XXXXXXXXXXXXXXXX json2uwmetadata result:\n".$xml);
 	return $xml;
 }
 
@@ -1432,16 +1429,19 @@ sub json_2_uwmetadata_rec(){
 		my $children_size = defined($child->{children}) ? scalar (@{$child->{children}}) : 0;
 
 		# some elements are not allowed to be empty, so if these are empty we cannot add them to uwmetadata
-		# but some special needs to be there anyway: classification and general/description
+		# but some special needs to be there anyway: classification, mandatory fields like general/description, lifecycle/status, rights/cost, etc..
 		my $canskip = 1;
 		if($child->{xmlname} eq 'classification'){
 			$canskip = 0;
 		}
-		if(defined($parent)){
-			if($child->{xmlname} eq 'description' && $parent->{xmlname} eq 'general'){
-				$canskip = 0;
-			}		
+		if($child->{mandatory}){
+			$canskip = 0;	
 		}
+		#if(defined($parent)){
+		#	if($child->{xmlname} eq 'description' && $parent->{xmlname} eq 'general'){
+		#		$canskip = 0;
+		#	}		
+		#}
 		if($canskip && $child->{ui_value} eq '' && $children_size == 0){
 			next;
 		}
