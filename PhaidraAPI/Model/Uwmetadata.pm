@@ -31,31 +31,41 @@ sub metadata_tree {
 		return $res;
 	}
 
- 	if($c->app->config->{local_uwmetadata_tree}){
- 		$c->app->log->debug("Reading uwmetadata tree from file");
+ 		if($c->app->config->{local_uwmetadata_tree}){
+ 			$c->app->log->debug("Reading uwmetadata tree from file");
 
-	    # read metadata tree from file
-		my $content;
-		open my $fh, "<", $c->app->config->{local_uwmetadata_tree} or push @{$res->{alerts}}, "Error reading local_uwmetadata_tree, ".$!;
-	    local $/;
-	    $content = <$fh>;
-	    close $fh;
+      unless( -e $c->app->config->{local_uwmetadata_tree}){
+        $c->app->log->error("Error reading local_uwmetadata_tree, file ".$c->app->config->{local_uwmetadata_tree}." does not exist");
+        push @{$res->{alerts}}, "Error reading local_uwmetadata_tree";
+        $res->{status} = 500;
+        return $res;
+      }
+	 	    # read metadata tree from file
+			my $content;
+			open my $fh, "<", $c->app->config->{local_uwmetadata_tree} or push @{$res->{alerts}}, "Error reading local_uwmetadata_tree, ".$!;
+		    local $/;
+		    $content = <$fh>;
+		    close $fh;
 
-	    unless(defined($content)){
-	    	push @{$res->{alerts}}, "Error reading local_uwmetadata_tree, no content";
-	    	next;
-	    }
+		    unless(defined($content)){
+          my $msg = "Error reading local_uwmetadata_tree, no content";
+          $c->app->log->error($msg);
+          push @{$res->{alerts}}, $msg;
+          $res->{status} = 500;
+          return $res;
+		    }
 
-		my $metadata = decode_json($content);
-		$res->{metadata_tree} = $metadata->{tree};
+			my $metadata = decode_json($content);
+	 		$res->{metadata_tree} = $metadata->{tree};
 
- 	}else{
+ 		}else{
 
-		$c->app->log->debug("Reading uwmetadata tree from cache");
+			$c->app->log->debug("Reading uwmetadata tree from cache");
 
-		my $cachekey = 'uwmetadata_tree';
-		my $cacheval = $c->app->chi->get($cachekey);
-  		my $miss = 1;
+			my $cachekey = 'uwmetadata_tree';
+	 		my $cacheval = $c->app->chi->get($cachekey);
+
+	  		my $miss = 1;
 
   		if($cacheval){
   			if(scalar @{$cacheval} > 0){
@@ -627,7 +637,7 @@ sub get_object_metadata {
 
 
 	$res = $self->uwmetadata_2_json($c, $res->{uwmetadata});
-	return { uwmetadata => $res->{uwmetadata}, status => 200 };
+	return { uwmetadata => $res->{uwmetadata}, alerts => $res->{alerts}, status => $res->{status} };
 
 }
 
