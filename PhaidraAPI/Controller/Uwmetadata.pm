@@ -96,7 +96,7 @@ sub json2xml_validate {
 
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
 	my $uwmetadataxml = $metadata_model->json_2_uwmetadata($self, $uwmetadatajson);
-	my $res = $metadata_model->validate_uwmetadata($self, undef, $uwmetadataxml);
+	$res = $metadata_model->validate_uwmetadata($self, undef, $uwmetadataxml);
 
 	$self->render(json => $res , status => $res->{status});
 }
