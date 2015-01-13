@@ -155,7 +155,9 @@ sub get_mimetype(){
 			}
 		}
 	}else{
-		$mimetype = File::MimeInfo::Magic::magic(new IO::Scalar($asset->slurp));
+		my $data = $asset->slurp;
+		my $sc = new IO::Scalar \$data;
+		$mimetype = File::MimeInfo::Magic::magic($sc);
 	}
 
 	return $mimetype;
