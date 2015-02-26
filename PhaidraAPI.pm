@@ -6,7 +6,7 @@ use Mojo::Base 'Mojolicious';
 use Mojo::Log;
 use Mojolicious::Plugin::I18N;
 use Mojolicious::Plugin::Session;
-use Mojo::Loader;
+use Mojo::Loader qw(load_class);
 use lib "lib/phaidra_directory";
 use lib "lib/phaidra_binding";
 use Mango 0.24;
@@ -34,7 +34,7 @@ sub startup {
   	$self->log(Mojo::Log->new(path => $config->{log_path}, level => $config->{log_level}));
 
 	my $directory_impl = $config->{directory_class};
-	my $e = Mojo::Loader->new->load($directory_impl);    
+	my $e = load_class $directory_impl;
     my $directory = $directory_impl->new($self, $config);
  
     $self->helper( directory => sub { return $directory; } );
@@ -217,7 +217,7 @@ sub startup {
     $r->route('object/:pid/related')                                  ->via('get')      ->to('search#related');
     $r->route('object/:pid/uwmetadata')                               ->via('get')      ->to('uwmetadata#get');
 
-	my $apiauth = $r->bridge->to('authentication#extract_credentials');
+	my $apiauth = $r->under('/')->to('authentication#extract_credentials');
 
 	$apiauth->route('my/objects')                                           ->via('get')      ->to('search#my_objects');
 	
