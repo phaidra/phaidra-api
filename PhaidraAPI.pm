@@ -17,7 +17,30 @@ use Crypt::Rijndael         ();
 use Crypt::URandom          (qw/urandom/);
 use Digest::SHA             (qw/hmac_sha256/);
 use Math::Random::ISAAC::XS ();
-use MIME::Base64 3.12 (qw/encode_base64url decode_base64url/);
+
+BEGIN
+{
+  # that's what we want:
+  # use MIME::Base64 3.12 (qw/encode_base64url decode_base64url/);
+
+  # but you don't always get what you want, so:
+  use MIME::Base64 (qw/encode_base64 decode_base64/);
+
+  sub encode_base64url {
+    my $e = encode_base64(shift, "");
+    $e =~ s/=+\z//;
+    $e =~ tr[+/][-_];
+    return $e;
+  }
+
+  sub decode_base64url {
+    my $s = shift;
+    $s =~ tr[-_][+/];
+    $s .= '=' while length($s) % 4;
+    return decode_base64($s);
+  }
+}
+
 use PhaidraAPI::Model::Session::Transport::Header;
 use PhaidraAPI::Model::Session::Store::Mongo;
 
