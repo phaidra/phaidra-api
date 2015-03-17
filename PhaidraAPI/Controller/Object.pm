@@ -184,7 +184,8 @@ sub add_octets {
 	$url->query(\%params);
 
 	my $ua = Mojo::UserAgent->new;
-	my $post = $ua->post($url => { 'Content-Type' => $self->param('mimetype') } => form => { file => $name } );
+	my $upload = $self->req->upload('file');
+        my $post = $ua->post($url => { 'Content-Type' => $self->param('mimetype') } => form => { file => { file => $upload->asset }} );
 
   	unless(my $r = $post->success) {
 	  my ($err, $code) = $post->error;
