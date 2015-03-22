@@ -3,7 +3,7 @@ package Phaidra::Directory::JSON;
 use strict;
 use warnings;
 use v5.10;
-use Mojo::JSON;
+use Mojo::JSON qw(encode_json decode_json);
 use base 'Phaidra::Directory';
 
 my $directory = {};
@@ -21,10 +21,25 @@ sub _init {
    	<$json_fh>
   };
 
-  my $json  = Mojo::JSON->new;
-  $directory = $json->decode($json_text);
+  $directory = decode_json($json_text);
   
   return $self;
+}
+
+sub authenticate(){
+	
+	my $self = shift;
+	my $c = shift;	
+	my $username = shift; 
+	my $password = shift;
+	my $extradata = shift; #not used
+		
+	my $res = { alerts => [], status => 500 };
+	
+	# dummy
+	$res->{status} = 200;	
+	$c->stash({phaidra_auth_result => $res});
+	return $username;
 }
 
 # usage in controller: $self->app->directory->get_name($self, 'madmax');
