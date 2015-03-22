@@ -29,7 +29,7 @@ sub tree {
 	my $t1 = tv_interval($t0);
 	$self->stash( msg => "backend load took $t1 s");
 
-    $self->render(json => { tree => $res->{metadata_tree}, languages => $languages, alerts => $res->{alerts} }, status => $res->{status});
+    $self->render(json => { tree => $res->{tree}, vocabularies => $res->{vocabularies}, 'vocabularies_mapping' => $res->{vocabularies_mapping}, languages => $languages, alerts => $res->{alerts} }, status => $res->{status});
 }
 
 sub languages {

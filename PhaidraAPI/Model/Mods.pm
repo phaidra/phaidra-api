@@ -33,7 +33,9 @@ sub metadata_tree {
 	    }	    
 		my $metadata = decode_json($bytes);
 		
-	 	$res->{metadata_tree} = $metadata->{mods};
+	 	$res->{tree} = $metadata->{tree};
+		$res->{vocabularies} = $metadata->{vocabularies};
+ 		$res->{vocabularies_mapping} = $metadata->{vocabularies_mapping};
 	 	
 	}else{
 		
@@ -72,7 +74,9 @@ sub metadata_tree {
 	    	$cacheval = $c->app->chi->get($cachekey);
 	    	#$c->app->log->debug($c->app->dumper($cacheval));
 	    }
-	    $res->{metadata_tree} = $cacheval->{mods};				
+	    $res->{tree} = $cacheval->{tree};				
+	    $res->{vocabularies} = $cacheval->{vocabularies};
+            $res->{vocabularies_mapping} = $cacheval->{vocabularies_mapping};
 	}
  	#$c->app->log->debug("XXXXXXXXXXX ".$c->app->dumper($res));
 	return $res;
