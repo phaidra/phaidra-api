@@ -1130,7 +1130,7 @@ sub fix_uwmetadata() {
 	        ui_value => strftime("%Y-%m-%dT%H:%M:%S.000Z", localtime)
 	    });
 	}
-	if($n->{ui_value} eq ''){
+	if(!defined($n->{ui_value}) || $n->{ui_value} eq ''){
 		$n->{ui_value} = strftime("%Y-%m-%dT%H:%M:%S.000Z", localtime)
 	}
 
@@ -1147,7 +1147,7 @@ sub fix_uwmetadata() {
 	        ui_value => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_2/44"
 	    });
 	}
-	if($n->{ui_value} eq ''){
+	if(!defined($n->{ui_value}) || $n->{ui_value} eq ''){
 		$n->{ui_value} = "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_2/44";
 	}
 
@@ -1173,7 +1173,7 @@ sub fix_uwmetadata() {
 	        ui_value => 0
 	    });
 	}
-	if($n->{ui_value} eq ''){
+	if(!defined($n->{ui_value}) || $n->{ui_value} eq ''){
 		$n->{ui_value} = 0;
 	}
 
@@ -1189,7 +1189,7 @@ sub fix_uwmetadata() {
 	        ui_value => 1
 	    });
 	}
-	if($n->{ui_value} eq ''){
+	if(!defined($n->{ui_value}) || $n->{ui_value} eq ''){
 		$n->{ui_value} = 1;
 	}
 
@@ -1445,14 +1445,14 @@ sub json_2_uwmetadata_rec(){
 			$canskip = 0;
 		}
 		if($child->{mandatory}){
-			$canskip = 0;	
+			$canskip = 0;
 		}
 		#if(defined($parent)){
 		#	if($child->{xmlname} eq 'description' && $parent->{xmlname} eq 'general'){
 		#		$canskip = 0;
-		#	}		
+		#	}
 		#}
-		if($canskip && $child->{ui_value} eq '' && $children_size == 0){
+		if($canskip && (!defined($child->{ui_value}) || ($child->{ui_value} eq '')) && $children_size == 0){
 			next;
 		}
 
@@ -1470,9 +1470,11 @@ sub json_2_uwmetadata_rec(){
 		if($child->{ordered}){
 			$attrs{seq} = $child->{data_order};
 		}
-		if($child->{value_lang} ne ''){
-			$attrs{language} = $child->{value_lang};
-		}
+
+  	if(defined($child->{value_lang}) && $child->{value_lang} ne ''){
+  		$attrs{language} = $child->{value_lang};
+  	}
+
 
 		if (%attrs){
 			$writer->startTag([$child->{xmlns}, $child->{xmlname}], %attrs);
@@ -1485,9 +1487,10 @@ sub json_2_uwmetadata_rec(){
 		}else{
 
 			# copy the 'ui_value' to 'value' (or transform, if needed)
-			if($child->{value} eq ''){
-				$child->{value} = $child->{ui_value};
-			}
+
+  		if(!defined($child->{value}) || $child->{value} eq ''){
+  			$child->{value} = $child->{ui_value};
+  		}
 
 			# hack, until vocabulary server
 			if(

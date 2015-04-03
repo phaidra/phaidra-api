@@ -9,6 +9,7 @@ use Mojo::Util qw(encode decode);
 use Mojo::ByteStream qw(b);
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Search;
+use Time::HiRes qw/tv_interval gettimeofday/;
 
 sub delete {
     my $self = shift;
@@ -229,4 +230,45 @@ sub add_datastream {
 	$self->render(json => $r, status => $r->{status}) ;
 }
 
+sub metadata {
+  my $self = shift;
+
+  my $res = { alerts => [], status => 200 };
+
+  my $t0 = [gettimeofday];
+
+  my $pid = $self->stash('pid');
+
+  my $metadata = $self->param('metadata');
+  # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
+  $metadata = decode_json(b($metadata)->encode('UTF-8'));
+
+  unless(defined($pid)){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
+    return;
+  }
+
+  unless(defined($metadata)){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No data sent' }]} , status => 400) ;
+    return;
+  }
+
+  my $object_model = PhaidraAPI::Model::Object->new;
+  my $r = $object_model->save_metadata($self, $pid, $metadata->{metadata}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  if($r->{status} ne 200){
+      $res->{status} = $r->{status};
+      foreach my $a (@{$r->{alerts}}){
+        unshift @{$res->{alerts}}, $a;
+      }
+      unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving metadata'};
+
+  }else{
+    my $t1 = tv_interval($t0);
+    unshift @{$res->{alerts}}, { type => 'success', msg => "Metadata for $pid saved successfuly ($t1 s)"};
+
+  }
+
+  $self->render(json => { alerts => $res->{alerts} } , status => $res->{status});
+
+}
 1;

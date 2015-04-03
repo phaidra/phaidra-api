@@ -17,7 +17,7 @@ use HTTP::Request::Common 'POST';
 use File::Temp qw/tempfile/;
 use Encode;
 use Log::Log4perl qw(get_logger);
-use Catalyst::Plugin::Unicode;
+#use Catalyst::Plugin::Unicode;
 use base 'Phaidra::API';
 
 # Constructor
@@ -180,19 +180,19 @@ sub load
 		{
 			$self->{rights}->{groups}->{$node->string_value()} = { who => $node->string_value(), expires => $node->getAttribute("expires") };
 		}
-		
+
 		$nodeset = $xp->findnodes('/uwr:rights/uwr:allow/uwr:spl');
                 foreach my $node ($nodeset->get_nodelist)
                 {
                         $self->{rights}->{spl}->{$node->string_value()} = { who => $node->string_value(), expires => $node->getAttribute("expires") };
                 }
-		
+
 		$nodeset = $xp->findnodes('/uwr:rights/uwr:allow/uwr:kennzahl');
                 foreach my $node ($nodeset->get_nodelist)
                 {
                         $self->{rights}->{kennzahl}->{$node->string_value()} = { who => $node->string_value(), expires => $node->getAttribute("expires") };
                 }
-		
+
 		$nodeset = $xp->findnodes('/uwr:rights/uwr:allow/uwr:perfunk');
                 foreach my $node ($nodeset->get_nodelist)
                 {
@@ -285,7 +285,7 @@ sub addDatastreamLocation
 
 	# call addDatastream
 	my $soap = $self->{phaidra}->getSoap("apim");
-	my $res = $soap->addDatastream($self->{PID}, $dsid, '', SOAP::Data->type(string => $label), SOAP::Data->type(boolean => 1), 
+	my $res = $soap->addDatastream($self->{PID}, $dsid, '', SOAP::Data->type(string => $label), SOAP::Data->type(boolean => 1),
 		$mimetype, '', SOAP::Data->type(string => $location), $controlGroup, 'A', 'DISABLED', 'none', 'Created by Phaidra API');
 	if($res->fault)
 	{
@@ -304,7 +304,7 @@ sub purgeRelationship
 	my $log = get_logger();
 
 	my $soap = $self->{phaidra}->getSoap("apim");
-	my $res = $soap->purgeRelationship($self->{PID}, SOAP::Data->type(string => $predicate), 
+	my $res = $soap->purgeRelationship($self->{PID}, SOAP::Data->type(string => $predicate),
 			SOAP::Data->type(string => "info:fedora/$object"), SOAP::Data->type(boolean => 0), undef);
 
 	if($res->fault)
@@ -323,7 +323,7 @@ sub addRelationship
 	my $log = get_logger();
 
 	my $soap = $self->{phaidra}->getSoap("apim");
-	my $res = $soap->addRelationship($self->{PID}, SOAP::Data->type(string => $predicate), 
+	my $res = $soap->addRelationship($self->{PID}, SOAP::Data->type(string => $predicate),
 			SOAP::Data->type(string => "info:fedora/$object"), SOAP::Data->type(boolean => 0), undef);
 
 	if($res->fault)
@@ -388,7 +388,7 @@ sub addRelationships
 #           ...
 #         ];
 #
-# "Subject" is the object. Predicate is optional and can be undef - if so all relationships 
+# "Subject" is the object. Predicate is optional and can be undef - if so all relationships
 # will be returned, otherwise only the matching ones.
 sub getRelationships
 {
@@ -562,7 +562,7 @@ sub save
 		$log->info("modifyObject success");
 	}
 
-	# Write RIGHTS-DS. If a RIGHTS-DS already exists - does not matter because we administrate this DS. 
+	# Write RIGHTS-DS. If a RIGHTS-DS already exists - does not matter because we administrate this DS.
 	# So create a new one and add/update
 	if($self->{changed_rights})
 	{
@@ -924,9 +924,9 @@ sub modifyObject
 	my $log = get_logger();
 
 	# call modifyObject
-	my $soap = $self->{phaidra}->getSoap("apim"); 
+	my $soap = $self->{phaidra}->getSoap("apim");
 	my $res = $soap->modifyObject($self->{PID}, $state, $label, $ownerid, SOAP::Data->type(string => $logmessage));
-	
+
 	if($res->fault)
 	{
 		$log->logdie("modifyObject failed: ".$res->faultcode.": ".$res->faultstring);
@@ -935,12 +935,12 @@ sub modifyObject
 	$log->info("modifyObject success: DSID = ".$res->result);
 }
 
-# change no thing, just create an update so that 
+# change no thing, just create an update so that
 # info:fedora/fedora-system:def/view#lastModifiedDate
 # gets updated
 sub touchObject(){
 	my ($self) = @_;
-	
+
 	my $log = get_logger();
 	$log->info("touching object: ".$self->{PID});
 	$self->modifyObject(undef, undef, undef,'touchObject by Phaidra API');
