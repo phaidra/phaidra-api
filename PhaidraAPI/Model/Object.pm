@@ -16,7 +16,9 @@ use File::Temp 'tempfile';
 use PhaidraAPI::Model::Uwmetadata;
 
 my %datastream_versionable = (
-	'COLLECTIONORDER' => 0
+	'COLLECTIONORDER' => 0,
+	'UWMETADATA' => 1,
+	'MODS' => 1,
 );
 
 sub delete {
@@ -85,11 +87,11 @@ sub create {
 
     $c->app->log->debug("Creating empty object");
     # create empty object
-    my $r = $self->create_empty($c, $username, $password); 
+    my $r = $self->create_empty($c, $username, $password);
    	foreach my $a (@{$r->{alerts}}){
-   		push @{$res->{alerts}}, $a;		
+   		push @{$res->{alerts}}, $a;
    	}
-     
+
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
     	return $res;
@@ -106,9 +108,9 @@ sub create {
 
     # set cmodel and oai itemid
     $c->app->log->debug("Set cmodel ($contentmodel) and oaiitemid ($oaiid)");
-	$r = $self->add_relationships($c, $pid, \@relationships, $username, $password);  	
+	$r = $self->add_relationships($c, $pid, \@relationships, $username, $password);
   	foreach my $a (@{$r->{alerts}}){
-   		push @{$res->{alerts}}, $a;		
+   		push @{$res->{alerts}}, $a;
    	}
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
@@ -120,7 +122,7 @@ sub create {
   	$c->app->log->debug("Adding thumbnail ($thumburl)");
 	$r = $self->add_datastream($c, $pid, "THUMBNAIL", "image/png", $thumburl, undef, undef, "E", $username, $password);
   	foreach my $a (@{$r->{alerts}}){
-   		push @{$res->{alerts}}, $a;		
+   		push @{$res->{alerts}}, $a;
    	}
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
@@ -130,7 +132,7 @@ sub create {
   	# add stylesheet
   	$r = $self->add_datastream($c, $pid, "STYLESHEET", "text/xml", $c->app->config->{phaidra}->{fedorastylesheeturl}, undef, undef, "E", $username, $password);
   	foreach my $a (@{$r->{alerts}}){
-   		push @{$res->{alerts}}, $a;		
+   		push @{$res->{alerts}}, $a;
    	}
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
@@ -280,8 +282,25 @@ sub save_metadata {
 						}
 						unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving uwmetadata'};
 			  }
-			   	$found = 1;
-			   	$found_bib = 1;
+			  $found = 1;
+			  $found_bib = 1;
+			}
+
+			case "mods" {
+				$c->app->log->debug("Saving MODS for $pid");
+				my $mods = $metadata->{mods};
+				my $mods_model = PhaidraAPI::Model::Mods->new;
+				my $xml = $mods_model->json_2_xml($c, $mods);
+				my $r = $mods_model->save_to_object($c, $pid, $mods, $username, $password);
+				if($r->{status} ne 200){
+						$res->{status} = $r->{status};
+						foreach my $a (@{$r->{alerts}}){
+							unshift @{$res->{alerts}}, $a;
+						}
+						unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving MODS'};
+				}
+				$found = 1;
+				$found_bib = 1;
 			}
 
 			case "rights" {
@@ -292,7 +311,7 @@ sub save_metadata {
 				my $r = $self->add_datastream($c, $pid, "RIGHTS", "text/xml", undef, "Phaidra Permissions", $xml, "X", $username, $password);
 			  if($r->{status} ne 200){
 			    $res->{status} = 500;
-				  unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving rights'};
+				  unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving RGHTS datastream'};
 			  }
 				$found = 1;
 			}

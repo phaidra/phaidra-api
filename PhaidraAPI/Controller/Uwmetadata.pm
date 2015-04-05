@@ -45,10 +45,10 @@ sub json2xml {
 	#my $t0 = [gettimeofday];
 
 	my $payload = $self->req->json;
-	my $uwmetadatajson = $payload->{uwmetadata};
+	my $metadata = $payload->{metadata};
 
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
-	my $uwmetadataxml = $metadata_model->json_2_uwmetadata($self, $uwmetadatajson);
+	my $uwmetadataxml = $metadata_model->json_2_uwmetadata($self, $metadata->{uwmetadata});
 
 	#my $t1 = tv_interval($t0);
 	#$self->app->log->debug("json2xml took $t1 s");
@@ -92,10 +92,10 @@ sub json2xml_validate {
 	my $res = { alerts => [], status => 200 };
 
 	my $payload = $self->req->json;
-	my $uwmetadatajson = $payload->{uwmetadata};
+	my $metadata = $payload->{metadata};
 
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
-	my $uwmetadataxml = $metadata_model->json_2_uwmetadata($self, $uwmetadatajson);
+	my $uwmetadataxml = $metadata_model->json_2_uwmetadata($self, $metadata->{uwmetadata});
 	$res = $metadata_model->validate_uwmetadata($self, undef, $uwmetadataxml);
 
 	$self->render(json => $res , status => $res->{status});
@@ -109,21 +109,20 @@ sub post {
 	my $pid = $self->stash('pid');
 
 	my $payload = $self->req->json;
-
-	my $uwmetadata = $payload->{uwmetadata};
+	my $metadata = $payload->{metadata};
 
 	unless(defined($pid)){
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
 		return;
 	}
 
-	unless(defined($uwmetadata)){
-		$self->render(json => { alerts => [{ type => 'danger', msg => 'No data sent' }]} , status => 400) ;
+	unless(defined($metadata->{uwmetadata})){
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'No uwmetadata sent' }]} , status => 400) ;
 		return;
 	}
 
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
-	my $res = $metadata_model->save_to_object($self, $pid, $uwmetadata, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+	my $res = $metadata_model->save_to_object($self, $pid, $metadata->{uwmetadata}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 
 	my $t1 = tv_interval($t0);
 	if($res->{status} eq 200){

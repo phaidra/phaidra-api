@@ -78,7 +78,7 @@ sub create {
 		return $res_create;
 	}
 	$pid = $res_create->{pid};
-	    
+
 	my $res_md = $object_model->save_metadata($c, $pid, $metadata, $username, $password);
 	if($res_md->{status} ne 200){
 		return $res_md;
@@ -168,7 +168,9 @@ sub get_members {
 				push @{$res->{alerts}}, $ores->{alerts} if scalar @{$ores->{alerts}} > 0;
 				$res->{status} = $ores->{status};
 
-				my $xml = Mojo::DOM->new($ores->{COLLECTIONORDER});
+				my $xml = Mojo::DOM->new();
+				$xml->xml(1);
+				$xml->parse($ores->{COLLECTIONORDER});
 				$xml->find('member[pos]')->each(sub {
 					my $m = shift;
 					my $pid = $m->text;

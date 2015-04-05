@@ -539,7 +539,9 @@ sub uwmetadata_2_json {
 	my $metadata_tree_copy = dclone($metadata_tree);
 	$self->create_md_nodes_hash($c, $metadata_tree_copy, \%metadata_nodes_hash);
 
-	my $dom = Mojo::DOM->new($uwmetadata);
+	my $dom = Mojo::DOM->new();  
+  $dom->xml(1);
+  $dom->parse($uwmetadata);
 
 	my $nsattr = $dom->find('uwmetadata')->first->attr;
 	my $nsmap  = $nsattr;
@@ -738,9 +740,7 @@ sub fill_object_metadata {
 
 	for my $e ($uwmetadata->children->each) {
 
-		#$self->app->log->debug($self->app->dumper($e));
-
-	    my $type = $e->type;
+	    my $type = $e->tag;
 
 	    # type looks like this: ns1:general
 	    # get namespace and identifier from it
@@ -749,6 +749,7 @@ sub fill_object_metadata {
 	    $type =~ m/(ns\d+):([0-9a-zA-Z_]+)/;
 	    my $ns = $1;
 	    my $id = $2;
+      #$c->app->log->debug("XXXXXXX type [$type] ns [$ns] id [$id]");
 	    my $node;
 	    if($id ne 'uwmetadata'){
 		    # search this node in the metadata tree

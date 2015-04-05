@@ -204,12 +204,17 @@ sub startup {
 
 	$r->route('uwmetadata/tree')                    ->via('get')    ->to('uwmetadata#tree');
 	$r->route('uwmetadata/languages')               ->via('get')    ->to('uwmetadata#languages');
-    $r->route('uwmetadata/json2xml')                ->via('post')   ->to('uwmetadata#json2xml');
-    $r->route('uwmetadata/xml2json')                ->via('post')   ->to('uwmetadata#xml2json');
-    $r->route('uwmetadata/validate')                ->via('post')   ->to('uwmetadata#validate');
-    $r->route('uwmetadata/json2xml_validate')       ->via('post')   ->to('uwmetadata#json2xml_validate');
+  $r->route('uwmetadata/json2xml')                ->via('post')   ->to('uwmetadata#json2xml');
+  $r->route('uwmetadata/xml2json')                ->via('post')   ->to('uwmetadata#xml2json');
+  $r->route('uwmetadata/validate')                ->via('post')   ->to('uwmetadata#validate');
+  $r->route('uwmetadata/json2xml_validate')       ->via('post')   ->to('uwmetadata#json2xml_validate');
 
-    $r->route('mods/tree')                          ->via('get')    ->to('mods#tree');
+  $r->route('mods/tree')                          ->via('get')    ->to('mods#tree');
+  $r->route('mods/languages')                     ->via('get')    ->to('mods#languages');
+  $r->route('mods/json2xml')                      ->via('post')   ->to('mods#json2xml');
+  $r->route('mods/xml2json')                      ->via('post')   ->to('mods#xml2json');
+  $r->route('mods/validate')                      ->via('post')   ->to('mods#validate');
+  $r->route('mods/json2xml_validate')             ->via('post')   ->to('mods#json2xml_validate');
 
 	$r->route('help/tooltip')                       ->via('get')    ->to('help#tooltip');
 
@@ -222,8 +227,8 @@ sub startup {
 	$r->route('search/triples')                     ->via('get')    ->to('search#triples');
 	$r->route('search')                             ->via('get')    ->to('search#search');
 
-	$r->route('terms/label')                   		->via('get')    ->to('terms#label');
-	$r->route('terms/children')                		->via('get')    ->to('terms#children');
+	$r->route('terms/label')                   		  ->via('get')    ->to('terms#label');
+	$r->route('terms/children')                	    ->via('get')    ->to('terms#children');
 	$r->route('terms/search')                       ->via('get')    ->to('terms#search');
 	$r->route('terms/taxonpath')                    ->via('get')    ->to('terms#taxonpath');
 	$r->route('terms/parent')                       ->via('get')    ->to('terms#parent');
@@ -232,48 +237,49 @@ sub startup {
 	$r->any('*')                                    ->via('options')->to('authentication#cors_preflight');
 
 	$r->route('signin')                             ->via('get')    ->to('authentication#signin');
-    $r->route('signout')                            ->via('get')    ->to('authentication#signout');
-    $r->route('keepalive')                          ->via('get')    ->to('authentication#keepalive');
+  $r->route('signout')                            ->via('get')    ->to('authentication#signout');
+  $r->route('keepalive')                          ->via('get')    ->to('authentication#keepalive');
 
 	$r->route('collection/:pid/members')            ->via('get')    ->to('collection#get_collection_members');
 	# does not show inactive objects, not specific to collection (but does ordering)
-    $r->route('object/:pid/related')                                  ->via('get')      ->to('search#related');
-    $r->route('object/:pid/uwmetadata')                               ->via('get')      ->to('uwmetadata#get');
+  $r->route('object/:pid/related')                ->via('get')    ->to('search#related');
+  $r->route('object/:pid/uwmetadata')             ->via('get')    ->to('uwmetadata#get');
+  $r->route('object/:pid/mods')                   ->via('get')    ->to('mods#get');
 
 	my $apiauth = $r->under('/')->to('authentication#extract_credentials');
 
-	$apiauth->route('my/objects')                                           ->via('get')      ->to('search#my_objects');
+	$apiauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
 
 	if($self->app->config->{allow_userdata_queries}){
-    	$apiauth->route('directory/user/:username/data')                    ->via('get')      ->to('directory#get_user_data');
-   		$apiauth->route('directory/user/:username/name')                    ->via('get')      ->to('directory#get_user_name');
-   		$apiauth->route('directory/user/:username/email')                   ->via('get')      ->to('directory#get_user_email');
-    }
+  	$apiauth->route('directory/user/:username/data')                    ->via('get')      ->to('directory#get_user_data');
+		$apiauth->route('directory/user/:username/name')                    ->via('get')      ->to('directory#get_user_name');
+ 		$apiauth->route('directory/user/:username/email')                   ->via('get')      ->to('directory#get_user_email');
+  }
 
-    unless($self->app->config->{readonly}){
-	   	$apiauth->route('object/:pid/modify')                               ->via('put')      ->to('object#modify');
-		$apiauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');
-		$apiauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');
+  unless($self->app->config->{readonly}){
+    $apiauth->route('object/:pid/modify')                               ->via('put')      ->to('object#modify');
+    $apiauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');
+    $apiauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');
+    $apiauth->route('object/:pid/mods')                                 ->via('post')     ->to('mods#post');
     $apiauth->route('object/:pid/metadata')                             ->via('post')     ->to('object#metadata');
-		$apiauth->route('object/create')                                    ->via('post')     ->to('object#create_empty');
-		$apiauth->route('object/create/:cmodel')                            ->via('post')     ->to('object#create');
-		$apiauth->route('object/:pid/relationship')                         ->via('put')      ->to('object#add_relationship');
-		$apiauth->route('object/:pid/relationship')                         ->via('delete')   ->to('object#purge_relationship');
-		$apiauth->route('object/:pid/datastream/:dsid')                     ->via('post')      ->to('object#add_datastream');
-		$apiauth->route('object/:pid/data')                                 ->via('put')      ->to('object#add_octets');
+    $apiauth->route('object/create')                                    ->via('post')     ->to('object#create_empty');
+    $apiauth->route('object/create/:cmodel')                            ->via('post')     ->to('object#create');
+    $apiauth->route('object/:pid/relationship')                         ->via('put')      ->to('object#add_relationship');
+    $apiauth->route('object/:pid/relationship')                         ->via('delete')   ->to('object#purge_relationship');
+    $apiauth->route('object/:pid/datastream/:dsid')                     ->via('post')      ->to('object#add_datastream');
+    $apiauth->route('object/:pid/data')                                 ->via('put')      ->to('object#add_octets');
+    $apiauth->route('picture/create')                                   ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Picture');
+    $apiauth->route('document/create')                                  ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:PDFDocument');
+    $apiauth->route('video/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Video');
+    $apiauth->route('audio/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Audio');
 
-		$apiauth->route('picture/create')                                   ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Picture');
-		$apiauth->route('document/create')                                  ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:PDFDocument');
-		$apiauth->route('video/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Video');
-		$apiauth->route('audio/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Audio');
-
-		$apiauth->route('collection/create')                                ->via('post')     ->to('collection#create');
-		$apiauth->route('collection/:pid/members')                          ->via('delete')   ->to('collection#remove_collection_members');
-        $apiauth->route('collection/:pid/members')                          ->via('post')     ->to('collection#add_collection_members');
-        $apiauth->route('collection/:pid/members')                          ->via('put')      ->to('collection#set_collection_members');
-        $apiauth->route('collection/:pid/members/order')                    ->via('post')     ->to('collection#order_collection_members');
-        $apiauth->route('collection/:pid/members/:itempid/order/:position') ->via('post')     ->to('collection#order_collection_member');
-    }
+    $apiauth->route('collection/create')                                ->via('post')     ->to('collection#create');
+    $apiauth->route('collection/:pid/members')                          ->via('delete')   ->to('collection#remove_collection_members');
+    $apiauth->route('collection/:pid/members')                          ->via('post')     ->to('collection#add_collection_members');
+    $apiauth->route('collection/:pid/members')                          ->via('put')      ->to('collection#set_collection_members');
+    $apiauth->route('collection/:pid/members/order')                    ->via('post')     ->to('collection#order_collection_members');
+    $apiauth->route('collection/:pid/members/:itempid/order/:position') ->via('post')     ->to('collection#order_collection_member');
+  }
 
 	return $self;
 }

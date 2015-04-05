@@ -1007,7 +1007,7 @@
         "recordInfo_descriptionStandard":"descriptionStandard",
         "recordInfo_descriptionStandard_authority":"description_authority"
     },
-    "tree":[
+    "mods":[
         {
             "xmlname":"titleInfo",
             "input_type":"node",

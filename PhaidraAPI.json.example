@@ -25,11 +25,11 @@
     "allow_userdata_queries": "0",
 
     "validate_uwmetadata":"/var/www/phaidra-api/public/xsd/uwmetadata/ns0.xsd",
-    
+
     "validate_mods":"/var/www/phaidra-api/public/xsd/mods/mods-3-5.xsd",
 
     "local_uwmetadata_tree":"/var/www/phaidra-api/public/uwmetadata/tree.json",
-    
+
     "local_mods_tree":"/var/www/phaidra-api/public/mods/mods.json",
 
     "terms": {
@@ -63,13 +63,23 @@
 
     	"proaiRepositoryIdentifier": "",
 
+			"uwmetadatalabel": "Universitaet Wien Metadata",
+
+			"modslabel": "MODS",
+
+			"getuwmetadataurl": "https://fedora.phaidra-instance.univie.ac.at/fedora/get/{PID}/bdef:Asset/getUWMETADATA",
+
     	"triplestore": "localMysqlMPTTriplestore",
 
     	"defaultlabel": "Created by phaidra-api",
 
     	"intcallusername": "changeme",
 
-    	"intcallpassword": "changeme"
+    	"intcallpassword": "changeme",
+
+			"adminusername": "PhaidraAdmin",
+
+			"adminpassword": "h0yOJ29X",
 
     },
 

@@ -418,7 +418,9 @@ sub related {
 				}else{
 
 					# order members
-					my $xml = Mojo::DOM->new($ores->{COLLECTIONORDER});
+					my $xml = Mojo::DOM->new();
+					$xml->xml(1);
+					$xml->parse($ores->{COLLECTIONORDER});
 					$xml->find('member[pos]')->each(sub {
 						my $m = shift;
 						my $pid = $m->text;
