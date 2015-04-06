@@ -216,6 +216,16 @@ sub startup {
   $r->route('mods/validate')                      ->via('post')   ->to('mods#validate');
   $r->route('mods/json2xml_validate')             ->via('post')   ->to('mods#json2xml_validate');
 
+  $r->route('rights/json2xml')                    ->via('post')   ->to('rights#json2xml');
+  $r->route('rights/xml2json')                    ->via('post')   ->to('rights#xml2json');
+  $r->route('rights/validate')                    ->via('post')   ->to('rights#validate');
+  $r->route('rights/json2xml_validate')           ->via('post')   ->to('rights#json2xml_validate');
+
+  $r->route('geo/json2xml')                       ->via('post')   ->to('geo#json2xml');
+  $r->route('geo/xml2json')                       ->via('post')   ->to('geo#xml2json');
+  $r->route('geo/validate')                       ->via('post')   ->to('geo#validate');
+  $r->route('geo/json2xml_validate')              ->via('post')   ->to('geo#json2xml_validate');
+
 	$r->route('help/tooltip')                       ->via('get')    ->to('help#tooltip');
 
 	$r->route('directory/get_org_units')            ->via('get')    ->to('directory#get_org_units');
@@ -245,6 +255,8 @@ sub startup {
   $r->route('object/:pid/related')                ->via('get')    ->to('search#related');
   $r->route('object/:pid/uwmetadata')             ->via('get')    ->to('uwmetadata#get');
   $r->route('object/:pid/mods')                   ->via('get')    ->to('mods#get');
+  $r->route('object/:pid/rights')                 ->via('get')    ->to('rights#get');
+  $r->route('object/:pid/geo')                    ->via('get')    ->to('geo#get');
 
 	my $apiauth = $r->under('/')->to('authentication#extract_credentials');
 
@@ -261,6 +273,8 @@ sub startup {
     $apiauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');
     $apiauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');
     $apiauth->route('object/:pid/mods')                                 ->via('post')     ->to('mods#post');
+    $apiauth->route('object/:pid/geo')                                  ->via('post')     ->to('geo#post');
+    $apiauth->route('object/:pid/rights')                               ->via('post')     ->to('rights#post');
     $apiauth->route('object/:pid/metadata')                             ->via('post')     ->to('object#metadata');
     $apiauth->route('object/create')                                    ->via('post')     ->to('object#create_empty');
     $apiauth->route('object/create/:cmodel')                            ->via('post')     ->to('object#create');

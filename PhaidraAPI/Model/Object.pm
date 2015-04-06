@@ -4,21 +4,24 @@ use strict;
 use warnings;
 use v5.10;
 use base qw/Mojo::Base/;
-use Mojo::Util qw/xml_escape/;
+use Mojo::Util qw(xml_escape encode decode);
 use lib "lib/phaidra_binding";
 use Phaidra::API;
 use PhaidraAPI::Model::Rights;
 use PhaidraAPI::Model::Geo;
+use PhaidraAPI::Model::Uwmetadata;
+use PhaidraAPI::Model::Search;
 use Switch;
 use IO::Scalar;
 use File::MimeInfo;
 use File::Temp 'tempfile';
-use PhaidraAPI::Model::Uwmetadata;
 
 my %datastream_versionable = (
 	'COLLECTIONORDER' => 0,
 	'UWMETADATA' => 1,
 	'MODS' => 1,
+	'RIGHTS' => 1,
+	'GEO' => 1
 );
 
 sub delete {
@@ -350,6 +353,41 @@ sub save_metadata {
 	return $res;
 }
 
+sub get_dissemination {
+
+	my $self = shift;
+	my $c = shift;
+	my $pid = shift;
+	my $bdef = shift;
+	my $disseminator = shift;
+	my $username = shift;
+	my $password = shift;
+
+	my $res = { alerts => [], status => 200 };
+
+	my $url = Mojo::URL->new;
+	$url->scheme('https');
+	$url->userinfo("$username:$password");
+	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
+	$url->path("/fedora/get/$pid/$bdef/$disseminator");
+
+	my $get = Mojo::UserAgent->new->get($url);
+
+	if (my $r = $get->success) {
+		$res->{status} = 200;
+		$res->{content} = $r->body;
+	}
+	else
+	{
+		my ($err, $code) = $get->error;
+		unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+		$res->{status} =  $code ? $code : 500;
+	}
+
+	return $res;
+}
+
+
 # by using intcallauth it is possible to bypass the 'owner' policies
 # this might be needed eg because fedora always requires authentication
 # (api property, it's not because of policies)
@@ -510,6 +548,61 @@ sub modify_datastream {
 	}
 
   	return $res;
+}
+
+sub add_or_modify_datastream {
+
+	my $self = shift;
+	my $c = shift;
+	my $pid = shift;
+	my $dsid = shift;
+	my $mimetype = shift;
+	my $location = shift;
+	my $label = shift;
+	my $dscontent = shift;
+	my $controlgroup = shift;
+	my $username = shift;
+	my $password = shift;
+	my $useadmin = shift;
+
+	my $res = { alerts => [], status => 200 };
+
+	my $search_model = PhaidraAPI::Model::Search->new;
+	my $sr = $search_model->datastream_exists($c, $pid, $dsid);
+	if($sr->{status} ne 200){
+		unshift @{$res->{alerts}}, @{$sr->{alerts}};
+		$res->{status} = $sr->{status};
+		return $res;
+	}
+
+	# encode
+	if($controlgroup eq 'X'){
+		$dscontent = encode 'UTF-8', $dscontent;
+	}
+
+	if($useadmin){
+		$username = $c->app->{config}->{phaidra}->{adminusername};
+		$password = $c->app->{config}->{phaidra}->{adminpassword};
+	}
+	# save
+	if($sr->{'exists'}){
+		my $r = $self->modify_datastream($c, $pid, $dsid, "text/xml", undef, $label, $dscontent, $username, $password);
+			push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+			$res->{status} = $r->{status};
+			if($r->{status} ne 200){
+				return $res;
+			}
+	}else{
+		my $r = $self->add_datastream($c, $pid, $dsid, "text/xml", undef, $label, $dscontent, "X", $username, $password);
+			push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+			$res->{status} = $r->{status};
+			if($r->{status} ne 200){
+				return $res;
+			}
+	}
+	$c->app->log->debug("Saving $dsid for $pid successful.");
+
+	return $res
 }
 
 sub create_empty {

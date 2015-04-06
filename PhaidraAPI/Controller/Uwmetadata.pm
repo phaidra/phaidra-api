@@ -7,6 +7,7 @@ use Mojo::UserAgent;
 use Mojo::Util 'squish';
 use base 'Mojolicious::Controller';
 use PhaidraAPI::Model::Uwmetadata;
+use PhaidraAPI::Model::Util;
 use Time::HiRes qw/tv_interval gettimeofday/;
 
 sub get {
@@ -78,25 +79,22 @@ sub validate {
 
 	my $uwmetadataxml = $self->req->body;
 
-	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
-	my $res = $metadata_model->validate_uwmetadata($self, undef, $uwmetadataxml);
+  my $util_model = PhaidraAPI::Model::Util->new;
+  my $res = $util_model->validate_xml($self, $uwmetadataxml, $self->app->config->{validate_uwmetadata});
 
-	#$self->app->log->debug("XXXXXXXXXXX: ".$self->app->dumper($res));
 	$self->render(json => $res , status => $res->{status});
-
 }
 
 sub json2xml_validate {
 	my $self = shift;
-
-	my $res = { alerts => [], status => 200 };
 
 	my $payload = $self->req->json;
 	my $metadata = $payload->{metadata};
 
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
 	my $uwmetadataxml = $metadata_model->json_2_uwmetadata($self, $metadata->{uwmetadata});
-	$res = $metadata_model->validate_uwmetadata($self, undef, $uwmetadataxml);
+  my $util_model = PhaidraAPI::Model::Util->new;
+  my $res = $util_model->validate_xml($self, $uwmetadataxml, $self->app->config->{validate_uwmetadata});
 
 	$self->render(json => $res , status => $res->{status});
 }

@@ -28,6 +28,10 @@
 
     "validate_mods":"/var/www/phaidra-api/public/xsd/mods/mods-3-5.xsd",
 
+		"validate_rights":"/var/www/phaidra-api/public/xsd/rights/rights.xsd",
+
+		"validate_geo":"/var/www/phaidra-api/public/xsd/geo/ogckml22.xsd",
+
     "local_uwmetadata_tree":"/var/www/phaidra-api/public/uwmetadata/tree.json",
 
     "local_mods_tree":"/var/www/phaidra-api/public/mods/mods.json",
@@ -62,10 +66,6 @@
     	"fedorastylesheeturl": "",
 
     	"proaiRepositoryIdentifier": "",
-
-			"uwmetadatalabel": "Universitaet Wien Metadata",
-
-			"modslabel": "MODS",
 
 			"getuwmetadataurl": "https://fedora.phaidra-instance.univie.ac.at/fedora/get/{PID}/bdef:Asset/getUWMETADATA",
 

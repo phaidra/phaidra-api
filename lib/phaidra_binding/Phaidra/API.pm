@@ -54,7 +54,7 @@ sub new
 	$self->{config}->{proaiRepositoryIdentifier} = $oaiidentifier;
 
 	#Default Values
-	$self->{config}->{uwmetadatalabel} = "University of Vienna metadata";
+	$self->{config}->{defaultlabel} = "Created by phaidra API";
 	$self->{config}->{fedoraurlgetinternal} = "https://$fedorabaseurl/fedora/get";
 	$self->{uploadurl} = "https://$fedorabaseurl/fedora/management/upload";
 
@@ -74,7 +74,7 @@ sub new
 
 	# SOAP- and REST-Endpoints of Fedora
         $self->{config}->{fedorafindobject} = "https://$fedorabaseurl/fedora/search?";
-        $self->{config}->{fedorarisearch} = "https://$fedorabaseurl/fedora/risearch?";	
+        $self->{config}->{fedorarisearch} = "https://$fedorabaseurl/fedora/risearch?";
 	$self->{apim}->{uri} = "https://$cred".$self->{config}->{fedorabaseurl}."/fedora/services/management";
         $self->{apim}->{proxy} = "https://$cred".$self->{config}->{fedorabaseurl}."/fedora/services/management";
         $self->{apia}->{uri} = "https://$cred".$self->{config}->{fedorabaseurl}."/fedora/services/access";
@@ -357,7 +357,7 @@ sub search
 			{
 				push @userchunks,100;
 				$p_chunksize -= 100;
-			}	
+			}
 			push @userchunks,$p_chunksize;
 		}
 		$from = (($p_from - 1) * $chunksize) + 1 if(defined($p_from));
@@ -411,7 +411,7 @@ sub search
 			$to += $chunksize;
 		}
 	}
-	
+
 	if(!wantarray)
 	{
 		return (@pids ? \@pids : undef);
@@ -436,7 +436,7 @@ sub risearchTRIPLE ($$$)
 	if($self->{username})
 	{
 		my $cred = encode_base64($self->{username}.':'.$self->{password});
-	
+
 		$req = POST $self->{config}->{fedorarisearch}."type=triples&lang=spo&format=RDF%2FXML&query=".uri_escape($query),
 					    Authorization => "Basic $cred";
 	}
@@ -444,9 +444,9 @@ sub risearchTRIPLE ($$$)
 	{
 		$req = POST $self->{config}->{fedorarisearch}."type=triples&lang=spo&format=RDF%2FXML&query=".uri_escape($query);
 	}
-	
+
 	my $risearchFedora = $ua->request($req);
-	
+
 	if ($risearchFedora->is_success)
 	{
 		$result = $risearchFedora->content;
@@ -456,7 +456,7 @@ sub risearchTRIPLE ($$$)
 		$errstr = $risearchFedora->status_line;
 		$errno = -1;
 	}
-	
+
 	return ($errno,$errstr,$result);
 }
 
@@ -511,51 +511,51 @@ sub RIsearch
 }
 
 sub getRelatedObjectsInfo(){
-	
+
 	my ($self, $subject, $relation, $right, $offset, $limit)=@_;
-	
+
 	my $log = get_logger();
-	
+
 	my $rel = '<info:fedora/'.$subject.'> <'.$relation.'> $item';
 	if($right){
 		$rel = '$item <'.$relation.'> <info:fedora/'.$subject.'>';
 	}
-	
+
 	my $count;
 	my $relcount = '
 	select count(
-		select $item 
-		from <#ri> 
-		where 
+		select $item
+		from <#ri>
+		where
 		$item <http://www.openarchives.org/OAI/2.0/itemID> $itemID and
-		'.$rel.' and 
+		'.$rel.' and
 		$item <info:fedora/fedora-system:def/model#state> <info:fedora/fedora-system:def/model#Active>)
-	from <#ri> 
-	where 
+	from <#ri>
+	where
 	$item <http://www.openarchives.org/OAI/2.0/itemID> $itemID and
-	'.$rel.' and 
+	'.$rel.' and
 	$item <info:fedora/fedora-system:def/model#state> <info:fedora/fedora-system:def/model#Active>';
-	
+
 	my ($errno,$errstr,$result) = $self->risearchTUPLE($relcount);
 	my $xp = XML::XPath->new(xml => $result);
 	my $nodeset = $xp->findnodes('//result');
-	foreach my $node ($nodeset->get_nodelist){				
+	foreach my $node ($nodeset->get_nodelist){
 		$count = int($node->findvalue('k0'));
 		last; # should be only one
 	}
-	
+
 	my $query = '
-	select $itemID $title $cmodel	
-	from <#ri> 
-	where 
+	select $itemID $title $cmodel
+	from <#ri>
+	where
 	$item <http://www.openarchives.org/OAI/2.0/itemID> $itemID and
-	'.$rel.' and  
-	$item <info:fedora/fedora-system:def/model#state> <info:fedora/fedora-system:def/model#Active> and 
+	'.$rel.' and
+	$item <info:fedora/fedora-system:def/model#state> <info:fedora/fedora-system:def/model#Active> and
 	$item <http://purl.org/dc/elements/1.1/title> $title and
 	$item <info:fedora/fedora-system:def/model#hasModel> $cmodel
-	minus $cmodel <mulgara:is> <info:fedora/fedora-system:FedoraObject-3.0> 
+	minus $cmodel <mulgara:is> <info:fedora/fedora-system:FedoraObject-3.0>
 	order by $itemID asc';
-	
+
 	if($limit){
 		$query .= ' limit '.$limit;
 	}
@@ -564,7 +564,7 @@ sub getRelatedObjectsInfo(){
 	}
 
 	($errno,$errstr,$result) = $self->risearchTUPLE($query, $offset, $limit);
-	
+
 	if($errno ne 0)
 	{
 		$log->error("getPropertyWithTitle: ".$errstr);
@@ -575,27 +575,27 @@ sub getRelatedObjectsInfo(){
 	my $oaiid = $self->{config}->{proaiRepositoryIdentifier};
 	$xp = XML::XPath->new(xml => $result);
 	$nodeset = $xp->findnodes('//result');
-	foreach my $node ($nodeset->get_nodelist){				
+	foreach my $node ($nodeset->get_nodelist){
 
 		my $cmodel = $node->findvalue('cmodel/@uri');
-		
+
 		if($cmodel =~ m/fedora-system/){
 			next;
 		}
-				
-		$cmodel =~ s/^info:fedora\/cmodel:(.*)$/$1/;				
 
-		my $itemID = $node->findvalue('itemID/@uri');		
+		$cmodel =~ s/^info:fedora\/cmodel:(.*)$/$1/;
+
+		my $itemID = $node->findvalue('itemID/@uri');
 		$itemID =~ s/^info:fedora\/oai:$oaiid:(.*)$/$1/;
 		$itemID =~ s/^oai:$oaiid:(.*)$/$1/; # the second format without info:fedora/, used by phaidraimporter
-		
-		push @objects, { 
-			pid => $itemID, 
-			title => $node->findvalue('title'), 
+
+		push @objects, {
+			pid => $itemID,
+			title => $node->findvalue('title'),
 			cmodel => $cmodel
-		};			
-	}	
-	
+		};
+	}
+
 	return (\@objects, $count);
 }
 
@@ -610,40 +610,40 @@ Returns all active objects with following info:
 
 =cut
 sub getAllActiveObjects(){
-	
+
 	my ($self, $offset, $limit)=@_;
-	
+
 	my $log = get_logger();
-	
+
 	my $count;
 	my $countquery = '
 	select count(select $item from <#ri> where $item <info:fedora/fedora-system:def/model#state> <info:fedora/fedora-system:def/model#Active>)
-	from <#ri> 
+	from <#ri>
 	where
 	$item <http://www.openarchives.org/OAI/2.0/itemID> $itemID and
 	$item <info:fedora/fedora-system:def/model#state> <info:fedora/fedora-system:def/model#Active>';
-	
+
 	my ($errno,$errstr,$result) = $self->risearchTUPLE($countquery);
-	
+
 	my $xp = XML::XPath->new(xml => $result);
-	my $nodeset = $xp->findnodes('//result');	
-	foreach my $node ($nodeset->get_nodelist){				
+	my $nodeset = $xp->findnodes('//result');
+	foreach my $node ($nodeset->get_nodelist){
 		$count = int($node->findvalue('k0'));
-	}	
-		
+	}
+
 	my $query = '
 	select $itemID $title $cmodel $created $modified
-	from <#ri> 
-	where 
+	from <#ri>
+	where
 	$item <http://www.openarchives.org/OAI/2.0/itemID> $itemID and
-	$item <info:fedora/fedora-system:def/model#state> <info:fedora/fedora-system:def/model#Active> and 
+	$item <info:fedora/fedora-system:def/model#state> <info:fedora/fedora-system:def/model#Active> and
 	$item <http://purl.org/dc/elements/1.1/title> $title and
 	$item <info:fedora/fedora-system:def/model#createdDate> $created and
 	$item <info:fedora/fedora-system:def/view#lastModifiedDate> $modified and
 	$item <info:fedora/fedora-system:def/model#hasModel> $cmodel
-	minus $cmodel <mulgara:is> <info:fedora/fedora-system:FedoraObject-3.0> 
+	minus $cmodel <mulgara:is> <info:fedora/fedora-system:FedoraObject-3.0>
 	order by $modified desc';
-	
+
 	if($limit){
 		$query .= ' limit '.$limit;
 	}
@@ -652,7 +652,7 @@ sub getAllActiveObjects(){
 	}
 
 	($errno,$errstr,$result) = $self->risearchTUPLE($query, $offset, $limit);
-	
+
 	if($errno ne 0)
 	{
 		$log->error("getAllActiveObjects: ".$errstr);
@@ -662,29 +662,29 @@ sub getAllActiveObjects(){
 	my @objects;
 	my $oaiid = $self->{config}->{proaiRepositoryIdentifier};
 	$xp=XML::XPath->new(xml => $result);
-	$nodeset=$xp->findnodes('//result');	
-	foreach my $node ($nodeset->get_nodelist){				
+	$nodeset=$xp->findnodes('//result');
+	foreach my $node ($nodeset->get_nodelist){
 
 		my $cmodel = $node->findvalue('cmodel/@uri');
-		
+
 		if($cmodel =~ m/fedora-system/){
 			next;
 		}
-				
-		$cmodel =~ s/^info:fedora\/cmodel:(.*)$/$1/;				
 
-		my $itemID = $node->findvalue('itemID/@uri');		
+		$cmodel =~ s/^info:fedora\/cmodel:(.*)$/$1/;
+
+		my $itemID = $node->findvalue('itemID/@uri');
 		$itemID =~ s/^info:fedora\/oai:$oaiid:(.*)$/$1/;
-		
-		push @objects, { 
-			pid => $itemID, 
-			title => $node->findvalue('title'), 
+
+		push @objects, {
+			pid => $itemID,
+			title => $node->findvalue('title'),
 			cmodel => $cmodel,
 			created => $node->findvalue('created'),
-			modified => $node->findvalue('modified'), 
-		};			
-	}	
-	
+			modified => $node->findvalue('modified'),
+		};
+	}
+
 	return (\@objects, $count);
 }
 
@@ -698,15 +698,15 @@ sub risearchTUPLE ($$$)
 
 	my $ua = LWP::UserAgent::Determined->new;
 	my $req=undef;
-	
-	my $params = 'type=tuples&lang=itql&format=Sparql';	
-	
+
+	my $params = 'type=tuples&lang=itql&format=Sparql';
+
 	$log->debug("tuple query:\n".$query);
-		
+
 	if($self->{username})
 	{
 		my $cred = encode_base64($self->{username}.':'.$self->{password});
-	
+
 		$req = POST $self->{config}->{fedorarisearch}.$params."&query=".uri_escape($query),
 					    Authorization => "Basic $cred";
 	}
@@ -714,9 +714,9 @@ sub risearchTUPLE ($$$)
 	{
 		$req = POST $self->{config}->{fedorarisearch}.$params."&query=".uri_escape($query);
 	}
-	
+
 	my $risearchFedora = $ua->request($req);
-	
+
 	if ($risearchFedora->is_success)
 	{
 		$result = $risearchFedora->content;
@@ -726,7 +726,7 @@ sub risearchTUPLE ($$$)
 		$errstr = $risearchFedora->status_line;
 		$errno = -1;
 	}
-	
+
 	return ($errno,$errstr,$result);
 }
 
@@ -749,7 +749,7 @@ sub touchObject
 
 	$log->info("touching object: ".$pid);
 	my $res = $self->getSoap("apim")->modifyObject($pid, undef, undef, undef, SOAP::Data->type(string => 'touchObject by Phaidra API'));
-	
+
 	if($res->fault)
 	{
 		$log->logdie("modifyObject failed: ".$res->faultcode.": ".$res->faultstring);
@@ -760,7 +760,7 @@ sub touchObject
 
 =item cut
 
-purgeObject, first approach to clean delete 
+purgeObject, first approach to clean delete
 
 element name="pid" type="xsd:string"/>
 <element name="logMessage" type="xsd:string"/>
@@ -782,8 +782,8 @@ sub purgeObject
     # make sure things aren't force purged because of rubbish in the field
 	$force = 0 if (! length($force) || $force != 1 ) ;
 	$log->info("purging object: ". $pid . ':' . $message); # this is somewhat redundant goes in the Fedora log too..
-	
-	my $res = $self->getSoap("apim")->purgeObject($pid, SOAP::Data->type(string => "$message"), $force) ;	
+
+	my $res = $self->getSoap("apim")->purgeObject($pid, SOAP::Data->type(string => "$message"), $force) ;
 	if($res->fault)
 	{
 		$log->logdie("purgeObject failed: ".$res->faultcode.": ".$res->faultstring);
@@ -796,4 +796,3 @@ sub purgeObject
 =cut
 
 1;
-

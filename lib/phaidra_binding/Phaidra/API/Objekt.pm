@@ -212,7 +212,7 @@ sub addMetadata
 {
 	my ($self, $metadata) = @_;
 
-	$self->addDatastreamContent("UWMETADATA", "text/xml", $metadata, $self->{phaidra}->{config}->{uwmetadatalabel} , "X");
+	$self->addDatastreamContent("UWMETADATA", "text/xml", $metadata, $self->{phaidra}->{config}->{defaultlabel} , "X");
 }
 
 # Specialized modifyDatastreamByValue
@@ -220,7 +220,7 @@ sub modifyMetadata
 {
 	my ($self, $metadata) = @_;
 
-	$self->modifyDatastreamByValue("UWMETADATA", "text/xml", $metadata, $self->{phaidra}->{config}->{uwmetadatalabel} , "X");
+	$self->modifyDatastreamByValue("UWMETADATA", "text/xml", $metadata, $self->{phaidra}->{config}->{defaultlabel} , "X");
 }
 
 # Same as addDatastream but the content parameter is submitted as String

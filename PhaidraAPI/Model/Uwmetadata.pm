@@ -10,7 +10,6 @@ use Switch;
 use Data::Dumper;
 use Mojo::ByteStream qw(b);
 use Mojo::JSON qw(encode_json decode_json);
-use Mojo::Util qw(encode decode);
 use XML::Writer;
 use XML::LibXML;
 use lib "lib/phaidra_binding";
@@ -18,6 +17,7 @@ use Phaidra::API;
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Terms;
+use PhaidraAPI::Model::Util;
 
 sub metadata_tree {
 
@@ -539,7 +539,7 @@ sub uwmetadata_2_json {
 	my $metadata_tree_copy = dclone($metadata_tree);
 	$self->create_md_nodes_hash($c, $metadata_tree_copy, \%metadata_nodes_hash);
 
-	my $dom = Mojo::DOM->new();  
+	my $dom = Mojo::DOM->new();
   $dom->xml(1);
   $dom->parse($uwmetadata);
 
@@ -631,14 +631,13 @@ sub get_object_metadata {
 
 	my ($self, $c, $pid, $username, $password) = @_;
 
-	# get object metadata
-	my $res = $self->get_uwmetadata($c, $pid, $username, $password);
-	if($res->{status} ne 200){
-		return $res;
-	}
+  my $object_model = PhaidraAPI::Model::Object->new;
+  my $res = $object_model->get_dissemination($c, $pid, 'bdef:Asset', 'getUWMETADATA', $username, $password);
+  if($res->{status} ne 200){
+    return $res;
+  }
 
-
-	$res = $self->uwmetadata_2_json($c, $res->{uwmetadata});
+	$res = $self->uwmetadata_2_json($c, $res->{content});
 	return { uwmetadata => $res->{uwmetadata}, alerts => $res->{alerts}, status => $res->{status} };
 
 }
@@ -991,38 +990,6 @@ sub create_md_nodes_hash {
 
 }
 
-sub get_uwmetadata {
-
-	my $self = shift;
-	my $c = shift;
-	my $pid = shift;
-	my $username = shift;
-	my $password = shift;
-
-	my $res = { alerts => [], status => 200 };
-
-	my $url = Mojo::URL->new;
-	$url->scheme('https');
-	$url->userinfo("$username:$password");
-	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
-	$url->path("/fedora/get/$pid/bdef:Asset/getUWMETADATA");
-
-  	my $get = Mojo::UserAgent->new->get($url);
-
-  	if (my $r = $get->success) {
-  		$res->{status} = 200;
-  		$res->{'uwmetadata'} = $r->body;
-  	}
-	else
-	{
-	  my ($err, $code) = $get->error;
-	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-	  $res->{status} =  $code ? $code : 500;
-	}
-
-	return $res;
-}
-
 sub set_identifier() {
 	my $self = shift;
 	my $c = shift;
@@ -1234,60 +1201,21 @@ sub save_to_object(){
 		return $res
 	}
 
-	my $saveres = $self->save_uwmetadata($c, $pid, $uwmetadata, $username, $password);
-	if($saveres->{status} != 200){
-		$res->{status} = $saveres->{status};
-    foreach my $a ( @{$saveres->{alerts}} ){
-		    unshift @{$res->{alerts}}, $a;
+  if($c->app->config->{validate_uwmetadata}){
+    my $util_model = PhaidraAPI::Model::Util->new;
+    my $valres = $util_model->validate_xml($c, $uwmetadata, $c->app->config->{validate_uwmetadata});
+    if($valres->{status} != 200){
+      $res->{status} = $valres->{status};
+      foreach my $a ( @{$valres->{alerts}} ){
+          unshift @{$res->{alerts}}, $a;
+      }
+      return $res;
     }
-		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving metadata to object'};
-		return $res;
-	}else{
-		unshift @{$res->{alerts}}, @{$saveres->{alerts}};
-	}
+  }
 
-	return $res
-}
+  my $object_model = PhaidraAPI::Model::Object->new;
+  return $object_model->add_or_modify_datastream($c, $pid, "UWMETADATA", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $uwmetadata, "X", $username, $password, 0);
 
-sub validate_uwmetadata(){
-
-	my $self = shift;
-	my $c = shift;
-	my $pid = shift;
-	my $uwmetadata = shift;
-
-	my $res = { alerts => [], status => 200 };
-
-	my $xsdpath = $c->app->config->{validate_uwmetadata};
-
-	unless(-f $xsdpath){
-		unshift @{$res->{alerts}}, { type => 'danger', msg => "Cannot find XSD files: $xsdpath"};
-		$res->{status} = 500;
-	};
-
-	my $schema = XML::LibXML::Schema->new(location => $xsdpath);
-	my $parser = XML::LibXML->new;
-
-	eval {
-		my $document = $parser->parse_string($uwmetadata);
-
-		unless(defined($pid)){
-			$c->app->log->warn("No PID defined, adding dummy metadata");
-			$self->add_dummy_metadata($c, $parser, $document);
-		}
-
-		$c->app->log->debug("Validating: ".$document->toString(1));
-
-		$schema->validate($document)
-	};
-
-	if($@){
-		$c->app->log->error("Error validating uwmetadata: $@");
-		unshift @{$res->{alerts}}, { type => 'danger', msg => $@ };
-		$res->{status} = 400;
-	}
-
-	return $res;
 }
 
 sub add_dummy_metadata(){
@@ -1537,79 +1465,6 @@ sub json_2_uwmetadata_rec(){
 	}
 }
 
-sub save_uwmetadata(){
-
-	my $self = shift;
-	my $c = shift;
-	my $pid = shift;
-	my $uwmetadata = shift;
-	my $username = shift;
-	my $password = shift;
-
-	my $res = { alerts => [], status => 200 };
-
-	unless(defined($pid)){
-		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Missing PID. UWMETADATA datastream can only be saved to an existing object.'};
-		$res->{status} = 500;
-		return $res;
-	}
-	unless($pid =~ m/^[a-zA-Z\-]+:[0-9]+$/){
-		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Malformed PID: $pid'};
-		$res->{status} = 400;
-		return $res;
-	}
-
-	if($c->app->config->{validate_uwmetadata}){
-		my $valres = $self->validate_uwmetadata($c, $pid, $uwmetadata);
-		if($valres->{status} != 200){
-			$c->app->log->info("Validating UWMETADATA for object $pid failed:".$c->app->dumper($valres->{alerts}));
-			$res->{status} = $valres->{status};
-      foreach my $a ( @{$valres->{alerts}} ){
-          unshift @{$res->{alerts}}, $a;
-      }
-			unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error validating metadata'};
-
-			return $res;
-		}else{
-			$c->app->log->info("Validating UWMETADATA for object $pid success.");
-			unshift @{$res->{alerts}}, @{$valres->{alerts}};
-		}
-	}
-
-	# does it already exists? we have to use modify instead of add method if it does
-	my $search_model = PhaidraAPI::Model::Search->new;
-	my $sr = $search_model->datastream_exists($c, $pid, 'UWMETADATA');
-	if($sr->{status} ne 200){
-		unshift @{$res->{alerts}}, @{$sr->{alerts}};
-		$res->{status} = $sr->{status};
-		return $res;
-	}
-
-	$uwmetadata = encode 'UTF-8', $uwmetadata;
-
-	if($sr->{'exists'}){
-		my $object_model = PhaidraAPI::Model::Object->new;
-		my $r = $object_model->modify_datastream($c, $pid, "UWMETADATA", "text/xml", undef, $c->app->config->{phaidra}->{uwmetadatalabel}, $uwmetadata, $username, $password);
-	  	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
-	    $res->{status} = $r->{status};
-	    if($r->{status} ne 200){
-	    	return $res;
-	    }
-
-	}else{
-		my $object_model = PhaidraAPI::Model::Object->new;
-		my $r = $object_model->add_datastream($c, $pid, "UWMETADATA", "text/xml", undef, $c->app->config->{phaidra}->{uwmetadatalabel}, $uwmetadata, "X", $username, $password);
-	  	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
-	    $res->{status} = $r->{status};
-	    if($r->{status} ne 200){
-	    	return $res;
-	    }
-
-	}
-	$c->app->log->debug("Saving UWMETADATA for $pid successful.");
-
-	return $res;
-}
 
 1;
 __END__

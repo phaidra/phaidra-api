@@ -8,12 +8,13 @@ use Switch;
 use Storable qw(dclone);
 use Mojo::ByteStream qw(b);
 use Mojo::JSON qw(encode_json decode_json);
-use Mojo::Util qw(encode decode slurp);
+use Mojo::Util qw(slurp);
 use POSIX qw/strftime/;
 use XML::Writer;
 use XML::LibXML;
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Uwmetadata;
+use PhaidraAPI::Model::Util;
 
 our $modsns = "http://www.loc.gov/mods/v3";
 
@@ -141,14 +142,14 @@ sub xml_2_json_rec {
         #$c->app->log->debug("XXXXX type [$type] ns [$ns] id [$id]");
         $node->{xmlname} = $id;
         if(defined($e->text) && $e->text ne ''){
-          $node->{ui_value} = $e->text;
+          $node->{ui_value} = b($e->text)->decode('UTF-8');
         }
 
         if(defined($e->attr)){
           foreach my $ak (keys %{$e->attr}){
               my $a = {
                 xmlname => $ak,
-                ui_value => $e->attr->{$ak}
+                ui_value => b($e->attr->{$ak})->decode('UTF-8')
               };
               push @{$node->{attributes}}, $a;
           }
@@ -312,58 +313,22 @@ sub save_to_object(){
 
   # validate
   if($c->app->config->{validate_mods}){
-    $c->app->log->info("Validating MODS:".$c->app->dumper($mods));
-    my $valres = $self->validate_mods($c, $mods);
+    my $util_model = PhaidraAPI::Model::Util->new;
+    my $valres = $util_model->validate_xml($c, $mods, $c->app->config->{validate_mods});
     if($valres->{status} != 200){
-      $c->app->log->info("Validating MODS for object $pid failed:".$c->app->dumper($valres->{alerts}));
       $res->{status} = $valres->{status};
       foreach my $a ( @{$valres->{alerts}} ){
           unshift @{$res->{alerts}}, $a;
       }
-      unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error validating MODS metadata'};
       return $res;
-    }else{
-      $c->app->log->info("Validating MODS for object $pid success.");
-      unshift @{$res->{alerts}}, @{$valres->{alerts}};
     }
   }
 
-  # does it already exists? we have to use modify instead of add method if it does
-  my $search_model = PhaidraAPI::Model::Search->new;
-  my $sr = $search_model->datastream_exists($c, $pid, 'MODS');
-  if($sr->{status} ne 200){
-    unshift @{$res->{alerts}}, @{$sr->{alerts}};
-    $res->{status} = $sr->{status};
-    return $res;
-  }
-
-  # encode
-  $mods = encode 'UTF-8', $mods;
   # FIXME:
-  # HACK:
-  $username = $c->app->{config}->{phaidra}->{adminusername};
-  $password = $c->app->{config}->{phaidra}->{adminpassword};
-  # save
-  if($sr->{'exists'}){
-    my $object_model = PhaidraAPI::Model::Object->new;
-    my $r = $object_model->modify_datastream($c, $pid, "MODS", "text/xml", undef, $c->app->config->{phaidra}->{modslabel}, $mods, $username, $password);
-      push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
-      $res->{status} = $r->{status};
-      if($r->{status} ne 200){
-        return $res;
-      }
-  }else{
-    my $object_model = PhaidraAPI::Model::Object->new;
-    my $r = $object_model->add_datastream($c, $pid, "MODS", "text/xml", undef, $c->app->config->{phaidra}->{modslabel}, $mods, "X", $username, $password);
-      push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
-      $res->{status} = $r->{status};
-      if($r->{status} ne 200){
-        return $res;
-      }
-  }
-  $c->app->log->debug("Saving MODS for $pid successful.");
+  # HACK: using admin account
+  my $object_model = PhaidraAPI::Model::Object->new;
+  return $object_model->add_or_modify_datastream($c, $pid, "MODS", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $mods, "X", $username, $password, 1);
 
-  return $res
 }
 
 
@@ -669,60 +634,15 @@ sub get_object_mods_json {
 
   my ($self, $c, $pid, $mode, $username, $password) = @_;
 
-  # get mods xml
-  my $r = $self->get_mods($c, $pid, $username, $password);
-  if($r->{status} ne 200){
-    return $r;
-  }
-  #$c->app->log->debug("XXXXXXXXXXX ".$c->app->dumper($r));
-  my $res = $self->xml_2_json($c, $r->{mods}, $mode);
-
-  return $res;
-}
-
-sub get_mods {
-
-  my $self = shift;
-  my $c = shift;
-  my $pid = shift;
-  my $username = shift;
-  my $password = shift;
-
-  my $res = { alerts => [], status => 200 };
-
-  my $url = Mojo::URL->new;
-  $url->scheme('https');
-
   # FIXME:
-  # HACK: remove the admin account and make it an Asset's disseminator
-  $username = $c->app->{config}->{phaidra}->{intcallusername};
-  $password = $c->app->{config}->{phaidra}->{intcallpassword};
-  $url->userinfo("$username:$password");
-  $url->host($c->app->config->{phaidra}->{fedorabaseurl});
-
-  # FIXME:
-  # HACK:
-  #$url->path("/fedora/get/$pid/bdef:Asset/getUWMETADATA");
-  $url->path("/fedora/objects/$pid/datastreams/MODS/content");
-  my %params;
-  $params{format} = 'xml';
-  $url->query(\%params);
-
-
-  my $get = Mojo::UserAgent->new->get($url);
-
-  if (my $r = $get->success) {
-    $res->{status} = 200;
-    $res->{mods} = $r->body;
-  }
-  else
-  {
-    my ($err, $code) = $get->error;
-    unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-    $res->{status} =  $code ? $code : 500;
+  # HACK: remove the intcall auth and make it an Asset's disseminator
+  my $object_model = PhaidraAPI::Model::Object->new;
+  my $res = $object_model->get_datastream($c, $pid, 'MODS', $username, $password, 1);
+  if($res->{status} ne 200){
+    return $res;
   }
 
-  return $res;
+  return $self->xml_2_json($c, $res->{MODS}, $mode);
 }
 
 1;
