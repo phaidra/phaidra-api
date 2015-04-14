@@ -280,7 +280,7 @@ sub startup {
     $apiauth->route('object/create/:cmodel')                            ->via('post')     ->to('object#create');
     $apiauth->route('object/:pid/relationship')                         ->via('put')      ->to('object#add_relationship');
     $apiauth->route('object/:pid/relationship')                         ->via('delete')   ->to('object#purge_relationship');
-    $apiauth->route('object/:pid/datastream/:dsid')                     ->via('post')      ->to('object#add_datastream');
+    $apiauth->route('object/:pid/datastream/:dsid')                     ->via('post')     ->to('object#add_or_modify_datastream');
     $apiauth->route('object/:pid/data')                                 ->via('put')      ->to('object#add_octets');
     $apiauth->route('picture/create')                                   ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Picture');
     $apiauth->route('document/create')                                  ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:PDFDocument');

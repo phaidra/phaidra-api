@@ -445,26 +445,30 @@ sub add_datastream {
 	my $username = shift;
 	my $password = shift;
 
+	my $res = { alerts => [], status => 200 };
+
 	my %params;
 	unless(defined($label)){
 		# the label is mandatory when adding datastream
 		$label = $c->app->config->{phaidra}->{defaultlabel};
 	}
-    $params{controlGroup} = $controlgroup if $controlgroup;
-    $params{dsLocation} = $location if $location;
-    #$params{altIDs}
-    $params{dsLabel} = $label;
-    if(defined($datastream_versionable{$dsid})){
-    	$params{versionable} = $datastream_versionable{$dsid};
-    }
-    $params{dsState} = 'A';
-    #$params{formatURI}
-    $params{checksumType} = 'DISABLED';
-    #$params{checksum}
-    $params{mimeType} = $mimetype if $mimetype;
-    $params{logMessage} = 'PhaidraAPI object/add_datastream';
+  $params{controlGroup} = $controlgroup if $controlgroup;
+  $params{dsLocation} = $location if $location;
+  #$params{altIDs}
+  $params{dsLabel} = $label;
+  if(defined($datastream_versionable{$dsid})){
+  	$params{versionable} = $datastream_versionable{$dsid};
+  }
+  $params{dsState} = 'A';
+  #$params{formatURI}
+  $params{checksumType} = 'DISABLED';
+  #$params{checksum}
+  $params{mimeType} = $mimetype if $mimetype;
+  $params{logMessage} = 'PhaidraAPI object/add_datastream';
 
-    my $res = { alerts => [], status => 200 };
+	$c->app->log->debug("XXXXXXXXX url:"."/fedora/objects/$pid/datastreams/$dsid");
+	$c->app->log->debug("XXXXXXXXX params:".$c->app->dumper(\%params));
+	$c->app->log->debug("XXXXXXXXX content:".$c->app->dumper($dscontent));
 
 	my $url = Mojo::URL->new;
 	$url->scheme('https');
@@ -476,13 +480,13 @@ sub add_datastream {
 	my $ua = Mojo::UserAgent->new;
 	my $post;
 	if($dscontent){
-  		$post = $ua->post($url => $dscontent);
+  	$post = $ua->post($url => $dscontent);
 	}else{
 		$post = $ua->post($url);
 	}
-  	if (my $r = $post->success) {
-  		#unshift @{$res->{alerts}}, { type => 'success', msg => $r->body };
-  	}
+  if (my $r = $post->success) {
+  	#unshift @{$res->{alerts}}, { type => 'success', msg => $r->body };
+  }
 	else {
 	  my ($err, $code) = $post->error;
 	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
@@ -505,24 +509,24 @@ sub modify_datastream {
 	my $username = shift;
 	my $password = shift;
 
-	my %params;
-    $params{dsLocation} = $location if $location;
-    #$params{altIDs}
-    $params{dsLabel} = $label if $label;
-    if($dsid eq 'COLLECTIONORDER'){
-    	$params{versionable} = 0;
-    }
-    #$params{versionable} = 1;
-    $params{dsState} = 'A';
-    #$params{formatURI}
-    $params{checksumType} = 'DISABLED';
-    #$params{checksum}
-    $params{mimeType} = $mimetype if $mimetype;
-    $params{logMessage} = 'PhaidraAPI object/modify_datastream';
-    $params{force} = 0;
-    #$params{ignoreContent}
+	my $res = { alerts => [], status => 200 };
 
-    my $res = { alerts => [], status => 200 };
+	my %params;
+  $params{dsLocation} = $location if $location;
+  #$params{altIDs}
+  $params{dsLabel} = $label if $label;
+	if(defined($datastream_versionable{$dsid})){
+		$params{versionable} = $datastream_versionable{$dsid};
+	}
+  #$params{versionable} = 1;
+  $params{dsState} = 'A';
+  #$params{formatURI}
+  $params{checksumType} = 'DISABLED';
+  #$params{checksum}
+  $params{mimeType} = $mimetype if $mimetype;
+  $params{logMessage} = 'PhaidraAPI object/modify_datastream';
+  $params{force} = 0;
+  #$params{ignoreContent}
 
 	my $url = Mojo::URL->new;
 	$url->scheme('https');
@@ -534,20 +538,20 @@ sub modify_datastream {
 	my $ua = Mojo::UserAgent->new;
 	my $put;
 	if($dscontent){
-  		$put = $ua->put($url => $dscontent);
+  	$put = $ua->put($url => $dscontent);
 	}else{
 		$put = $ua->put($url);
 	}
-  	if (my $r = $put->success) {
-  		#unshift @{$res->{alerts}}, { type => 'success', msg => $r->body };
-  	}
+  if (my $r = $put->success) {
+  	#unshift @{$res->{alerts}}, { type => 'success', msg => $r->body };
+  }
 	else {
 	  my ($err, $code) = $put->error;
 	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
 	  $res->{status} =  $code ? $code : 500;
 	}
 
-  	return $res;
+  return $res;
 }
 
 sub add_or_modify_datastream {
@@ -587,20 +591,21 @@ sub add_or_modify_datastream {
 	# save
 	if($sr->{'exists'}){
 		my $r = $self->modify_datastream($c, $pid, $dsid, "text/xml", undef, $label, $dscontent, $username, $password);
-			push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
-			$res->{status} = $r->{status};
-			if($r->{status} ne 200){
-				return $res;
-			}
+		push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+		$res->{status} = $r->{status};
+		if($r->{status} ne 200){
+			return $res;
+		}
+		$c->app->log->debug("Modifying $dsid for $pid successful.");
 	}else{
 		my $r = $self->add_datastream($c, $pid, $dsid, "text/xml", undef, $label, $dscontent, "X", $username, $password);
-			push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
-			$res->{status} = $r->{status};
-			if($r->{status} ne 200){
-				return $res;
-			}
+		push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+		$res->{status} = $r->{status};
+		if($r->{status} ne 200){
+			return $res;
+		}
+		$c->app->log->debug("Adding $dsid for $pid successful.");
 	}
-	$c->app->log->debug("Saving $dsid for $pid successful.");
 
 	return $res
 }

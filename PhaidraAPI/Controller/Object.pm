@@ -198,16 +198,16 @@ sub add_octets {
 
 }
 
-sub add_datastream {
+sub add_or_modify_datastream {
 
 	my $self = shift;
 
-    unless(defined($self->stash('pid'))){
+  unless(defined($self->stash('pid'))){
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
 		return;
 	}
 
-	 unless(defined($self->stash('dsid'))){
+	unless(defined($self->stash('dsid'))){
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined dsid' }]} , status => 400) ;
 		return;
 	}
@@ -221,11 +221,20 @@ sub add_datastream {
 	my $dscontent = undef;
 	if($self->param('dscontent')){
 		$dscontent = $self->param('dscontent');
+    if(ref $dscontent eq 'Mojo::Upload'){
+      # this is a file upload
+      $self->app->log->debug("Parameter dscontent is a file parameter file=[".$dscontent->filename."] size=[".$dscontent->size."]");
+      $dscontent = $dscontent->asset->slurp;
+    }else{
+      $self->app->log->debug("Parameter dscontent is a text parameter");
+    }
 	}
+
 	my $controlgroup = $self->param('controlgroup');
 
 	my $object_model = PhaidraAPI::Model::Object->new;
-	my $r = $object_model->add_datastream($self, $self->stash('pid'), $self->stash('dsid'), $mimetype, $location, $label, $dscontent, $controlgroup, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+
+	my $r = $object_model->add_or_modify_datastream($self, $self->stash('pid'), $self->stash('dsid'), $mimetype, $location, $label, $dscontent, $controlgroup, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 
 	$self->render(json => $r, status => $r->{status}) ;
 }
