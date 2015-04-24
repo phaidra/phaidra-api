@@ -92,48 +92,6 @@ sub metadata_tree {
  	return $res;
 }
 
-sub get_languages {
-	my ($self, $c) = @_;
-
-	my $cachekey = 'languages';
-
-	my $res = $c->app->chi->get($cachekey);
-
-    if($res){
-    	$c->app->log->debug("[cache hit] $cachekey");
-    }else{
-    	$c->app->log->debug("[cache miss] $cachekey");
-
-		my %l;
-
-		my $sth;
-		my $ss;
-
-		$ss = qq/SELECT l.isocode, ve.isocode, ve.entry FROM language AS l LEFT JOIN vocabulary_entry AS ve ON l.VEID = ve.VEID/;
-		$sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
-		$sth->execute();
-		my $isocode;
-		my $ve_isocode;
-		my $ve_entry;
-		$sth->bind_columns(undef, \$isocode, \$ve_isocode, \$ve_entry);
-		while($sth->fetch) {
-			$l{$isocode}{$ve_isocode} = $ve_entry if defined($ve_isocode);
-			#$l->{$isocode}{isocode} = {$ve_isocode} = $ve_entry ;
-		}
-		$l{'xx'}{'en'} = 'Not applicable';
-		$l{'xx'}{'de'} = 'Nicht anwendbar';
-		$l{'xx'}{'it'} = 'Non applicabile';
-		$l{'xx'}{'sr'} = 'Nije primenljivo';
-
-		$c->app->chi->set($cachekey, \%l, '1 day');
-
-  		$res = $c->app->chi->get($cachekey);
-    }
-
-	#$c->app->log->debug($c->app->dumper($res));
-	return $res;
-}
-
 sub get_metadata_tree {
 
 	my ($self, $c) = @_;

@@ -50,27 +50,23 @@ sub tree {
 	my $mods_model = PhaidraAPI::Model::Mods->new;
 	my $uwmetadata_model = PhaidraAPI::Model::Uwmetadata->new;
 
-	my $languages = $uwmetadata_model->get_languages($self);
+	my $lres = $uwmetadata_model->get_languages($self);
+  if($lres->{status} ne 200){
+    $self->render(json => { alerts => $lres->{alerts} }, $lres->{status});
+    return;
+  }
+  my $languages = $lres->{languages};
 
 	my $res = $mods_model->metadata_tree($self, $nocache);
 	if($res->{status} ne 200){
 		$self->render(json => { alerts => $res->{alerts} }, $res->{status});
+    return;
 	}
 
 	my $t1 = tv_interval($t0);
 	$self->stash( msg => "backend load took $t1 s");
 
-    $self->render(json => { tree => $res->{mods}, vocabularies => $res->{vocabularies}, 'vocabularies_mapping' => $res->{vocabularies_mapping}, languages => $languages, alerts => $res->{alerts} }, status => $res->{status});
-}
-
-sub languages {
-	my $self = shift;
-
-	# get metadata datastructure
-	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
-	my $languages = $metadata_model->get_languages($self);
-
-    $self->render(json => { languages => $languages});
+  $self->render(json => { tree => $res->{mods}, vocabularies => $res->{vocabularies}, 'vocabularies_mapping' => $res->{vocabularies_mapping}, languages => $languages, alerts => $res->{alerts} }, status => $res->{status});
 }
 
 sub json2xml {

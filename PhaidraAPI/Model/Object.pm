@@ -11,6 +11,7 @@ use PhaidraAPI::Model::Rights;
 use PhaidraAPI::Model::Geo;
 use PhaidraAPI::Model::Uwmetadata;
 use PhaidraAPI::Model::Search;
+use PhaidraAPI::Model::Hooks;
 use Switch;
 use IO::Scalar;
 use File::MimeInfo;
@@ -466,10 +467,6 @@ sub add_datastream {
   $params{mimeType} = $mimetype if $mimetype;
   $params{logMessage} = 'PhaidraAPI object/add_datastream';
 
-	$c->app->log->debug("XXXXXXXXX url:"."/fedora/objects/$pid/datastreams/$dsid");
-	$c->app->log->debug("XXXXXXXXX params:".$c->app->dumper(\%params));
-	$c->app->log->debug("XXXXXXXXX content:".$c->app->dumper($dscontent));
-
 	my $url = Mojo::URL->new;
 	$url->scheme('https');
 	$url->userinfo("$username:$password");
@@ -606,6 +603,9 @@ sub add_or_modify_datastream {
 		}
 		$c->app->log->debug("Adding $dsid for $pid successful.");
 	}
+
+	my $hooks_model = PhaidraAPI::Model::Hooks->new;
+	$hooks_model->add_or_modify_datastream_hooks($c, $pid, $dsid, $dscontent, $username, $password);
 
 	return $res
 }
@@ -931,6 +931,30 @@ sub set_rights {
   	return $res;
 }
 
+sub get_cmodel {
+	my $self = shift;
+	my $c = shift;
+	my $pid = shift;
+
+	my $res = { alerts => [], status => 200 };
+
+	my $search_model = PhaidraAPI::Model::Search->new;
+	my $r = $search_model->triples($c, "<info:fedora/$pid> <info:fedora/fedora-system:def/model#hasModel> *");
+	if($r->{status} ne 200){
+			return $r;
+	}
+
+	for my $t (@{$r->{results}}){
+		next if(@{$t}[2] =~ m/fedora-system/g);
+
+		@{$t}[2] =~ m/<(info:fedora\/)(\w+):(\w+)>/g;
+		if(defined($3) && $3 ne ''){
+			return $3;
+		}
+	}
+
+	return $res;
+}
 
 1;
 __END__

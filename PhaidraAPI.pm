@@ -202,15 +202,16 @@ sub startup {
 
     # PUT vs POST in this API: PUT should be idempotent
 
+  $r->route('languages')                          ->via('get')    ->to('languages#get_languages');
+  $r->route('licenses')                           ->via('get')    ->to('licenses#get_licenses');
+
 	$r->route('uwmetadata/tree')                    ->via('get')    ->to('uwmetadata#tree');
-	$r->route('uwmetadata/languages')               ->via('get')    ->to('uwmetadata#languages');
   $r->route('uwmetadata/json2xml')                ->via('post')   ->to('uwmetadata#json2xml');
   $r->route('uwmetadata/xml2json')                ->via('post')   ->to('uwmetadata#xml2json');
   $r->route('uwmetadata/validate')                ->via('post')   ->to('uwmetadata#validate');
   $r->route('uwmetadata/json2xml_validate')       ->via('post')   ->to('uwmetadata#json2xml_validate');
 
-  $r->route('mods/tree')                          ->via('get')    ->to('mods#tree');
-  $r->route('mods/languages')                     ->via('get')    ->to('mods#languages');
+  $r->route('mods/tree')                          ->via('get')    ->to('mods#tree');  
   $r->route('mods/json2xml')                      ->via('post')   ->to('mods#json2xml');
   $r->route('mods/xml2json')                      ->via('post')   ->to('mods#xml2json');
   $r->route('mods/validate')                      ->via('post')   ->to('mods#validate');

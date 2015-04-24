@@ -36,6 +36,8 @@
 
     "local_mods_tree":"/var/www/phaidra-api/public/mods/mods.json",
 
+		"licenses_file":"/var/www/phaidra-api/public/licenses/licenses.json",
+
     "terms": {
     	"search_results_limit": 50
     },

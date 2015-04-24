@@ -13,7 +13,7 @@ use POSIX qw/strftime/;
 use XML::Writer;
 use XML::LibXML;
 use PhaidraAPI::Model::Object;
-use PhaidraAPI::Model::Uwmetadata;
+use PhaidraAPI::Model::Languages;
 use PhaidraAPI::Model::Util;
 
 our $modsns = "http://www.loc.gov/mods/v3";
@@ -25,7 +25,7 @@ sub metadata_tree {
     my $res = { alerts => [], status => 200 };
 
 	if($nocache){
-		$c->app->log->debug("Reading uwmetadata tree from file (nocache request)");
+		$c->app->log->debug("Reading mods tree from file (nocache request)");
 
 		# read metadata tree from file
 		my $bytes = slurp $c->app->config->{local_mods_tree};
@@ -360,8 +360,13 @@ sub mods_fill_tree {
   $res->{mods} = $tree;
   $res->{vocabularies} = $r->{vocabularies};
   $res->{vocabularies_mapping} = $r->{vocabularies_mapping};
-  my $uwmetadata_model = PhaidraAPI::Model::Uwmetadata->new;
-  $res->{languages} = $uwmetadata_model->get_languages($c);
+  my $languages_model = PhaidraAPI::Model::Languages->new;
+  my $lres = $languages_model->get_languages($c);
+  if($lres->{status} ne 200){
+    return $lres;
+  }
+
+  $res->{languages} = $lres->{languages};
 
   return $res;
 
