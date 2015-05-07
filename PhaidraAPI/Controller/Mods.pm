@@ -48,9 +48,9 @@ sub tree {
 	my $nocache = $self->param('nocache');
 
 	my $mods_model = PhaidraAPI::Model::Mods->new;
-	my $uwmetadata_model = PhaidraAPI::Model::Uwmetadata->new;
+	my $lang_model = PhaidraAPI::Model::Languages->new;
 
-	my $lres = $uwmetadata_model->get_languages($self);
+	my $lres = $lang_model->get_languages($self);
   if($lres->{status} ne 200){
     $self->render(json => { alerts => $lres->{alerts} }, $lres->{status});
     return;

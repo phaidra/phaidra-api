@@ -66,6 +66,24 @@ our %non_contributor_role_ids =
 
 our %non_contributor_role_ids_rev = reverse %non_contributor_role_ids;
 
+our %mods_contributor_roles =
+(
+  'ctb' => 1
+);
+
+our %mods_creator_roles =
+(
+  'aut' => 1,
+  'prt' => 1,
+  'edt' => 1,
+  'ill' => 1,
+  'dte' => 1,
+  'drm' => 1,
+  'ctg' => 1,
+  'ltg' => 1,
+  'egr' => 1
+);
+
 my %doc_uwns = ();
 
 sub add_or_modify_datastream_hooks {
@@ -84,22 +102,268 @@ sub add_or_modify_datastream_hooks {
       }
       my $object_model = PhaidraAPI::Model::Object->new;
       my $cmodel = $object_model->get_cmodel($c, $pid);
-      $self->generate_dc_from_uwmetadata($c, $pid, $cmodel, $dscontent, $res->{metadata_tree}, $metadata_model, $username, $password);
+      $self->generate_dc_from_uwmetadata($c, $pid, $cmodel, $dscontent, $res->{metadata_tree}, $metadata_model, $object_model, $username, $password);
+    }
+
+    case "MODS" {
+      my $mods_model = PhaidraAPI::Model::Uwmetadata->new;
+      my $object_model = PhaidraAPI::Model::Object->new;
+      my $cmodel = $object_model->get_cmodel($c, $pid);
+      $self->generate_dc_from_mods($c, $pid, $cmodel, $dscontent, $mods_model, $object_model, $username, $password);
     }
   }
 }
 
+
+sub generate_dc_from_mods {
+
+  my ($self, $c, $pid, $cmodel, $dscontent, $metadata_model, $object_model, $username, $password) = @_;
+
+  my $res = { alerts => [], status => 200 };
+
+  my ($dc_p, $dc_oai) = $self->map_mods_2_dc($c, $pid, $cmodel, $dscontent, $metadata_model);
+=cut
+  # Phaidra DC
+  my $r1 = $object_model->add_or_modify_datastream($c, $pid, "DC_P", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", $username, $password, 1);
+  foreach my $a (@{$r1->{alerts}}){
+    push @{$res->{alerts}}, $a;
+  }
+  if($r1->{status} ne 200){
+    $res->status = $r1->{status};
+  }
+
+  # OAI DC - unqualified
+  my $r2 = $object_model->add_or_modify_datastream($c, $pid, "DC_OAI", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_oai, "X", $username, $password, 1);
+  foreach my $a (@{$r2->{alerts}}){
+    push @{$res->{alerts}}, $a;
+  }
+  if($r2->{status} ne 200){
+    $res->status = $r2->{status};
+  }
+=cut
+
+  return $res;
+}
+
+
+sub map_mods_2_dc {
+
+  my ($self, $c, $pid, $cmodel, $xml, $tree, $metadata_model) = @_;
+
+  my $dom = Mojo::DOM->new();
+  $dom->xml(1);
+  $dom->parse($xml);
+
+  #$c->app->log->debug("XXXXXXXXXXX mods xml:".$xml);
+
+  # keep using 'mods' as the first node in selectors to avoid running into relatedItem
+  my %dc_p;
+  $dc_p{title} = $self->_get_mods_titles($c, $dom);
+  $dc_p{subject} = $self->_get_mods_element_values($c, $dom, 'mods > subject > topic');
+  my $classifications = $self->_get_mods_classifications($c, $dom);
+  push @{$dc_p{subject}}, @$classifications;
+  $dc_p{identifier} = $self->_get_mods_element_values($c, $dom, 'mods > identifier');
+  $dc_p{relation} = $self->_get_mods_relations($c, $dom);
+  my $editions = $self->_get_mods_element_values($c, $dom, 'mods > originInfo > edition');
+  push @{$dc_p{relation}}, @$editions;
+  $dc_p{language} = $self->_get_mods_element_values($c, $dom, 'mods >language > languageTerm');
+  $dc_p{creator} = $self->_get_mods_creators($c, $dom, 'p');
+  $dc_p{contributor} = $self->_get_mods_contributors($c, $dom, 'p');
+  $dc_p{date} = $self->_get_mods_element_values($c, $dom, 'mods > originInfo > dateIssued[keyDate="yes"]');
+  $dc_p{description} = $self->_get_mods_element_values($c, $dom, 'mods > note');
+  # maps specific
+  my $scales = $self->_get_mods_element_values($c, $dom, 'mods > subject > cartographics > scale');
+  my @scales_en = map { { value => "Scale 1:".$_->{value}, lang => 'en' } } @$scales;
+  push @{$dc_p{description}}, @scales_en;
+  my @scales_de = map { { value => "Maßstab 1:".$_->{value}, lang => 'de' } } @$scales;
+  push @{$dc_p{description}}, @scales_de;
+
+  my $extents = $self->_get_mods_element_values($c, $dom, 'mods > physicalDescription > extent');
+  push @{$dc_p{description}}, @$extents;
+
+  $dc_p{publisher} = $self->_get_mods_element_values($c, $dom, 'mods > originInfo > publisher');
+  my $publisher_places = $self->_get_mods_element_values($c, $dom, 'mods > originInfo > place > placeTerm');
+  push @{$dc_p{publisher}}, @$publisher_places;
+
+  $dc_p{rights} = $self->_get_mods_element_values($c, $dom, 'mods > accessCondition[type="use and reproduction"]');
+
+
+  # FIXME GEO datastream to DCMI BOX
+
+  #$c->app->log->debug("XXXXXXXXXXX dc_p hash:".$c->app->dumper(\%dc_p));
+  my $dc_p_xml = $self->_create_dc_from_hash($c, \%dc_p);
+  #$c->app->log->debug("XXXXXXXXXXX dc_p xml:".$dc_p_xml);
+
+  # see https://guidelines.openaire.eu/wiki/OpenAIRE_Guidelines:_For_Literature_repositories
+  my %dc_oai = %dc_p;
+  $dc_oai{creator} = $self->_get_mods_creators($c, $dom, 'oai');
+  $dc_oai{contributor} = $self->_get_mods_contributors($c, $dom, 'oai');
+
+  #$c->app->log->debug("XXXXXXXXXXX dc_oai hash:".$c->app->dumper(\%dc_oai));
+  my $dc_oai_xml = $self->_create_dc_from_hash($c, \%dc_oai);
+  #$c->app->log->debug("XXXXXXXXXXX dc_oai xml:".$dc_oai_xml);
+
+  return ($dc_p_xml, $dc_oai_xml);
+}
+
+sub _get_mods_classifications {
+
+  my ($self, $c, $dom, ) = @_;
+
+  my @cls;
+  for my $e ($dom->find('mods > classification')->each){
+    my $uri = $e->text;
+    my $label;
+    push @cls, { value => $label };
+  }
+
+  return \@cls;
+}
+
+sub _get_mods_creators {
+  my ($self, $c, $dom, $mode) = @_;
+
+  my @creators;
+
+  for my $name ($dom->find('mods name[type="personal"]')->each){
+    my $role = $name->find('role roleTerm[type="code"][authority="marcrelator"]')->first;
+    if(defined($role)){
+      $role = $role->text;
+      if($mods_creator_roles{$role}){
+        my $firstname = $name->find('namePart[type="given"]')->map('text')->join(" ");
+        my $lastname = $name->find('namePart[type="family"]')->map('text')->join(" ");
+
+        if(defined($firstname) && $firstname ne '' && defined($lastname) && $lastname ne ''){
+          if($mode eq 'oai'){
+            # APA bibliographic style
+            my $initials = ucfirst(substr($firstname, 0, 1));
+            push @creators, { value => "$lastname, $initials ($firstname)" };
+          }else{
+            push @creators, { value => "$lastname, $firstname" };
+          }
+        }else{
+          my $name = $name->find('namePart')->map('text')->join(" ");
+          push @creators, { value => $name };
+        }
+      }
+    }
+
+  }
+
+  return \@creators;
+}
+
+sub _get_mods_contributors {
+  my ($self, $c, $dom, $mode) = @_;
+
+  my @contributors;
+
+  for my $name ($dom->find('mods name[type="personal"]')->each){
+    my $role = $name->find('role roleTerm[type="code"][authority="marcrelator"]')->first;
+    if(defined($role)){
+      $role = $role->text;
+      if($mods_contributor_roles{$role}){
+        my $firstname = $name->find('namePart[type="given"]')->map('text')->join(" ");
+        my $lastname = $name->find('namePart[type="family"]')->map('text')->join(" ");
+
+        if(defined($firstname) && $firstname ne '' && defined($lastname) && $lastname ne ''){
+          if($mode eq 'oai'){
+            # APA bibliographic style
+            my $initials = ucfirst(substr($firstname, 0, 1));
+            push @contributors, { value => "$lastname, $initials ($firstname)" };
+          }else{
+            push @contributors, { value => "$lastname, $firstname" };
+          }
+        }else{
+          my $namepart = $name->find('namePart')->map('text')->join(" ");
+          push @contributors, { value => $namepart };
+        }
+      }
+    }
+
+  }
+
+  for my $name ($dom->find('mods name[type="corporate"]')->each){
+    my $namepart = $name->find('namePart')->map('text')->join(" ");
+    push @contributors, { value => $namepart };
+  }
+
+  return \@contributors;
+}
+
+sub _get_mods_relations {
+  my ($self, $c, $dom) = @_;
+
+  my @relations;
+
+  # find relateditem
+  for my $e ($dom->find('mods relatedItem')->each){
+
+    # identifier
+    for my $id ($e->find('identifier')->each){
+      push @relations, { value => $id->text };
+    }
+
+    #title
+    for my $titleInfo ($e->find('titleInfo')->each){
+      my $tit = $e->find('title')->map('text')->join(" ");
+      my $subtit = $e->find('subTitle')->map('text')->join(" ");
+
+      if($subtit && $subtit ne ''){
+        $tit .= ": $subtit";
+      }
+      push @relations, { value => $tit };
+    }
+  }
+
+  return \@relations;
+}
+
+sub _get_mods_titles {
+  my ($self, $c, $dom) = @_;
+
+  my @tits; # yes, tits
+  # each titleInfo will be a separate title
+  for my $e ($dom->find('titleInfo')->each){
+    # there should be one title element, whatewer attribute is has
+    # like tranlsated, parallel and what not
+    # it will be simply added as a title in dc
+    # if there is a subtitle, it will be added with ':' after the title
+    my $tit = $e->find('title')->map('text')->join(" ");
+    my $subtit = $e->find('subTitle')->map('text')->join(" ");
+    if($subtit && $subtit ne ''){
+      $tit .= ": $subtit";
+    }
+
+    push @tits, { value => $tit };
+  }
+
+  return \@tits;
+}
+
+sub _get_mods_element_values {
+
+  my ($self, $c, $dom, $elm) = @_;
+
+  my @vals;
+  for my $e ($dom->find($elm)->each){
+    my %v = ( value => $e->text );
+    if($e->attr('lang')){
+        $v{lang} = $e->attr('lang');
+    }
+    push @vals, \%v;
+  }
+
+  return \@vals;
+}
+
 sub generate_dc_from_uwmetadata {
 
-  my ($self, $c, $pid, $cmodel, $dscontent, $tree, $metadata_model, $username, $password) = @_;
+  my ($self, $c, $pid, $cmodel, $dscontent, $tree, $metadata_model, $object_model, $username, $password) = @_;
 
   my $res = { alerts => [], status => 200 };
 
   my ($dc_p, $dc_oai) = $self->map_uwmetadata_2_dc($c, $pid, $cmodel, $dscontent, $tree, $metadata_model);
-
-  # FIXME:
-  # HACK: using admin account
-  my $object_model = PhaidraAPI::Model::Object->new;
 
   # Phaidra DC
   my $r1 = $object_model->add_or_modify_datastream($c, $pid, "DC_P", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", $username, $password, 1);
@@ -164,7 +428,7 @@ sub map_uwmetadata_2_dc {
   my $contributors_p = $self->_get_contributors($c, $dom, 'p');
   my $contributors_oai = $self->_get_contributors($c, $dom, 'oai');
 
-  my $relations = $self->_get_relations($c, $dom);
+  my $relations = $self->_get_uwm_relations($c, $dom);
 
   my $coverages = $self->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:coverage');
 
@@ -172,6 +436,8 @@ sub map_uwmetadata_2_dc {
   my $infoeurepoaccess_oai = $self->_get_infoeurepoaccess($c, $dom, $tree, $metadata_model, 'oai');
 
   my $licenses = $self->_get_licenses($c, $dom, $tree, $metadata_model);
+
+  # FIXME GEO datastream to DCMI BOX
 
   my %dc_p;
   $dc_p{title} = $titles if(defined($titles));
@@ -187,7 +453,7 @@ sub map_uwmetadata_2_dc {
   $dc_p{publisher} = $publishers_p if(defined($publishers_p));
   $dc_p{contributor} = $contributors_p if(defined($contributors_p));
   $dc_p{relation} = $relations;
-  $dc_p{coveradge} = $coverages;
+  $dc_p{coverage} = $coverages;
   $dc_p{rights} = $licenses;
   for my $v (@{$infoeurepoaccess_p}){
     push @{$dc_p{rights}}, $v;
@@ -216,7 +482,7 @@ sub map_uwmetadata_2_dc {
   return ($dc_p_xml, $dc_oai_xml);
 }
 
-sub _get_relations {
+sub _get_uwm_relations {
   my ($self, $c, $dom) = @_;
 
   my $relations;
@@ -632,7 +898,6 @@ sub _get_versions {
 
   return \@vals;
 }
-
 
 sub _get_uwm_element_values {
 
