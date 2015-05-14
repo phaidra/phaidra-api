@@ -151,6 +151,8 @@ sub add_octets {
 
     my $res = { alerts => [], status => 200 };
 
+    my $upload = $self->req->upload('file');
+
     if($self->req->is_limit_exceeded){
     	$self->render(json => { alerts => [{ type => 'danger', msg => 'File is too big' }]}, status => 400);
 		return;
@@ -162,9 +164,10 @@ sub add_octets {
 	}
 
 	unless(defined($self->param('mimetype'))){
-		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined mimetype' }]}, status => 400);
-		return;
-	}
+      my $object_model = PhaidraAPI::Model::Object->new;
+      $mimetype = $object_model->get_mimetype($self, $upload->asset);
+      unshift @{$res->{alerts}}, { type => 'info', msg => "Undefined mimetype, using magic: $mimetype" };
+  }
 
 	my $file = $self->param('file');
   	my $size = $file->size;
@@ -185,8 +188,8 @@ sub add_octets {
 	$url->query(\%params);
 
 	my $ua = Mojo::UserAgent->new;
-	my $upload = $self->req->upload('file');
-        my $post = $ua->post($url => { 'Content-Type' => $self->param('mimetype') } => form => { file => { file => $upload->asset }} );
+
+    my $post = $ua->post($url => { 'Content-Type' => $self->param('mimetype') } => form => { file => { file => $upload->asset }} );
 
   	unless(my $r = $post->success) {
 	  my ($err, $code) = $post->error;
@@ -248,16 +251,20 @@ sub metadata {
 
   my $pid = $self->stash('pid');
 
-  my $payload = $self->req->json;
-  my $metadata = $payload->{metadata};
+  my $metadata = $self->param('metadata');
+  unless(defined($metadata)){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
+    return;
+  }
+  $metadata = decode_json(b($metadata)->encode('UTF-8'));
+  unless(defined($metadata->{metadata})){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
+    return;
+  }
+  $metadata = $metadata->{metadata};
 
   unless(defined($pid)){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
-    return;
-  }
-
-  unless(defined($metadata)){
-    $self->render(json => { alerts => [{ type => 'danger', msg => 'No data sent' }]} , status => 400) ;
     return;
   }
 

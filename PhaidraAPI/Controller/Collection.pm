@@ -6,6 +6,7 @@ use v5.10;
 use base 'Mojolicious::Controller';
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::Util qw(encode decode);
+use Mojo::ByteStream qw(b);
 use PhaidraAPI::Model::Collection;
 use PhaidraAPI::Model::Object;
 
@@ -21,8 +22,23 @@ sub add_collection_members {
 	}
 
 	my $pid = $self->stash('pid');
-	my $payload = $self->req->json;
-	my $members = $payload->{members};
+
+	my $metadata = $self->param('metadata');
+	unless(defined($metadata)){
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
+		return;
+	}
+	$metadata = decode_json(b($metadata)->encode('UTF-8'));
+	unless(defined($metadata->{metadata})){
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
+		return;
+	}
+	$metadata = $metadata->{metadata};
+	unless(defined($metadata->{members})){
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'No members sent' }]} , status => 400) ;
+		return;
+	}
+	my $members = $metadata->{members};
 
     my $members_size = scalar @{$members};
     if($members_size eq 0){
@@ -81,8 +97,22 @@ sub remove_collection_members {
 	}
 
 	my $pid = $self->stash('pid');
-	my $payload = $self->req->json;
-	my $members = $payload->{members};
+	my $metadata = $self->param('metadata');
+	unless(defined($metadata)){
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
+		return;
+	}
+	$metadata = decode_json(b($metadata)->encode('UTF-8'));
+	unless(defined($metadata->{metadata})){
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
+		return;
+	}
+	$metadata = $metadata->{metadata};
+	unless(defined($metadata->{members})){
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'No members sent' }]} , status => 400) ;
+		return;
+	}
+	my $members = $metadata->{members};
 
     my $members_size = scalar @{$members};
     if($members_size eq 0){
@@ -97,31 +127,10 @@ sub remove_collection_members {
 	}
 	my $object_model = PhaidraAPI::Model::Object->new;
 	my $r = $object_model->purge_relationships($self, $pid, \@relationships, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+
+	# FIXME: remove from COLLECTIONORDER
+
 	$self->render(json => $r, status => $r->{status});
-
-}
-
-sub set_collection_members {
-
-	my $self = shift;
-
-	$self->render(json => { alerts => [{ type => 'danger', msg => 'Not implemented' }]} , status => 501) ;
-	return;
-
-	unless(defined($self->stash('pid'))){
-		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
-		return;
-	}
-
-	my $pid = $self->stash('pid');
-	my $payload = $self->req->json;
-	my $members = $payload->{members};
-
-    my $members_size = scalar @{$members};
-    if($members_size eq 0){
-    	$self->render(json => { alerts => [{ type => 'danger', msg => 'No members provided' }]} , status => 400) ;
-		return;
-    }
 
 }
 
@@ -134,7 +143,7 @@ sub get_collection_members {
 	my $coll_model = PhaidraAPI::Model::Collection->new;
 	my $res = $coll_model->get_members($self, $pid);
 
-	$self->render(json => { alerts => $res->{alerts}, members => $res->{members} }, status => $res->{status});
+	$self->render(json => { alerts => $res->{alerts}, metadata => { members => $res->{members} } }, status => $res->{status});
 }
 
 
@@ -149,8 +158,22 @@ sub order_collection_members {
 	}
 
 	my $pid = $self->stash('pid');
-	my $payload = $self->req->json;
-	my $members = $payload->{members};
+	my $metadata = $self->param('metadata');
+	unless(defined($metadata)){
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
+		return;
+	}
+	$metadata = decode_json(b($metadata)->encode('UTF-8'));
+	unless(defined($metadata->{metadata})){
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
+		return;
+	}
+	$metadata = $metadata->{metadata};
+	unless(defined($metadata->{members})){
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'No members sent' }]} , status => 400) ;
+		return;
+	}
+	my $members = $metadata->{members};
 
     my $members_size = scalar @{$members};
     if($members_size eq 0){
@@ -256,9 +279,23 @@ sub create {
 
 	my $self = shift;
 
-	my $payload = $self->req->json;
-	my $members = $payload->{members};
-	my $metadata = $payload->{metadata};
+	my $metadata = $self->param('metadata');
+	unless(defined($metadata)){
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
+		return;
+	}
+	$metadata = decode_json(b($metadata)->encode('UTF-8'));
+	unless(defined($metadata->{metadata})){
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
+		return;
+	}
+	$metadata = $metadata->{metadata};
+	unless(defined($metadata->{members})){
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'No members sent' }]} , status => 400) ;
+		return;
+	}
+	my $members = $metadata->{members};
+
 
 	my $coll_model = PhaidraAPI::Model::Collection->new;
 	my $r = $coll_model->create($self, $metadata, $members, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});

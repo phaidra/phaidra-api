@@ -5,6 +5,8 @@ use warnings;
 use v5.10;
 use Mojo::UserAgent;
 use Mojo::Util 'squish';
+use Mojo::ByteStream qw(b);
+use Mojo::JSON qw(encode_json decode_json);
 use base 'Mojolicious::Controller';
 use PhaidraAPI::Model::Uwmetadata;
 use PhaidraAPI::Model::Util;
@@ -39,7 +41,7 @@ sub get {
 	my $t1 = tv_interval($t0);
 	#$self->stash( msg => "backend load took $t1 s");
 
-    $self->render(json => { uwmetadata => $res->{uwmetadata}, languages => $lres->{languages}}, status => $res->{status}); #, alerts => [{ type => 'success', msg => $self->stash->{msg}}]});
+    $self->render(json => { metadata => { uwmetadata => $res->{uwmetadata} }, languages => $lres->{languages}}, status => $res->{status}); #, alerts => [{ type => 'success', msg => $self->stash->{msg}}]});
 }
 
 sub json2xml {
@@ -48,9 +50,17 @@ sub json2xml {
 	my $res = { alerts => [], status => 200 };
 
 	#my $t0 = [gettimeofday];
-
-	my $payload = $self->req->json;
-	my $metadata = $payload->{metadata};
+  my $metadata = $self->param('metadata');
+  unless(defined($metadata)){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
+    return;
+  }
+  $metadata = decode_json(b($metadata)->encode('UTF-8'));
+  unless(defined($metadata->{metadata})){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
+    return;
+  }
+  $metadata = $metadata->{metadata};
 
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
 	my $uwmetadataxml = $metadata_model->json_2_uwmetadata($self, $metadata->{uwmetadata});
@@ -58,7 +68,7 @@ sub json2xml {
 	#my $t1 = tv_interval($t0);
 	#$self->app->log->debug("json2xml took $t1 s");
 
-	$self->render(json => { alerts => $res->{alerts}, uwmetadata => $uwmetadataxml } , status => $res->{status});
+	$self->render(json => { alerts => $res->{alerts}, metadata => { uwmetadata => $uwmetadataxml } } , status => $res->{status});
 }
 
 sub xml2json {
@@ -74,7 +84,7 @@ sub xml2json {
 	#my $t1 = tv_interval($t0);
 	#$self->app->log->debug("xml2json took $t1 s");
 #$self->app->log->debug("XXXXXXXXXXX: ".$self->app->dumper($res));
-	$self->render(json => { uwmetadata => $res->{uwmetadata}, alerts => $res->{alerts}}  , status => $res->{status});
+	$self->render(json => { metadata => { uwmetadata => $res->{uwmetadata} }, alerts => $res->{alerts}}  , status => $res->{status});
 
 }
 
@@ -92,8 +102,17 @@ sub validate {
 sub json2xml_validate {
 	my $self = shift;
 
-	my $payload = $self->req->json;
-	my $metadata = $payload->{metadata};
+  my $metadata = $self->param('metadata');
+  unless(defined($metadata)){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
+    return;
+  }
+  $metadata = decode_json(b($metadata)->encode('UTF-8'));
+  unless(defined($metadata->{metadata})){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
+    return;
+  }
+  $metadata = $metadata->{metadata};
 
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
 	my $uwmetadataxml = $metadata_model->json_2_uwmetadata($self, $metadata->{uwmetadata});
@@ -110,8 +129,17 @@ sub post {
 
 	my $pid = $self->stash('pid');
 
-	my $payload = $self->req->json;
-	my $metadata = $payload->{metadata};
+  my $metadata = $self->param('metadata');
+  unless(defined($metadata)){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
+    return;
+  }
+  $metadata = decode_json(b($metadata)->encode('UTF-8'));
+  unless(defined($metadata->{metadata})){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
+    return;
+  }
+  $metadata = $metadata->{metadata};
 
 	unless(defined($pid)){
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;

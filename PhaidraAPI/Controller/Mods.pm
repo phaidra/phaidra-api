@@ -7,6 +7,8 @@ use Mojo::UserAgent;
 use base 'Mojolicious::Controller';
 use PhaidraAPI::Model::Mods;
 use PhaidraAPI::Model::Uwmetadata;
+use Mojo::ByteStream qw(b);
+use Mojo::JSON qw(encode_json decode_json);
 use Time::HiRes qw/tv_interval gettimeofday/;
 
 sub get {
@@ -36,7 +38,7 @@ sub get {
   #my $t1 = tv_interval($t0);
   #$self->stash( msg => "backend load took $t1 s");
 
-  $self->render(json => $res, status => $res->{status});
+  $self->render(json => { metadata => $res }, status => $res->{status});
 }
 
 
@@ -74,13 +76,22 @@ sub json2xml {
 
   my $res = { alerts => [], status => 200 };
 
-  my $payload = $self->req->json;
-  my $metadata = $payload->{metadata};
+  my $metadata = $self->param('metadata');
+  unless(defined($metadata)){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
+    return;
+  }
+  $metadata = decode_json(b($metadata)->encode('UTF-8'));
+  unless(defined($metadata->{metadata})){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
+    return;
+  }
+  $metadata = $metadata->{metadata};
 
   my $metadata_model = PhaidraAPI::Model::Mods->new;
   my $modsxml = $metadata_model->json_2_xml($self, $metadata->{mods});
 
-  $self->render(json => { alerts => $res->{alerts}, mods => $modsxml } , status => $res->{status});
+  $self->render(json => { alerts => $res->{alerts}, metadata => { mods => $modsxml } } , status => $res->{status});
 }
 
 sub xml2json {
@@ -92,7 +103,7 @@ sub xml2json {
   my $mods_model = PhaidraAPI::Model::Mods->new;
   my $res = $mods_model->xml_2_json($self, $xml, $mode);
 
-  $self->render(json => { mods => $res->{mods}, alerts => $res->{alerts}}  , status => $res->{status});
+  $self->render(json => { metadata => { mods => $res->{mods} }, alerts => $res->{alerts}}, status => $res->{status});
 }
 
 sub validate {
@@ -109,8 +120,17 @@ sub validate {
 sub json2xml_validate {
   my $self = shift;
 
-  my $payload = $self->req->json;
-  my $metadata = $payload->{metadata};
+  my $metadata = $self->param('metadata');
+  unless(defined($metadata)){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
+    return;
+  }
+  $metadata = decode_json(b($metadata)->encode('UTF-8'));
+  unless(defined($metadata->{metadata})){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
+    return;
+  }
+  $metadata = $metadata->{metadata};
 
   my $mods_model = PhaidraAPI::Model::Mods->new;
   my $modsxml = $mods_model->json_2_xml($self, $metadata->{mods});
@@ -128,8 +148,17 @@ sub post {
 
   my $pid = $self->stash('pid');
 
-  my $payload = $self->req->json;
-  my $metadata = $payload->{metadata};
+  my $metadata = $self->param('metadata');
+  unless(defined($metadata)){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
+    return;
+  }
+  $metadata = decode_json(b($metadata)->encode('UTF-8'));
+  unless(defined($metadata->{metadata})){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
+    return;
+  }
+  $metadata = $metadata->{metadata};
 
   unless(defined($pid)){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;

@@ -211,7 +211,7 @@ sub startup {
   $r->route('uwmetadata/validate')                ->via('post')   ->to('uwmetadata#validate');
   $r->route('uwmetadata/json2xml_validate')       ->via('post')   ->to('uwmetadata#json2xml_validate');
 
-  $r->route('mods/tree')                          ->via('get')    ->to('mods#tree');  
+  $r->route('mods/tree')                          ->via('get')    ->to('mods#tree');
   $r->route('mods/json2xml')                      ->via('post')   ->to('mods#json2xml');
   $r->route('mods/xml2json')                      ->via('post')   ->to('mods#xml2json');
   $r->route('mods/validate')                      ->via('post')   ->to('mods#validate');
@@ -270,7 +270,7 @@ sub startup {
   }
 
   unless($self->app->config->{readonly}){
-    $apiauth->route('object/:pid/modify')                               ->via('put')      ->to('object#modify');
+    $apiauth->route('object/:pid/modify')                               ->via('post')     ->to('object#modify');
     $apiauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');
     $apiauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');
     $apiauth->route('object/:pid/mods')                                 ->via('post')     ->to('mods#post');
@@ -279,19 +279,18 @@ sub startup {
     $apiauth->route('object/:pid/metadata')                             ->via('post')     ->to('object#metadata');
     $apiauth->route('object/create')                                    ->via('post')     ->to('object#create_empty');
     $apiauth->route('object/create/:cmodel')                            ->via('post')     ->to('object#create');
-    $apiauth->route('object/:pid/relationship')                         ->via('put')      ->to('object#add_relationship');
-    $apiauth->route('object/:pid/relationship')                         ->via('delete')   ->to('object#purge_relationship');
+    $apiauth->route('object/:pid/relationship/add')                     ->via('post')     ->to('object#add_relationship');
+    $apiauth->route('object/:pid/relationship/remove')                  ->via('post')     ->to('object#purge_relationship');
     $apiauth->route('object/:pid/datastream/:dsid')                     ->via('post')     ->to('object#add_or_modify_datastream');
-    $apiauth->route('object/:pid/data')                                 ->via('put')      ->to('object#add_octets');
+    $apiauth->route('object/:pid/data')                                 ->via('post')     ->to('object#add_octets');
     $apiauth->route('picture/create')                                   ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Picture');
     $apiauth->route('document/create')                                  ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:PDFDocument');
     $apiauth->route('video/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Video');
     $apiauth->route('audio/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Audio');
 
     $apiauth->route('collection/create')                                ->via('post')     ->to('collection#create');
-    $apiauth->route('collection/:pid/members')                          ->via('delete')   ->to('collection#remove_collection_members');
-    $apiauth->route('collection/:pid/members')                          ->via('post')     ->to('collection#add_collection_members');
-    $apiauth->route('collection/:pid/members')                          ->via('put')      ->to('collection#set_collection_members');
+    $apiauth->route('collection/:pid/members/remove')                   ->via('post')     ->to('collection#remove_collection_members');
+    $apiauth->route('collection/:pid/members/add')                      ->via('post')     ->to('collection#add_collection_members');
     $apiauth->route('collection/:pid/members/order')                    ->via('post')     ->to('collection#order_collection_members');
     $apiauth->route('collection/:pid/members/:itempid/order/:position') ->via('post')     ->to('collection#order_collection_member');
   }

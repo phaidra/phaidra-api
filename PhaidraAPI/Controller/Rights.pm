@@ -4,6 +4,8 @@ use strict;
 use warnings;
 use v5.10;
 use base 'Mojolicious::Controller';
+use Mojo::ByteStream qw(b);
+use Mojo::JSON qw(encode_json decode_json);
 use PhaidraAPI::Model::Rights;
 use Time::HiRes qw/tv_interval gettimeofday/;
 
@@ -12,13 +14,22 @@ sub json2xml {
 
   my $res = { alerts => [], status => 200 };
 
-  my $payload = $self->req->json;
-  my $metadata = $payload->{metadata};
+  my $metadata = $self->param('metadata');
+  unless(defined($metadata)){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
+    return;
+  }
+  $metadata = decode_json(b($metadata)->encode('UTF-8'));
+  unless(defined($metadata->{metadata})){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
+    return;
+  }
+  $metadata = $metadata->{metadata};
 
   my $metadata_model = PhaidraAPI::Model::Rights->new;
   my $rightsxml = $metadata_model->json_2_xml($self, $metadata->{rights});
 
-  $self->render(json => { alerts => $res->{alerts}, rights => $rightsxml } , status => $res->{status});
+  $self->render(json => { alerts => $res->{alerts}, metadata => { rights => $rightsxml } } , status => $res->{status});
 }
 
 sub xml2json {
@@ -30,7 +41,7 @@ sub xml2json {
   my $rights_model = PhaidraAPI::Model::Rights->new;
   my $res = $rights_model->xml_2_json($self, $xml, $mode);
 
-  $self->render(json => { rights => $res->{rights}, alerts => $res->{alerts}}  , status => $res->{status});
+  $self->render(json => { metadata => { rights => $res->{rights}, alerts => $res->{alerts} } } , status => $res->{status});
 
 }
 
@@ -48,8 +59,17 @@ sub validate {
 sub json2xml_validate {
   my $self = shift;
 
-  my $payload = $self->req->json;
-  my $metadata = $payload->{metadata};
+  my $metadata = $self->param('metadata');
+  unless(defined($metadata)){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
+    return;
+  }
+  $metadata = decode_json(b($metadata)->encode('UTF-8'));
+  unless(defined($metadata->{metadata})){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
+    return;
+  }
+  $metadata = $metadata->{metadata};
 
   my $rights_model = PhaidraAPI::Model::Rights->new;
   my $rightsxml = $rights_model->json_2_xml($self, $metadata->{rights});
@@ -58,7 +78,6 @@ sub json2xml_validate {
 
   $self->render(json => $res , status => $res->{status});
 }
-
 
 sub get {
   my $self = shift;
@@ -75,13 +94,13 @@ sub get {
   if($res->{status} ne 200){
     if($res->{status} eq 404){
       # no RIGHTS
-      $self->render(json => { alerts => $res->{alerts}, rights => {} }, status => $res->{status});
+      $self->render(json => { alerts => $res->{alerts}, metadata => { rights => {} } }, status => $res->{status});
     }
     $self->render(json => { alerts => $res->{alerts} }, status => $res->{status});
     return;
   }
 
-  $self->render(json => $res, status => $res->{status});
+  $self->render(json => { metadata => $res }, status => $res->{status});
 }
 
 sub post {
@@ -91,8 +110,17 @@ sub post {
 
   my $pid = $self->stash('pid');
 
-  my $payload = $self->req->json;
-  my $metadata = $payload->{metadata};
+  my $metadata = $self->param('metadata');
+  unless(defined($metadata)){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
+    return;
+  }
+  $metadata = decode_json(b($metadata)->encode('UTF-8'));
+  unless(defined($metadata->{metadata})){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
+    return;
+  }
+  $metadata = $metadata->{metadata};
 
   unless(defined($pid)){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;

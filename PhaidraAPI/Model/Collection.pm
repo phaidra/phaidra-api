@@ -18,6 +18,8 @@ sub order {
 
     my $res = { alerts => [], status => 200 };
 
+		# FIXME: check existence
+
     my $xml = "<co:collection_order xmlns:co=\"http://phaidra.univie.ac.at/XML/collection_order/V1.0\">";
 	foreach my $m (@{$members}){
 		$xml .= "<co:member pos=\"".$m->{'pos'}."\">".$m->{pid}."</co:member>"
