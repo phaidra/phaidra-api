@@ -19,6 +19,7 @@ sub json2xml {
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
     return;
   }
+  $metadata = $metadata->asset->slurp if ref $metadata eq 'Mojo::Upload';
   $metadata = decode_json(b($metadata)->encode('UTF-8'));
   unless(defined($metadata->{metadata})){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
@@ -64,6 +65,7 @@ sub json2xml_validate {
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
     return;
   }
+  $metadata = $metadata->asset->slurp if ref $metadata eq 'Mojo::Upload';
   $metadata = decode_json(b($metadata)->encode('UTF-8'));
   unless(defined($metadata->{metadata})){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
@@ -115,6 +117,7 @@ sub post {
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
     return;
   }
+  $metadata = $metadata->asset->slurp if ref $metadata eq 'Mojo::Upload'; 
   $metadata = decode_json(b($metadata)->encode('UTF-8'));
   unless(defined($metadata->{metadata})){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;

@@ -28,6 +28,7 @@ sub add_collection_members {
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
 		return;
 	}
+	$metadata = $metadata->asset->slurp if ref $metadata eq 'Mojo::Upload';
 	$metadata = decode_json(b($metadata)->encode('UTF-8'));
 	unless(defined($metadata->{metadata})){
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
@@ -102,6 +103,7 @@ sub remove_collection_members {
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
 		return;
 	}
+	$metadata = $metadata->asset->slurp if ref $metadata eq 'Mojo::Upload';
 	$metadata = decode_json(b($metadata)->encode('UTF-8'));
 	unless(defined($metadata->{metadata})){
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
@@ -163,6 +165,7 @@ sub order_collection_members {
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
 		return;
 	}
+	$metadata = $metadata->asset->slurp if ref $metadata eq 'Mojo::Upload';
 	$metadata = decode_json(b($metadata)->encode('UTF-8'));
 	unless(defined($metadata->{metadata})){
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
@@ -284,6 +287,7 @@ sub create {
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
 		return;
 	}
+	$metadata = $metadata->asset->slurp if ref $metadata eq 'Mojo::Upload'; 
 	$metadata = decode_json(b($metadata)->encode('UTF-8'));
 	unless(defined($metadata->{metadata})){
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;

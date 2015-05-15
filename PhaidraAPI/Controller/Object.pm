@@ -76,6 +76,7 @@ sub create_simple {
     }
 
 	my $metadata = $self->param('metadata');
+  $metadata = $metadata->asset->slurp if ref $metadata eq 'Mojo::Upload'; 
 
 	# http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
 	$metadata = decode_json(b($metadata)->encode('UTF-8'));
@@ -229,7 +230,7 @@ sub add_or_modify_datastream {
       $self->app->log->debug("Parameter dscontent is a file parameter file=[".$dscontent->filename."] size=[".$dscontent->size."]");
       $dscontent = $dscontent->asset->slurp;
     }else{
-      $self->app->log->debug("Parameter dscontent is a text parameter");
+      # $self->app->log->debug("Parameter dscontent is a text parameter");
     }
 	}
 
@@ -256,6 +257,7 @@ sub metadata {
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
     return;
   }
+  $metadata = $metadata->asset->slurp if ref $metadata eq 'Mojo::Upload';
   $metadata = decode_json(b($metadata)->encode('UTF-8'));
   unless(defined($metadata->{metadata})){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
