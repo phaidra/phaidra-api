@@ -38,6 +38,10 @@
 
 		"licenses_file":"/var/www/phaidra-api/public/licenses/licenses.json",
 
+    "languages_file":"/var/www/phaidra-api/public/languages/languages.json",
+
+
+
     "terms": {
     	"search_results_limit": 50
     },
