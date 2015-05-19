@@ -7,6 +7,8 @@ use Mojo::UserAgent;
 use base 'Mojolicious::Controller';
 use PhaidraAPI::Model::Mods;
 use PhaidraAPI::Model::Uwmetadata;
+use PhaidraAPI::Model::Languages;
+use PhaidraAPI::Model::Licenses;
 use Mojo::ByteStream qw(b);
 use Mojo::JSON qw(encode_json decode_json);
 use Time::HiRes qw/tv_interval gettimeofday/;

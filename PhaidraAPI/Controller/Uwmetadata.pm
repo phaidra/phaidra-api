@@ -10,6 +10,7 @@ use Mojo::JSON qw(encode_json decode_json);
 use base 'Mojolicious::Controller';
 use PhaidraAPI::Model::Uwmetadata;
 use PhaidraAPI::Model::Util;
+use PhaidraAPI::Model::Languages;
 use Time::HiRes qw/tv_interval gettimeofday/;
 
 sub get {
