@@ -33,7 +33,8 @@ sub get {
     return;
 	}
 
-  my $lres = $metadata_model->get_languages($self);
+  my $lang_model = PhaidraAPI::Model::Languages->new;
+  my $lres = $lang_model->get_languages($self);
   if($lres->{status} ne 200){
     $self->render(json => { alerts => $lres->{alerts} }, $lres->{status});
     return;
