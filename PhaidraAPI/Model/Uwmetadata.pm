@@ -1390,7 +1390,7 @@ sub json_2_uwmetadata_rec(){
 			){
 
 				# eg http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_21/6
-				if($child->{value} =~ m/($child->{xmlns})\/voc_(\d+)\/(\w+)/){
+				if($child->{value} =~ m/($child->{xmlns})\/voc_(\w+)\/(\w+)/){
 					$writer->characters($3);
 				}
 
