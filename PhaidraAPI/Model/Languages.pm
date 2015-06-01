@@ -38,7 +38,7 @@ sub get_languages {
 	  my $miss = 1;
     #$c->app->log->debug($c->app->dumper($cacheval));
 	  if($cacheval){
-	  	if(scalar @{$cacheval->{languages}} > 0){
+	  	if($cacheval->{languages}){
 	  		$miss = 0;
 	  		#$c->app->log->debug("[cache hit] $cachekey");
 	  	}
