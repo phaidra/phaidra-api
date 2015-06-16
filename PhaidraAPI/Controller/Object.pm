@@ -71,6 +71,7 @@ sub create_simple {
 	my $res = { alerts => [], status => 200 };
 
 	if($self->req->is_limit_exceeded){
+        $self->app->log->debug("Size limit exceeded. Current max_message_size:".$self->req->max_message_size);
     	$self->render(json => { alerts => [{ type => 'danger', msg => 'File is too big' }]}, status => 400);
 		return;
     }
@@ -166,7 +167,7 @@ sub add_octets {
 
 	unless(defined($self->param('mimetype'))){
       my $object_model = PhaidraAPI::Model::Object->new;
-      $mimetype = $object_model->get_mimetype($self, $upload->asset);
+      my $mimetype = $object_model->get_mimetype($self, $upload->asset);
       unshift @{$res->{alerts}}, { type => 'info', msg => "Undefined mimetype, using magic: $mimetype" };
   }
 

@@ -371,7 +371,7 @@ sub generate_dc_from_uwmetadata {
     push @{$res->{alerts}}, $a;
   }
   if($r1->{status} ne 200){
-    $res->status = $r1->{status};
+    $res->{status} = $r1->{status};
   }
 
   # OAI DC - unqualified
@@ -380,7 +380,7 @@ sub generate_dc_from_uwmetadata {
     push @{$res->{alerts}}, $a;
   }
   if($r2->{status} ne 200){
-    $res->status = $r2->{status};
+    $res->{status} = $r2->{status};
   }
 
   return $res;
@@ -677,7 +677,7 @@ sub _get_types {
       }
     }
   }
-  if(scalar @{$types} > 0){
+  if(defined($types) && scalar @{$types} > 0){
     return $types;
   }
 
@@ -922,6 +922,7 @@ sub _create_dc_from_hash {
   my $dc_xml = '<oai_dc:dc xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/">'."\n";
   foreach my $k (keys %{$dc})
   {
+    next unless $dc->{$k};
     foreach my $n (@{$dc->{$k}}){
 
       next unless (defined ($n->{value}));

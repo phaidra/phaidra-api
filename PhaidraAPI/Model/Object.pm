@@ -233,7 +233,7 @@ sub create_simple {
 	}
 
     # save metadata
-    $r = $self->save_metadata($c, $pid, $metadata->{metadata}, $username, $password);
+    $r = $self->save_metadata($c, $pid, $metadata->{metadata}, $username, $password, 1);
     if($r->{status} ne 200){
         $res->{status} = $r->{status};
 				foreach my $a (@{$r->{alerts}}){
@@ -265,6 +265,7 @@ sub save_metadata {
 	my $metadata = shift;
 	my $username = shift;
 	my $password = shift;
+	my $check_bib = shift;
 
 	my $res = { alerts => [], status => 200 };
 	$c->app->log->debug("Adding metadata");
@@ -346,7 +347,7 @@ sub save_metadata {
 		$res->{status} = 400;
 	}
 
-	unless($found_bib){
+	if(!$found_bib && $check_bib){
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'No bibliographical metadata provided' };
 		$res->{status} = 400;
 	}
