@@ -204,7 +204,7 @@ sub create_simple {
 	$res->{pid} = $pid;
 
    	# save data first, because these may be needed (dsinfo..) when saving metadata
-   	$c->app->log->debug("Saving octets: $name [$size B]");
+   	$c->app->log->debug("[$pid] Saving octets: $name [$size B]");
    	my %params;
     $params{controlGroup} = 'M';
     $params{dsLabel} = $name;
