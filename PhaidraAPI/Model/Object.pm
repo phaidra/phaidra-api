@@ -252,7 +252,10 @@ sub create_simple {
 		}
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error activating object'};
    		return $res;
-   	}
+   	}else{
+	$c->app->log->info("Object successfuly created pid[$pid] filename[$name] size[$size]");
+      }
+
 
    	return $res;
 }
