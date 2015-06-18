@@ -91,7 +91,7 @@ sub add_or_modify_datastream_hooks {
   my ($self, $c, $pid, $dsid, $dscontent, $username, $password) = @_;
 
   my $res = { alerts => [], status => 200 };
-
+return $res;
   switch ($dsid) {
 
     case "UWMETADATA"	{
