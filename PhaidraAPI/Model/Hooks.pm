@@ -435,6 +435,7 @@ sub map_uwmetadata_2_dc {
   my $infoeurepoaccess_p = $self->_get_infoeurepoaccess($c, $dom, $tree, $metadata_model, 'p');
   my $infoeurepoaccess_oai = $self->_get_infoeurepoaccess($c, $dom, $tree, $metadata_model, 'oai');
 
+  # FIXME 'description or additional data' have to go to dc:rights too
   my $licenses = $self->_get_licenses($c, $dom, $tree, $metadata_model);
 
   # FIXME GEO datastream to DCMI BOX
