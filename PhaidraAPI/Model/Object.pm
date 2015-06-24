@@ -10,6 +10,7 @@ use Phaidra::API;
 use PhaidraAPI::Model::Rights;
 use PhaidraAPI::Model::Geo;
 use PhaidraAPI::Model::Uwmetadata;
+use PhaidraAPI::Model::Mods;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Hooks;
 use Switch;
@@ -516,9 +517,9 @@ sub modify_datastream {
   $params{dsLocation} = $location if $location;
   #$params{altIDs}
   $params{dsLabel} = $label if $label;
-	if(defined($datastream_versionable{$dsid})){
-		$params{versionable} = $datastream_versionable{$dsid};
-	}
+#	if(defined($datastream_versionable{$dsid})){
+#		$params{versionable} = $datastream_versionable{$dsid};
+#	}
   #$params{versionable} = 1;
   $params{dsState} = 'A';
   #$params{formatURI}
@@ -528,6 +529,9 @@ sub modify_datastream {
   $params{logMessage} = 'PhaidraAPI object/modify_datastream';
   $params{force} = 0;
   #$params{ignoreContent}
+
+#$username = $c->app->{config}->{phaidra}->{adminusername};
+#$password = $c->app->{config}->{phaidra}->{adminpassword};
 
 	my $url = Mojo::URL->new;
 	$url->scheme('https');
