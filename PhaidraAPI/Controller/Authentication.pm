@@ -71,6 +71,24 @@ sub cors_preflight {
 	$self->render(text => '', status => 200) ;	
 }
 
+sub authenticate {
+
+	my $self = shift;
+
+	my $username = $self->stash->{basic_auth_credentials}->{username};
+	my $password = $self->stash->{basic_auth_credentials}->{password};
+
+	$self->directory->authenticate($self, $username, $password);
+    my $res = $self->stash('phaidra_auth_result');
+    unless(($res->{status} eq 200)){    
+    	$self->app->log->info("User $username not authenticated");	
+    	$self->render(json => { alerts => $res->{alerts}} , status => $res->{status}) ;
+    	return 0;    		
+    }    
+    $self->app->log->info("User $username successfuly authenticated");
+    return 1;
+}
+
 sub signin {
 	
 	my $self = shift;

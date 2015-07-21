@@ -259,15 +259,19 @@ sub startup {
   $r->route('object/:pid/rights')                 ->via('get')    ->to('rights#get');
   $r->route('object/:pid/geo')                    ->via('get')    ->to('geo#get');
 
+  # this just extracts the credentials - authentication will be done by fedora
 	my $apiauth = $r->under('/')->to('authentication#extract_credentials');
 
-	$apiauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
+  # we authenticate the user, because we are not going to call fedora
+  my $check_auth = $apiauth->under('/')->to('authentication#authenticate');
 
 	if($self->app->config->{allow_userdata_queries}){
-  	$apiauth->route('directory/user/:username/data')                    ->via('get')      ->to('directory#get_user_data');
-		$apiauth->route('directory/user/:username/name')                    ->via('get')      ->to('directory#get_user_name');
- 		$apiauth->route('directory/user/:username/email')                   ->via('get')      ->to('directory#get_user_email');
+  	$check_auth->route('directory/user/:username/data')                    ->via('get')      ->to('directory#get_user_data');
+		$check_auth->route('directory/user/:username/name')                    ->via('get')      ->to('directory#get_user_name');
+ 		$check_auth->route('directory/user/:username/email')                   ->via('get')      ->to('directory#get_user_email');
   }
+
+  $apiauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
 
   unless($self->app->config->{readonly}){
     $apiauth->route('object/:pid/modify')                               ->via('post')     ->to('object#modify');
