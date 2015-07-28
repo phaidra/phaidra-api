@@ -91,7 +91,7 @@ sub add_or_modify_datastream_hooks {
   my ($self, $c, $pid, $dsid, $dscontent, $username, $password) = @_;
 
   my $res = { alerts => [], status => 200 };
-return $res;
+
   switch ($dsid) {
 
     case "UWMETADATA"	{
@@ -122,7 +122,7 @@ sub generate_dc_from_mods {
   my $res = { alerts => [], status => 200 };
 
   my ($dc_p, $dc_oai) = $self->map_mods_2_dc($c, $pid, $cmodel, $dscontent, $metadata_model);
-=cut
+
   # Phaidra DC
   my $r1 = $object_model->add_or_modify_datastream($c, $pid, "DC_P", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", $username, $password, 1);
   foreach my $a (@{$r1->{alerts}}){
@@ -140,7 +140,6 @@ sub generate_dc_from_mods {
   if($r2->{status} ne 200){
     $res->status = $r2->{status};
   }
-=cut
 
   return $res;
 }
