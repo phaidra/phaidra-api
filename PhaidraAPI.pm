@@ -51,7 +51,6 @@ $ENV{MOJO_HEARTBEAT_TIMEOUT} = 600;
 # This method will run once at server start
 sub startup {
     my $self = shift;
-
     my $config = $self->plugin( 'JSONConfig' => { file => 'PhaidraAPI.json' } );
 	$self->config($config);
 	$self->mode($config->{mode});
@@ -258,10 +257,17 @@ sub startup {
 	$r->route('collection/:pid/members')            ->via('get')    ->to('collection#get_collection_members');
 	# does not show inactive objects, not specific to collection (but does ordering)
   $r->route('object/:pid/related')                ->via('get')    ->to('search#related');
+
+  # we will get this datastreams by using intcall credentials
+  # (instead of defining a API-A disseminator for each of them)
   $r->route('object/:pid/uwmetadata')             ->via('get')    ->to('uwmetadata#get');
   $r->route('object/:pid/mods')                   ->via('get')    ->to('mods#get');
   $r->route('object/:pid/rights')                 ->via('get')    ->to('rights#get');
   $r->route('object/:pid/geo')                    ->via('get')    ->to('geo#get');
+  # these two are XML  
+  $r->route('object/:pid/dc')                     ->via('get')    ->to('dc#get_dc');
+  $r->route('object/:pid/oai_dc')                 ->via('get')    ->to('dc#get_oai_dc');
+
 
   # this just extracts the credentials - authentication will be done by fedora
 	my $apiauth = $r->under('/')->to('authentication#extract_credentials');
@@ -278,6 +284,9 @@ sub startup {
   $apiauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
 
   unless($self->app->config->{readonly}){
+
+    $apiauth->route('object/:pid/octets')                               ->via('get')      ->to('octets#get');
+
     $apiauth->route('object/:pid/modify')                               ->via('post')     ->to('object#modify');
     $apiauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');
     $apiauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');

@@ -437,6 +437,57 @@ sub get_datastream {
 	return $res;
 }
 
+sub proxy_datastream {
+  	my $self = shift;
+	my $c = shift;
+	my $pid = shift;
+	my $dsid = shift;
+	my $username = shift;
+	my $password = shift;
+	my $intcallauth = shift;
+
+	my $res = { alerts => [], status => 200 };
+
+	my $url = Mojo::URL->new;
+	$url->scheme('https');
+
+	if($intcallauth){
+		$url->userinfo($c->app->config->{phaidra}->{intcallusername}.':'.$c->app->config->{phaidra}->{intcallpassword});
+	}else{
+		$url->userinfo("$username:$password");
+	}
+
+  	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
+  	$url->path("/fedora/objects/$pid/datastreams/$dsid/content");
+
+  	if (Mojo::IOLoop->is_running) {
+	    $c->render_later;
+	    $c->ua->get(
+	      $url,
+	      sub {
+	        my ($self, $tx) = @_;
+	        _proxy_tx($c, $tx);
+	      }
+	    );
+  	}else {
+    	my $tx = $c->ua->get($url);
+    	_proxy_tx($c, $tx);
+  	}
+}
+
+sub _proxy_tx {
+  my ($c, $tx) = @_;
+  if (my $res = $tx->success) {
+    $c->tx->res($res);
+    $c->rendered;
+  }
+  else {
+    my $error = $tx->error;
+    $c->tx->res->headers->add('X-Remote-Status', $error->{code} . ': ' . $error->{message});
+    $c->render(status => 500, text => 'Failed to fetch data from Fedora');
+  }
+}
+
 sub add_datastream {
 
 	my $self = shift;
