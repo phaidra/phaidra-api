@@ -19,11 +19,19 @@ sub get {
 	my $t0 = [gettimeofday];
 
 	my $pid = $self->stash('pid');
+  my $format = $self->param('format');
 
 	unless(defined($pid)){
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
 		return;
 	}
+
+  if($format eq 'xml'){
+    my $object_model = PhaidraAPI::Model::Object->new;  
+    # return XML directly
+    $object_model->proxy_datastream($self, $pid, 'UWMETADATA', undef, undef, 1);
+    return;
+  }
 
 	# get metadata datastructure
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;

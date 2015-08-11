@@ -20,9 +20,17 @@ sub get {
 
   my $pid = $self->stash('pid');
   my $mode = $self->param('mode');
+  my $format = $self->param('format');
 
   unless(defined($pid)){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
+    return;
+  }
+
+  if($format eq 'xml'){
+    my $object_model = PhaidraAPI::Model::Object->new;  
+    # return XML directly
+    $object_model->proxy_datastream($self, $pid, 'MODS', undef, undef, 1);
     return;
   }
 

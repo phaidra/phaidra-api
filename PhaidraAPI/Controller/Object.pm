@@ -66,7 +66,6 @@ sub create_empty {
 sub create_simple {
 
 	my $self = shift;
-	my $cmodel = shift;
 
 	my $res = { alerts => [], status => 200 };
 

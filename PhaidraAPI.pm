@@ -265,8 +265,8 @@ sub startup {
   $r->route('object/:pid/rights')                 ->via('get')    ->to('rights#get');
   $r->route('object/:pid/geo')                    ->via('get')    ->to('geo#get');
   # these two are XML  
-  $r->route('object/:pid/dc')                     ->via('get')    ->to('dc#get_dc');
-  $r->route('object/:pid/oai_dc')                 ->via('get')    ->to('dc#get_oai_dc');
+  $r->route('object/:pid/dc')                     ->via('get')    ->to('dc#get', dsid => 'DC_P');
+  $r->route('object/:pid/oai_dc')                 ->via('get')    ->to('dc#get', dsid => 'DC_OAI');
 
 
   # this just extracts the credentials - authentication will be done by fedora
