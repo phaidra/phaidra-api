@@ -279,6 +279,7 @@ sub startup {
   	$check_auth->route('directory/user/:username/data')                    ->via('get')      ->to('directory#get_user_data');
 		$check_auth->route('directory/user/:username/name')                    ->via('get')      ->to('directory#get_user_name');
  		$check_auth->route('directory/user/:username/email')                   ->via('get')      ->to('directory#get_user_email');
+    $check_auth->route('directory/user/search')                            ->via('get')      ->to('directory#search_user');
   }
 
   $apiauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');

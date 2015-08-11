@@ -75,4 +75,15 @@ sub get_user_data {
     $self->render(json => { user_data => $user_data }, status => 200 );
 }
 
+sub search_user {
+    my $self = shift;  	
+
+	my $q = $self->param('q');
+
+	my ($r, $hits) = $self->app->directory->search_user($self, $q);
+	
+    $self->render(json => { accounts => $r, hits => $hits }, status => 200 );
+}
+
+
 1;
