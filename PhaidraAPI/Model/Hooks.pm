@@ -18,14 +18,16 @@ sub add_or_modify_datastream_hooks {
 
     case "UWMETADATA"	{      
       my $dc_model = PhaidraAPI::Model::Dc->new;      
-      $dc_model->generate_dc_from_uwmetadata($c, $pid, $dscontent, $username, $password);
+      $res = $dc_model->generate_dc_from_uwmetadata($c, $pid, $dscontent, $username, $password);
     }
 
     case "MODS" {          
       my $dc_model = PhaidraAPI::Model::Dc->new;      
-      $dc_model->generate_dc_from_mods($c, $pid, $dscontent, $username, $password);
+      $res = $dc_model->generate_dc_from_mods($c, $pid, $dscontent, $username, $password);
     }
   }
+
+  return $res;
 }
 
 

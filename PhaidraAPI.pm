@@ -286,6 +286,9 @@ sub startup {
 
   unless($self->app->config->{readonly}){
 
+    $check_auth->route('utils/:pid/update_dc')                          ->via('get')      ->to('utils#update_dc');
+    $check_auth->route('utils/update_dc')                               ->via('post')     ->to('utils#update_dc');
+
     $apiauth->route('object/:pid/octets')                               ->via('get')      ->to('octets#get');
 
     $apiauth->route('object/:pid/modify')                               ->via('post')     ->to('object#modify');

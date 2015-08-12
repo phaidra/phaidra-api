@@ -664,7 +664,12 @@ sub add_or_modify_datastream {
 	}
 
 	my $hooks_model = PhaidraAPI::Model::Hooks->new;
-	$hooks_model->add_or_modify_datastream_hooks($c, $pid, $dsid, $dscontent, $username, $password);
+	my $hr = $hooks_model->add_or_modify_datastream_hooks($c, $pid, $dsid, $dscontent, $username, $password);
+	push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
+	$res->{status} = $hr->{status};
+	if($hr->{status} ne 200){
+		return $res;
+	}
 
 	return $res
 }

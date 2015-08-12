@@ -77,7 +77,7 @@ sub authenticate {
 
 	my $username = $self->stash->{basic_auth_credentials}->{username};
 	my $password = $self->stash->{basic_auth_credentials}->{password};
-
+	
 	$self->directory->authenticate($self, $username, $password);
     my $res = $self->stash('phaidra_auth_result');
     unless(($res->{status} eq 200)){    
