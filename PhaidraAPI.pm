@@ -241,6 +241,8 @@ sub startup {
 	$r->route('search/triples')                     ->via('get')    ->to('search#triples');
 	$r->route('search')                             ->via('get')    ->to('search#search');
 
+  $r->route('utils/get_all_pids')                 ->via('get')    ->to('utils#get_all_pids');
+
 	$r->route('terms/label')                   		  ->via('get')    ->to('terms#label');
 	$r->route('terms/children')                	    ->via('get')    ->to('terms#children');
 	$r->route('terms/search')                       ->via('get')    ->to('terms#search');

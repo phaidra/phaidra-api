@@ -984,9 +984,9 @@ sub _create_dc_from_hash {
   my $dc_xml = '<oai_dc:dc xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/">'."\n";
   foreach my $k (keys %{$dc})
   {
-    next unless $dc->{$k};
+    next unless $dc->{$k};    
     foreach my $n (@{$dc->{$k}}){
-
+      next if ($n eq '');      
       next unless (defined ($n->{value}));
 
       $dc_xml .= '   <dc:' . $k;

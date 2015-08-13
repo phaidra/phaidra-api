@@ -488,6 +488,33 @@ sub datastream_exists {
 	return $res;
 }
 
+sub get_state {	
+	my $self = shift;
+	my $c = shift;
+	my $pid = shift;
+
+	my $res = { alerts => [], status => 200 };
+
+	my $sr = $self->triples($c, "<info:fedora/$pid> <info:fedora/fedora-system:def/model#state> *");
+	push @{$res->{alerts}}, $sr->{alerts} if scalar @{$sr->{alerts}} > 0;
+	$res->{status} = $sr->{status};
+	if($sr->{status} ne 200){
+		return $res;
+	}
+
+	foreach my $statement (@{$sr->{result}}){
+		if(@{$statement}[2] =~ m/info:fedora\/fedora-system:def\/model#(\w+)/){
+			$res->{state} = $1;
+			return $res;
+		}
+	}
+
+	unshift @{$res->{alerts}}, { type => 'danger', msg => "Cannot determine status"};
+	$res->{status} = 500;
+	return $res;
+
+}
+
 sub datastreams_hash {
 	my $self = shift;
 	my $c = shift;

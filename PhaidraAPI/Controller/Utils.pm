@@ -9,6 +9,39 @@ use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Dc;
 use PhaidraAPI::Model::Search;
 
+sub get_all_pids {
+
+  my $self = shift;  
+
+  my $search_model = PhaidraAPI::Model::Search->new;
+  my $sr = $search_model->triples($self, "* <http://purl.org/dc/elements/1.1/identifier> *");
+  if($sr->{status} ne 200){
+    return $sr;
+  }
+
+  my @pids;
+  foreach my $statement (@{$sr->{result}}){
+
+    # get only o:N pids (there are also bdef etc..)
+    next unless(@{$statement}[0] =~ m/(o:\d+)/);
+
+    @{$statement}[2] =~ m/^\<info:fedora\/([a-zA-Z\-]+:[0-9]+)\>$/g;
+    my $pid = $1;
+    $pid =~ m/^[a-zA-Z\-]+:([0-9]+)$/g;
+    my $pidnum = $1;
+    push @pids, { pid => $pid, pos => $pidnum };
+  }
+
+  @pids = sort { $a->{pos} <=> $b->{pos} } @pids;
+  my @resarr;
+  for my $p (@pids){
+    push @resarr, $p->{pid};
+  }
+
+  $self->render(json => { pids => \@resarr }, status => 200);
+
+}
+
 sub update_dc {
 
   my $self = shift;
@@ -55,6 +88,17 @@ sub update_dc {
   for my $pid (@pidsarr){
     $i++;
     $self->app->log->info("Processing $pid [$i/$pidscount]");
+
+    # check if it's active
+    my $r = $search_model->get_state($self, $pid);
+    if($r->{status} ne 200){
+      push @res, { pid => $pid, res => $r };
+      next;
+    }
+    unless($r->{state} eq 'Active'){
+      $self->app->log->warn("Object $pid is ".$r->{state}.", skipping");
+      next;
+    }
 
     my $r = $search_model->datastreams_hash($self, $pid);
     if($r->{status} ne 200){
