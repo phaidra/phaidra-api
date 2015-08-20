@@ -20,6 +20,7 @@ sub get {
 
   my $pid = $self->stash('pid');
   my $mode = $self->param('mode');
+  my $vocs = $self->param('vocs');
   my $format = $self->param('format');
 
   unless(defined($pid)){
@@ -45,10 +46,24 @@ sub get {
     return;
   }
 
-  #my $t1 = tv_interval($t0);
-  #$self->stash( msg => "backend load took $t1 s");
+  if($vocs){
+    my $lang_model = PhaidraAPI::Model::Languages->new;
+    my $lres = $lang_model->get_languages($self);
+    if($lres->{status} ne 200){
+      $self->render(json => { alerts => $lres->{alerts} }, $lres->{status});
+      return;
+    }
+    
+    my $vres = $mods_model->metadata_tree($self);
+    if($vres->{status} ne 200){
+      $self->render(json => { alerts => $vres->{alerts} }, $vres->{status});
+      return;
+    }
 
-  $self->render(json => { metadata => $res }, status => $res->{status});
+    $self->render(json => { metadata => $res, languages => $lres->{languages}, vocabularies => $vres->{vocabularies}, vocabularies_mapping => $vres->{vocabularies_mapping} }, status => $res->{status});
+  }else{
+    $self->render(json => { metadata => $res }, status => $res->{status});
+  }
 }
 
 
