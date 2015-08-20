@@ -60,7 +60,7 @@ sub get {
       return;
     }
 
-    $self->render(json => { metadata => $res, languages => $lres->{languages}, vocabularies => $vres->{vocabularies}, vocabularies_mapping => $vres->{vocabularies_mapping} }, status => $res->{status});
+    $self->render(json => { metadata => { mods => $res->{mods}, languages => $lres->{languages}, vocabularies => $vres->{vocabularies}, vocabularies_mapping => $vres->{vocabularies_mapping} } }, status => $res->{status});
   }else{
     $self->render(json => { metadata => $res }, status => $res->{status});
   }
