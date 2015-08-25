@@ -111,7 +111,11 @@ sub xml_2_json {
             push @crds_arr, { longitude => $long, latitude => $lat };
           }
           $placemark->{polygon} = {
-            coordinates => \@crds_arr
+            outerboundaryis => {
+              linearring => {
+                coordinates => \@crds_arr
+              }
+            }
           };
         }
       }

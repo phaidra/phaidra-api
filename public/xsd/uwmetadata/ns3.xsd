@@ -2,13 +2,110 @@
 <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns="http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity" targetNamespace="http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"  elementFormDefault="qualified">
 
 
-					<xs:element name="firstname" type="CharacterString" />
-					<xs:element name="lastname" type="CharacterString" />
-					<xs:element name="institution" type="CharacterString" />
-					<xs:element name="title1" type="CharacterString" />
-					<xs:element name="title2" type="CharacterString" />
-					<xs:element name="type" type="CharacterString" />
-					<xs:element name="student_id" type="CharacterString" />
+					<xs:element name="firstname">
+						<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="CharacterString">
+							</xs:extension>
+						</xs:simpleContent>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="lastname">
+						<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="CharacterString">
+							</xs:extension>
+						</xs:simpleContent>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="institution">
+						<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="CharacterString">
+							</xs:extension>
+						</xs:simpleContent>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="title1">
+						<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="CharacterString">
+							</xs:extension>
+						</xs:simpleContent>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="title2">
+						<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="CharacterString">
+							</xs:extension>
+						</xs:simpleContent>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="type">
+						<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="CharacterString">
+							</xs:extension>
+						</xs:simpleContent>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="student_id">
+						<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="CharacterString">
+							</xs:extension>
+						</xs:simpleContent>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="orcid">
+						<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="CharacterString">
+							</xs:extension>
+						</xs:simpleContent>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="viaf">
+						<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="CharacterString">
+							</xs:extension>
+						</xs:simpleContent>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="wdq">
+						<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="CharacterString">
+							</xs:extension>
+						</xs:simpleContent>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="gnd">
+						<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="CharacterString">
+							</xs:extension>
+						</xs:simpleContent>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="lcnaf">
+						<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="CharacterString">
+							</xs:extension>
+						</xs:simpleContent>
+						</xs:complexType>
+					</xs:element>
+					<xs:element name="isni">
+						<xs:complexType>
+						<xs:simpleContent>
+							<xs:extension base="CharacterString">
+							</xs:extension>
+						</xs:simpleContent>
+						</xs:complexType>
+					</xs:element>
 
 
 <!--UWMETADATA LANGUAGES -->
@@ -227,6 +324,7 @@
 			<xs:enumeration value="13" />
 			<xs:enumeration value="14" />
 			<xs:enumeration value="15" />
+			<xs:enumeration value="16" />
 	</xs:restriction>
 </xs:simpleType>
 
@@ -244,6 +342,8 @@
 			<xs:enumeration value="1552151" />
 			<xs:enumeration value="1552255" />
 			<xs:enumeration value="1552256" />
+			<xs:enumeration value="1561316" />
+			<xs:enumeration value="1561531" />
 	</xs:restriction>
 </xs:simpleType>
 
@@ -473,6 +573,12 @@
 			<xs:enumeration value="13" />
 			<xs:enumeration value="14" />
 			<xs:enumeration value="15" />
+			<xs:enumeration value="16" />
+			<xs:enumeration value="17" />
+			<xs:enumeration value="18" />
+			<xs:enumeration value="19" />
+			<xs:enumeration value="20" />
+			<xs:enumeration value="21" />
 	</xs:restriction>
 </xs:simpleType>
 

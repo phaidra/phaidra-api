@@ -129,6 +129,12 @@
 					<xs:element ref="ns3:title2"  minOccurs="0" maxOccurs="1" />
 					<xs:element ref="ns3:type"  minOccurs="0" maxOccurs="1" />
 					<xs:element ref="ns3:student_id"  minOccurs="0" maxOccurs="1" />
+					<xs:element ref="ns3:orcid"  minOccurs="0" maxOccurs="1" />
+					<xs:element ref="ns3:viaf"  minOccurs="0" maxOccurs="1" />
+					<xs:element ref="ns3:wdq"  minOccurs="0" maxOccurs="1" />
+					<xs:element ref="ns3:gnd"  minOccurs="0" maxOccurs="1" />
+					<xs:element ref="ns3:lcnaf"  minOccurs="0" maxOccurs="1" />
+					<xs:element ref="ns3:isni"  minOccurs="0" maxOccurs="1" />
 				</xs:sequence>
 				<xs:attribute name="seq" type="xs:int" />
 				</xs:complexType>
@@ -503,6 +509,7 @@
 			<xs:enumeration value="13" />
 			<xs:enumeration value="14" />
 			<xs:enumeration value="15" />
+			<xs:enumeration value="16" />
 	</xs:restriction>
 </xs:simpleType>
 
@@ -520,6 +527,8 @@
 			<xs:enumeration value="1552151" />
 			<xs:enumeration value="1552255" />
 			<xs:enumeration value="1552256" />
+			<xs:enumeration value="1561316" />
+			<xs:enumeration value="1561531" />
 	</xs:restriction>
 </xs:simpleType>
 
@@ -749,6 +758,12 @@
 			<xs:enumeration value="13" />
 			<xs:enumeration value="14" />
 			<xs:enumeration value="15" />
+			<xs:enumeration value="16" />
+			<xs:enumeration value="17" />
+			<xs:enumeration value="18" />
+			<xs:enumeration value="19" />
+			<xs:enumeration value="20" />
+			<xs:enumeration value="21" />
 	</xs:restriction>
 </xs:simpleType>
 

@@ -19,11 +19,19 @@ sub get {
 	my $t0 = [gettimeofday];
 
 	my $pid = $self->stash('pid');
+  my $format = $self->param('format');
 
 	unless(defined($pid)){
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
 		return;
 	}
+
+  if($format eq 'xml'){
+    my $object_model = PhaidraAPI::Model::Object->new;  
+    # return XML directly
+    $object_model->proxy_datastream($self, $pid, 'UWMETADATA', undef, undef, 1);
+    return;
+  }
 
 	# get metadata datastructure
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
@@ -57,8 +65,16 @@ sub json2xml {
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
     return;
   }
-  $metadata = $metadata->asset->slurp if ref $metadata eq 'Mojo::Upload';
-  $metadata = decode_json(b($metadata)->encode('UTF-8'));
+
+  if(ref $metadata eq 'Mojo::Upload'){
+    $self->app->log->debug("Metadata sent as file param");
+    $metadata = $metadata->asset->slurp;
+    $metadata = decode_json($metadata);
+  }else{
+    # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
+    $metadata = decode_json(b($metadata)->encode('UTF-8'));
+  }
+
   unless(defined($metadata->{metadata})){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
     return;
@@ -110,8 +126,16 @@ sub json2xml_validate {
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
     return;
   }
-  $metadata = $metadata->asset->slurp if ref $metadata eq 'Mojo::Upload';
-  $metadata = decode_json(b($metadata)->encode('UTF-8'));
+
+  if(ref $metadata eq 'Mojo::Upload'){
+    $self->app->log->debug("Metadata sent as file param");
+    $metadata = $metadata->asset->slurp;
+    $metadata = decode_json($metadata);
+  }else{
+    # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
+    $metadata = decode_json(b($metadata)->encode('UTF-8'));
+  }
+
   unless(defined($metadata->{metadata})){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
     return;
@@ -138,8 +162,16 @@ sub post {
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
     return;
   }
-  $metadata = $metadata->asset->slurp if ref $metadata eq 'Mojo::Upload'; 
-  $metadata = decode_json(b($metadata)->encode('UTF-8'));
+
+  if(ref $metadata eq 'Mojo::Upload'){
+     $self->app->log->debug("Metadata sent as file param");
+     $metadata = $metadata->asset->slurp;
+     $metadata = decode_json($metadata);
+  }else{
+     # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
+     $metadata = decode_json(b($metadata)->encode('UTF-8'));
+  }
+
   unless(defined($metadata->{metadata})){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
     return;

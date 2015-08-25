@@ -305,6 +305,7 @@
 			<xs:enumeration value="13" />
 			<xs:enumeration value="14" />
 			<xs:enumeration value="15" />
+			<xs:enumeration value="16" />
 	</xs:restriction>
 </xs:simpleType>
 
@@ -322,6 +323,8 @@
 			<xs:enumeration value="1552151" />
 			<xs:enumeration value="1552255" />
 			<xs:enumeration value="1552256" />
+			<xs:enumeration value="1561316" />
+			<xs:enumeration value="1561531" />
 	</xs:restriction>
 </xs:simpleType>
 
@@ -551,6 +554,12 @@
 			<xs:enumeration value="13" />
 			<xs:enumeration value="14" />
 			<xs:enumeration value="15" />
+			<xs:enumeration value="16" />
+			<xs:enumeration value="17" />
+			<xs:enumeration value="18" />
+			<xs:enumeration value="19" />
+			<xs:enumeration value="20" />
+			<xs:enumeration value="21" />
 	</xs:restriction>
 </xs:simpleType>
 

@@ -66,21 +66,24 @@ sub create_empty {
 sub create_simple {
 
 	my $self = shift;
-	my $cmodel = shift;
 
 	my $res = { alerts => [], status => 200 };
 
 	if($self->req->is_limit_exceeded){
+        $self->app->log->debug("Size limit exceeded. Current max_message_size:".$self->req->max_message_size);
     	$self->render(json => { alerts => [{ type => 'danger', msg => 'File is too big' }]}, status => 400);
 		return;
     }
 
 	my $metadata = $self->param('metadata');
-  $metadata = $metadata->asset->slurp if ref $metadata eq 'Mojo::Upload'; 
-
-	# http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
-	$metadata = decode_json(b($metadata)->encode('UTF-8'));
-
+        if(ref $metadata eq 'Mojo::Upload'){
+	  $self->app->log->debug("Metadata sent as file param");
+	  $metadata = $metadata->asset->slurp;
+          $metadata = decode_json($metadata);
+	}else{  
+	  # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
+	  $metadata = decode_json(b($metadata)->encode('UTF-8'));
+	}
 	my $mimetype = $self->param('mimetype');
 	my $upload = $self->req->upload('file');
 
@@ -169,7 +172,7 @@ sub add_octets {
       $mimetype = $self->param('mimetype');
   }else{
       my $object_model = PhaidraAPI::Model::Object->new;
-      $mimetype = $object_model->get_mimetype($self, $upload->asset);
+      my $mimetype = $object_model->get_mimetype($self, $upload->asset);
       unshift @{$res->{alerts}}, { type => 'info', msg => "Undefined mimetype, using magic: $mimetype" };
   }
 
@@ -261,8 +264,16 @@ sub metadata {
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
     return;
   }
-  $metadata = $metadata->asset->slurp if ref $metadata eq 'Mojo::Upload';
-  $metadata = decode_json(b($metadata)->encode('UTF-8'));
+
+  if(ref $metadata eq 'Mojo::Upload'){
+    $self->app->log->debug("Metadata sent as file param");
+    $metadata = $metadata->asset->slurp;
+    $metadata = decode_json($metadata);
+  }else{
+    # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
+    $metadata = decode_json(b($metadata)->encode('UTF-8'));
+  }
+
   unless(defined($metadata->{metadata})){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
     return;

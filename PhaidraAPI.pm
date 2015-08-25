@@ -44,10 +44,13 @@ BEGIN
 use PhaidraAPI::Model::Session::Transport::Header;
 use PhaidraAPI::Model::Session::Store::Mongo;
 
+$ENV{MOJO_MAX_MESSAGE_SIZE} = 1073741824;
+$ENV{MOJO_INACTIVITY_TIMEOUT} = 600;
+$ENV{MOJO_HEARTBEAT_TIMEOUT} = 600;
+
 # This method will run once at server start
 sub startup {
     my $self = shift;
-
     my $config = $self->plugin( 'JSONConfig' => { file => 'PhaidraAPI.json' } );
 	$self->config($config);
 	$self->mode($config->{mode});
@@ -238,6 +241,8 @@ sub startup {
 	$r->route('search/triples')                     ->via('get')    ->to('search#triples');
 	$r->route('search')                             ->via('get')    ->to('search#search');
 
+  $r->route('utils/get_all_pids')                 ->via('get')    ->to('utils#get_all_pids');
+
 	$r->route('terms/label')                   		  ->via('get')    ->to('terms#label');
 	$r->route('terms/children')                	    ->via('get')    ->to('terms#children');
 	$r->route('terms/search')                       ->via('get')    ->to('terms#search');
@@ -254,22 +259,40 @@ sub startup {
 	$r->route('collection/:pid/members')            ->via('get')    ->to('collection#get_collection_members');
 	# does not show inactive objects, not specific to collection (but does ordering)
   $r->route('object/:pid/related')                ->via('get')    ->to('search#related');
+
+  # we will get this datastreams by using intcall credentials
+  # (instead of defining a API-A disseminator for each of them)
   $r->route('object/:pid/uwmetadata')             ->via('get')    ->to('uwmetadata#get');
   $r->route('object/:pid/mods')                   ->via('get')    ->to('mods#get');
   $r->route('object/:pid/rights')                 ->via('get')    ->to('rights#get');
   $r->route('object/:pid/geo')                    ->via('get')    ->to('geo#get');
+  # these two are XML  
+  $r->route('object/:pid/dc')                     ->via('get')    ->to('dc#get', dsid => 'DC_P');
+  $r->route('object/:pid/oai_dc')                 ->via('get')    ->to('dc#get', dsid => 'DC_OAI');
 
+
+  # this just extracts the credentials - authentication will be done by fedora
 	my $apiauth = $r->under('/')->to('authentication#extract_credentials');
 
-	$apiauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
+  # we authenticate the user, because we are not going to call fedora
+  my $check_auth = $apiauth->under('/')->to('authentication#authenticate');
 
 	if($self->app->config->{allow_userdata_queries}){
-  	$apiauth->route('directory/user/:username/data')                    ->via('get')      ->to('directory#get_user_data');
-		$apiauth->route('directory/user/:username/name')                    ->via('get')      ->to('directory#get_user_name');
- 		$apiauth->route('directory/user/:username/email')                   ->via('get')      ->to('directory#get_user_email');
+  	$check_auth->route('directory/user/:username/data')                    ->via('get')      ->to('directory#get_user_data');
+		$check_auth->route('directory/user/:username/name')                    ->via('get')      ->to('directory#get_user_name');
+ 		$check_auth->route('directory/user/:username/email')                   ->via('get')      ->to('directory#get_user_email');
+    $check_auth->route('directory/user/search')                            ->via('get')      ->to('directory#search_user');
   }
 
+  $apiauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
+
   unless($self->app->config->{readonly}){
+
+    $check_auth->route('utils/:pid/update_dc')                          ->via('get')      ->to('utils#update_dc');
+    $check_auth->route('utils/update_dc')                               ->via('post')     ->to('utils#update_dc');
+
+    $apiauth->route('object/:pid/octets')                               ->via('get')      ->to('octets#get');
+
     $apiauth->route('object/:pid/modify')                               ->via('post')     ->to('object#modify');
     $apiauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');
     $apiauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');

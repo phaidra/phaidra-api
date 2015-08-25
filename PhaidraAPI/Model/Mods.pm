@@ -327,7 +327,7 @@ sub save_to_object(){
   # FIXME:
   # HACK: using admin account
   my $object_model = PhaidraAPI::Model::Object->new;
-  return $object_model->add_or_modify_datastream($c, $pid, "MODS", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $mods, "X", $username, $password, 1);
+  return $object_model->add_or_modify_datastream($c, $pid, "MODS", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $mods, "X", $username, $password);
 
 }
 

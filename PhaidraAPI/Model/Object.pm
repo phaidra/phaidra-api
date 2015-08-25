@@ -10,6 +10,7 @@ use Phaidra::API;
 use PhaidraAPI::Model::Rights;
 use PhaidraAPI::Model::Geo;
 use PhaidraAPI::Model::Uwmetadata;
+use PhaidraAPI::Model::Mods;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Hooks;
 use Switch;
@@ -202,7 +203,7 @@ sub create_simple {
 	$res->{pid} = $pid;
 
    	# save data first, because these may be needed (dsinfo..) when saving metadata
-   	$c->app->log->debug("Saving octets: $name [$size B]");
+   	$c->app->log->debug("[$pid] Saving octets: $name [$size B]");
    	my %params;
     $params{controlGroup} = 'M';
     $params{dsLabel} = $name;
@@ -231,7 +232,7 @@ sub create_simple {
 	}
 
     # save metadata
-    $r = $self->save_metadata($c, $pid, $metadata->{metadata}, $username, $password);
+    $r = $self->save_metadata($c, $pid, $metadata->{metadata}, $username, $password, 1);
     if($r->{status} ne 200){
         $res->{status} = $r->{status};
 				foreach my $a (@{$r->{alerts}}){
@@ -250,7 +251,10 @@ sub create_simple {
 		}
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error activating object'};
    		return $res;
-   	}
+   	}else{
+	$c->app->log->info("Object successfuly created pid[$pid] filename[$name] size[$size]");
+      }
+
 
    	return $res;
 }
@@ -263,6 +267,7 @@ sub save_metadata {
 	my $metadata = shift;
 	my $username = shift;
 	my $password = shift;
+	my $check_bib = shift;
 
 	my $res = { alerts => [], status => 200 };
 	$c->app->log->debug("Adding metadata");
@@ -344,7 +349,7 @@ sub save_metadata {
 		$res->{status} = 400;
 	}
 
-	unless($found_bib){
+	if(!$found_bib && $check_bib){
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'No bibliographical metadata provided' };
 		$res->{status} = 400;
 	}
@@ -430,6 +435,57 @@ sub get_datastream {
 	return $res;
 }
 
+sub proxy_datastream {
+  	my $self = shift;
+	my $c = shift;
+	my $pid = shift;
+	my $dsid = shift;
+	my $username = shift;
+	my $password = shift;
+	my $intcallauth = shift;
+
+	my $res = { alerts => [], status => 200 };
+
+	my $url = Mojo::URL->new;
+	$url->scheme('https');
+
+	if($intcallauth){
+		$url->userinfo($c->app->config->{phaidra}->{intcallusername}.':'.$c->app->config->{phaidra}->{intcallpassword});
+	}else{
+		$url->userinfo("$username:$password");
+	}
+
+  	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
+  	$url->path("/fedora/objects/$pid/datastreams/$dsid/content");
+
+  	if (Mojo::IOLoop->is_running) {
+	    $c->render_later;
+	    $c->ua->get(
+	      $url,
+	      sub {
+	        my ($self, $tx) = @_;
+	        _proxy_tx($c, $tx);
+	      }
+	    );
+  	}else {
+    	my $tx = $c->ua->get($url);
+    	_proxy_tx($c, $tx);
+  	}
+}
+
+sub _proxy_tx {
+  my ($c, $tx) = @_;
+  if (my $res = $tx->success) {
+    $c->tx->res($res);
+    $c->rendered;
+  }
+  else {
+    my $error = $tx->error;
+    $c->tx->res->headers->add('X-Remote-Status', $error->{code} . ': ' . $error->{message});
+    $c->render(status => 500, text => 'Failed to fetch data from Fedora');
+  }
+}
+
 sub add_datastream {
 
 	my $self = shift;
@@ -510,9 +566,9 @@ sub modify_datastream {
   $params{dsLocation} = $location if $location;
   #$params{altIDs}
   $params{dsLabel} = $label if $label;
-	if(defined($datastream_versionable{$dsid})){
-		$params{versionable} = $datastream_versionable{$dsid};
-	}
+#	if(defined($datastream_versionable{$dsid})){
+#		$params{versionable} = $datastream_versionable{$dsid};
+#	}
   #$params{versionable} = 1;
   $params{dsState} = 'A';
   #$params{formatURI}
@@ -522,6 +578,9 @@ sub modify_datastream {
   $params{logMessage} = 'PhaidraAPI object/modify_datastream';
   $params{force} = 0;
   #$params{ignoreContent}
+
+#$username = $c->app->{config}->{phaidra}->{adminusername};
+#$password = $c->app->{config}->{phaidra}->{adminpassword};
 
 	my $url = Mojo::URL->new;
 	$url->scheme('https');
@@ -603,7 +662,12 @@ sub add_or_modify_datastream {
 	}
 
 	my $hooks_model = PhaidraAPI::Model::Hooks->new;
-	$hooks_model->add_or_modify_datastream_hooks($c, $pid, $dsid, $dscontent, $username, $password);
+	my $hr = $hooks_model->add_or_modify_datastream_hooks($c, $pid, $dsid, $dscontent, $username, $password);
+	push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
+	$res->{status} = $hr->{status};
+	if($hr->{status} ne 200){
+		return $res;
+	}
 
 	return $res
 }
