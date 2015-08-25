@@ -164,11 +164,15 @@ sub add_octets {
 		return;
 	}
 
-	unless(defined($self->param('mimetype'))){
+  my $mimetype;
+	if(defined($self->param('mimetype'))){
+      $mimetype = $self->param('mimetype');
+  }else{
       my $object_model = PhaidraAPI::Model::Object->new;
       $mimetype = $object_model->get_mimetype($self, $upload->asset);
       unshift @{$res->{alerts}}, { type => 'info', msg => "Undefined mimetype, using magic: $mimetype" };
   }
+
 
 	my $file = $self->param('file');
   	my $size = $file->size;

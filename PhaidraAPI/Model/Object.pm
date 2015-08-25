@@ -32,9 +32,7 @@ sub delete {
     my $username = shift;
     my $password = shift;
 
-    my $res = { alerts => [], status => 200 };
-
-  	return $res;
+    return $self->modify($c, $pid, 'D', undef, undef, undef, undef, $username, $password);
 }
 
 sub modify {
