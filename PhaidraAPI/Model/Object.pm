@@ -336,6 +336,10 @@ sub save_metadata {
 				$found = 1;
 			}
 
+			case "members" {
+                               # noop - this was handled by coll model
+                        }
+
 			else {
 				$c->app->log->error("Unknown or unsupported metadata format: $f");
 				$found = 1;
