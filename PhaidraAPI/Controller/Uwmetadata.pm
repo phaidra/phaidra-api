@@ -11,6 +11,7 @@ use base 'Mojolicious::Controller';
 use PhaidraAPI::Model::Uwmetadata;
 use PhaidraAPI::Model::Util;
 use PhaidraAPI::Model::Languages;
+use PhaidraAPI::Model::Object;
 use Time::HiRes qw/tv_interval gettimeofday/;
 
 sub get {

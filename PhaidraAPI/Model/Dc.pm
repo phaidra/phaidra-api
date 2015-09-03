@@ -427,7 +427,7 @@ sub generate_dc_from_uwmetadata {
   my ($dc_p, $dc_oai) = $self->map_uwmetadata_2_dc($c, $pid, $cmodel, $dscontent, $res->{metadata_tree}, $metadata_model);
 
   # Phaidra DC
-  my $r1 = $object_model->add_or_modify_datastream($c, $pid, "DC_P", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", $username, $password, 1);
+  my $r1 = $object_model->add_or_modify_datastream($c, $pid, "DC_P", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", $username, $password);
   foreach my $a (@{$r1->{alerts}}){
     push @{$res->{alerts}}, $a;
   }
@@ -436,7 +436,7 @@ sub generate_dc_from_uwmetadata {
   }
 
   # OAI DC - unqualified
-  my $r2 = $object_model->add_or_modify_datastream($c, $pid, "DC_OAI", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_oai, "X", $username, $password, 1);
+  my $r2 = $object_model->add_or_modify_datastream($c, $pid, "DC_OAI", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_oai, "X", $username, $password);
   foreach my $a (@{$r2->{alerts}}){
     push @{$res->{alerts}}, $a;
   }
