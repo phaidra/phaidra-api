@@ -20,6 +20,13 @@ sub get_org_units {
     $self->render(json => { terms => $terms }, status => 200 );
 }
 
+sub get_parent_org_unit_id {
+    my $self = shift;  	
+	my $child_id = $self->param('child_id');		
+	my $parent_id = $self->app->directory->get_parent_org_unit_id($self, $child_id);	
+    $self->render(json => { parent_id => $parent_id }, status => 200 );
+}
+
 sub get_study {
     my $self = shift;  	
 
