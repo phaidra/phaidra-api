@@ -19,11 +19,11 @@ use File::MimeInfo;
 use File::Temp 'tempfile';
 
 my %datastream_versionable = (
-	'COLLECTIONORDER' => 0,
-	'UWMETADATA' => 1,
-	'MODS' => 1,
-	'RIGHTS' => 1,
-	'GEO' => 1
+	'COLLECTIONORDER' => 'false',
+	'UWMETADATA' => 'true',
+	'MODS' => 'true',
+	'RIGHTS' => 'true',
+	'GEO' => 'true'
 );
 
 sub delete {
@@ -570,9 +570,9 @@ sub modify_datastream {
   $params{dsLocation} = $location if $location;
   #$params{altIDs}
   $params{dsLabel} = $label if $label;
-#	if(defined($datastream_versionable{$dsid})){
-#		$params{versionable} = $datastream_versionable{$dsid};
-#	}
+	if(defined($datastream_versionable{$dsid})){
+		$params{versionable} = $datastream_versionable{$dsid};
+	}
   #$params{versionable} = 1;
   $params{dsState} = 'A';
   #$params{formatURI}
