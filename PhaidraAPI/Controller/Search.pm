@@ -147,6 +147,7 @@ sub my_objects {
 
 sub owner {
 	my $self = shift;	
+	my $q;
 	my $from = 1;
 	my $limit = 10;
 	my $sort = 'fgs.lastModifiedDate,STRING';
@@ -157,7 +158,14 @@ sub owner {
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined username' }]} , status => 400) ;		
 		return;
 	}
+
+	my $search_model = PhaidraAPI::Model::Search->new;	
 	
+	my $query = "fgs.ownerId:".$self->stash('username').' AND NOT fgs.contentModel:"cmodel:Page"';
+	if(defined($self->param('q'))){	
+		$query .= " AND ".$search_model->build_query($self, $self->param('q'));
+	}
+
 	if(defined($self->param('from'))){	
 		$from = $self->param('from');
 	}
@@ -177,10 +185,6 @@ sub owner {
 	if(defined($self->param('fields'))){
 		@fields = $self->param('fields');
 	}
-	
-	my $search_model = PhaidraAPI::Model::Search->new;			
-	
-	my $query = "fgs.ownerId:".$self->stash('username').' AND NOT fgs.contentModel:"cmodel:Page"';
 	
 	$self->render_later;
 	my $delay = Mojo::IOLoop->delay( 
