@@ -163,7 +163,7 @@ sub owner {
 	
 	my $query = "fgs.ownerId:".$self->stash('username').' AND NOT fgs.contentModel:"cmodel:Page"';
 	if(defined($self->param('q'))){
-		if($self->param('q') != ''){	
+		if($self->param('q') ne ''){	
 			$query .= " AND ".$search_model->build_query($self, $self->param('q'));
 		}
 	}
