@@ -118,7 +118,7 @@ sub search {
 	
 	my $search_model = PhaidraAPI::Model::Search->new;			
 	
-	$query = $search_model->build_query($self, $query);
+	$query = $search_model->build_query($self, $query);	
 	
 	$self->render_later;
 	my $delay = Mojo::IOLoop->delay( 
@@ -162,8 +162,10 @@ sub owner {
 	my $search_model = PhaidraAPI::Model::Search->new;	
 	
 	my $query = "fgs.ownerId:".$self->stash('username').' AND NOT fgs.contentModel:"cmodel:Page"';
-	if(defined($self->param('q'))){	
-		$query .= " AND ".$search_model->build_query($self, $self->param('q'));
+	if(defined($self->param('q'))){
+		if($self->param('q') != ''){	
+			$query .= " AND ".$search_model->build_query($self, $self->param('q'));
+		}
 	}
 
 	if(defined($self->param('from'))){	
