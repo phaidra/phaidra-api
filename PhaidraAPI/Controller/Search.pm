@@ -193,7 +193,7 @@ sub owner {
 	
 		sub {
 			my $delay = shift;
-			$search_model->search($self, $query, $from, $limit, undef, undef, \@fields, $delay->begin);			
+			$search_model->search($self, $query, $from, $limit, $sort, $reverse, \@fields, $delay->begin);			
 		},
 		
 		sub { 	
