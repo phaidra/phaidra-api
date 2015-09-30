@@ -205,8 +205,9 @@ sub json_2_xml_rec(){
   foreach my $child (@{$children}){
 
     my $children_size = defined($child->{children}) ? scalar (@{$child->{children}}) : 0;
+    my $attributes_size = defined($child->{attributes}) ? scalar (@{$child->{attributes}}) : 0;
 
-    if((!defined($child->{ui_value}) || ($child->{ui_value} eq '')) && $children_size == 0){
+    if((!defined($child->{ui_value}) || ($child->{ui_value} eq '')) && $children_size == 0 && $attributes_size == 0){
       next;
     }
 
@@ -300,11 +301,12 @@ sub save_to_object(){
   # fix
   $self->handle_system_metadata($c, $pid, $metadata);
 
-  # compress
+  # compress  
   $metadata = $self->mods_strip_empty_nodes($c, $metadata);
-
-  # convert
+  
+  # convert  
   my $mods = $self->json_2_xml($c, $metadata);
+
   unless($mods){
     $res->{status} = 500;
     unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error converting MODS metadata'};
