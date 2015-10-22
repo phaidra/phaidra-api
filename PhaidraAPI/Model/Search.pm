@@ -645,7 +645,7 @@ sub search {
 			$i++;
 
 			if($i > 10000){
-				$c->app->log->warning("search loop reached 10000 iterations, possibly infinite cycle");
+				$c->app->log->warn("search loop reached 10000 iterations, possibly infinite cycle");
 			}
 
 			#my $log;
