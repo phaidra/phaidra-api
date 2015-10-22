@@ -201,6 +201,39 @@ sub search_user {
 	$c->app->log->error("This method is not implemented");
 }        
 
+sub get_users_groups {
+	my ($self, $c, $username)= @_;
+	$c->app->log->error("This method is not implemented");
+}
+
+sub get_group {
+	my ($self, $c, $gid) = @_;
+	$c->app->log->error("This method is not implemented");
+}
+
+sub create_group
+{
+	my ($self, $c, $groupname, $username)= @_;
+	$c->app->log->error("This method is not implemented");
+}
+
+sub delete_group
+{
+	my ($self, $c, $gid) = @_;
+	$c->app->log->error("This method is not implemented");
+}
+
+sub add_group_member
+{
+  	my ($self, $c, $gid, $uid)= @_;
+	$c->app->log->error("This method is not implemented");
+}
+
+sub remove_group_member
+{
+	my ($self,$c,$gid,$uid)=@_;
+	$c->app->log->error("This method is not implemented");
+}
 
 1;
 __END__

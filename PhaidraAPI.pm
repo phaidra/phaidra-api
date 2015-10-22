@@ -318,6 +318,13 @@ sub startup {
     $apiauth->route('collection/:pid/members/add')                      ->via('post')     ->to('collection#add_collection_members');
     $apiauth->route('collection/:pid/members/order')                    ->via('post')     ->to('collection#order_collection_members');
     $apiauth->route('collection/:pid/members/:itempid/order/:position') ->via('post')     ->to('collection#order_collection_member');
+
+    $check_auth->route('groups')                                        ->via('get')      ->to('groups#get_users_groups');
+    $check_auth->route('group/:gid')                                    ->via('get')      ->to('groups#get_group');
+    $check_auth->route('group/add')                                     ->via('post')     ->to('groups#add_group');
+    $check_auth->route('group/:gid/remove')                             ->via('post')     ->to('groups#remove_group');
+    $check_auth->route('group/:gid/members/add')                        ->via('post')     ->to('groups#add_members');
+    $check_auth->route('group/:gid/members/remove')                     ->via('post')     ->to('groups#remove_members');
   }
 
 	return $self;

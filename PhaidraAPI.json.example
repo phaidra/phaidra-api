@@ -89,6 +89,15 @@
 
     },
 
+    "mongodb_group_mamanger": {
+       "host": "host",
+       "port": "27017",
+       "username": "user",
+       "password": "pass",
+       "database": "groups",
+       "collection": "usergroups"
+    },
+
     "localMysqlMPTTriplestore": {
     	"dsn":"dbi:mysql:db_name:db_host",
 
