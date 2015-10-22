@@ -239,8 +239,10 @@ sub startup {
 
 	$r->route('search/owner/:username')             ->via('get')    ->to('search#owner');
 	$r->route('search/collections/owner/:username') ->via('get')    ->to('search#collections_owner');
-	$r->route('search/triples')                     ->via('get')    ->to('search#triples');
-	$r->route('search')                             ->via('get')    ->to('search#search');
+	$r->route('search/triples')                     ->via('get')    ->to('search#triples');  
+	$r->route('search')                             ->via('get')    ->to('search#search');  
+  # lucene query can be long -> post
+  $r->route('search/lucene')                      ->via('post')   ->to('search#search_lucene');
 
   $r->route('utils/get_all_pids')                 ->via('get')    ->to('utils#get_all_pids');
 

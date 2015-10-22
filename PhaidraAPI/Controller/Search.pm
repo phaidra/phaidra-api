@@ -139,6 +139,65 @@ sub search {
 		
 }
 
+sub search_lucene {
+	my $self = shift;	
+	my $from = 1;
+	my $limit = 10;
+	my $sort = 'uw.general.title,SCORE';
+	my $reverse = '0';
+	my $query;
+	my @fields;
+	
+	if(defined($self->param('q'))){	
+		$query = $self->param('q');
+	}
+	unless(defined($query)){
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined query' }]} , status => 400) ;		
+		return;
+	}
+	
+	if(defined($self->param('from'))){	
+		$from = $self->param('from');
+	}
+	
+	if(defined($self->param('limit'))){	
+		$limit = $self->param('limit');
+	}
+	
+	if(defined($self->param('sort'))){	
+		$sort = $self->param('sort');
+	}
+	
+	if(defined($self->param('reverse'))){	
+		$reverse = $self->param('reverse');
+	}	
+	
+	if(defined($self->param('fields'))){
+		@fields = $self->param('fields');
+	}
+	
+	my $search_model = PhaidraAPI::Model::Search->new;			
+
+	$self->render_later;
+	my $delay = Mojo::IOLoop->delay( 
+	
+		sub {
+			my ($delay, $r) = @_;
+			# start async
+			$search_model->search($self, $query, $from, $limit, $sort, $reverse, \@fields, $delay->begin);				
+		},
+		
+		sub { 	
+	  		my ($delay, $r) = @_;		
+	  		# resturn result
+			$self->render(json => $r, status => $r->{status});	
+  		}
+	
+	);
+	$delay->wait unless $delay->ioloop->is_running;		
+		
+}
+
 sub my_objects {
 	my $self = shift;	
 	$self->stash->{'username'} = $self->stash->{basic_auth_credentials}->{username};
