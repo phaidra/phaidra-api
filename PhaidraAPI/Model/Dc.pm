@@ -419,8 +419,8 @@ sub generate_dc_from_uwmetadata {
   my $cmodel = $object_model->get_cmodel($c, $pid);
 
   my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
-  my $res = $metadata_model->metadata_tree($c);
-  if($res->{status} ne 200){
+  my $r0 = $metadata_model->metadata_tree($c);
+  if($r0->{status} ne 200){
     return $res;
   }
       
