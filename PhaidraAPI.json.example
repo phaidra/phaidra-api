@@ -89,7 +89,22 @@
 
     },
 
-    "mongodb_group_mamanger": {
+    "frontends": [
+        {
+            "frontend_id": "phaidra_catalyst",
+            "stats": {
+                "type": "piwik",
+                "siteid": 123,
+                "db_piwik": {
+                    "dns": "xxx",
+                    "username": "xxx",
+                    "password": "xxx"
+                }
+            }
+        }
+    ],
+
+    "mongodb_group_manager": {
        "host": "host",
        "port": "27017",
        "username": "user",

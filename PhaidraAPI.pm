@@ -99,7 +99,22 @@ sub startup {
     	};
 	}
 
-    $self->plugin('database', { databases => \%databases } );
+  if(exists($config->{frontends})){
+    for my $f (@{$config->{frontends}}){
+      if(exists($f->{stats})){
+        if($f->{stats}->{type} eq 'piwik'){
+          $databases{'db_stats_'.$f->{frontend_id}} = {
+            dsn      => $f->{stats}->{db_piwik}->{dsn},
+            username => $f->{stats}->{db_piwik}->{username},
+            password => $f->{stats}->{db_piwik}->{password},
+            options  => { mysql_auto_reconnect => 1}
+          };
+        }   
+      }
+    }  
+  }
+
+  $self->plugin('database', { databases => \%databases } );
 
 	$self->helper(mango => sub { state $mango = Mango->new('mongodb://'.$config->{mongodb}->{username}.':'.$config->{mongodb}->{password}.'@'.$config->{mongodb}->{host}.'/'.$config->{mongodb}->{database}) });
 
@@ -136,11 +151,13 @@ sub startup {
 		my $self = shift;
 		my $json = $self->res->json;
 		if($json){
-			if($json->{alerts}){
-				if(scalar(@{$json->{alerts}}) > 0){
-					$self->app->log->debug("Alerts:\n".$self->dumper($json->{alerts}));
-				}
-			}
+      if (ref $json eq ref {}) { # only if json is really a hash
+  			if($json->{alerts}){
+  				if(scalar(@{$json->{alerts}}) > 0){
+  					$self->app->log->debug("Alerts:\n".$self->dumper($json->{alerts}));
+  				}
+  			}
+      }
 		}
 
 		# CORS
@@ -274,6 +291,9 @@ sub startup {
   $r->route('object/:pid/dc')                     ->via('get')    ->to('dc#get', dsid => 'DC_P');
   $r->route('object/:pid/oai_dc')                 ->via('get')    ->to('dc#get', dsid => 'DC_OAI');
 
+  $r->route('stats/:pid')                         ->via('get')    ->to('stats#stats');
+  $r->route('stats/:pid/downloads')               ->via('get')    ->to('stats#stats', stats_param_key => 'downloads');
+  $r->route('stats/:pid/detail_page')             ->via('get')    ->to('stats#stats', stats_param_key => 'detail_page');
 
   # this just extracts the credentials - authentication will be done by fedora
 	my $apiauth = $r->under('/')->to('authentication#extract_credentials');
