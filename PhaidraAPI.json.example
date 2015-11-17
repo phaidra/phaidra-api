@@ -3,7 +3,11 @@
 
         "listen": ["http://*:3000"],
 
-        "proxy": 1
+        "proxy": 1,
+
+        "inactivity_timeout": 0,
+        
+        "heartbeat_timeout": 600
     },
 
 	"mode":"production",
