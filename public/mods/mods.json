@@ -3058,7 +3058,7 @@
                     ]
                 },
                 {
-                    "xmlname":"hierarchicalGeoraphic",
+                    "xmlname":"hierarchicalGeographic",
                     "input_type":"node",
                     "label":"Hierarchical geographic",
                     "children":[
