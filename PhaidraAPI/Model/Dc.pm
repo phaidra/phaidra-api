@@ -497,6 +497,12 @@ sub map_uwmetadata_2_dc {
   my $infoeurepoaccess_oai = $self->_get_infoeurepoaccess($c, $dom, $tree, $metadata_model, 'oai');
 
   # FIXME 'description or additional data' have to go to dc:rights too
+  # <dc:rights>{link}http://difab.univie.ac.at{/link} Digitales Forschungsarchiv Byzanz</dc:rights>
+  # <dc:subject xml:lang="deu">Apostelkommunion, tribelon</dc:subject>
+  # <dc:subject xml:lang="eng">last supper, tribelon</dc:subject>
+  # <dc:identifier>http://phaidra-sandbox.univie.ac.at/o:98791</dc:identifier>
+  # <dc:format.extent>36664408 bytes</dc:format.extent>
+  # <dc:description xml:lang="deu">Nördlicher Teil der Hauptapsis, mittlere Zone: ein Teil der Apostelkommunion</dc:description>
   my $licenses = $self->_get_licenses($c, $dom, $tree, $metadata_model);
 
   # FIXME GEO datastream to DCMI BOX

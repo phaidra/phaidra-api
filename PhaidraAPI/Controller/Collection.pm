@@ -320,7 +320,6 @@ sub create {
     # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
     $metadata = decode_json(b($metadata)->encode('UTF-8'));
   }
-
 	unless(defined($metadata->{metadata})){
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
 		return;
