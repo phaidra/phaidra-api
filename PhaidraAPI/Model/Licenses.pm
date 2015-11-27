@@ -36,7 +36,7 @@ sub get_licenses {
 	 	my $cacheval = $c->app->chi->get($cachekey);
 
 	  my $miss = 1;
-    #$c->app->log->debug($c->app->dumper($cacheval));
+      #$c->app->log->debug("XXXXXXXXXXX licenses: ".$c->app->dumper($cacheval));
 	  if($cacheval){
 	  	if(scalar @{$cacheval->{licenses}} > 0){
 	  		$miss = 0;
@@ -45,7 +45,7 @@ sub get_licenses {
 	  }
 
 	  if($miss){
-	    $c->app->log->debug("[cache miss] $cachekey");
+	    	$c->app->log->debug("[cache miss] $cachekey");
 
 			# read metadata tree from file
 			my $bytes = slurp $c->app->config->{licenses_file};
@@ -63,8 +63,9 @@ sub get_licenses {
 	  		# the cache serialization process even if cache miss [when we already have the structure]
 	  		# so instead of using the structure created we will get the one just saved from cache.
 	    	$cacheval = $c->app->chi->get($cachekey);
-	    	#$c->app->log->debug($c->app->dumper($cacheval));
+	    	#$c->app->log->debug("XXXXXXXXXXXX after save:".$c->app->dumper($cacheval));
 	    }
+
       $res->{licenses} = $cacheval->{licenses};
 	}
 

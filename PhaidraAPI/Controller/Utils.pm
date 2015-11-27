@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use v5.10;
 use base 'Mojolicious::Controller';
+use Mojo::ByteStream qw(b);
 use Mojo::JSON qw(decode_json);
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Dc;
@@ -112,6 +113,7 @@ sub update_dc {
         push @res, { pid => $pid, res => $res };
         next;
       }  
+      $res->{UWMETADATA} = b($res->{UWMETADATA})->decode('UTF-8');
       my $gr = $dc_model->generate_dc_from_uwmetadata($self, $pid, $res->{UWMETADATA}, $username, $password);
       if($gr->{status} ne 200){
         push @res, { pid => $pid, res => $gr };
@@ -124,6 +126,7 @@ sub update_dc {
         push @res, { pid => $pid, res => $res };
         next;
       }  
+      $res->{MODS} = b($res->{MODS})->decode('UTF-8');
       my $gr = $dc_model->generate_dc_from_mods($self, $pid, $res->{MODS}, $username, $password);
       if($gr->{status} ne 200){
         push @res, { pid => $pid, res => $gr };

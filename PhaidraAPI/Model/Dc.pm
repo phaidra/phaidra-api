@@ -423,8 +423,8 @@ sub generate_dc_from_uwmetadata {
   if($r0->{status} ne 200){
     return $res;
   }
-      
-  my ($dc_p, $dc_oai) = $self->map_uwmetadata_2_dc($c, $pid, $cmodel, $dscontent, $res->{metadata_tree}, $metadata_model);
+
+  my ($dc_p, $dc_oai) = $self->map_uwmetadata_2_dc($c, $pid, $cmodel, $dscontent, $r0->{metadata_tree}, $metadata_model);
 
   # Phaidra DC
   my $r1 = $object_model->add_or_modify_datastream($c, $pid, "DC_P", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", $username, $password);
@@ -462,7 +462,12 @@ sub map_uwmetadata_2_dc {
     $doc_uwns{$uwns{$nss->{$nsa_key}}} = $2;
   }
 
+  my $identifiers = $self->_get_uwm_identifiers($c, $dom, $tree, $metadata_model);
   my $titles = $self->_get_titles($c, $dom);
+  my $descriptions = $self->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:description');
+  my $languages = $self->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:language');
+  my $keywords = $self->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:keyword');
+  my $classifications = $self->_get_uwm_classifications($c, $dom);
   my $creators_p = $self->_get_creators($c, $dom, 'p');
   my $creators_oai = $self->_get_creators($c, $dom, 'oai');
   my $dates = $self->_get_uwm_element_values($c, $dom, $doc_uwns{'digitalbook'}.'\:releaseyear');
@@ -480,7 +485,7 @@ sub map_uwmetadata_2_dc {
   my $versions_oai = $self->_get_versions($c, $dom, $tree, $metadata_model, 'oai');
 
   my $formats = $self->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:format');
-  my $ids = $self->_get_identifiers($c, $dom, $tree, $metadata_model);
+  
   my $srcs = $self->_get_sources($c, $dom, $tree, $metadata_model);
 
   my $publishers_p = $self->_get_publishers($c, $dom, 'p');
@@ -497,18 +502,55 @@ sub map_uwmetadata_2_dc {
   my $infoeurepoaccess_oai = $self->_get_infoeurepoaccess($c, $dom, $tree, $metadata_model, 'oai');
 
   # FIXME 'description or additional data' have to go to dc:rights too
-  # <dc:rights>{link}http://difab.univie.ac.at{/link} Digitales Forschungsarchiv Byzanz</dc:rights>
   # <dc:subject xml:lang="deu">Apostelkommunion, tribelon</dc:subject>
   # <dc:subject xml:lang="eng">last supper, tribelon</dc:subject>
-  # <dc:identifier>http://phaidra-sandbox.univie.ac.at/o:98791</dc:identifier>
   # <dc:format.extent>36664408 bytes</dc:format.extent>
-  # <dc:description xml:lang="deu">Nördlicher Teil der Hauptapsis, mittlere Zone: ein Teil der Apostelkommunion</dc:description>
   my $licenses = $self->_get_licenses($c, $dom, $tree, $metadata_model);
 
   # FIXME GEO datastream to DCMI BOX
 
+  # get provenience versions
+
+
+  push @$identifiers, { value => "http://".$c->app->config->{phaidra}->{baseurl}."/".$pid };
+
+  my @subjects;
+  for my $k (@{$keywords}){
+    push @subjects, $k;
+  }
+  for my $c (@{$classifications}){
+    push @subjects, $c;
+  }
+
+  my @langs;  
+  for my $l (@{$languages}){
+    unless($l->{value} eq 'xx'){
+      push @langs, $l;
+    }
+  }
+
+  for my $v (@$creators_p){
+    if(defined($v->{date}) && ($v->{date} ne '')) {
+      push @$dates, { value => $v->{date}};
+    }
+  }
+  for my $v (@$publishers_p){
+    if(defined($v->{date}) && ($v->{date} ne '')) {
+      push @$dates, { value => $v->{date}};
+    }
+  }
+  for my $v (@$contributors_p){
+    if(defined($v->{date}) && ($v->{date} ne '')) {
+      push @$dates, { value => $v->{date}};
+    }
+  }
+
   my %dc_p;
+  $dc_p{identifier} = $identifiers if(defined($identifiers));
   $dc_p{title} = $titles if(defined($titles));
+  $dc_p{description} = $descriptions if(defined($descriptions));
+  $dc_p{subject} = \@subjects if(defined(@subjects));
+  $dc_p{language} = \@langs if(defined(@langs));
   $dc_p{creator} = $creators_p if(defined($creators_p));
   $dc_p{date} = $dates if(defined($dates));
   $dc_p{type} = $types_p;
@@ -517,7 +559,6 @@ sub map_uwmetadata_2_dc {
     push @{$dc_p{type}}, $v;
   }
   $dc_p{format} = $formats;
-  $dc_p{identifier} = $ids;
   $dc_p{publisher} = $publishers_p if(defined($publishers_p));
   $dc_p{contributor} = $contributors_p if(defined($contributors_p));
   $dc_p{relation} = $relations;
@@ -539,16 +580,50 @@ sub map_uwmetadata_2_dc {
   }
   $dc_oai{publisher} = $publishers_oai if(defined($publishers_oai));
   $dc_oai{contributor} = $contributors_oai if(defined($contributors_oai));
-  $dc_oai{rights} = $licenses;
-  for my $v (@{$infoeurepoaccess_oai}){
-    push @{$dc_oai{rights}}, $v;
-  }
+
   #$c->app->log->debug("XXXXXXXXXXX dc_oai hash:".$c->app->dumper(\%dc_oai));
   my $dc_oai_xml = $self->_create_dc_from_hash($c, \%dc_oai);
   #$c->app->log->debug("XXXXXXXXXXX dc_oai xml:".$dc_oai_xml);
 
   return ($dc_p_xml, $dc_oai_xml);
 }
+
+# {i}, {b}, {br}, {mailto}, {link}
+sub _remove_phaidra_tags($){
+  my ($self, $c, $v) = @_;
+  $v =~ s/{b}|{\/b}|{i}|{\/i}|{link}|{\/link}|{br}|{mailto}|{\/mailto}//g;
+  return $v;
+}
+
+sub _get_uwm_classifications {
+  my ($self, $c, $dom) = @_;
+
+  my @classifications;
+  for my $idnode ($dom->find($doc_uwns{'classification'}.'\:taxonpath')->each){
+
+    my $cid = $idnode->find($doc_uwns{'classification'}.'\:source')->last;
+    if(defined($cid)){
+      $cid = $cid->text;
+    }
+
+    my $tid = $idnode->find($doc_uwns{'classification'}.'\:taxon')->last;
+    if(defined($tid)){
+      $tid = $tid->text;      
+    }
+
+    my $terms_model = PhaidraAPI::Model::Terms->new;
+    my $cls_labels = $terms_model->_get_vocab_labels($c, undef, undef, $cid);
+
+    my $labels = $terms_model->_get_taxon_labels($c, $cid, $tid);
+    for my $lang (keys %{$labels->{labels}}){
+      push @classifications, { value => $cls_labels->{$lang}.", ".$labels->{labels}->{$lang}, lang => $lang };
+    }
+
+  }
+
+  return \@classifications;
+}
+
 
 sub _get_uwm_relations {
   my ($self, $c, $dom) = @_;
@@ -573,6 +648,42 @@ sub _get_uwm_relations {
   }
 
   return $relations;
+}
+
+sub _get_uwm_identifiers {
+  my ($self, $c, $dom, $tree, $metadata_model) = @_;
+
+  my $identifiers;
+  for my $idnode ($dom->find($doc_uwns{'extended'}.'\:identifiers')->each){
+    my $res = $idnode->find($doc_uwns{'extended'}.'\:resource')->first;
+    my $reslabel;
+    if(defined($res)){
+      $res = $res->text;
+      if($res eq '1552099'){
+        $reslabel = 'http://dx.doi.org/';
+      }
+      elsif($res eq '1552103'){
+        $reslabel = 'urn:';
+      }
+      else{        
+        $reslabel = $self->_get_value_label($c, $uwns_rev{'extended'}, 'resource', $res, $uw_vocs{'resource'}, $tree, $metadata_model, 'en');
+        if($reslabel){
+          $reslabel = $reslabel.": ";
+        }
+      }
+    }
+    
+    my $id = $idnode->find($doc_uwns{'extended'}.'\:identifier')->first;
+    if(defined($id) && $id->text ne ''){
+      if($reslabel){
+        push @$identifiers, { value => "$reslabel".$id->text };
+      }else{
+        push @$identifiers, { value => $id->text };
+      }
+    }
+  }
+
+  return $identifiers;
 }
 
 sub _get_sources {
@@ -630,33 +741,6 @@ sub _get_sources {
   return $srcs;
 }
 
-sub _get_identifiers {
-  my ($self, $c, $dom, $tree, $metadata_model) = @_;
-
-  my $ids;
-  for my $idnode ($dom->find($doc_uwns{'extended'}.'\:identifiers')->each){
-    my $res = $idnode->find($doc_uwns{'extended'}.'\:resource')->first;
-    if(defined($res)){
-      $res = $res->text;
-    }
-    #my $reslabel;
-    #if(defined($res)){
-    #  $reslabel = $self->_get_value_label($c, $doc_uwns{'extended'}, 'resource', $res->text, $uw_vocs{'resource'}, $tree, $metadata_model, 'en');
-    #}
-    my $id = $idnode->find($doc_uwns{'extended'}.'\:identifier')->first;
-    if(defined($id) && $id->text ne ''){
-      my $prefix = '';
-      if($res eq '1552099'){
-        push @$ids, { value => 'http://dx.doi.org/'.$id->text };
-      }
-      if($res eq '1552103'){
-        push @$ids, { value => 'urn:'.$id->text };
-      }
-    }
-  }
-  return $ids;
-}
-
 sub _get_licenses {
 
   my ($self, $c, $dom, $tree, $metadata_model) = @_;
@@ -704,8 +788,9 @@ sub _get_infoeurepoaccess {
 sub _get_value_label {
   my ($self, $c, $ns, $xmlname, $id, $vocid, $tree, $metadata_model, $lang) = @_;
 
-  my $n = $metadata_model->get_json_node($c, $ns, $xmlname, $tree);
-  foreach my $term (@{$n->{vocabularies}[0]->{terms}}){
+  my $n = $metadata_model->get_json_node($c, $ns, $xmlname, $tree); 
+  #$c->app->log->debug("XXXXXXXXXXX ns[$ns] xmlname[$xmlname] id[$id] vocid[$vocid] node:".$c->app->dumper($n)."tree :".$c->app->dumper($tree)); 
+  foreach my $term (@{$n->{vocabularies}[0]->{terms}}){  
     if($term->{uri} eq $ns."/voc_$vocid/$id"){
       return $term->{labels}->{$lang};
     }
@@ -756,34 +841,44 @@ sub _get_types {
 }
 
 sub _get_entities {
-  my ($self, $c, $contributions, $type) = @_;
+  my ($self, $c, $contributions, $ns, $type) = @_;
+
+  my $entity_ns = $doc_uwns{'entity'};
+  if($ns eq 'provenience'){
+    $entity_ns = $doc_uwns{'provenience_entity'};
+  }
 
   my @res;
   for my $ctr (@{$contributions}){
-    for my $e ($ctr->find($doc_uwns{'lom'}.'\:entity')->sort(sub{ $a->attr('seq') cmp $b->attr('seq') })->each){
-      my $firstname = $e->find($doc_uwns{'entity'}.'\:firstname')->first;
+    for my $e ($ctr->find($doc_uwns{$ns}.'\:entity')->sort(sub{ $a->attr('seq') cmp $b->attr('seq') })->each){
+      
+      my $firstname = $e->find($entity_ns.'\:firstname')->first;
       if(defined($firstname)){
         $firstname = $firstname->text;
       }
-      my $lastname = $e->find($doc_uwns{'entity'}.'\:lastname')->first;
+      my $lastname = $e->find($entity_ns.'\:lastname')->first;
       if(defined($lastname)){
         $lastname = $lastname->text;
+      }
+      my $date = $ctr->find($doc_uwns{$ns}.'\:date')->first;
+      if(defined($date)){
+        $date = $date->text;
       }
 
       if($firstname && $lastname){
         if($type eq 'oai'){
           # APA bibliographic style
           my $initials = ucfirst(substr($firstname, 0, 1));
-          push @res, { value => "$lastname, $initials ($firstname)"};
+          push @res, { value => "$lastname, $initials ($firstname)", date => $date};
         }else{
-          push @res, { value => "$lastname, $firstname"};
+          push @res, { value => "$lastname, $firstname", date => $date};
         }
       }else{
-        push @res, { value => $firstname } if(defined($firstname) && $firstname ne '');
-        push @res, { value => $lastname } if(defined($lastname) && $lastname ne '');
+        push @res, { value => $firstname, date => $date } if(defined($firstname) && $firstname ne '');
+        push @res, { value => $lastname, date => $date } if(defined($lastname) && $lastname ne '');
       }
 
-      my $institution = $e->find($doc_uwns{'entity'}.'\:institution')->first;
+      my $institution = $e->find($entity_ns.'\:institution')->first;
       if(defined($institution)){
         $institution = $institution->text;
       }
@@ -795,14 +890,14 @@ sub _get_entities {
             foreach my $lang (@{$c->app->config->{directory}->{org_units_languages}})
             {
               if(my $inststr = $self->_get_affiliation_cached($c, $institution, $lang)){
-                push @res, { value => $inststr, lang => $lang };
+                push @res, { value => $inststr, lang => $lang, date => $date };
               }
             }
           }
         }
         else
         {
-          push @res, { value => $institution } if ($institution ne '');
+          push @res, { value => $institution, date => $date } if ($institution ne '');
         }
       }
     }
@@ -816,32 +911,40 @@ sub _get_contributors {
 
   my ($self, $c, $dom, $type) = @_;
 
-  my @conts;
-  my @editors;
-  my $has_authors = 0;
-  for my $con ($dom->find($doc_uwns{'lom'}.'\:contribute')->sort(sub{ $a->attr('seq') cmp $b->attr('seq') })->each){
-    my $role = $con->find($doc_uwns{'lom'}.'\:role')->first->text;
-    # save editors, we need them if there *are* authors defined
-    if($role eq $non_contributor_role_ids{'editor'}){
-      push @editors, $con;
-    }
-    if($role eq $non_contributor_role_ids{'author_analog'} || $role eq $non_contributor_role_ids{'author_digital'}){
-      $has_authors = 1;
-    }
-    if(!exists($non_contributor_role_ids_rev{$role})){
-      push @conts, $con;
-    };
-  }
+  my @res;  
+  for my $ns (('lom','provenience')){
+    my @conts;
+    my @editors;
+    my $has_authors = 0;
+    for my $con ($dom->find($doc_uwns{$ns}.'\:contribute')->sort(sub{ $a->attr('seq') cmp $b->attr('seq') })->each){      
+      my $role = $con->find($doc_uwns{$ns}.'\:role')->first;
+      if(defined($role)){
+        $role = $role->text;
+      
+        # save editors, we need them if there *are* authors defined
+        if($role eq $non_contributor_role_ids{'editor'}){
+          push @editors, $con;
+        }
+        if($role eq $non_contributor_role_ids{'author_analog'} || $role eq $non_contributor_role_ids{'author_digital'}){
+          $has_authors = 1;
+        }
+        if(!exists($non_contributor_role_ids_rev{$role})){
+          push @conts, $con;
+        };
 
-  # if there are no authors then editors are creators
-  # if there are authors then editors are contributors
-  if($has_authors){
-    for my $e (@editors){
-      push @conts, $e;
+      }
     }
-  }
 
-  my @res = $self->_get_entities($c, \@conts, $type);
+    # if there are no authors then editors are creators
+    # if there are authors then editors are contributors
+    if($has_authors){
+      for my $e (@editors){
+        push @conts, $e;
+      }
+    }
+
+    push @res, $self->_get_entities($c, \@conts,  $ns, $type);
+  }
 
   return \@res;
 }
@@ -850,18 +953,27 @@ sub _get_publishers {
 
   my ($self, $c, $dom, $type) = @_;
 
-  my @publishers;
-  for my $con ($dom->find($doc_uwns{'lom'}.'\:contribute')->sort(sub{ $a->attr('seq') cmp $b->attr('seq') })->each){
-    my $role = $con->find($doc_uwns{'lom'}.'\:role')->first->text;
-    if($role eq $non_contributor_role_ids{'publisher'}){
-      push @publishers, $con;
-    };
+  my @res;
+  for my $ns (('lom','provenience')){
+    my @publishers;
+    for my $con ($dom->find($doc_uwns{$ns}.'\:contribute')->sort(sub{ $a->attr('seq') cmp $b->attr('seq') })->each){
+      my $role = $con->find($doc_uwns{$ns}.'\:role')->first;
+      if(defined($role)){
+        $role = $role->text;
+        if($role eq $non_contributor_role_ids{'publisher'}){
+          push @publishers, $con;
+        };
+      }
+    }
+
+    push @res, $self->_get_entities($c, \@publishers, $ns, $type);
+
+    # check publisher in digitalbook only once, not for 'provenience' namespace
+    if($ns eq 'lom'){
+      my $publishers = $dom->find($doc_uwns{'digitalbook'}.'\:publisher')->first;
+      push @res, $publishers->text if(defined($publishers));
+    }
   }
-
-  my @res = $self->_get_entities($c, \@publishers, $type);
-
-  my $publishers = $dom->find($doc_uwns{'digitalbook'}.'\:publisher')->first;
-  push @res, $publishers->text if(defined($publishers));
 
   return \@res;
 }
@@ -870,31 +982,37 @@ sub _get_creators {
 
   my ($self, $c, $dom, $type) = @_;
 
-  my %creators;
-  for my $con ($dom->find($doc_uwns{'lom'}.'\:contribute')->sort(sub{ $a->attr('seq') cmp $b->attr('seq') })->each){
-    my $role = $con->find($doc_uwns{'lom'}.'\:role')->first->text;
-    if($role eq $non_contributor_role_ids{'author_analog'}){
-      push @{$creators{author_analog}}, $con;
-    };
-    if($role eq $non_contributor_role_ids{'author_digital'}){
-      push @{$creators{author_digital}}, $con;
-    };
-    if($role eq $non_contributor_role_ids{'editor'}){
-      push @{$creators{editor}}, $con;
-    };
+  my @res;
+  for my $ns (('lom','provenience')){
+    my %creators;
+    for my $con ($dom->find($doc_uwns{$ns}.'\:contribute')->sort(sub{ $a->attr('seq') cmp $b->attr('seq') })->each){
+      my $role = $con->find($doc_uwns{$ns}.'\:role')->first;
+      if(defined($role)){
+        $role = $role->text;
+      
+        if($role eq $non_contributor_role_ids{'author_analog'}){
+          push @{$creators{author_analog}}, $con;
+        };
+        if($role eq $non_contributor_role_ids{'author_digital'}){
+          push @{$creators{author_digital}}, $con;
+        };
+        if($role eq $non_contributor_role_ids{'editor'}){
+          push @{$creators{editor}}, $con;
+        };
+      }
+    }
+
+    my @creators;
+    if(exists($creators{author_analog}) && scalar @{$creators{author_analog}} > 0){
+      @creators = @{$creators{author_analog}};
+    }elsif(exists($creators{author_digital}) && scalar @{$creators{author_digital}} > 0){
+      @creators = @{$creators{author_digital}};
+    }elsif(exists($creators{editor}) && scalar @{$creators{editor}} > 0){
+      @creators = @{$creators{editor}};
+    }
+
+    push @res, $self->_get_entities($c, \@creators, $ns, $type);
   }
-
-  my @creators;
-  if(exists($creators{author_analog}) && scalar @{$creators{author_analog}} > 0){
-    @creators = @{$creators{author_analog}};
-  }elsif(exists($creators{author_digital}) && scalar @{$creators{author_digital}} > 0){
-    @creators = @{$creators{author_digital}};
-  }elsif(exists($creators{editor}) && scalar @{$creators{editor}} > 0){
-    @creators = @{$creators{editor}};
-  }
-
-  my @res = $self->_get_entities($c, \@creators, $type);
-
   return \@res;
 }
 
@@ -905,8 +1023,7 @@ sub _get_affiliation_cached {
   my $cachekey = 'affid_'.$code.'_'.$lang;
   unless($inststr = $c->app->chi->get($cachekey))
   {
-    # FIXME: test!!
-    $inststr = "blabla";#$c->app->directory->get_affiliation($c, $code, $lang);
+    $inststr = $c->app->directory->get_affiliation($c, $code, $lang);
     $c->app->chi->set($cachekey, $inststr, '1 day');
   }
 
@@ -973,7 +1090,9 @@ sub _get_uwm_element_values {
 
   my @vals;
   for my $e ($dom->find($elm)->each){
-    my %v = ( value => $e->text, ns => $e->namespace );
+    my $value = $e->text;
+    $value = $self->_remove_phaidra_tags($c, $value);
+    my %v = ( value => $value, ns => $e->namespace );
     if($e->attr('language')){
         $v{lang} = $e->attr('language');
     }
