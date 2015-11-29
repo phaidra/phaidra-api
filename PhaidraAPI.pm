@@ -297,6 +297,8 @@ sub startup {
   $r->route('object/:pid/dc')                     ->via('get')    ->to('dc#get', dsid => 'DC_P');
   $r->route('object/:pid/oai_dc')                 ->via('get')    ->to('dc#get', dsid => 'DC_OAI');
 
+  $r->route('dc/uwmetadata_2_dc_index')           ->via('post')   ->to('dc#uwmetadata_2_dc_index');
+
   $r->route('stats/:pid')                         ->via('get')    ->to('stats#stats');
   $r->route('stats/:pid/downloads')               ->via('get')    ->to('stats#stats', stats_param_key => 'downloads');
   $r->route('stats/:pid/detail_page')             ->via('get')    ->to('stats#stats', stats_param_key => 'detail_page');

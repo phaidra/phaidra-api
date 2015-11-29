@@ -8,6 +8,7 @@ use Mojo::ByteStream qw(b);
 use Mojo::Util qw(xml_escape encode decode);
 use base qw/Mojo::Base/;
 use XML::LibXML;
+use Storable qw(dclone);
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Util;
 use PhaidraAPI::Model::Uwmetadata;
@@ -451,6 +452,18 @@ sub map_uwmetadata_2_dc {
 
   my ($self, $c, $pid, $cmodel, $xml, $tree, $metadata_model) = @_;
 
+  my ($dc_p, $dc_oai) = $self->map_uwmetadata_2_dc_hash($c, $pid, $cmodel, $xml, $tree, $metadata_model);
+  
+  my $dc_p_xml = $self->_create_dc_from_hash($c, $dc_p);
+  my $dc_oai_xml = $self->_create_dc_from_hash($c, $dc_oai);
+
+  return ($dc_p_xml, $dc_oai_xml);
+}
+
+sub map_uwmetadata_2_dc_hash {
+
+  my ($self, $c, $pid, $cmodel, $xml, $tree, $metadata_model) = @_;
+
   my $dom = Mojo::DOM->new();
   $dom->xml(1);
   $dom->parse($xml);
@@ -567,25 +580,18 @@ sub map_uwmetadata_2_dc {
   for my $v (@{$infoeurepoaccess_p}){
     push @{$dc_p{rights}}, $v;
   }
-  #$c->app->log->debug("XXXXXXXXXXX dc_p hash:".$c->app->dumper(\%dc_p));
-  my $dc_p_xml = $self->_create_dc_from_hash($c, \%dc_p);
-  #$c->app->log->debug("XXXXXXXXXXX dc_p xml:".$dc_p_xml);
 
   # see https://guidelines.openaire.eu/wiki/OpenAIRE_Guidelines:_For_Literature_repositories
-  my %dc_oai = %dc_p;
-  $dc_oai{creator} = $creators_oai if(defined($creators_oai));
-  $dc_oai{type} = $types_oai;
+  my $dc_oai = dclone \%dc_p;
+  $dc_oai->{creator} = $creators_oai if(defined($creators_oai));
+  $dc_oai->{type} = $types_oai;
   for my $v (@$versions_oai){
-    push @{$dc_oai{type}}, $v;
+    push @{$dc_oai->{type}}, $v;
   }
-  $dc_oai{publisher} = $publishers_oai if(defined($publishers_oai));
-  $dc_oai{contributor} = $contributors_oai if(defined($contributors_oai));
+  $dc_oai->{publisher} = $publishers_oai if(defined($publishers_oai));
+  $dc_oai->{contributor} = $contributors_oai if(defined($contributors_oai));
 
-  #$c->app->log->debug("XXXXXXXXXXX dc_oai hash:".$c->app->dumper(\%dc_oai));
-  my $dc_oai_xml = $self->_create_dc_from_hash($c, \%dc_oai);
-  #$c->app->log->debug("XXXXXXXXXXX dc_oai xml:".$dc_oai_xml);
-
-  return ($dc_p_xml, $dc_oai_xml);
+  return (\%dc_p, $dc_oai);
 }
 
 # {i}, {b}, {br}, {mailto}, {link}
