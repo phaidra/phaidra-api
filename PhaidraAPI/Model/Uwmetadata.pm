@@ -1438,8 +1438,6 @@ sub compress_json {
 	my $uncompressed = shift;
 	my $compressed = shift;
 
-	$compressed = () unless defined $compressed;
-
 	foreach my $child (@{$uncompressed}){
 
 		my $children_size = defined($child->{children}) ? scalar (@{$child->{children}}) : 0;
@@ -1453,10 +1451,17 @@ sub compress_json {
 		if($child->{mandatory}){
 			$canskip = 0;
 		}
-
-		if($canskip && (!defined($child->{ui_value}) || ($child->{ui_value} eq '')) && $children_size == 0){
+		
+		if(
+			$canskip && 
+			!$self->children_not_empty_rec($c, $child->{children}) &&
+			(
+				!defined($child->{ui_value}) || 
+				($child->{ui_value} eq '')				
+			)
+		   ){
 			next;
-		}
+		}		
 
 		# this way we remove source and taxon from taxonpath,
 		# but then the taxonpath will be empty
@@ -1472,24 +1477,122 @@ sub compress_json {
 		{
 			xmlns => $child->{xmlns},
 			xmlname => $child->{xmlname},
-			ui_value => $child->{ui_value},
 			ordered => $child->{ordered},
 			datatype => $child->{datatype},
 		};
 		if(exists($child->{data_order})){
 			$compressed_child->{data_order} = $child->{data_order};
 		}
-		if(exists($child->{value_lang})){
-			$compressed_child->{value_lang} = $child->{value_lang};
-		}		
-
-		if($children_size > 0){
-			$compressed_child->{children} = ();			
-			$self->json_2_uwmetadata_rec($c, $child->{children}, $compressed_child->{children});
+		if($child->{datatype} ne 'Node'){
+			if(exists($child->{value_lang})){
+				$compressed_child->{value_lang} = $child->{value_lang};
+			}		
+			$compressed_child->{ui_value} = $child->{ui_value};
 		}
 
 		push @$compressed, $compressed_child;
+
+		if($children_size > 0){
+			my @compressed_children = ();			
+			$compressed_child->{children} = \@compressed_children;
+			$self->compress_json($c, $child->{children}, $compressed_child->{children});						
+		}
+		
 	}
+}
+
+sub children_not_empty_rec {
+	my $self = shift;
+	my $c = shift;
+	my $children = shift;
+
+	my $ret = 0;
+	for my $child (@{$children}){		
+		if($child->{ui_value} ne '' || $child->{value} ne ''){
+			$ret = 1;
+			last;
+		}else{
+			my $children_size = defined($child->{children}) ? scalar (@{$child->{children}}) : 0;
+			if($children_size > 0){
+				$ret = $self->children_not_empty_rec($c, $child->{children});
+				last if $ret;
+			}
+		}
+	}
+
+	return $ret;
+}
+
+sub decompress_json {
+
+	my $self = shift;
+	my $c = shift;
+	my $compressed = shift;
+
+	# this structure contains the metadata default structure (equals to empty uwmetadataeditor) to which
+	# we are going to load the data of some real object
+	my $tree_res = $self->metadata_tree($c);
+	if($tree_res->{status} ne 200){
+		return $tree_res;
+	}
+
+	my $metadata_tree = $tree_res->{metadata_tree};
+
+	# this is a hash where the key is 'ns/id' and value is a default representation of a node
+	# -> we use this when adding nodes (eg a second title) to get a new empty node
+	my %metadata_nodes_hash;
+	my $metadata_tree_copy = dclone($metadata_tree);
+	$self->create_md_nodes_hash($c, $metadata_tree_copy, \%metadata_nodes_hash);
+
+	$self->decompress_json_rec($c, $compressed, $metadata_tree, undef, \%metadata_nodes_hash);
+
+	return $metadata_tree;
+}
+
+sub decompress_json_rec {
+
+	my $self = shift;
+	my $c = shift;
+	my $compressed = shift;
+	my $decompressed = shift;
+	my $decompressed_parent = shift;
+	my $metadata_nodes_hash = shift;
+
+	unless(defined($decompressed_parent)){
+		my %h = (
+			'children' => $decompressed
+		);
+		$decompressed_parent = \%h;
+	}
+
+	for my $ch (@{$compressed}){		
+
+		my $children_size = defined($ch->{children}) ? scalar (@{$ch->{children}}) : 0;
+
+	    my $node;
+	    if($ch->{xmlname} ne 'uwmetadata'){
+
+		    # search this node in the metadata tree
+		    # get one where metadata from uwmetadata were not yet loaded
+		    $node = $self->get_empty_node($c, $ch->{xmlns}, $ch->{xmlname}, $decompressed_parent, $metadata_nodes_hash);
+
+			if($ch->{ui_value}){
+
+				$node->{ui_value} = $ch->{ui_value};
+				$node->{value_lang} = $ch->{value_lang} if ($ch->{value_lang});
+			   	$node->{data_order} = $ch->{data_order} if ($ch->{data_order});
+
+			   	if($node->{ordered}){
+			   		@{$decompressed_parent->{children}} = sort { sort_ordered($a) <=> sort_ordered($b) } @{$decompressed_parent->{children}};			   	
+			  	}
+			}
+
+	    }
+	    if($children_size > 0){
+	    	$self->decompress_json_rec($c, $ch->{children}, $decompressed, $node, $metadata_nodes_hash);
+	    }
+	}
+
 }
 
 
