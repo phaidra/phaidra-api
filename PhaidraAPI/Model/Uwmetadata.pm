@@ -1423,6 +1423,75 @@ sub json_2_uwmetadata_rec(){
 	}
 }
 
+# we need that an element in the json structure contains at least
+# - xmlns
+# - xmlname
+# - ui_value
+# - ordered
+# - datatype
+# - data_order (if any)
+# - value_lang (if any)
+sub compress_json {
+
+	my $self = shift;
+	my $c = shift;
+	my $uncompressed = shift;
+	my $compressed = shift;
+
+	$compressed = () unless defined $compressed;
+
+	foreach my $child (@{$uncompressed}){
+
+		my $children_size = defined($child->{children}) ? scalar (@{$child->{children}}) : 0;
+
+		# some elements are not allowed to be empty, so if these are empty we cannot add them to uwmetadata
+		# but some special needs to be there anyway: classification, mandatory fields like general/description, lifecycle/status, rights/cost, etc..
+		my $canskip = 1;
+		if($child->{xmlname} eq 'classification'){
+			$canskip = 0;
+		}
+		if($child->{mandatory}){
+			$canskip = 0;
+		}
+
+		if($canskip && (!defined($child->{ui_value}) || ($child->{ui_value} eq '')) && $children_size == 0){
+			next;
+		}
+
+		# this way we remove source and taxon from taxonpath,
+		# but then the taxonpath will be empty
+		if($child->{xmlname} eq 'taxonpath'){
+			# check 'source'
+			if(@{$child->{children}}[0]->{ui_value} eq ''){
+				# if it's empty, we skip the whole taxonpath
+				next;
+			}
+		}
+		
+		my $compressed_child =
+		{
+			xmlns => $child->{xmlns},
+			xmlname => $child->{xmlname},
+			ui_value => $child->{ui_value},
+			ordered => $child->{ordered},
+			datatype => $child->{datatype},
+		};
+		if(exists($child->{data_order})){
+			$compressed_child->{data_order} = $child->{data_order};
+		}
+		if(exists($child->{value_lang})){
+			$compressed_child->{value_lang} = $child->{value_lang};
+		}		
+
+		if($children_size > 0){
+			$compressed_child->{children} = ();			
+			$self->json_2_uwmetadata_rec($c, $child->{children}, $compressed_child->{children});
+		}
+
+		push @$compressed, $compressed_child;
+	}
+}
+
 
 1;
 __END__

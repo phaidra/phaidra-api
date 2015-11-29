@@ -91,6 +91,39 @@ sub json2xml {
 	$self->render(json => { alerts => $res->{alerts}, metadata => { uwmetadata => $uwmetadataxml } } , status => $res->{status});
 }
 
+sub compress {
+  my $self = shift;
+
+  my $res = { alerts => [], status => 200 };
+
+  my $metadata = $self->param('metadata');
+  unless(defined($metadata)){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
+    return;
+  }
+
+  if(ref $metadata eq 'Mojo::Upload'){
+    $self->app->log->debug("Metadata sent as file param");
+    $metadata = $metadata->asset->slurp;
+    $metadata = decode_json($metadata);
+  }else{
+    # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
+    $metadata = decode_json(b($metadata)->encode('UTF-8'));
+  }
+
+  unless(defined($metadata->{metadata})){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
+    return;
+  }
+  $metadata = $metadata->{metadata};
+
+  my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
+  my @compressed = ();
+  $metadata_model->compress_json($self, $metadata->{uwmetadata}, \@compressed);
+
+  $self->render(json => { alerts => $res->{alerts}, metadata => { uwmetadata => \@compressed } } , status => $res->{status});
+}
+
 sub xml2json {
 	my $self = shift;
 
