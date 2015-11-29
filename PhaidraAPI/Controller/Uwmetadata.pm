@@ -151,9 +151,9 @@ sub decompress {
   $metadata = $metadata->{metadata};
 
   my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
-  my @decompressed = $metadata_model->decompress_json($self, $metadata->{uwmetadata});
+  my $decompressed = $metadata_model->decompress_json($self, $metadata->{uwmetadata});
 
-  $self->render(json => { alerts => $res->{alerts}, metadata => { uwmetadata => \@decompressed } } , status => $res->{status});
+  $self->render(json => { alerts => $res->{alerts}, metadata => { uwmetadata => $decompressed } } , status => $res->{status});
 }
 
 sub xml2json {
