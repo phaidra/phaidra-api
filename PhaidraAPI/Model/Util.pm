@@ -220,9 +220,12 @@ sub validate_xml(){
   my $parser = XML::LibXML->new;
 
   eval {
+
+    $c->app->log->debug("Validating: ".$xml);
+
     my $document = $parser->parse_string($xml);
 
-    $c->app->log->debug("Validating: ".$document->toString(1));
+    #$c->app->log->debug("Validating: ".$document->toString(1));
 
     $schema->validate($document)
   };

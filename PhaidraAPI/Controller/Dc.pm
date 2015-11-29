@@ -38,6 +38,22 @@ sub get {
     return;
   }
 
+  if($format eq 'index'){
+    my %dc_index;
+    for my $f (@{$res->{dc}}){      
+      if(exists($f->{attributes})){
+        for my $a (@{$f->{attributes}}){
+          if($a->{xmlname} eq 'xml:lang'){
+            push @{$dc_index{$f->{xmlname}."_".$a->{ui_value}}}, $f->{ui_value};    
+          }
+        }        
+      }
+      push @{$dc_index{$f->{xmlname}}}, $f->{ui_value};
+    }    
+    $self->render(json => { metadata => { dc_index => \%dc_index } }, status => $res->{status});
+    return;
+  }
+
   $self->render(json => { metadata => $res }, status => $res->{status});
 }
 
