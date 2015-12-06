@@ -241,6 +241,7 @@ sub startup {
   $r->route('mods/json2xml')                      ->via('post')   ->to('mods#json2xml');
   $r->route('mods/xml2json')                      ->via('post')   ->to('mods#xml2json');
   $r->route('mods/validate')                      ->via('post')   ->to('mods#validate');
+  # possible parameters: fix, pid
   $r->route('mods/json2xml_validate')             ->via('post')   ->to('mods#json2xml_validate');
 
   $r->route('rights/json2xml')                    ->via('post')   ->to('rights#json2xml');

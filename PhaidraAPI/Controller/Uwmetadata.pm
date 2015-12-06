@@ -209,6 +209,15 @@ sub json2xml_validate {
   $metadata = $metadata->{metadata};
 
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
+
+  if($self->param('fix') eq '1'){
+    if($self->param('pid')){
+      $metadata_model->fix_uwmetadata($self, $self->param('pid'), $metadata->{uwmetadata});
+    }else{
+      $metadata_model->fix_uwmetadata($self, 'o:0', $metadata->{uwmetadata});
+    }
+  }
+
 	my $uwmetadataxml = $metadata_model->json_2_uwmetadata($self, $metadata->{uwmetadata});
   my $util_model = PhaidraAPI::Model::Util->new;
   my $res = $util_model->validate_xml($self, $uwmetadataxml, $self->app->config->{validate_uwmetadata});
