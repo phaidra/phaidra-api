@@ -13,6 +13,7 @@ use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Util;
 use PhaidraAPI::Model::Uwmetadata;
 use PhaidraAPI::Model::Licenses;
+use PhaidraAPI::Model::Terms;
 
 our %cmodelMapping =
 (
@@ -123,7 +124,6 @@ sub xml_2_json_rec {
         my $ns = $1;
         my $id = $2;
         my $node;
-        #$c->app->log->debug("XXXXX type [$type] ns [$ns] id [$id]");
         $node->{xmlname} = $id;
         if(defined($e->text) && $e->text ne ''){
           $node->{ui_value} = b($e->text)->decode('UTF-8');
@@ -212,7 +212,7 @@ sub map_mods_2_dc {
   # keep using 'mods' as the first node in selectors to avoid running into relatedItem
   my %dc_p;
   $dc_p{title} = $self->_get_mods_titles($c, $dom);
-  $dc_p{subject} = $self->_get_mods_element_values($c, $dom, 'mods > subject > topic');
+  $dc_p{subject} = $self->_get_mods_subjects($c, $dom);
   my $classifications = $self->_get_mods_classifications($c, $dom);
   push @{$dc_p{subject}}, @$classifications;
   $dc_p{identifier} = $self->_get_mods_element_values($c, $dom, 'mods > identifier');
@@ -226,10 +226,8 @@ sub map_mods_2_dc {
   $dc_p{description} = $self->_get_mods_element_values($c, $dom, 'mods > note');
   # maps specific
   my $scales = $self->_get_mods_element_values($c, $dom, 'mods > subject > cartographics > scale');
-  my @scales_en = map { { value => "Scale 1:".$_->{value}, lang => 'en' } } @$scales;
-  push @{$dc_p{description}}, @scales_en;
-  my @scales_de = map { { value => "Maßstab 1:".$_->{value}, lang => 'de' } } @$scales;
-  push @{$dc_p{description}}, @scales_de;
+  my @scales_arr = map { { value => "1:".$_->{value} } } @$scales;
+  push @{$dc_p{description}}, @scales_arr;
 
   my $extents = $self->_get_mods_element_values($c, $dom, 'mods > physicalDescription > extent');
   push @{$dc_p{description}}, @$extents;
@@ -239,7 +237,6 @@ sub map_mods_2_dc {
   push @{$dc_p{publisher}}, @$publisher_places;
 
   $dc_p{rights} = $self->_get_mods_element_values($c, $dom, 'mods > accessCondition[type="use and reproduction"]');
-
 
   # FIXME GEO datastream to DCMI BOX
 
@@ -265,9 +262,40 @@ sub _get_mods_classifications {
 
   my @cls;
   for my $e ($dom->find('mods > classification')->each){
-    my $uri = $e->text;
-    my $label;
-    push @cls, { value => $label };
+    my $text = $e->text;
+    if(defined($text) && $text ne ''){
+      if(defined($e->attr->{authority}) && $e->attr->{authority} ne ''){
+        $text = $e->attr->{authority}.": ".$text; 
+      }
+      push @cls, { value => $text };
+    }else{
+      if(defined($e->attr->{valueURI}){    
+        my $uri = $e->attr->{valueURI};
+        my $terms_model = PhaidraAPI::Model::Terms->new;
+        my $res = $terms_model->label($c, $uri); 
+        if($res->{status} eq 200){
+          if(defined($res->{labels})){
+            if(defined($res->{labels}->{labels})){
+              # use only en if available
+              if(defined($res->{labels}->{labels}->{en})){
+                push @cls, { value => $res->{labels}->{labels}->{en}, lang => 'eng' };
+              }else{
+                # if en not available, use everything else
+                if(defined($res->{labels}->{labels}->{de})){
+                  push @cls, { value => $res->{labels}->{labels}->{de}, lang => 'deu' };
+                }
+                if(defined($res->{labels}->{labels}->{it})){
+                  push @cls, { value => $res->{labels}->{labels}->{it}, lang => 'ita' };
+                }
+              }
+            }
+          }
+        }else{
+          $c->app->log->error("Could not fetch label for classification uri[$uri] res=".$c->app->dumper($res));
+        }
+      }
+    }
+    
   }
 
   return \@cls;
@@ -370,6 +398,31 @@ sub _get_mods_relations {
   }
 
   return \@relations;
+}
+
+sub _get_mods_subjects {
+  my ($self, $c, $dom) = @_;
+
+  my @subs;
+
+  for my $e ($dom->find('subject')->each){
+    my @s_arr;
+    push @s_arr, $e->find('geographic')->map('text')->join("; ");
+    push @s_arr, $e->find('topic')->map('text')->join("; ");
+    push @s_arr, $e->find('genre')->map('text')->join("; ");
+    push @s_arr, $e->find('temporal')->map('text')->join("; ");
+    for my $n ($e->find('name')->each){
+      push @s_arr, $n->find('namePart')->map('text')->join(", ");      
+    }    
+
+    @s_arr = grep defined, @s_arr;
+    my $cnt = scalar @s_arr;
+    if($cnt > 0){
+      push @subs, { value => join(';', @s_arr) };
+    }
+  }
+
+  return \@subs;
 }
 
 sub _get_mods_titles {

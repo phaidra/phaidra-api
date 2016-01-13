@@ -537,9 +537,12 @@ sub add_datastream {
 	my $ua = Mojo::UserAgent->new;
 	my $post;
 	if($dscontent){
-  	$post = $ua->post($url => $dscontent);
+	  if($mimetype eq 'text/xml'){
+	    $dscontent = encode 'UTF-8', $dscontent;
+	  }
+  	  $post = $ua->post($url => $dscontent);
 	}else{
-		$post = $ua->post($url);
+	  $post = $ua->post($url);
 	}
   if (my $r = $post->success) {
   	#unshift @{$res->{alerts}}, { type => 'success', msg => $r->body };
@@ -598,7 +601,10 @@ sub modify_datastream {
 	my $ua = Mojo::UserAgent->new;
 	my $put;
 	if($dscontent){
-  	$put = $ua->put($url => $dscontent);
+		if($mimetype eq 'text/xml'){
+		  $dscontent = encode 'UTF-8', $dscontent;
+		}
+  		$put = $ua->put($url => $dscontent);
 	}else{
 		$put = $ua->put($url);
 	}
@@ -637,11 +643,6 @@ sub add_or_modify_datastream {
 		unshift @{$res->{alerts}}, @{$sr->{alerts}};
 		$res->{status} = $sr->{status};
 		return $res;
-	}
-
-	# encode
-	if($controlgroup eq 'X'){
-		$dscontent = encode 'UTF-8', $dscontent;
 	}
 
 	#$c->app->log->debug("XXXXXXXXXX ".$dscontent);
