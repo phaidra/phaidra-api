@@ -269,7 +269,7 @@ sub _get_mods_classifications {
       }
       push @cls, { value => $text };
     }else{
-      if(defined($e->attr->{valueURI}){    
+      if(defined($e->attr->{valueURI})){    
         my $uri = $e->attr->{valueURI};
         my $terms_model = PhaidraAPI::Model::Terms->new;
         my $res = $terms_model->label($c, $uri); 
@@ -407,15 +407,17 @@ sub _get_mods_subjects {
 
   for my $e ($dom->find('subject')->each){
     my @s_arr;
-    push @s_arr, $e->find('geographic')->map('text')->join("; ");
-    push @s_arr, $e->find('topic')->map('text')->join("; ");
-    push @s_arr, $e->find('genre')->map('text')->join("; ");
-    push @s_arr, $e->find('temporal')->map('text')->join("; ");
+    # not 'cartographics' (scale is saved there), that goes to description
+    push @s_arr, $e->find('geographic')->map('text')->join(";");
+    push @s_arr, $e->find('topic')->map('text')->join(";");
+    push @s_arr, $e->find('genre')->map('text')->join(";");
+    push @s_arr, $e->find('temporal')->map('text')->join(";");
     for my $n ($e->find('name')->each){
-      push @s_arr, $n->find('namePart')->map('text')->join(", ");      
+      push @s_arr, $n->find('namePart')->map('text')->join(",");      
     }    
 
     @s_arr = grep defined, @s_arr;
+    @s_arr = grep /\w+/, @s_arr;
     my $cnt = scalar @s_arr;
     if($cnt > 0){
       push @subs, { value => join(';', @s_arr) };
