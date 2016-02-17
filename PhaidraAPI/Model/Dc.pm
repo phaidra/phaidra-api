@@ -183,7 +183,16 @@ sub generate_dc_from_mods {
     push @{$res->{alerts}}, $a;
   }
   if($r1->{status} ne 200){
-    $res->status = $r1->{status};
+    $res->{status} = $r1->{status};
+  }
+
+  # we have to add this because we need that info in triplestore and old hooks won't update DC for MODS
+  $r1 = $object_model->add_or_modify_datastream($c, $pid, "DC", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", $username, $password, 1);
+  foreach my $a (@{$r1->{alerts}}){
+    push @{$res->{alerts}}, $a;
+  }
+  if($r1->{status} ne 200){
+    $res->{status} = $r1->{status};
   }
 
   # OAI DC - unqualified
@@ -192,7 +201,7 @@ sub generate_dc_from_mods {
     push @{$res->{alerts}}, $a;
   }
   if($r2->{status} ne 200){
-    $res->status = $r2->{status};
+    $res->{status} = $r2->{status};
   }
 
   return $res;

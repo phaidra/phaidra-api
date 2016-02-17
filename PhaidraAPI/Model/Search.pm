@@ -220,7 +220,7 @@ sub related_objects_mptmysql(){
 
 	# if tripplestore does not know the relation or relation is no provided
 	# then there are no related objects
-    unless (defined ($relation) && exists ($relmap{"<$relation>"}))
+    if (defined ($relation) && !(exists($relmap{"<$relation>"})))
     {
     	unshift @{$res->{alerts}}, { type => 'danger', msg => "Unknown relation"};
 		$res->{status} = 400;

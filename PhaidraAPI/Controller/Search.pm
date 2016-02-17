@@ -51,7 +51,7 @@ sub related {
 	}
 	
 	if(defined($self->param('right'))){	
-		$limit = $self->param('right');
+		$right = $self->param('right');
 	}			
 	
 	if(defined($self->param('fields'))){
