@@ -14,6 +14,8 @@ use PhaidraAPI::Model::Util;
 use PhaidraAPI::Model::Uwmetadata;
 use PhaidraAPI::Model::Licenses;
 use PhaidraAPI::Model::Terms;
+use PhaidraAPI::Model::Search;
+use PhaidraAPI::Model::Languages;
 
 our %cmodelMapping =
 (
@@ -216,10 +218,14 @@ sub map_mods_2_dc {
   my $classifications = $self->_get_mods_classifications($c, $dom);
   push @{$dc_p{subject}}, @$classifications;
   $dc_p{identifier} = $self->_get_mods_element_values($c, $dom, 'mods > identifier');
+  my $relids = $self->_get_relsext_identifiers($c, $pid);
+  for my $relid (@$relids){
+    push $dc_p{identifier}, $relid;
+  }
   $dc_p{relation} = $self->_get_mods_relations($c, $dom);
   my $editions = $self->_get_mods_element_values($c, $dom, 'mods > originInfo > edition');
   push @{$dc_p{relation}}, @$editions;
-  $dc_p{language} = $self->_get_mods_element_values($c, $dom, 'mods >language > languageTerm');
+  $dc_p{language} = $self->_get_mods_element_values($c, $dom, 'mods > language > languageTerm');
   $dc_p{creator} = $self->_get_mods_creators($c, $dom, 'p');
   $dc_p{contributor} = $self->_get_mods_contributors($c, $dom, 'p');
   $dc_p{date} = $self->_get_mods_element_values($c, $dom, 'mods > originInfo > dateIssued[keyDate="yes"]');
@@ -237,6 +243,9 @@ sub map_mods_2_dc {
   push @{$dc_p{publisher}}, @$publisher_places;
 
   $dc_p{rights} = $self->_get_mods_element_values($c, $dom, 'mods > accessCondition[type="use and reproduction"]');
+
+  my $filesize = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
+  push $dc_p{format} = { value => "$filesize bytes" };
 
   # FIXME GEO datastream to DCMI BOX
 
@@ -500,6 +509,17 @@ sub generate_dc_from_uwmetadata {
     $res->{status} = $r2->{status};
   }
 
+  # Fedora's DC - for backward compatibility with frontend which only updates DC (see Hooks)
+=cut  
+  my $r1 = $object_model->add_or_modify_datastream($c, $pid, "DC", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", $username, $password);
+  foreach my $a (@{$r1->{alerts}}){
+    push @{$res->{alerts}}, $a;
+  }
+  if($r1->{status} ne 200){
+    $res->{status} = $r1->{status};
+  }
+=cut
+
   return $res;
 }
 
@@ -531,6 +551,10 @@ sub map_uwmetadata_2_dc_hash {
   }
 
   my $identifiers = $self->_get_uwm_identifiers($c, $dom, $tree, $metadata_model);
+  my $relids = $self->_get_relsext_identifiers($c, $pid);
+  for my $relid (@$relids){
+    push @$identifiers, $relid;
+  }
   my $titles = $self->_get_titles($c, $dom);
   my $descriptions = $self->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:description');
   my $languages = $self->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:language');
@@ -552,7 +576,7 @@ sub map_uwmetadata_2_dc_hash {
   my $versions_p = $self->_get_versions($c, $dom, $tree, $metadata_model, 'p');
   my $versions_oai = $self->_get_versions($c, $dom, $tree, $metadata_model, 'oai');
 
-  my $formats = $self->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:format');
+  my $formats = $self->_get_formats($c, $pid, $cmodel, $dom);
   
   my $srcs = $self->_get_sources($c, $dom, $tree, $metadata_model);
 
@@ -572,7 +596,6 @@ sub map_uwmetadata_2_dc_hash {
   # FIXME 'description or additional data' have to go to dc:rights too
   # <dc:subject xml:lang="deu">Apostelkommunion, tribelon</dc:subject>
   # <dc:subject xml:lang="eng">last supper, tribelon</dc:subject>
-  # <dc:format.extent>36664408 bytes</dc:format.extent>
   my $licenses = $self->_get_licenses($c, $dom, $tree, $metadata_model);
 
   # FIXME GEO datastream to DCMI BOX
@@ -589,11 +612,11 @@ sub map_uwmetadata_2_dc_hash {
   for my $c (@{$classifications}){
     push @subjects, $c;
   }
-
+  
   my @langs;  
   for my $l (@{$languages}){
     unless($l->{value} eq 'xx'){
-      push @langs, $l;
+      push @langs, { value => $PhaidraAPI::Model::Languages::iso639map{$l->{value}} };
     }
   }
 
@@ -631,7 +654,11 @@ sub map_uwmetadata_2_dc_hash {
   $dc_p{contributor} = $contributors_p if(defined($contributors_p));
   $dc_p{relation} = $relations;
   $dc_p{coverage} = $coverages;
-  $dc_p{rights} = $licenses;
+  # copy this, not just assign reference
+  # otherwise the $license will contain the $infoeurepoaccess_p values later
+  for my $v (@{$licenses}){ 
+    push @{$dc_p{rights}}, $v;
+  }
   for my $v (@{$infoeurepoaccess_p}){
     push @{$dc_p{rights}}, $v;
   }
@@ -643,10 +670,40 @@ sub map_uwmetadata_2_dc_hash {
   for my $v (@$versions_oai){
     push @{$dc_oai->{type}}, $v;
   }
+  $dc_oai->{rights} = ();
+  for my $v (@{$licenses}){ 
+    push @{$dc_oai->{rights}}, $v;
+  }
+  for my $v (@{$infoeurepoaccess_oai}){
+    push @{$dc_oai->{rights}}, $v;
+  }
   $dc_oai->{publisher} = $publishers_oai if(defined($publishers_oai));
   $dc_oai->{contributor} = $contributors_oai if(defined($contributors_oai));
 
+
   return (\%dc_p, $dc_oai);
+}
+
+sub _get_relsext_identifiers {
+  my ($self, $c, $pid) = @_;
+
+  my @ids;
+  my $search_model = PhaidraAPI::Model::Search->new;
+
+  my $query = "<info:fedora/$pid> <http://purl.org/dc/terms/identifier> *";
+  my $sr = $search_model->triples($c, $query, 0);
+  unless($sr->{status} eq 200){
+    $c->app->log->error("Could not query triplestore for identifiers.");
+    return \@ids;
+  }
+
+  for my $triple (@{$sr->{result}}){
+    my $id = @$triple[2];
+    $id =~ s/^\<+|\>+$//g;
+    push @ids, { value => $id };
+  }
+
+  return \@ids;
 }
 
 # {i}, {b}, {br}, {mailto}, {link}
@@ -721,7 +778,7 @@ sub _get_uwm_identifiers {
     if(defined($res)){
       $res = $res->text;
       if($res eq '1552099'){
-        $reslabel = 'http://dx.doi.org/';
+        $reslabel = 'doi:';
       }
       elsif($res eq '1552103'){
         $reslabel = 'urn:';
@@ -817,12 +874,43 @@ sub _get_licenses {
     for my $lic (@{$licenses->{licenses}}){
       if($v->{value} eq $lic->{lid}){
         push @arr, { value => $lic->{labels}->{en} };
-        push @arr, { value => $lic->{link_uri} };
+        push @arr, { value => $lic->{link_uri} } unless $lic->{lid} eq 1;
       }
     }
   }
 
   return \@arr;
+}
+
+sub _get_formats {
+
+  my ($self, $c, $pid, $cmodel, $dom) = @_;
+  
+  my $formats = $self->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:format');
+
+  # include filesize and mimetype of OCTETS
+  
+  my $filesize = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
+  push @$formats, { value => $filesize." bytes" } if defined($filesize);
+
+  return $formats;
+}
+
+sub _get_dsinfo_filesize {
+
+  my ($self, $c, $pid, $cmodel) = @_;
+  
+  my $search_model = PhaidraAPI::Model::Search->new;
+  my $xml = $search_model->_get_dsinfo_xml($c, $pid, $cmodel);
+
+  my $dom = Mojo::DOM->new();
+  $dom->xml(1);
+  $dom->parse($xml);
+
+  my $bytesize;
+  for my $e ($dom->find('dsinfo > filesize')->each){
+     return $e->text;
+  }
 }
 
 sub _get_infoeurepoaccess {

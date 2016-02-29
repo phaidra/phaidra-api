@@ -743,5 +743,52 @@ sub search_call() {
 	return $res;
 }
 
+sub _get_dsinfo_xml {
+
+  my ($self, $c, $pid, $cmodel) = @_;
+  
+  my %params;  
+  $params{DS} = "$pid+OCTETS+OCTETS.0";
+  $params{type} = $cmodel;
+  my $url = Mojo::URL->new;
+  $url->scheme('https');
+  $url->host($c->app->config->{phaidra}->{fedorabaseurl});
+  $url->path("dsinfo/dsinfo.cgi");
+  $url->query(\%params);
+
+  my $ua = Mojo::UserAgent->new;
+  my $tx = $ua->get($url);
+
+  if (my $reply = $tx->success) {
+  	return $reply->body;           
+  }else{
+    $c->app->log->error("Error getting filesize from dsinfo: ".$c->app->dumper($tx->error));
+  }
+}
+
+sub _get_objectinfo_xml {
+
+  my ($self, $c, $pid, $cmodel) = @_;
+  
+  my %params;  
+  $params{DS} = "$pid+OCTETS+OCTETS.0";
+  $params{type} = $cmodel;
+  my $url = Mojo::URL->new;
+  $url->scheme('https');
+  $url->host($c->app->config->{phaidra}->{fedorabaseurl});
+  $url->path("dsinfo/dsinfo.cgi");
+  $url->query(\%params);
+
+  my $ua = Mojo::UserAgent->new;
+  my $tx = $ua->get($url);
+
+  if (my $reply = $tx->success) {
+  	return $reply->body;           
+  }else{
+    $c->app->log->error("Error getting filesize from dsinfo: ".$c->app->dumper($tx->error));
+  }
+}
+
+
 1;
 __END__

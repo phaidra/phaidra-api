@@ -150,6 +150,57 @@ sub purge_relationship {
 
 }
 
+sub add_or_remove_identifier {
+
+  my $self = shift;
+
+  my $pid = $self->stash('pid');
+  unless(defined($pid)){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400);
+    return;
+  }
+
+  my $type = $self->stash('type');
+  unless(defined($type)){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined type' }]} , status => 400);
+    return;
+  }
+
+  my $id = $self->param('id');
+  unless(defined($id)){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined identifier' }]} , status => 400);
+    return;
+  }  
+
+  my $object;
+  if($type eq 'hdl'){
+    $object = 'hdl:'.$id;
+  }elsif($type eq 'doi'){
+    $object = 'doi:'.$id;
+  }elsif($type eq 'urn'){
+    $object = $id;
+  }else{
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Unknown identifier type' }]} , status => 400);
+    return;
+  }
+
+  my $object_model = PhaidraAPI::Model::Object->new;
+
+  my $r;
+  my $operation = $self->stash('operation');  
+  if($operation eq 'add'){
+    $r = $object_model->add_relationship($self, $pid, 'http://purl.org/dc/terms/identifier', $object, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  }elsif($operation eq 'remove'){
+    $r = $object_model->purge_relationship($self, $pid, 'http://purl.org/dc/terms/identifier', $object, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  }else{
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Unknown operation' }]} , status => 400);
+    return;
+  }
+
+  $self->render(json => $r, status => $r->{status}) ;
+
+}
+
 sub add_octets {
 	my $self = shift;
 

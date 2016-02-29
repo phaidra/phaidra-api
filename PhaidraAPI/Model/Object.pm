@@ -23,7 +23,10 @@ my %datastream_versionable = (
 	'UWMETADATA' => 'true',
 	'MODS' => 'true',
 	'RIGHTS' => 'true',
-	'GEO' => 'true'
+	'GEO' => 'true',
+	'DC' => 'false',
+	'DC_P' => 'false',
+	'DC_OAI' => 'false'
 );
 
 sub delete {
@@ -587,7 +590,7 @@ sub modify_datastream {
   $params{logMessage} = 'PhaidraAPI object/modify_datastream';
   $params{force} = 0;
   #$params{ignoreContent}
-
+#$c->app->log->debug("XXXXXXXXXX ".$c->app->dumper(\%params));
 #$username = $c->app->{config}->{phaidra}->{adminusername};
 #$password = $c->app->{config}->{phaidra}->{adminpassword};
 
@@ -811,7 +814,7 @@ sub add_relationship {
 		$res->{status} = 500;
 		return $res;
 	}
-	$c->app->log->debug("Connected");
+	#$c->app->log->debug("Connected");
 	my $soapres = $soap->addRelationship($pid, SOAP::Data->type(string => $predicate), SOAP::Data->type(string => $object), SOAP::Data->type(boolean => 0), undef);
 
 	if($soapres->fault)
@@ -819,6 +822,14 @@ sub add_relationship {
 		$c->app->log->error("Adding relationships for $pid failed: ".$soapres->faultcode.": ".$soapres->faultstring);
 		$res->{status} = 500;
 		unshift @{$res->{alerts}}, { type => 'danger', msg => "Adding relationships for $pid failed: ".$soapres->faultcode.": ".$soapres->faultstring};
+		return $res;
+	}
+
+	my $hooks_model = PhaidraAPI::Model::Hooks->new;
+	my $hr = $hooks_model->add_or_modify_relationships_hooks($c, $pid, $username, $password);
+	push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
+	$res->{status} = $hr->{status};
+	if($hr->{status} ne 200){
 		return $res;
 	}
 
@@ -854,7 +865,7 @@ sub add_relationships {
 		$res->{status} = 500;
 		return $res;
 	}
-	$c->app->log->debug("Connected");
+	#$c->app->log->debug("Connected");
 
 	my @rels = ();
 	foreach my $r (@$relationships)
@@ -878,6 +889,14 @@ sub add_relationships {
 		$c->app->log->error("Adding relationships for $pid failed:".$soapres->faultcode.": ".$soapres->faultstring);
 		$res->{status} = 500;
 		unshift @{$res->{alerts}}, { type => 'danger', msg => "Adding relationships for $pid failed: ".$soapres->faultcode.": ".$soapres->faultstring};
+		return $res;
+	}
+
+	my $hooks_model = PhaidraAPI::Model::Hooks->new;
+	my $hr = $hooks_model->add_or_modify_relationships_hooks($c, $pid, $username, $password);
+	push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
+	$res->{status} = $hr->{status};
+	if($hr->{status} ne 200){
 		return $res;
 	}
 
@@ -913,7 +932,7 @@ sub purge_relationship {
 		$res->{status} = 500;
 		return $res;
 	}
-	$c->app->log->debug("Connected");
+	#$c->app->log->debug("Connected");
 	my $soapres = $soap->purgeRelationship($pid, SOAP::Data->type(string => $predicate), SOAP::Data->type(string => $object), SOAP::Data->type(boolean => 0), undef);
 
 	if($soapres->fault)
@@ -921,6 +940,14 @@ sub purge_relationship {
 		$c->app->log->error("Removing relationships for $pid failed:".$soapres->faultcode.": ".$soapres->faultstring);
 		$res->{status} = 500;
 		unshift @{$res->{alerts}}, { type => 'danger', msg => "Removing relationship for $pid failed:".$soapres->faultcode.": ".$soapres->faultstring};
+		return $res;
+	}
+
+	my $hooks_model = PhaidraAPI::Model::Hooks->new;
+	my $hr = $hooks_model->add_or_modify_relationships_hooks($c, $pid, $username, $password);
+	push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
+	$res->{status} = $hr->{status};
+	if($hr->{status} ne 200){
 		return $res;
 	}
 
@@ -957,7 +984,7 @@ sub purge_relationships {
 		$res->{status} = 500;
 		return $res;
 	}
-	$c->app->log->debug("Connected");
+	#$c->app->log->debug("Connected");
 
 	my @rels = ();
 	foreach my $r (@$relationships)
@@ -980,6 +1007,14 @@ sub purge_relationships {
 		$c->app->log->error("Removing relationships for $pid failed:".$soapres->faultcode.": ".$soapres->faultstring);
 		$res->{status} = 500;
 		unshift @{$res->{alerts}}, { type => 'danger', msg => "Removing relationships for $pid failed: ".$soapres->faultcode.": ".$soapres->faultstring};
+		return $res;
+	}
+
+	my $hooks_model = PhaidraAPI::Model::Hooks->new;
+	my $hr = $hooks_model->add_or_modify_relationships_hooks($c, $pid, $username, $password);
+	push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
+	$res->{status} = $hr->{status};
+	if($hr->{status} ne 200){
 		return $res;
 	}
 
