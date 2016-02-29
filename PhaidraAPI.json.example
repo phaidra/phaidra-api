@@ -44,7 +44,7 @@
 
     "languages_file":"/var/www/phaidra-api/public/languages/languages.json",
 
-
+    "dcaffiliationcodes": 1,
 
     "terms": {
     	"search_results_limit": 50
