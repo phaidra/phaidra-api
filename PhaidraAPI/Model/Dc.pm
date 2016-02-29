@@ -227,7 +227,7 @@ sub map_mods_2_dc {
   my $classifications = $self->_get_mods_classifications($c, $dom);
   push @{$dc_p{subject}}, @$classifications;
   $dc_p{identifier} = $self->_get_mods_element_values($c, $dom, 'mods > identifier');
-  push @{$dc_p{identifier}}, { value => "https://".$c->app->config->{phaidra}->{baseurl}."/".$pid };
+  push @{$dc_p{identifier}}, { value => "http://".$c->app->config->{phaidra}->{baseurl}."/".$pid };
   my $relids = $self->_get_relsext_identifiers($c, $pid);
   for my $relid (@$relids){
     push $dc_p{identifier}, $relid;
@@ -613,7 +613,7 @@ sub map_uwmetadata_2_dc_hash {
   # get provenience versions
 
 
-  push @$identifiers, { value => "https://".$c->app->config->{phaidra}->{baseurl}."/".$pid };
+  push @$identifiers, { value => "http://".$c->app->config->{phaidra}->{baseurl}."/".$pid };
 
   my @subjects;
   for my $k (@{$keywords}){
