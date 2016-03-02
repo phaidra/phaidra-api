@@ -23,6 +23,8 @@ sub triples {
 sub id {
 	my $self = shift;
 
+	my $res = { alerts => [], status => 200 };
+
 	unless(defined($self->stash('pid'))){		
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;		
 		return;
@@ -31,6 +33,9 @@ sub id {
 	my $search_model = PhaidraAPI::Model::Search->new;
 	my $sr = $search_model->triples($self, "<info:fedora/".$self->stash('pid')."> <http://purl.org/dc/terms/identifier> *", 0);
 
+	$res->{alerts} = $sr->{alerts};
+	$res->{status} = $sr->{status};
+
 	my @ids;
 	for my $triple (@{$sr->{result}}){
       my $id = @$triple[2];
@@ -38,7 +43,9 @@ sub id {
       push @ids, $id;
     }
 
-	$self->render(json => \@ids, status => $sr->{status});	
+    $res->{ids} = \@ids;
+
+	$self->render(json => $res, status => $res->{status});	
 }
 
 sub related {
