@@ -631,19 +631,25 @@ sub map_uwmetadata_2_dc_hash {
   }
 
   for my $v (@$creators_p){
+if(ref($v) eq 'HASH'){
     if(defined($v->{date}) && ($v->{date} ne '')) {
       push @$dates, { value => $v->{date}};
     }
+}
   }
   for my $v (@$publishers_p){
+   if(ref($v) eq 'HASH'){
     if(defined($v->{date}) && ($v->{date} ne '')) {
       push @$dates, { value => $v->{date}};
     }
+   }
   }
   for my $v (@$contributors_p){
+if(ref($v) eq 'HASH'){
     if(defined($v->{date}) && ($v->{date} ne '')) {
       push @$dates, { value => $v->{date}};
-    }
+}   
+ }
   }
 
   my %dc_p;
