@@ -340,8 +340,8 @@ sub startup {
     $apiauth->route('object/:pid/relationship/add')                     ->via('post')     ->to('object#add_relationship');
     $apiauth->route('object/:pid/relationship/remove')                  ->via('post')     ->to('object#purge_relationship');
 
-    $apiauth->route('object/:pid/id/:type/add')                         ->via('post')     ->to('object#add_or_remove_identifier', operation => 'add');
-    $apiauth->route('object/:pid/id/:type/remove')                      ->via('post')     ->to('object#add_or_remove_identifier', operation => 'remove');    
+    $apiauth->route('object/:pid/id/add')                               ->via('post')     ->to('object#add_or_remove_identifier', operation => 'add');
+    $apiauth->route('object/:pid/id/remove')                            ->via('post')     ->to('object#add_or_remove_identifier', operation => 'remove');    
 
     $apiauth->route('object/:pid/datastream/:dsid')                     ->via('post')     ->to('object#add_or_modify_datastream');
     $apiauth->route('object/:pid/data')                                 ->via('post')     ->to('object#add_octets');

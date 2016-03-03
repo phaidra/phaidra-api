@@ -134,19 +134,18 @@ sub add_relationship {
 sub purge_relationship {
 
 	my $self = shift;
-
     unless(defined($self->stash('pid'))){
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
 		return;
 	}
 
-    my $predicate = $self->param('predicate');
+  my $predicate = $self->param('predicate');
 	my $object = $self->param('object');
 
 	my $object_model = PhaidraAPI::Model::Object->new;
-    my $r = $object_model->purge_relationship($self, $self->stash('pid'), $predicate, $object, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  my $r = $object_model->purge_relationship($self, $self->stash('pid'), $predicate, $object, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 
-   	$self->render(json => $r, status => $r->{status}) ;
+  $self->render(json => $r, status => $r->{status}) ;
 
 }
 
@@ -160,41 +159,36 @@ sub add_or_remove_identifier {
     return;
   }
 
-  my $type = $self->stash('type');
-  unless(defined($type)){
-    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined type' }]} , status => 400);
+  my $operation = $self->stash('operation');  
+  unless($operation){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Unknown operation' }]} , status => 400);
     return;
   }
 
-  my $id = $self->param('id');
-  unless(defined($id)){
-    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined identifier' }]} , status => 400);
+  my @ids;
+  if($self->param('hdl')){
+    push @ids, "hdl:".$self->param('hdl');
+  }
+  if($self->param('doi')){
+    push @ids, "doi:".$self->param('doi');
+  }
+  if($self->param('urn')){
+    push @ids, $self->param('urn');
+  }
+
+  unless(scalar @ids > 0){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No known identifier sent (param should be [hdl|doi|urn])' }]} , status => 400);
     return;
   }  
 
-  my $object;
-  if($type eq 'hdl'){
-    $object = 'hdl:'.$id;
-  }elsif($type eq 'doi'){
-    $object = 'doi:'.$id;
-  }elsif($type eq 'urn'){
-    $object = $id;
-  }else{
-    $self->render(json => { alerts => [{ type => 'danger', msg => 'Unknown identifier type' }]} , status => 400);
-    return;
-  }
-
   my $object_model = PhaidraAPI::Model::Object->new;
-
   my $r;
-  my $operation = $self->stash('operation');  
-  if($operation eq 'add'){
-    $r = $object_model->add_relationship($self, $pid, 'http://purl.org/dc/terms/identifier', $object, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
-  }elsif($operation eq 'remove'){
-    $r = $object_model->purge_relationship($self, $pid, 'http://purl.org/dc/terms/identifier', $object, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
-  }else{
-    $self->render(json => { alerts => [{ type => 'danger', msg => 'Unknown operation' }]} , status => 400);
-    return;
+  for my $id (@ids){
+    if($operation eq 'add'){
+      $r = $object_model->add_relationship($self, $pid, 'http://purl.org/dc/terms/identifier', $id, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+    }elsif($operation eq 'remove'){
+      $r = $object_model->purge_relationship($self, $pid, 'http://purl.org/dc/terms/identifier', $id, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+    }
   }
 
   $self->render(json => $r, status => $r->{status}) ;
