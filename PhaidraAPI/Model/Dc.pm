@@ -230,7 +230,7 @@ sub map_mods_2_dc {
   push @{$dc_p{identifier}}, { value => "http://".$c->app->config->{phaidra}->{baseurl}."/".$pid };
   my $relids = $self->_get_relsext_identifiers($c, $pid);
   for my $relid (@$relids){
-    push $dc_p{identifier}, $relid;
+    push @{$dc_p{identifier}}, $relid;
   }
   $dc_p{relation} = $self->_get_mods_relations($c, $dom);
   my $editions = $self->_get_mods_element_values($c, $dom, 'mods > originInfo > edition');
@@ -255,7 +255,7 @@ sub map_mods_2_dc {
   $dc_p{rights} = $self->_get_mods_element_values($c, $dom, 'mods > accessCondition[type="use and reproduction"]');
 
   my $filesize = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
-  push $dc_p{format} = { value => "$filesize bytes" };
+  push @{$dc_p{format}} => { value => "$filesize bytes" };
 
   # FIXME GEO datastream to DCMI BOX
 
@@ -578,7 +578,7 @@ sub map_uwmetadata_2_dc_hash {
   }
   my $embargodates = $self->_get_uwm_element_values($c, $dom, $doc_uwns{'extended'}.'\:infoeurepoembargo');
   for my $em (@{$embargodates}){
-    push $dates, $em;
+    push @$dates, $em;
   }
   my $types_p = $self->_get_types($c, $cmodel, $dom, $tree, $metadata_model, 'p');
   my $types_oai = $self->_get_types($c, $cmodel, $dom, $tree, $metadata_model, 'oai');

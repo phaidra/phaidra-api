@@ -478,7 +478,7 @@ sub add_properties_rec {
   #$c->app->log->debug("XXXXXXXXX searching p [$path] chp [$child_path]");
   my $ref_node = dclone($mods_nodes_hash->{$child_path});
 
-  foreach my $k (keys $ref_node){
+  foreach my $k (keys %$ref_node){
       if($k ne 'attributes' && $k ne 'children' && $k ne 'ui_value'){
         $node->{$k} = $ref_node->{$k};
       }
@@ -491,7 +491,7 @@ sub add_properties_rec {
     if(exists($node->{attributes})){
       foreach my $n_a (@{$node->{attributes}}){
         if($n_a->{xmlname} eq $r_a->{xmlname}){
-          foreach my $k (keys $r_a){
+          foreach my $k (keys %$r_a){
               if($k ne 'attributes' && $k ne 'children' && $k ne 'ui_value'){
                 $n_a->{$k} = $r_a->{$k};
               }
