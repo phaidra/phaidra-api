@@ -577,6 +577,7 @@ sub map_uwmetadata_2_dc_hash {
     $dates = $self->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:upload_date');
   }
   my $embargodates = $self->_get_uwm_element_values($c, $dom, $doc_uwns{'extended'}.'\:infoeurepoembargo');
+  $dates= [] unless (defined ($dates)); # this should fix this error: [Tue Mar 15 15:45:50 2016] [error] Type of arg 1 to push must be array (not private variable) at PhaidraAPI/Model/Dc.pm line 581, near "$em;"
   for my $em (@{$embargodates}){
     push @$dates, $em;
   }
