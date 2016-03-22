@@ -894,7 +894,7 @@ sub add_relationships {
 
 	my $hooks_model = PhaidraAPI::Model::Hooks->new;
 	my $hr = $hooks_model->add_or_modify_relationships_hooks($c, $pid, $username, $password);
-	push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
+	push @{$res->{alerts}}, $hr->{alerts} if exists $hr->{alerts};
 	$res->{status} = $hr->{status};
 	if($hr->{status} ne 200){
 		return $res;

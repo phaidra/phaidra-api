@@ -37,6 +37,8 @@ sub add_or_modify_relationships_hooks {
 
   my ($self, $c, $pid, $username, $password) = @_;
 
+  my $res = { alerts => [], status => 200 };
+
   my $dc_model = PhaidraAPI::Model::Dc->new;
   my $object_model = PhaidraAPI::Model::Object->new;
   my $search_model = PhaidraAPI::Model::Search->new;
@@ -45,8 +47,10 @@ sub add_or_modify_relationships_hooks {
     return $r;
   }
 
-  if($r->{dshash}->{'UWMETADATA'}){
-    my $res = $object_model->get_datastream($c, $pid, 'UWMETADATA', $username, $password);
+  #$c->app->log->debug("XXXXXXXXXXXXXXXXXXXXX: ".$c->app->dumper($r->{dshash}));
+
+  if(exists($r->{dshash}->{'UWMETADATA'})){
+    $res = $object_model->get_datastream($c, $pid, 'UWMETADATA', $username, $password);
     if($res->{status} ne 200){
       return $res;
     }  
@@ -54,8 +58,8 @@ sub add_or_modify_relationships_hooks {
     return $dc_model->generate_dc_from_uwmetadata($c, $pid, $res->{UWMETADATA}, $username, $password);          
   }
 
-  if($r->{dshash}->{'MODS'}){
-    my $res = $object_model->get_datastream($c, $pid, 'MODS', $username, $password);
+  if(exists($r->{dshash}->{'MODS'})){
+    $res = $object_model->get_datastream($c, $pid, 'MODS', $username, $password);
     if($res->{status} ne 200){
       return $res;
     }  
@@ -63,6 +67,7 @@ sub add_or_modify_relationships_hooks {
     return $dc_model->generate_dc_from_mods($c, $pid, $res->{MODS}, $username, $password);    
   }
 
+  return $res;
 }
 
 1;
