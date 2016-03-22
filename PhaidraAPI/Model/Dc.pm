@@ -1280,9 +1280,18 @@ sub _create_dc_from_hash {
       next if ($n eq '');      
       next unless (defined ($n->{value}));
 
-      $dc_xml .= '   <dc:' . $k;
-      $dc_xml .= ' xml:lang="' . $PhaidraAPI::Model::Util::iso639map{$n->{lang}} . '"'if (exists($n->{lang}));
-      $dc_xml .= '>' . xml_escape($n->{value}) . '</dc:' . $k . ">\n";
+      if(ref($n) eq 'HASH'){
+         next unless (defined ($n->{value}));
+      
+         $dc_xml .= '   <dc:' . $k;
+         $dc_xml .= ' xml:lang="' . $PhaidraAPI::Model::Util::iso639map{$n->{lang}} . '"'if (exists($n->{lang}));
+         $dc_xml .= '>' . xml_escape($n->{value}) . '</dc:' . $k . ">\n";
+      }else{
+         next if ($n eq '');
+         $dc_xml .= '   <dc:' . $k;
+         $dc_xml .= '>' . xml_escape($n) . '</dc:' . $k . ">\n";
+      }
+
     }
   }
   $dc_xml .= "</oai_dc:dc>\n";
