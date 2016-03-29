@@ -140,69 +140,88 @@ sub get_members {
 
 	my $res = { members => [], alerts => [], status => 200 };
 
-	# get members
 	my $search_model = PhaidraAPI::Model::Search->new;
-	my $sr = $search_model->triples($c, "<info:fedora/$pid> <info:fedora/fedora-system:def/relations-external#hasCollectionMember> *");
-	push @{$res->{alerts}}, $sr->{alerts} if scalar @{$sr->{alerts}} > 0;
-	$res->{status} = $sr->{status};
-	if($sr->{status} ne 200){
-		return $res;
+
+	# get lastModifiedDate and check if the members are cached
+	my $lmd;
+	my $cachekey;
+	my $cached_members;	
+	my $r = $search_model->get_last_modified_date($c, $pid);
+    if($r->{status} eq 200){
+    	$cachekey = 'members_'.$pid.'_'.$r->{lastmodifieddate};  	
+    }else{
+		$c->app->log->error("Collection->get_members: Cannot get lastModifiedDate!");
+    }
+	if($cachekey){
+		$cached_members = $c->app->chi->get($cachekey);		
 	}
+	
+  	if($cached_members){
+  		$c->app->log->debug("[cache hit] $cachekey");
+  	}else{  		
+  		$c->app->log->debug("[cache miss] $cachekey");
+  		# get members
+		my $sr = $search_model->triples($c, "<info:fedora/$pid> <info:fedora/fedora-system:def/relations-external#hasCollectionMember> *");
+		push @{$res->{alerts}}, $sr->{alerts} if scalar @{$sr->{alerts}} > 0;
+		$res->{status} = $sr->{status};
+		if($sr->{status} ne 200){
+			return $sr;
+		}
 
-	my %members;
-	foreach my $statement (@{$sr->{result}}){
-		@{$statement}[2] =~ m/^\<info:fedora\/([a-zA-Z\-]+:[0-9]+)\>$/g;
-		$members{$1} = { 'pos' => undef };
-	}
+		my %members;
+		foreach my $statement (@{$sr->{result}}){
+			@{$statement}[2] =~ m/^\<info:fedora\/([a-zA-Z\-]+:[0-9]+)\>$/g;
+			$members{$1} = { 'pos' => undef };
+		}
 
-	# check order definition
-	my $search_model = PhaidraAPI::Model::Search->new;
-	my $sr = $search_model->datastream_exists($c, $pid, 'COLLECTIONORDER');
-	if($sr->{status} ne 200){
-		$c->app->log->error("Cannot find out if COLLECTIONORDER exists for pid: $pid and username: ".$c->stash->{basic_auth_credentials}->{username});
-	}else{
-		if($sr->{'exists'}){
-			my $object_model = PhaidraAPI::Model::Object->new;
-			my $ores = $object_model->get_datastream($c, $pid, 'COLLECTIONORDER', undef, undef, 1);
-			if($ores->{status} ne 200){
-				$c->app->log->error("Cannot get COLLECTIONORDER for pid: $pid and username: ".$c->stash->{basic_auth_credentials}->{username});
-			}else{
-				push @{$res->{alerts}}, $ores->{alerts} if scalar @{$ores->{alerts}} > 0;
-				$res->{status} = $ores->{status};
+		# check order definition		
+		my $sr2 = $search_model->datastream_exists($c, $pid, 'COLLECTIONORDER');
+		if($sr2->{status} ne 200){
+			$c->app->log->error("Cannot find out if COLLECTIONORDER exists for pid: $pid and username: ".$c->stash->{basic_auth_credentials}->{username});
+		}else{
+			if($sr2->{'exists'}){
+				my $object_model = PhaidraAPI::Model::Object->new;
+				my $ores = $object_model->get_datastream($c, $pid, 'COLLECTIONORDER', undef, undef, 1);
+				if($ores->{status} ne 200){
+					$c->app->log->error("Cannot get COLLECTIONORDER for pid: $pid and username: ".$c->stash->{basic_auth_credentials}->{username});
+				}else{
+					push @{$res->{alerts}}, $ores->{alerts} if scalar @{$ores->{alerts}} > 0;
+					$res->{status} = $ores->{status};
 
-				my $xml = Mojo::DOM->new();
-				$xml->xml(1);
-				$xml->parse($ores->{COLLECTIONORDER});
-				$xml->find('member[pos]')->each(sub {
-					my $m = shift;
-					my $pid = $m->text;
-					$members{$pid}->{'pos'} = $m->{'pos'};
-				});
+					my $xml = Mojo::DOM->new();
+					$xml->xml(1);
+					$xml->parse($ores->{COLLECTIONORDER});
+					$xml->find('member[pos]')->each(sub {
+						my $m = shift;
+						my $pid = $m->text;
+						$members{$pid}->{'pos'} = $m->{'pos'};
+					});
 
-				my @ordered_members;
-				foreach my $p (keys %members){
-					push @ordered_members, { pid => $p, 'pos' =>  $members{$p}->{'pos'}};
+					foreach my $p (keys %members){
+						push @$cached_members, { pid => $p, 'pos' => $members{$p}->{'pos'}};
+					}
+
+					sub undef_sort {
+					  return 1 unless(defined($a->{'pos'}));
+					  return -1 unless(defined($b->{'pos'}));
+					  return $a->{'pos'} <=> $b->{'pos'};
+					}
+					@$cached_members = sort undef_sort @$cached_members;									
 				}
-
-				sub undef_sort {
-				  return 1 unless(defined($a->{'pos'}));
-				  return -1 unless(defined($b->{'pos'}));
-				  return $a->{'pos'} <=> $b->{'pos'};
-				}
-				@ordered_members = sort undef_sort @ordered_members;
-
-				$res->{members} = \@ordered_members;
-				return $res;
 			}
 		}
-	}
 
-	# return non-ordered members
-	my @not_ordered_members;
-	foreach my $p (keys %members){
-		push @not_ordered_members, { pid => $p, 'pos' =>  undef};
+		# return non-ordered members
+		unless($cached_members){
+			foreach my $p (keys %members){
+				push @$cached_members, { pid => $p, 'pos' =>  undef};
+			}
+		}
+
+		$c->app->chi->set($cachekey, $cached_members, '1 day');	  	
 	}
-	$res->{members} = \@not_ordered_members;
+	
+	$res->{members} = $cached_members;
 	return $res;
 
 }

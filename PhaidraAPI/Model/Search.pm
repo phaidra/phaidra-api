@@ -515,6 +515,32 @@ sub get_state {
 
 }
 
+sub get_last_modified_date {	
+	my $self = shift;
+	my $c = shift;
+	my $pid = shift;
+
+	my $res = { alerts => [], status => 200 };
+
+	my $sr = $self->triples($c, "<info:fedora/$pid> <info:fedora/fedora-system:def/view#lastModifiedDate> *");
+	push @{$res->{alerts}}, $sr->{alerts} if scalar @{$sr->{alerts}} > 0;
+	$res->{status} = $sr->{status};
+	if($sr->{status} ne 200){
+		return $res;
+	}
+
+	foreach my $statement (@{$sr->{result}}){
+		if(@{$statement}[2] =~ m/\"([\d\-\:\.TZ]+)\"/){
+			$res->{lastmodifieddate} = $1;
+			return $res;
+		}
+	}
+
+	unshift @{$res->{alerts}}, { type => 'danger', msg => "Cannot get lastModifiedDate"};
+	$res->{status} = 500;
+	return $res;
+}
+
 sub datastreams_hash {
 	my $self = shift;
 	my $c = shift;
