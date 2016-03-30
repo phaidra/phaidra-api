@@ -221,7 +221,13 @@ sub get_members {
 		$c->app->chi->set($cachekey, $cached_members, '1 day');	  	
 	}
 	
-	$res->{members} = $cached_members;
+	# we have to return mempty array if there's is nothing	
+	unless(defined($cached_members)){
+		my @arr = ();
+		$res->{members} = \@arr;
+	}else{
+		$res->{members} = $cached_members;
+	}
 	return $res;
 
 }

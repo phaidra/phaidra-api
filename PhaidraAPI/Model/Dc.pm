@@ -171,11 +171,22 @@ sub generate_dc_from_mods {
   my ($self, $c, $pid, $dscontent, $username, $password) = @_;
 
   my $res = { alerts => [], status => 200 };
-
+  
   my $object_model = PhaidraAPI::Model::Object->new;
-  my $cmodel = $object_model->get_cmodel($c, $pid);
-
+  my $search_model = PhaidraAPI::Model::Search->new;
   my $mods_model = PhaidraAPI::Model::Uwmetadata->new;
+
+  my $cmodel;
+  
+  my $res_cmodel = $search_model->get_cmodel($c, $pid);
+  foreach my $a (@{$res_cmodel->{alerts}}){
+    push @{$res->{alerts}}, $a;
+  }
+  if($res_cmodel->{status} ne 200){
+    $res->{status} = $res_cmodel->{status};
+  }else{
+    $cmodel = $res_cmodel->{cmodel};
+  }  
 
   my ($dc_p, $dc_oai) = $self->map_mods_2_dc($c, $pid, $cmodel, $dscontent, $mods_model);
 
@@ -491,9 +502,21 @@ sub generate_dc_from_uwmetadata {
   my $res = { alerts => [], status => 200 };
 
   my $object_model = PhaidraAPI::Model::Object->new;
-  my $cmodel = $object_model->get_cmodel($c, $pid);
-
+  my $search_model = PhaidraAPI::Model::Search->new;
   my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
+
+  my $cmodel;
+  
+  my $res_cmodel = $search_model->get_cmodel($c, $pid);
+  foreach my $a (@{$res_cmodel->{alerts}}){
+    push @{$res->{alerts}}, $a;
+  }
+  if($res_cmodel->{status} ne 200){
+    $res->{status} = $res_cmodel->{status};
+  }else{
+    $cmodel = $res_cmodel->{cmodel};
+  }  
+  
   my $r0 = $metadata_model->metadata_tree($c);
   if($r0->{status} ne 200){
     return $res;
@@ -996,13 +1019,14 @@ sub _get_types {
       }
     }
   }
-  if(defined($types) && scalar @{$types} > 0){
-    return $types;
+  
+  unless(defined($types)){        
+    if(defined($cmodel) && exists($cmodelMapping{$cmodel})){
+      push @{$types}, { value => $cmodelMapping{$cmodel}, lang => 'en' };      
+    }
   }
 
-  if(defined($cmodel) && exists($cmodelMapping{$cmodel})){
-    return $cmodelMapping{$cmodel};
-  }
+  return $types;
 
 }
 
@@ -1189,8 +1213,11 @@ sub _get_affiliation_cached {
   my $cachekey = 'affid_'.$code.'_'.$lang;
   unless($inststr = $c->app->chi->get($cachekey))
   {
+    $c->app->log->debug("[cache miss] $cachekey");
     $inststr = $c->app->directory->get_affiliation($c, $code, $lang);
     $c->app->chi->set($cachekey, $inststr, '1 day');
+  }else{
+    $c->app->log->debug("[cache hit] $cachekey");
   }
 
   return $inststr;

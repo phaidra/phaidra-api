@@ -1028,36 +1028,9 @@ sub set_rights {
     my $username = shift;
     my $password = shift;
 
-
     my $res = { alerts => [], status => 200 };
 
-
   	return $res;
-}
-
-sub get_cmodel {
-	my $self = shift;
-	my $c = shift;
-	my $pid = shift;
-
-	my $res = { alerts => [], status => 200 };
-
-	my $search_model = PhaidraAPI::Model::Search->new;
-	my $r = $search_model->triples($c, "<info:fedora/$pid> <info:fedora/fedora-system:def/model#hasModel> *");
-	if($r->{status} ne 200){
-			return $r;
-	}
-
-	for my $t (@{$r->{results}}){
-		next if(@{$t}[2] =~ m/fedora-system/g);
-
-		@{$t}[2] =~ m/<(info:fedora\/)(\w+):(\w+)>/g;
-		if(defined($3) && $3 ne ''){
-			return $3;
-		}
-	}
-
-	return $res;
 }
 
 1;

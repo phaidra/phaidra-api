@@ -4,7 +4,6 @@ use strict;
 use warnings;
 use v5.10;
 use utf8;
-use Switch;
 use base qw/Mojo::Base/;
 use Mojo::ByteStream qw(b);
 use PhaidraAPI::Model::Dc;
@@ -17,17 +16,16 @@ sub add_or_modify_datastream_hooks {
 
   my $res = { alerts => [], status => 200 };
 
-  switch ($dsid) {
+  if ($dsid eq "UWMETADATA" ) {
 
-    case "UWMETADATA"	{      
       my $dc_model = PhaidraAPI::Model::Dc->new;      
       $res = $dc_model->generate_dc_from_uwmetadata($c, $pid, $dscontent, $username, $password);
-    }
-
-    case "MODS" {          
+  
+  }elsif ( $dsid eq "MODS") {          
+  
       my $dc_model = PhaidraAPI::Model::Dc->new;      
       $res = $dc_model->generate_dc_from_mods($c, $pid, $dscontent, $username, $password);
-    }
+  
   }
 
   return $res;

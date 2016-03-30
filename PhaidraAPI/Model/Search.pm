@@ -541,6 +541,44 @@ sub get_last_modified_date {
 	return $res;
 }
 
+
+sub get_cmodel {
+	my $self = shift;
+	my $c = shift;
+	my $pid = shift;
+
+	my $res = { alerts => [], status => 200 };
+
+	my $cmodel;
+  	my $cachekey = 'cmodel_'.$pid;
+  	unless($cmodel = $c->app->chi->get($cachekey))
+  	{
+  		$c->app->log->debug("[cache miss] $cachekey");
+
+  		my $search_model = PhaidraAPI::Model::Search->new;
+		my $r = $search_model->triples($c, "<info:fedora/$pid> <info:fedora/fedora-system:def/model#hasModel> *");
+		if($r->{status} ne 200){
+			return $r;
+		}
+
+		for my $t (@{$r->{result}}){
+			next if(@{$t}[2] =~ m/fedora-system/g);
+
+			@{$t}[2] =~ m/<(info:fedora\/)(\w+):(\w+)>/g;
+			if(defined($3) && $3 ne ''){
+				$cmodel = $3;
+			}
+		}
+
+		$c->app->chi->set($cachekey, $cmodel, '1 day');	    
+  	}else{
+  		$c->app->log->debug("[cache hit] $cachekey");
+  	}
+
+  	$res->{cmodel} = $cmodel;
+	return $res;
+}
+
 sub datastreams_hash {
 	my $self = shift;
 	my $c = shift;
