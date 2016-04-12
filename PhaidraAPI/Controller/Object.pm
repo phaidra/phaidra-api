@@ -76,6 +76,11 @@ sub create_simple {
     }
 
 	my $metadata = $self->param('metadata');
+  unless($metadata){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent.' }]}, status => 400);
+    return;
+  }
+
         if(ref $metadata eq 'Mojo::Upload'){
 	  $self->app->log->debug("Metadata sent as file param");
 	  $metadata = $metadata->asset->slurp;

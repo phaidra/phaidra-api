@@ -4,7 +4,6 @@ use strict;
 use warnings;
 use v5.10;
 use base qw/Mojo::Base/;
-use Switch;
 use Storable qw(dclone);
 use Mojo::ByteStream qw(b);
 use Mojo::JSON qw(encode_json decode_json);
