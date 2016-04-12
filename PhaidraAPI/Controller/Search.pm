@@ -82,7 +82,7 @@ sub related {
 	}			
 	
 	if(defined($self->param('fields'))){
-		@fields = $self->param('fields');
+		@fields = $self->every_param('fields');
 	}
 	
 	my $search_model = PhaidraAPI::Model::Search->new;
@@ -92,7 +92,11 @@ sub related {
 	
 		sub {
 			my $delay = shift;			
-			$search_model->related($self, $self->stash('pid'), $relation, $right, $from, $limit, \@fields, $delay->begin);			
+			if(@fields){
+				$search_model->related($self, $self->stash('pid'), $relation, $right, $from, $limit, @fields, $delay->begin);			
+			}else{
+				$search_model->related($self, $self->stash('pid'), $relation, $right, $from, $limit, undef, $delay->begin);
+			}
 		},
 		
 		sub { 	
@@ -140,7 +144,7 @@ sub search {
 	}	
 	
 	if(defined($self->param('fields'))){
-		@fields = $self->param('fields');
+		@fields = $self->every_param('fields');
 	}
 	
 	my $search_model = PhaidraAPI::Model::Search->new;			
@@ -152,7 +156,11 @@ sub search {
 	
 		sub {
 			my $delay = shift;			
-			$search_model->search($self, $query, $from, $limit, $sort, $reverse, \@fields, $delay->begin);			
+			if(@fields){
+				$search_model->search($self, $query, $from, $limit, $sort, $reverse, @fields, $delay->begin);			
+			}else{
+				$search_model->search($self, $query, $from, $limit, $sort, $reverse, undef, $delay->begin);			
+			}
 		},
 		
 		sub { 	
@@ -200,9 +208,9 @@ sub search_lucene {
 	}	
 	
 	if(defined($self->param('fields'))){
-		@fields = $self->param('fields');
+		@fields = $self->every_param('fields');
 	}
-	
+
 	my $search_model = PhaidraAPI::Model::Search->new;			
 
 	$self->render_later;
@@ -211,7 +219,11 @@ sub search_lucene {
 		sub {
 			my ($delay, $r) = @_;
 			# start async
-			$search_model->search($self, $query, $from, $limit, $sort, $reverse, \@fields, $delay->begin);				
+			if(@fields){
+				$search_model->search($self, $query, $from, $limit, $sort, $reverse, @fields, $delay->begin);				
+			}else{
+				$search_model->search($self, $query, $from, $limit, $sort, $reverse, undef, $delay->begin);				
+			}
 		},
 		
 		sub { 	
@@ -271,7 +283,7 @@ sub owner {
 	}	
 		
 	if(defined($self->param('fields'))){
-		@fields = $self->param('fields');
+		@fields = $self->every_param('fields');
 	}
 	
 	$self->render_later;
@@ -279,7 +291,11 @@ sub owner {
 	
 		sub {
 			my $delay = shift;
-			$search_model->search($self, $query, $from, $limit, $sort, $reverse, \@fields, $delay->begin);			
+			if(@fields){
+				$search_model->search($self, $query, $from, $limit, $sort, $reverse, @fields, $delay->begin);			
+			}else{
+				$search_model->search($self, $query, $from, $limit, $sort, $reverse, undef, $delay->begin);			
+			}
 		},
 		
 		sub { 	
