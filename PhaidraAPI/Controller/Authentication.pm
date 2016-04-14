@@ -5,6 +5,7 @@ use warnings;
 use v5.10;
 use Mojo::ByteStream qw(b);
 use base 'Mojolicious::Controller';
+use PhaidraAPI::Model::Object;
 
 sub extract_credentials {
 	my $self = shift;
@@ -98,7 +99,7 @@ sub signin {
     unless($auth_header)
     {
     	$self->res->headers->www_authenticate('Basic "'.$self->app->config->{authentication}->{realm}.'"');
-    	$self->render(json => { alerts => [{ type => 'danger', msg => 'please authenticate' }]} , status => 401) ;
+    	$self->render(json => { alerts => [{ type => 'danger', msg => 'please authenticate' }]} , status => 401);
     	return;
     }    
     my ($method, $str) = split(/ /,$auth_header);
@@ -108,7 +109,7 @@ sub signin {
     my $res = $self->stash('phaidra_auth_result');
     unless(($res->{status} eq 200)){    
     	$self->app->log->info("User $username not authenticated");	
-    	$self->render(json => { alerts => $res->{alerts}} , status => $res->{status}) ;
+    	$self->render(json => { alerts => $res->{alerts}} , status => $res->{status});
     	return;    		
     }    
     $self->app->log->info("User $username successfuly authenticated");
@@ -144,5 +145,32 @@ sub signout {
 	$self->render(json => { alerts => [{ type => 'success', msg => 'You have been signed out' }]}, status => 200);
 }
 
+sub check_rights {
+
+	my $self = shift;
+	my $op = $self->stash('op');
+	my $pid = $self->stash('pid');
+
+	my $ds;
+	if($op eq 'ro'){
+		$ds = 'READONLY';
+	}elsif($op eq 'rw'){
+		$ds = 'READWRITE';
+	}else{
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Unknown operation to check' }]} , status => 400);
+		return;
+	}
+
+	my $object_model = PhaidraAPI::Model::Object->new;
+    my $res = $object_model->get_datastream($self, $pid, $ds, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+
+    if($res->{status} eq '404'){
+    	$self->render(json => { status => '200' },status => 200);   
+    }else{
+    	$res->{status} = '403';
+    	$self->render(json => $res, status => 403);
+    }    
+
+}
 
 1;

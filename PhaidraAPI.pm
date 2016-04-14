@@ -320,6 +320,7 @@ sub startup {
   }
 
   $apiauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
+  $apiauth->route('authz/check/:pid/:op')                               ->via('get')      ->to('authentication#check_rights');
 
   unless($self->app->config->{readonly}){
 

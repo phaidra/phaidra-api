@@ -434,9 +434,8 @@ sub get_datastream {
   	}
 	else
 	{
-	  my ($err, $code) = $get->error;
-	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-	  $res->{status} =  $code ? $code : 500;
+	  unshift @{$res->{alerts}}, { type => 'danger', msg => $get->error->{message} };
+	  $res->{status} = $get->error->{code} ? $get->error->{code} : 500;
 	}
 
 	return $res;
