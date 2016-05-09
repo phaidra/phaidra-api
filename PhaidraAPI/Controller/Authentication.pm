@@ -90,6 +90,22 @@ sub authenticate {
     return 1;
 }
 
+sub authenticate_admin {
+
+	my $self = shift;
+
+	my $username = $self->stash->{basic_auth_credentials}->{username};
+	my $password = $self->stash->{basic_auth_credentials}->{password};
+	
+    unless( ($username eq $self->app->config->{phaidra}->{adminusername}) && ($password eq $self->app->config->{phaidra}->{adminpassword})){    
+    	$self->app->log->info("Not authenticated");	
+    	$self->render(json => { alerts => [{ type => 'danger', msg => "Not authenticated" }]}, status => 403 );
+    	return 0;    		
+    }    
+    $self->app->log->info("Admin successfuly authenticated");
+    return 1;
+}
+
 sub signin {
 	
 	my $self = shift;

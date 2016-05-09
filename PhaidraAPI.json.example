@@ -93,6 +93,10 @@
 
     },
 
+    "imageserver": {
+      "hash_secret": "changeme" 
+    },
+
     "frontends": [
         {
             "frontend_id": "phaidra_catalyst",
@@ -141,6 +145,15 @@
         "password": "password",
         "database": "database"
     },
+
+   "paf_mongodb": {
+      "host" : "host",
+      "port" : "27017",
+      "username" : "username",
+      "password" : "password",
+      "database" : "database"
+   },
+
 
     "authentication": {
 

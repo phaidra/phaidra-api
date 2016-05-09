@@ -118,6 +118,9 @@ sub startup {
   $self->plugin('database', { databases => \%databases } );
 
 	$self->helper(mango => sub { state $mango = Mango->new('mongodb://'.$config->{mongodb}->{username}.':'.$config->{mongodb}->{password}.'@'.$config->{mongodb}->{host}.'/'.$config->{mongodb}->{database}) });
+  if(exists($config->{paf_mongodb})){
+    $self->helper(paf_mongo => sub { state $paf_mongo = Mango->new('mongodb://'.$config->{paf_mongodb}->{username}.':'.$config->{paf_mongodb}->{password}.'@'.$config->{paf_mongodb}->{host}.'/'.$config->{paf_mongodb}->{database}) });
+  }  
 
     # we might possibly save a lot of data to session
     # so we are not going to use cookies, but a database instead
@@ -312,6 +315,9 @@ sub startup {
   # we authenticate the user, because we are not going to call fedora
   my $check_auth = $apiauth->under('/')->to('authentication#authenticate');
 
+  # check the user sends phaidra admin credentials
+  my $check_admin_auth = $apiauth->under('/')->to('authentication#authenticate_admin');
+
 	if($self->app->config->{allow_userdata_queries}){
   	$check_auth->route('directory/user/:username/data')                    ->via('get')      ->to('directory#get_user_data');
 		$check_auth->route('directory/user/:username/name')                    ->via('get')      ->to('directory#get_user_name');
@@ -324,8 +330,10 @@ sub startup {
 
   unless($self->app->config->{readonly}){
 
-    $check_auth->route('utils/:pid/update_dc')                          ->via('get')      ->to('utils#update_dc');
-    $check_auth->route('utils/update_dc')                               ->via('post')     ->to('utils#update_dc');
+    $check_admin_auth->route('utils/:pid/update_dc')                    ->via('post')     ->to('utils#update_dc');
+    $check_admin_auth->route('utils/update_dc')                         ->via('post')     ->to('utils#update_dc');
+    $check_admin_auth->route('imageserver/:pid/process')                ->via('post')     ->to('imageserver#process');
+    $check_admin_auth->route('imageserver/:pid/status')                 ->via('get')      ->to('imageserver#status');
 
     $apiauth->route('object/:pid/octets')                               ->via('get')      ->to('octets#get');
 
