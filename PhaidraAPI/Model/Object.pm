@@ -513,7 +513,7 @@ sub add_datastream {
 		# the label is mandatory when adding datastream
 		$label = $c->app->config->{phaidra}->{defaultlabel};
 	}
-  $params{controlGroup} = $controlgroup if $controlgroup;
+  $params{controlGroup} = $controlgroup ? $controlgroup : "X";
   $params{dsLocation} = $location if $location;
   #$params{altIDs}
   $params{dsLabel} = $label;
@@ -526,6 +526,8 @@ sub add_datastream {
   #$params{checksum}
   $params{mimeType} = $mimetype if $mimetype;
   $params{logMessage} = 'PhaidraAPI object/add_datastream';
+
+  $c->app->log->debug("Add datastream: ".$c->app->dumper(\%params));
 
 	my $url = Mojo::URL->new;
 	$url->scheme('https');
@@ -586,6 +588,8 @@ sub modify_datastream {
   $params{mimeType} = $mimetype if $mimetype;
   $params{logMessage} = 'PhaidraAPI object/modify_datastream';
   $params{force} = 0;
+
+  $c->app->log->debug("Modify datastream: ".$c->app->dumper(\%params));
   #$params{ignoreContent}
 #$c->app->log->debug("XXXXXXXXXX ".$c->app->dumper(\%params));
 #$username = $c->app->{config}->{phaidra}->{adminusername};
@@ -661,7 +665,8 @@ sub add_or_modify_datastream {
 		}
 		$c->app->log->debug("Modifying $dsid for $pid successful.");
 	}else{
-		my $r = $self->add_datastream($c, $pid, $dsid, "text/xml", undef, $label, $dscontent, "X", $username, $password);
+		#$c->app->log->debug("$pid, $dsid, 'text/xml', undef, $label, $dscontent, X", $username, $password");
+		my $r = $self->add_datastream($c, $pid, $dsid, "text/xml", $location, $label, $dscontent, $controlgroup, $username, $password);
 		push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
 		$res->{status} = $r->{status};
 		if($r->{status} ne 200){
