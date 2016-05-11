@@ -657,7 +657,7 @@ sub add_or_modify_datastream {
 	}
 	# save
 	if($sr->{'exists'}){
-		my $r = $self->modify_datastream($c, $pid, $dsid, "text/xml", undef, $label, $dscontent, $username, $password);
+		my $r = $self->modify_datastream($c, $pid, $dsid, "text/xml", $location, $label, $dscontent, $username, $password);
 		push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
 		$res->{status} = $r->{status};
 		if($r->{status} ne 200){
