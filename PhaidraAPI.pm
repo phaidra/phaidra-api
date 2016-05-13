@@ -333,6 +333,7 @@ sub startup {
     $check_admin_auth->route('utils/:pid/update_dc')                    ->via('post')     ->to('utils#update_dc');
     $check_admin_auth->route('utils/update_dc')                         ->via('post')     ->to('utils#update_dc');
     $check_admin_auth->route('imageserver/:pid/process')                ->via('post')     ->to('imageserver#process');
+    $check_admin_auth->route('imageserver/process')                     ->via('post')     ->to('imageserver#process_pids');
     $check_admin_auth->route('imageserver/:pid/status')                 ->via('get')      ->to('imageserver#status');
 
     $apiauth->route('object/:pid/octets')                               ->via('get')      ->to('octets#get');
