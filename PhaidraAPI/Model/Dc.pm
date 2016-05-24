@@ -260,8 +260,10 @@ sub map_mods_2_dc {
   push @{$dc_p{description}}, @$extents;
 
   $dc_p{publisher} = $self->_get_mods_element_values($c, $dom, 'mods > originInfo > publisher');
-  my $publisher_places = $self->_get_mods_element_values($c, $dom, 'mods > originInfo > place > placeTerm');
-  push @{$dc_p{publisher}}, @$publisher_places;
+
+  # place of publishing should not be dc:publisher
+  #my $publisher_places = $self->_get_mods_element_values($c, $dom, 'mods > originInfo > place > placeTerm');
+  #push @{$dc_p{publisher}}, @$publisher_places;
 
   $dc_p{rights} = $self->_get_mods_element_values($c, $dom, 'mods > accessCondition[type="use and reproduction"]');
 
