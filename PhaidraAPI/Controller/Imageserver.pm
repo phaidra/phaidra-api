@@ -137,6 +137,7 @@ sub get {
   my $p;
   my $p_name;
   my $params = $self->req->params->to_hash;
+  $self->app->log->debug("XXXXXXXXXXXXX 1 ".$self->app->dumper($params));
   for my $param_name ('FIF','IIIF','Zoomify','DeepZoom') {
     if(exists($params->{$param_name})){          
       $p = $params->{$param_name};
@@ -176,7 +177,9 @@ sub get {
   $params->{$p_name} = $p;
 
   $url->query($params);
-
+$self->app->log->debug("XXXXXXXXXXXXX ".$url->to_string);
+$self->app->log->debug("XXXXXXXXXXXXX ".$self->app->dumper($url));
+$self->app->log->debug("XXXXXXXXXXXXX ".$self->app->dumper($params));
   $self->render_later;    
   $self->ua->get( $url => sub { my ($ua, $tx) = @_; $self->tx->res($tx->res); $self->rendered; } );
  
