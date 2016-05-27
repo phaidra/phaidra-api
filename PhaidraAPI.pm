@@ -310,7 +310,8 @@ sub startup {
   $r->route('stats/:pid/detail_page')             ->via('get')    ->to('stats#stats', stats_param_key => 'detail_page');
 
   # this just extracts the credentials - authentication will be done by fedora
-	my $apiauth = $r->under('/')->to('authentication#extract_credentials');
+	my $apiauth = $r->under('/')->to('authentication#extract_credentials', must_be_present => 1);
+  my $apiauth_optional = $r->under('/')->to('authentication#extract_credentials', must_be_present => 0);
 
   # we authenticate the user, because we are not going to call fedora
   my $check_auth = $apiauth->under('/')->to('authentication#authenticate');
@@ -319,14 +320,20 @@ sub startup {
   my $check_admin_auth = $apiauth->under('/')->to('authentication#authenticate_admin');
 
 	if($self->app->config->{allow_userdata_queries}){
-  	$check_auth->route('directory/user/:username/data')                    ->via('get')      ->to('directory#get_user_data');
-		$check_auth->route('directory/user/:username/name')                    ->via('get')      ->to('directory#get_user_name');
- 		$check_auth->route('directory/user/:username/email')                   ->via('get')      ->to('directory#get_user_email');
-    $check_auth->route('directory/user/search')                            ->via('get')      ->to('directory#search_user');
+  	$check_auth->route('directory/user/:username/data')                 ->via('get')      ->to('directory#get_user_data');
+		$check_auth->route('directory/user/:username/name')                 ->via('get')      ->to('directory#get_user_name');
+ 		$check_auth->route('directory/user/:username/email')                ->via('get')      ->to('directory#get_user_email');
+    $check_auth->route('directory/user/search')                         ->via('get')      ->to('directory#search_user');
   }
+
+  $check_auth->route('groups')                                          ->via('get')      ->to('groups#get_users_groups');
+  $check_auth->route('group/:gid')                                      ->via('get')      ->to('groups#get_group');
 
   $apiauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
   $apiauth->route('authz/check/:pid/:op')                               ->via('get')      ->to('authentication#check_rights');
+  $apiauth->route('object/:pid/octets')                                 ->via('get')      ->to('octets#get');
+  $check_admin_auth->route('imageserver/:pid/status')                   ->via('get')      ->to('imageserver#status');    
+  $apiauth_optional->route('imageserver')                               ->via('get')      ->to('imageserver#get');
 
   unless($self->app->config->{readonly}){
 
@@ -334,10 +341,7 @@ sub startup {
     $check_admin_auth->route('utils/update_dc')                         ->via('post')     ->to('utils#update_dc');
     $check_admin_auth->route('imageserver/:pid/process')                ->via('post')     ->to('imageserver#process');
     $check_admin_auth->route('imageserver/process')                     ->via('post')     ->to('imageserver#process_pids');
-    $check_admin_auth->route('imageserver/:pid/status')                 ->via('get')      ->to('imageserver#status');
-
-    $apiauth->route('object/:pid/octets')                               ->via('get')      ->to('octets#get');
-
+    
     $apiauth->route('object/:pid/modify')                               ->via('post')     ->to('object#modify');
     $apiauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');
     $apiauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');
@@ -366,8 +370,6 @@ sub startup {
     $apiauth->route('collection/:pid/members/order')                    ->via('post')     ->to('collection#order_collection_members');
     $apiauth->route('collection/:pid/members/:itempid/order/:position') ->via('post')     ->to('collection#order_collection_member');
 
-    $check_auth->route('groups')                                        ->via('get')      ->to('groups#get_users_groups');
-    $check_auth->route('group/:gid')                                    ->via('get')      ->to('groups#get_group');
     $check_auth->route('group/add')                                     ->via('post')     ->to('groups#add_group');
     $check_auth->route('group/:gid/remove')                             ->via('post')     ->to('groups#remove_group');
     $check_auth->route('group/:gid/members/add')                        ->via('post')     ->to('groups#add_members');

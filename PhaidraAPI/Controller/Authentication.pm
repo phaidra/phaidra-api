@@ -33,12 +33,14 @@ sub extract_credentials {
 	    return 1;
 	}	
 	
-    unless(defined($username) && defined($password)){
-    	$self->app->log->info("No authentication provided");
-    	$self->res->headers->www_authenticate('Basic "'.$self->app->config->{authentication}->{realm}.'"');
-    	$self->render(json => { alerts => [{ type => 'danger', msg => 'no credentials found' }]} , status => 401) ;
-    	return 0;
-    }
+	if($self->stash('must_be_present')){  
+	    unless(defined($username) && defined($password)){
+	    	$self->app->log->info("No authentication provided");
+	    	$self->res->headers->www_authenticate('Basic "'.$self->app->config->{authentication}->{realm}.'"');
+	    	$self->render(json => { alerts => [{ type => 'danger', msg => 'no credentials found' }]} , status => 401) ;
+	    	return 0;
+	    }
+	}
 }
 
 sub extract_basic_auth_credentials {
