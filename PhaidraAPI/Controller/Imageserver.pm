@@ -6,6 +6,7 @@ use v5.10;
 use Mango 0.24;
 use base 'Mojolicious::Controller';
 use Mojo::JSON qw(encode_json decode_json);
+use Mojo::Util qw(decode encode url_escape url_unescape);
 use Mojo::ByteStream qw(b);
 use Digest::SHA qw(hmac_sha1_hex);
 use PhaidraAPI::Model::Object;
@@ -136,8 +137,7 @@ sub get {
 
   my $p;
   my $p_name;
-  my $params = $self->req->params->to_hash;
-  $self->app->log->debug("XXXXXXXXXXXXX 1 ".$self->app->dumper($params));
+  my $params = $self->req->params->to_hash;  
   for my $param_name ('FIF','IIIF','Zoomify','DeepZoom') {
     if(exists($params->{$param_name})){          
       $p = $params->{$param_name};
@@ -155,9 +155,18 @@ sub get {
   my $pid = $1;
 
   # check rights        
-  my $object_model = PhaidraAPI::Model::Object->new;
-  my $rres = $object_model->get_datastream($self, $pid, 'READONLY', $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
-  unless($rres->{status} eq '404'){
+  my $cachekey = 'img_rights_'.$self->stash->{basic_auth_credentials}->{username}."_$pid";
+  my $status_cacheval = $self->app->chi->get($cachekey);
+  unless($status_cacheval){
+    $self->app->log->debug("[cache miss] $cachekey");
+    my $object_model = PhaidraAPI::Model::Object->new;
+    my $rres = $object_model->get_datastream($self, $pid, 'READONLY', $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+    my $status_cacheval = $rres->{status};
+    $self->app->chi->set($cachekey, $status_cacheval, '1 day');
+  }else{
+    $self->app->log->debug("[cache hit] $cachekey");
+  }
+  unless($status_cacheval eq '404'){
     $self->render(json => {}, status => 403);
     return;
   }
@@ -174,15 +183,46 @@ sub get {
   # replace pid with hash
   $p =~ s/[a-z]+:[0-9]+\.tif/$imgpath/;
 
-  $params->{$p_name} = $p;
+  # we have to put the imagepath param first, imageserver needs this order
+  my $new_params = Mojo::Parameters->new;
+  $new_params->append($p_name => $p);
+  for my $name (@{$self->req->params->names}){
+    next if $name eq $p_name;
+    $new_params->append( $name => $self->req->params->every_param($name));
+  }
 
-  $url->query($params);
-$self->app->log->debug("XXXXXXXXXXXXX ".$url->to_string);
-$self->app->log->debug("XXXXXXXXXXXXX ".$self->app->dumper($url));
-$self->app->log->debug("XXXXXXXXXXXXX ".$self->app->dumper($params));
+  my $xurl = $url->to_string."?".$self->param_to_string($new_params->pairs);
+
   $self->render_later;    
-  $self->ua->get( $url => sub { my ($ua, $tx) = @_; $self->tx->res($tx->res); $self->rendered; } );
- 
+  $self->ua->get( $xurl => sub { my ($ua, $tx) = @_; $self->tx->res($tx->res); $self->rendered; } );
+
+  #my $tx = $self->ua->get( $xurl );
+  #$self->tx->res($tx->res);
+  #$self->rendered; 
+}
+
+# we cannot let mojo url-escape the values, imageserver won't take it
+sub param_to_string {
+  my $self = shift;
+  my $pairs = shift;
+
+  # Build pairs (HTML Living Standard)  
+  return '' unless @$pairs;
+  my @pairs;
+  for (my $i = 0; $i < @$pairs; $i += 2) {
+    my ($name, $value) = @{$pairs}[$i, $i + 1];
+
+    # Escape and replace whitespace with "+"
+    $name  = encode 'UTF-8', $name;
+    $name  = url_escape $name,  '^*\-.0-9A-Z_a-z';
+    $value = encode 'UTF-8', $value;
+    #$value = url_escape $value, '^*\-.0-9A-Z_a-z';
+    s/\%20/\+/g for $name, $value;
+
+    push @pairs, "$name=$value";
+  }
+
+  return join '&', @pairs;
 }
 
 1;

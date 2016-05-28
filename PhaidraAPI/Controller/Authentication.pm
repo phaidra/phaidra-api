@@ -40,6 +40,8 @@ sub extract_credentials {
 	    	$self->render(json => { alerts => [{ type => 'danger', msg => 'no credentials found' }]} , status => 401) ;
 	    	return 0;
 	    }
+	}else{
+		return 1;
 	}
 }
 

@@ -165,11 +165,13 @@ sub startup {
 		}
 
 		# CORS
-		if($self->req->headers->header('Origin')){
-			$self->res->headers->add('Access-Control-Allow-Origin' => $self->req->headers->header('Origin'));
-		}else{
-			$self->res->headers->add('Access-Control-Allow-Origin' => $config->{authentication}->{'Access-Control-Allow-Origin'});
-		}
+    unless($self->res->headers->header('Access-Control-Allow-Origin')){
+  		if($self->req->headers->header('Origin')){
+  			$self->res->headers->add('Access-Control-Allow-Origin' => $self->req->headers->header('Origin'));
+  		}else{
+  			$self->res->headers->add('Access-Control-Allow-Origin' => $config->{authentication}->{'Access-Control-Allow-Origin'});
+  		}
+    }
 		$self->res->headers->add('Access-Control-Allow-Credentials' => 'true');
 		$self->res->headers->add('Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS');
     # X-Prototype-Version, X-Requested-With - comes from prototype's Ajax.Updater
