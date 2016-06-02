@@ -161,12 +161,13 @@ sub get {
     $self->app->log->debug("[cache miss] $cachekey");
     my $object_model = PhaidraAPI::Model::Object->new;
     my $rres = $object_model->get_datastream($self, $pid, 'READONLY', $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
-    my $status_cacheval = $rres->{status};
-    $self->app->chi->set($cachekey, $status_cacheval, '1 day');
+    $status_cacheval = $rres->{status};
+    $self->app->chi->set($cachekey, $status_cacheval, '1 day');        
   }else{
     $self->app->log->debug("[cache hit] $cachekey");
   }
-  unless($status_cacheval eq '404'){
+
+  unless($status_cacheval eq 404){
     $self->render(json => {}, status => 403);
     return;
   }
@@ -192,7 +193,7 @@ sub get {
   }
 
   my $xurl = $url->to_string."?".$self->param_to_string($new_params->pairs);
-
+  #$self->app->log->debug("Calling:".$xurl);
   $self->render_later;    
   $self->ua->get( $xurl => sub { my ($ua, $tx) = @_; $self->tx->res($tx->res); $self->rendered; } );
 
