@@ -21,6 +21,7 @@ sub get {
 
 	my $pid = $self->stash('pid');
   my $format = $self->param('format');
+  my $mode = $self->param('mode');
 
 	unless(defined($pid)){
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
@@ -34,9 +35,13 @@ sub get {
     return;
   }
 
+  unless(defined($mode)){
+    $mode = 'basic';
+  }
+
 	# get metadata datastructure
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
-	my $res= $metadata_model->get_object_metadata($self, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+	my $res= $metadata_model->get_object_metadata($self, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, $mode);
 	if($res->{status} ne 200){
 		$self->render(json => { alerts => $res->{alerts} }, status => $res->{status});
     return;
@@ -52,7 +57,11 @@ sub get {
 	my $t1 = tv_interval($t0);
 	#$self->stash( msg => "backend load took $t1 s");
 
+  if($mode eq 'basic'){
+    $self->render(json => { metadata => { uwmetadata => $res->{uwmetadata} }}, status => $res->{status});
+  }else{
     $self->render(json => { metadata => { uwmetadata => $res->{uwmetadata} }, languages => $lres->{languages}}, status => $res->{status}); #, alerts => [{ type => 'success', msg => $self->stash->{msg}}]});
+  }
 }
 
 sub json2xml {

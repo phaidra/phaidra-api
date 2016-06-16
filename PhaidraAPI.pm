@@ -120,7 +120,14 @@ sub startup {
 	$self->helper(mango => sub { state $mango = Mango->new('mongodb://'.$config->{mongodb}->{username}.':'.$config->{mongodb}->{password}.'@'.$config->{mongodb}->{host}.'/'.$config->{mongodb}->{database}) });
   if(exists($config->{paf_mongodb})){
     $self->helper(paf_mongo => sub { state $paf_mongo = Mango->new('mongodb://'.$config->{paf_mongodb}->{username}.':'.$config->{paf_mongodb}->{password}.'@'.$config->{paf_mongodb}->{host}.'/'.$config->{paf_mongodb}->{database}) });
-  }  
+  }
+  if(exists($config->{index_mongodb})){
+    if($config->{index_mongodb}->{username}){
+      $self->helper(index_mongo => sub { state $index_mongo = Mango->new('mongodb://'.$config->{index_mongodb}->{username}.':'.$config->{index_mongodb}->{password}.'@'.$config->{index_mongodb}->{host}.'/'.$config->{index_mongodb}->{database}) });
+    }else{
+      $self->helper(index_mongo => sub { state $index_mongo = Mango->new('mongodb://'.$config->{index_mongodb}->{host}.'/'.$config->{index_mongodb}->{database}) });
+    }
+  }    
 
     # we might possibly save a lot of data to session
     # so we are not going to use cookies, but a database instead
@@ -340,7 +347,11 @@ sub startup {
   unless($self->app->config->{readonly}){
 
     $check_admin_auth->route('utils/:pid/update_dc')                    ->via('post')     ->to('utils#update_dc');
+    # here 'pids' param is expected in post
     $check_admin_auth->route('utils/update_dc')                         ->via('post')     ->to('utils#update_dc');
+    $check_admin_auth->route('utils/:pid/update_index')                 ->via('post')     ->to('utils#update_index');
+    # here 'pids' param is expected in post
+    $check_admin_auth->route('utils/update_index')                      ->via('post')     ->to('utils#update_index');
     $check_admin_auth->route('imageserver/:pid/process')                ->via('post')     ->to('imageserver#process');
     $check_admin_auth->route('imageserver/process')                     ->via('post')     ->to('imageserver#process_pids');
     

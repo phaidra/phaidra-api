@@ -498,8 +498,8 @@ sub uwmetadata_2_json {
 	$self->create_md_nodes_hash($c, $metadata_tree_copy, \%metadata_nodes_hash);
 
 	my $dom = Mojo::DOM->new();
-  $dom->xml(1);
-  $dom->parse($uwmetadata);
+    $dom->xml(1);
+    $dom->parse($uwmetadata);
 
 	my $nsattr = $dom->find('uwmetadata')->first->attr;
 	my $nsmap  = $nsattr;
@@ -516,6 +516,87 @@ sub uwmetadata_2_json {
 	$self->fix_taxonpath_nodes($c, $metadata_tree);
 
 	return { alerts => [], uwmetadata => $metadata_tree, status => 200 };
+}
+
+sub uwmetadata_2_json_basic {
+	my ($self, $c, $uwmetadata_xml) = @_;
+
+	# this structure contains the metadata default structure (equals to empty uwmetadataeditor) to which
+	# we are going to load the data of some real object
+	my $tree_res = $self->metadata_tree($c);
+	if($tree_res->{status} ne 200){
+		return $tree_res;
+	}
+
+	my $metadata_tree = $tree_res->{metadata_tree};
+
+	# this is a hash where the key is 'ns/id' and value is a default representation of a node
+	# -> we use this when adding nodes (eg a second title) to get a new empty node
+	my %metadata_nodes_hash;
+	$self->create_md_nodes_hash($c, $metadata_tree, \%metadata_nodes_hash);
+
+	my $uwmetadata = Mojo::DOM->new();
+    $uwmetadata->xml(1);
+    $uwmetadata->parse($uwmetadata_xml);
+
+    my $nsattr = $uwmetadata->find('uwmetadata')->first->attr;
+	my $nsmap  = $nsattr;
+	# replace xmlns:ns0 with ns0
+	foreach my $key (keys %{$nsmap}) {
+		my $newkey = $key;
+		$newkey =~ s/xmlns://g;
+		$nsmap->{$newkey} = delete $nsmap->{$key};
+    }
+
+    my $arr = $self->uwmetadata_2_json_basic_rec($c, $uwmetadata, $nsmap, \%metadata_nodes_hash);
+
+    return { alerts => [], uwmetadata => $arr, status => 200 };
+}
+
+sub uwmetadata_2_json_basic_rec {
+
+	my ($self, $c, $uwmetadata, $nsmap, $metadata_nodes_hash) = @_;
+
+	my @children;
+	for my $e ($uwmetadata->children->each) {
+
+	    my $type = $e->tag;
+
+	    # type looks like this: ns1:general
+	    # get namespace and identifier from it
+	    # namespace = 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0'
+	    # identifier = 'general'
+	    $type =~ m/(ns\d+):([0-9a-zA-Z_]+)/;
+	    my $ns = $1;
+	    my $id = $2;
+		
+	    #if($id ne 'uwmetadata'){
+		if($e->text){
+			my $xmlns = $nsmap->{$ns};
+			my $ref_node = $metadata_nodes_hash->{$xmlns.'/'.$id};
+			my %node = (
+				xmlname => $id,
+    			input_type => $ref_node->{input_type},
+    			ui_value => $e->text
+			);
+
+			if(defined($e->attr)){
+			   	if($e->attr->{language}){
+			   		push @{$node{attributes}}, ( xmlname => 'lang', input_type => 'select', value => $e->attr->{language});
+			   	}
+			   	if(defined($e->attr->{seq})){
+			   		push @{$node{attributes}}, ( xmlname => 'data_order', input_type => 'input_text', value => $e->attr->{seq});
+			  	}
+			}
+
+			if($e->children->size > 0){
+	    		$node{children} = $self->uwmetadata_2_json_basic_rec($c, $e, $nsmap, $metadata_nodes_hash);
+	    	}
+
+			push @children, \%node;
+		}
+	}
+	return \@children;
 }
 
 # for 'source' and 'taxon' nodes set the values to include namespace & classification id
@@ -587,7 +668,7 @@ sub fix_taxonpath_nodes {
 
 sub get_object_metadata {
 
-	my ($self, $c, $pid, $username, $password) = @_;
+  my ($self, $c, $pid, $username, $password, $mode) = @_;
 
   my $object_model = PhaidraAPI::Model::Object->new;
   #my $res = $object_model->get_dissemination($c, $pid, 'bdef:Asset', 'getUWMETADATA', $username, $password);
@@ -597,9 +678,17 @@ sub get_object_metadata {
     return $res;
   }
 
+  my $uwmetadata = $res->{UWMETADATA};
+
+  if($mode eq 'full'){
 	#$res = $self->uwmetadata_2_json($c, $res->{content});
-	$res = $self->uwmetadata_2_json($c, $res->{UWMETADATA});
+	$res = $self->uwmetadata_2_json($c, $uwmetadata);
 	return { uwmetadata => $res->{uwmetadata}, alerts => $res->{alerts}, status => $res->{status} };
+  }else{
+
+  	$res = $self->uwmetadata_2_json_basic($c, $uwmetadata);
+	return { uwmetadata => $res->{uwmetadata}, alerts => $res->{alerts}, status => $res->{status} };
+  }
 
 }
 

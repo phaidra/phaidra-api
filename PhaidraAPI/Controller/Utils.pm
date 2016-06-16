@@ -9,6 +9,7 @@ use Mojo::JSON qw(decode_json);
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Dc;
 use PhaidraAPI::Model::Search;
+use PhaidraAPI::Model::Geo;
 
 sub get_all_pids {
 
@@ -139,5 +140,131 @@ sub update_dc {
   
   $self->render(json => { results => \@res }, status => 200);
 }
+
+sub update_index {
+
+  my $self = shift;
+  my $pid_param = $self->stash('pid');
+
+  my $username = $self->stash->{basic_auth_credentials}->{username};
+  my $password = $self->stash->{basic_auth_credentials}->{password};
+
+  my @pidsarr;
+  if(defined($pid_param)){
+
+    push @pidsarr, $pid_param;
+  }else{
+
+    my $pids = $self->param('pids');
+
+    unless(defined($pids)){
+      $self->render(json => { alerts => [{ type => 'danger', msg => 'No pids sent' }]} , status => 400) ;
+      return;
+    }
+
+    if(ref $pids eq 'Mojo::Upload'){
+      $self->app->log->debug("Pids sent as file param");
+      $pids = $pids->asset->slurp;
+      $pids = decode_json($pids);
+    }else{
+      $pids = decode_json(b($pids)->encode('UTF-8'));
+    }
+
+    unless(defined($pids->{pids})){
+      $self->render(json => { alerts => [{ type => 'danger', msg => 'No pids found' }]} , status => 400) ;
+      return;
+    }
+
+    @pidsarr = @{$pids->{pids}};
+  }
+
+  #my $object_model = PhaidraAPI::Model::Object->new;
+  my $dc_model = PhaidraAPI::Model::Dc->new;
+  my $search_model = PhaidraAPI::Model::Search->new;
+  my @res;
+  my $pidscount = scalar @pidsarr;
+  my $i = 0;
+  for my $pid (@pidsarr){
+    $i++;
+    $self->app->log->info("Processing $pid [$i/$pidscount]");
+
+    # check if it's active
+    my $r = $search_model->get_state($self, $pid);
+    if($r->{status} ne 200){
+      push @res, { pid => $pid, res => $r };
+      next;
+    }
+    unless($r->{state} eq 'Active'){
+      $self->app->log->warn("Object $pid is ".$r->{state}.", skipping");
+      next;
+    }
+
+    $r = $search_model->datastreams_hash($self, $pid);
+    if($r->{status} ne 200){
+
+      # get DC (prefferably DC_P)
+      my $dclabel = 'DC';
+      if($r->{dshash}->{'DC_P'}){
+        $dclabel = 'DC_P';
+      }
+      my $res = $dc_model->get_object_dc_json($self, $pid, $dclabel, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+      if($res->{status} ne 200){
+        if($res->{status} eq 404){
+          push @res, { pid => $pid, res => $res };
+        }      
+      }
+      # DC fields
+      my %index;
+      for my $f (@{$res->{dc}}){      
+        if(exists($f->{attributes})){
+          for my $a (@{$f->{attributes}}){
+            if($a->{xmlname} eq 'xml:lang'){
+              push @{$index{$f->{xmlname}."_".$a->{ui_value}}}, $f->{ui_value};    
+            }
+          }        
+        }
+        push @{$index{$f->{xmlname}}}, $f->{ui_value};
+      }    
+
+      # get GEO
+      if($r->{dshash}->{'GEO'}){
+        my $geo_model = PhaidraAPI::Model::Geo->new;
+        my $r_geo = $geo_model->get_object_geo_json($self, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+        push @{$index{$f->{geo}}}, $r_geo;
+      }
+
+      # metadata
+      if($r->{dshash}->{'UWMETADATA'}){
+
+        
+
+        # get roles
+      }
+
+    }else{
+      push @res, { pid => $pid, res => $r };
+    }    
+
+    
+
+    # list of datastreams
+    my @dskeys = keys %{$r->{dshash}};
+    $index{datastreams} = \@dskeys;
+
+    # pid
+    $index{pid} = $pid;    
+
+    # ts
+    $index{updated} = time;    
+
+    # save
+    $self->index_mongo->db->collection($self->app->config->{index_mongodb}->{collection})->update({pid => $pid}, \%index, { upsert => 1 });         
+
+    push @res, { pid => $pid, res => 'OK'};
+  }
+  
+  $self->render(json => { results => \@res }, status => 200);
+}
+
 
 1;
