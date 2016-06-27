@@ -566,14 +566,14 @@ sub uwmetadata_2_json_basic {
 		$nsmap->{$newkey} = delete $nsmap->{$key};
     }
 
-    my $arr = $self->uwmetadata_2_json_basic_rec($c, $uwmetadata->find('uwmetadata')->first, $mode, $nsmap, \%metadata_nodes_hash);
+    my $arr = $self->uwmetadata_2_json_basic_rec($c, $uwmetadata->find('uwmetadata')->first, $mode, $nsmap, \%metadata_nodes_hash, undef);
 
     return { alerts => [], uwmetadata => $arr, status => 200 };
 }
 
 sub uwmetadata_2_json_basic_rec {
 
-	my ($self, $c, $uwmetadata, $mode, $nsmap, $metadata_nodes_hash) = @_;
+	my ($self, $c, $uwmetadata, $mode, $nsmap, $metadata_nodes_hash, $contextdata) = @_;
 
 	my @children;
 	for my $e ($uwmetadata->children->each) {
@@ -598,18 +598,34 @@ sub uwmetadata_2_json_basic_rec {
 		$input_type = $basic_input_types_map{$input_type};
 
 		my %node = (
-			name => $id,
-    		type => $input_type
+			xmlname => $id,
+    		input_type => $input_type
 		);
 		
 		if($e->text){
 
 			my $value = $e->text;
 
-			$node{value} = $value;
+			$node{ui_value} = $value;
 
 			if($mode eq 'resolved'){
 =cut
+				if($node{xmlname} eq 'taxonpath'){
+					# it this is taxon path, save classification id in context data
+					# so that we have it when resolving taxons
+					for my $elm ($e->children->each){
+						my $elm_type = $elm->tag;
+	    				$elm_type =~ m/(ns\d+):([0-9a-zA-Z_]+)/;
+	    				my $elm_ns = $1;
+	    				my $elm_id = $2;
+	    				if($elm_id eq 'source'){
+	    					$contextdata->{cls} = $elm->text;
+	    				}
+					}
+					
+				}
+
+
 				my $labels;
 				if($labels = $self->resolve_if_id($c, $e, $value, $ref_node)){				
 					$node{labels} = $labels;
@@ -623,16 +639,16 @@ sub uwmetadata_2_json_basic_rec {
 			
 			if(defined($e->attr)){
 			   	if($e->attr->{language}){
-			   		push @{$node{attributes}}, { name => 'lang', type => 'select', value => $e->attr->{language}};
+			   		push @{$node{attributes}}, { xmlname => 'lang', input_type => 'select', ui_value => $e->attr->{language}};
 			   	}
 			   	if(defined($e->attr->{seq})){
-			   		push @{$node{attributes}}, { name => 'data_order', type => 'input_text', value => $e->attr->{seq}};
+			   		push @{$node{attributes}}, { xmlname => 'data_order', input_type => 'input_text', ui_value => $e->attr->{seq}};
 			  	}
 			}						
 		}
 
 		if($e->children->size > 0){
-	    	$node{children} = $self->uwmetadata_2_json_basic_rec($c, $e, $mode, $nsmap, $metadata_nodes_hash);
+	    	$node{children} = $self->uwmetadata_2_json_basic_rec($c, $e, $mode, $nsmap, $metadata_nodes_hash, $contextdata);
 	    }
 
 	    push @children, \%node;
