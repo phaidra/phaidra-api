@@ -19,6 +19,23 @@ use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Terms;
 use PhaidraAPI::Model::Util;
 
+our %basic_input_types_map = (
+	"input_text_lang" => "input_text",
+	"input_datetime" => "input_text",
+	"input_text" => "input_text",
+	"input_duration" => "input_text",
+	"input_textarea_lang" => "input_text",
+	"static" => "input_text",
+
+	"select" => "select",
+	"language_select" => "select",
+	"select_yesno" => "select",
+	"input_checkbox" => "select",
+
+	"node" => "node",	
+	"label_only" => "node"	
+);
+
 sub metadata_tree {
 
     my ($self, $c, $nocache) = @_;
@@ -519,11 +536,12 @@ sub uwmetadata_2_json {
 }
 
 sub uwmetadata_2_json_basic {
-	my ($self, $c, $uwmetadata_xml) = @_;
+	my ($self, $c, $uwmetadata_xml, $mode) = @_;
 
 	# this structure contains the metadata default structure (equals to empty uwmetadataeditor) to which
 	# we are going to load the data of some real object
 	my $tree_res = $self->metadata_tree($c);
+	
 	if($tree_res->{status} ne 200){
 		return $tree_res;
 	}
@@ -548,14 +566,14 @@ sub uwmetadata_2_json_basic {
 		$nsmap->{$newkey} = delete $nsmap->{$key};
     }
 
-    my $arr = $self->uwmetadata_2_json_basic_rec($c, $uwmetadata, $nsmap, \%metadata_nodes_hash);
+    my $arr = $self->uwmetadata_2_json_basic_rec($c, $uwmetadata->find('uwmetadata')->first, $mode, $nsmap, \%metadata_nodes_hash);
 
     return { alerts => [], uwmetadata => $arr, status => 200 };
 }
 
 sub uwmetadata_2_json_basic_rec {
 
-	my ($self, $c, $uwmetadata, $nsmap, $metadata_nodes_hash) = @_;
+	my ($self, $c, $uwmetadata, $mode, $nsmap, $metadata_nodes_hash) = @_;
 
 	my @children;
 	for my $e ($uwmetadata->children->each) {
@@ -569,34 +587,107 @@ sub uwmetadata_2_json_basic_rec {
 	    $type =~ m/(ns\d+):([0-9a-zA-Z_]+)/;
 	    my $ns = $1;
 	    my $id = $2;
-		
-	    #if($id ne 'uwmetadata'){
-		if($e->text){
-			my $xmlns = $nsmap->{$ns};
-			my $ref_node = $metadata_nodes_hash->{$xmlns.'/'.$id};
-			my %node = (
-				xmlname => $id,
-    			input_type => $ref_node->{input_type},
-    			ui_value => $e->text
-			);
 
+		my $xmlns = $nsmap->{$ns};
+		
+		my $ref_node = $metadata_nodes_hash->{$xmlns.'/'.$id};
+		
+		my $input_type = $ref_node->{input_type};
+
+		# we're going to dumb this down
+		$input_type = $basic_input_types_map{$input_type};
+
+		my %node = (
+			name => $id,
+    		type => $input_type
+		);
+		
+		if($e->text){
+
+			my $value = $e->text;
+
+			$node{value} = $value;
+
+			if($mode eq 'resolved'){
+=cut
+				my $labels;
+				if($labels = $self->resolve_if_id($c, $e, $value, $ref_node)){				
+					$node{labels} = $labels;
+				}
+				#while ( my ($isocode, $label) = each %{$values} ){
+				#	$node{labels} = $labels;		
+				#}
+				#$node{label} = $value;	
+=cut									
+			}
+			
 			if(defined($e->attr)){
 			   	if($e->attr->{language}){
-			   		push @{$node{attributes}}, ( xmlname => 'lang', input_type => 'select', value => $e->attr->{language});
+			   		push @{$node{attributes}}, { name => 'lang', type => 'select', value => $e->attr->{language}};
 			   	}
 			   	if(defined($e->attr->{seq})){
-			   		push @{$node{attributes}}, ( xmlname => 'data_order', input_type => 'input_text', value => $e->attr->{seq});
+			   		push @{$node{attributes}}, { name => 'data_order', type => 'input_text', value => $e->attr->{seq}};
 			  	}
-			}
-
-			if($e->children->size > 0){
-	    		$node{children} = $self->uwmetadata_2_json_basic_rec($c, $e, $nsmap, $metadata_nodes_hash);
-	    	}
-
-			push @children, \%node;
+			}						
 		}
+
+		if($e->children->size > 0){
+	    	$node{children} = $self->uwmetadata_2_json_basic_rec($c, $e, $mode, $nsmap, $metadata_nodes_hash);
+	    }
+
+	    push @children, \%node;
 	}
 	return \@children;
+}
+
+sub resolve_if_id {
+	my ($self, $c, $e, $value, $ref_node) = @_;
+
+	if(
+		$ref_node->{datatype} eq 'Vocabulary' ||
+		$ref_node->{datatype} eq 'License' ||
+		$ref_node->{datatype} eq 'Faculty'
+	){
+
+		my $uri = $ref_node->{vocabularies}[0]->{namespace}.'/'.$value;
+
+		for my $t (@{$ref_node->{vocabularies}[0]->{terms}}){
+			if($t->{uri} eq $uri){
+				return $t->{labels};
+			}
+		}
+
+	}elsif(
+		$ref_node->{datatype} eq 'Department' ||
+		$ref_node->{datatype} eq 'SPL' ||
+		$ref_node->{datatype} eq 'Curriculum'
+	){
+
+		
+
+	}elsif($ref_node->{datatype} eq 'ClassificationSource'){
+
+		# eg http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/cls_7
+
+		my $uri = $PhaidraAPI::Model::Terms::classification_ns.'/cls_'.$value;
+
+		my $terms_model = PhaidraAPI::Model::Terms->new;
+		my $r = $terms_model->children($c, $PhaidraAPI::Model::Terms::classification_ns);
+		if($r->{status} eq 200){		
+			for my $t (@{$r->{terms}}){	
+				if($t->{uri} eq $uri){
+					return $t->{labels};
+				}	
+			}
+		}
+
+		# get taxons from $e (-> parent -> taxonchildren)
+
+	}elsif($ref_node->{datatype} eq 'Boolean'){
+		return $value eq 'yes' ? 1 : 0;		
+	}
+
+	
 }
 
 # for 'source' and 'taxon' nodes set the values to include namespace & classification id
@@ -673,7 +764,7 @@ sub get_object_metadata {
   my $object_model = PhaidraAPI::Model::Object->new;
   #my $res = $object_model->get_dissemination($c, $pid, 'bdef:Asset', 'getUWMETADATA', $username, $password);
   my $res = $object_model->get_datastream($c, $pid, 'UWMETADATA', $username, $password, 1);
-  
+
   if($res->{status} ne 200){
     return $res;
   }
@@ -686,7 +777,7 @@ sub get_object_metadata {
 	return { uwmetadata => $res->{uwmetadata}, alerts => $res->{alerts}, status => $res->{status} };
   }else{
 
-  	$res = $self->uwmetadata_2_json_basic($c, $uwmetadata);
+  	$res = $self->uwmetadata_2_json_basic($c, $uwmetadata, $mode);
 	return { uwmetadata => $res->{uwmetadata}, alerts => $res->{alerts}, status => $res->{status} };
   }
 
@@ -836,8 +927,8 @@ sub fill_object_metadata {
 							    	last;
 							    }
 							    $faculty = $child;
-							  }
-		    		  }
+							}
+		    		    }
 	    		  }
 
 	    			if($node->{xmlname} eq 'kennzahl'){

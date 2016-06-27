@@ -28,7 +28,7 @@ sub get {
 		return;
 	}
 
-  if($format eq 'xml'){
+  if(defined($format) && $format eq 'xml'){
     my $object_model = PhaidraAPI::Model::Object->new;  
     # return XML directly
     $object_model->proxy_datastream($self, $pid, 'UWMETADATA', undef, undef, 1);
@@ -47,19 +47,21 @@ sub get {
     return;
 	}
 
-  my $lang_model = PhaidraAPI::Model::Languages->new;
-  my $lres = $lang_model->get_languages($self);
-  if($lres->{status} ne 200){
-    $self->render(json => { alerts => $lres->{alerts} }, $lres->{status});
-    return;
-  }
-
+  
 	my $t1 = tv_interval($t0);
 	#$self->stash( msg => "backend load took $t1 s");
 
-  if($mode eq 'basic'){
+  if($mode eq 'basic' || $mode eq 'resolved'){
     $self->render(json => { metadata => { uwmetadata => $res->{uwmetadata} }}, status => $res->{status});
   }else{
+
+    my $lang_model = PhaidraAPI::Model::Languages->new;
+    my $lres = $lang_model->get_languages($self);
+    if($lres->{status} ne 200){
+      $self->render(json => { alerts => $lres->{alerts} }, $lres->{status});
+      return;
+    }
+
     $self->render(json => { metadata => { uwmetadata => $res->{uwmetadata} }, languages => $lres->{languages}}, status => $res->{status}); #, alerts => [{ type => 'success', msg => $self->stash->{msg}}]});
   }
 }

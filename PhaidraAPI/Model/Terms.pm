@@ -35,41 +35,51 @@ sub _get_taxon_labels {
     my $tid = shift;
 	
 	my ($entry, $isocode, $preferred, $upstream_identifier, $term_id);
-	my $ss = "SELECT t.upstream_identifier, tv.term_id, ve.entry, ve.isocode, tv.preferred FROM taxon t LEFT JOIN taxon_vocentry tv ON tv.tid = t.tid LEFT JOIN vocabulary_entry ve ON tv.veid = ve.veid WHERE t.cid = (?) and t.tid = (?)";
-	my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
-	$sth->execute($cid, $tid);
-	$sth->bind_columns(undef, \$upstream_identifier, \$term_id, \$entry, \$isocode, \$preferred);
-	my %taxon;
-	my %isocodes;
-	while($sth->fetch){
+    my $taxon;
+    my $cachekey = 'taxon_labels_'.$cid.'_'.$tid;	
+    unless($taxon = $c->app->chi->get($cachekey))
+    {
+      $c->app->log->debug("[cache miss] $cachekey");
+	  
+	  my $ss = "SELECT t.upstream_identifier, tv.term_id, ve.entry, ve.isocode, tv.preferred FROM taxon t LEFT JOIN taxon_vocentry tv ON tv.tid = t.tid LEFT JOIN vocabulary_entry ve ON tv.veid = ve.veid WHERE t.cid = (?) and t.tid = (?)";
+	  my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+	  $sth->execute($cid, $tid);
+	  $sth->bind_columns(undef, \$upstream_identifier, \$term_id, \$entry, \$isocode, \$preferred);
+	  
+	  my %isocodes;
+	  while($sth->fetch){
 			
-		$taxon{upstream_identifier} = $upstream_identifier;
+		$taxon->{upstream_identifier} = $upstream_identifier;
 			
 		if($preferred){
-			$taxon{labels}{$isocode} = $entry;
-			$taxon{term_id} = $term_id;						
+			$taxon->{labels}{$isocode} = $entry;
+			$taxon->{term_id} = $term_id;						
 		}else{
-			$taxon{nonpreferred}{$term_id}{$isocode} = $entry;
+			$taxon->{nonpreferred}{$term_id}{$isocode} = $entry;
 		}	
 				
 		$isocodes{$isocode} = 1;
-	}		
-	$sth->finish;
-	undef $sth;
+	  }		
+	  $sth->finish;
+	  undef $sth;
 	    
-	# make nonpreferred an array
-	my @nonpreferred;
-	foreach my $termid (keys %{$taxon{nonpreferred}}){
+	  # make nonpreferred an array
+	  my @nonpreferred;
+	  foreach my $termid (keys %{$taxon->{nonpreferred}}){
 	 	my %t;
 	   	$t{term_id} = $termid;
-	   	foreach my $iso (keys %{$taxon{nonpreferred}{$termid}}){
-			$t{labels}{$iso} = $taxon{nonpreferred}{$termid}{$iso};
-	   	}
-	   	push @nonpreferred, \%t;
-	} 
-	$taxon{nonpreferred} = \@nonpreferred;
-	    
-	return \%taxon;
+	   	foreach my $iso (keys %{$taxon->{nonpreferred}{$termid}}){
+		  $t{labels}{$iso} = $taxon->{nonpreferred}{$termid}{$iso};
+	    }
+	    push @nonpreferred, \%t;
+	  } 
+	  $taxon->{nonpreferred} = \@nonpreferred;
+
+	}else{
+      $c->app->log->debug("[cache hit] $cachekey");           
+    }	
+
+	return $taxon;
 }
 
 sub _get_vocab_labels {
@@ -78,35 +88,46 @@ sub _get_vocab_labels {
 	my $vid = shift; 
 	my $veid = shift;
 	my $cid = shift;
-	
-	my %labels;
-	
-	# cid provided but tid not, this means we want to resolve the name of the classification
-	# so get the vid & veid of the classification name and continue as for vocabulary entries 
-	if($cid){
-		my $ss = qq/SELECT vid, veid FROM classification_db WHERE cid = (?);/;
-		my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
-		$sth->execute($cid);
-		$sth->bind_columns(undef, \$vid, \$veid);
-		$sth->fetch;
-	}
+
+	my $labels;
+	my $cachekey = 'vocab_labels_'.$vid.'_'.$veid.'_'.$cid;	
+    unless($labels = $c->app->chi->get($cachekey))
+    {
+      $c->app->log->debug("[cache miss] $cachekey");
+      
+      # cid provided but tid not, this means we want to resolve the name of the classification
+	  # so get the vid & veid of the classification name and continue as for vocabulary entries 
+	  if($cid){
+		  my $ss = qq/SELECT vid, veid FROM classification_db WHERE cid = (?);/;
+		  my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+		  $sth->execute($cid);
+		  $sth->bind_columns(undef, \$vid, \$veid);
+		  $sth->fetch;
+	  }
 		
-	my $ss = qq/SELECT entry, isocode FROM vocabulary_entry WHERE vid = (?) AND veid = (?);/;
-	my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
-	$sth->execute($vid, $veid);
+	  my $ss = qq/SELECT entry, isocode FROM vocabulary_entry WHERE vid = (?) AND veid = (?);/;
+	  my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+	  $sth->execute($vid, $veid);
 			
-	my $entry; # value label (eg 'Wood-engraver')
-	my $isocode; # 2 letter isocode defining language of the entry
+	  my $entry; # value label (eg 'Wood-engraver')
+	  my $isocode; # 2 letter isocode defining language of the entry
 				
-	$sth->bind_columns(undef, \$entry, \$isocode);
+	  $sth->bind_columns(undef, \$entry, \$isocode);
 				 
-	while($sth->fetch) {				
-		$labels{$isocode} = $entry; # this should always contain another language for the same entry								
-	}
-	$sth->finish;
-	undef $sth;
-	
-	return \%labels;	
+  	  while($sth->fetch) {				
+		  $labels->{$isocode} = $entry; # this should always contain another language for the same entry								
+	  }
+	  $sth->finish;
+	  undef $sth;
+
+      $c->app->chi->set($cachekey, $labels, '1 day');
+
+    }else{
+      $c->app->log->debug("[cache hit] $cachekey");     
+      
+    }		
+
+	return $labels;	
 }
 
 sub label {
@@ -120,13 +141,26 @@ sub label {
 	if($r->{status} != 200){		
 		return $r;
 	}
-		
-	if($r->{tid}){			
-		$res->{labels} = $self->_get_taxon_labels($c, $r->{cid}, $r->{tid});	    
-	}else{		
-		$res->{labels} = $self->_get_vocab_labels($c, $r->{vid}, $r->{veid}, $r->{cid});
-	}
 
+	my $labels;
+	my $cachekey = 'labels_'.$uri;	
+    unless($labels = $c->app->chi->get($cachekey))
+    {
+      $c->app->log->debug("[cache miss] $cachekey");
+      
+      if($r->{tid}){			
+		$labels = $self->_get_taxon_labels($c, $r->{cid}, $r->{tid});	    
+	  }else{		
+		$labels = $self->_get_vocab_labels($c, $r->{vid}, $r->{veid}, $r->{cid});
+	  }
+
+      $c->app->chi->set($cachekey, $labels, '1 day');
+
+    }else{
+      $c->app->log->debug("[cache hit] $cachekey");     
+    }		
+
+	$res->{labels} = $labels;
 	return $res;
 }
 
@@ -230,116 +264,128 @@ sub children {
 	my %children;
 	my @children;
 	
-	my $r = $self->_parse_uri($c, $uri);
-	if($r->{status} != 200){				
-		return $r;
-	}
-	
-	if($r->{xmlns} ne $classification_ns){		
-		push @{$res->{alerts}}, { type => 'danger', msg => 'Children can only be obtained for a classification.' };
-		$res->{status} = 400;
-		return $res;
-	}
-	
-	unless($r->{cid}){
-		# no classification id specified, return all the classification ids
-		my ($cid, $entry, $isocode);
-		my $ss = "SELECT c.cid, ve.entry, ve.isocode FROM classification_db c LEFT JOIN vocabulary_entry ve on c.veid = ve.veid;";
-		my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
-		$sth->execute();
-		$sth->bind_columns(undef, \$cid, \$entry, \$isocode);		
-		my %classes;
-		my %isocodes;
-		while($sth->fetch){
-			$classes{$cid}{$isocode} = $entry;
-			$isocodes{$isocode} = 1;
+	my $cachekey = 'children_'.$uri;	
+    unless($res = $c->app->chi->get($cachekey))
+    {
+      $c->app->log->debug("[cache miss] $cachekey");
+
+		my $r = $self->_parse_uri($c, $uri);
+		if($r->{status} != 200){				
+			return $r;
 		}
-		$sth->finish;
-    	undef $sth;
+		
+		if($r->{xmlns} ne $classification_ns){		
+			push @{$res->{alerts}}, { type => 'danger', msg => 'Children can only be obtained for a classification.' };
+			$res->{status} = 400;
+			return $res;
+		}
+		
+		unless($r->{cid}){
+			# no classification id specified, return all the classification ids
+			my ($cid, $entry, $isocode);
+			my $ss = "SELECT c.cid, ve.entry, ve.isocode FROM classification_db c LEFT JOIN vocabulary_entry ve on c.veid = ve.veid;";
+			my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+			$sth->execute();
+			$sth->bind_columns(undef, \$cid, \$entry, \$isocode);		
+			my %classes;
+			my %isocodes;
+			while($sth->fetch){
+				$classes{$cid}{$isocode} = $entry;
+				$isocodes{$isocode} = 1;
+			}
+			$sth->finish;
+	    	undef $sth;
 
-    	# create an array (just as in the metadata tree)
-    	my @classes;
-    	foreach my $cid (keys %classes){
-    		my %class;
-    		$class{uri} = "$classification_ns/cls_$cid";
-    		foreach my $iso (keys %isocodes){
-    			 $class{labels}{$iso} = $classes{$cid}{$iso};
-    		}
-    		push @classes, \%class;
-    	}
-    	
-    	@classes = sort { $a->{labels}->{en} cmp $b->{labels}->{en} } @classes;
-		$res->{terms} = \@classes;
-		return $res;
-	}
-		
-	# get children
-	my ($child_tid, $entry, $isocode, $preferred, $upstream_identifier, $term_id);
-	my %isocodes;	
-	my $ss = "SELECT t.tid, t.upstream_identifier, tv.term_id, ve.entry, ve.isocode, tv.preferred FROM taxon t LEFT JOIN taxon_vocentry tv ON tv.tid = t.tid LEFT JOIN vocabulary_entry ve ON tv.veid = ve.veid WHERE t.cid = (?)";
-	if($r->{tid}){
-		$ss .= "AND t.tid_parent = (?);";
-	}else{
-		$ss .= "AND t.tid_parent IS NULL;";
-	}
-	my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
-	if($r->{tid}){
-		$sth->execute($r->{cid}, $r->{tid});
-	}else{
-		$sth->execute($r->{cid});
-	}
-	$sth->bind_columns(undef, \$child_tid, \$upstream_identifier, \$term_id, \$entry, \$isocode, \$preferred);
-	while($sth->fetch){
-		
-		$children{$child_tid}{upstream_identifier} = $upstream_identifier;
-		
-		if($preferred){
-			$children{$child_tid}{preferred}{$isocode} = $entry;
-			$children{$child_tid}{preferred}{term_id} = $term_id;						
-		}else{
-			$children{$child_tid}{nonpreferred}{$term_id}{$isocode} = $entry;
-		}	
+	    	# create an array (just as in the metadata tree)
+	    	my @classes;
+	    	foreach my $cid (keys %classes){
+	    		my %class;
+	    		$class{uri} = "$classification_ns/cls_$cid";
+	    		foreach my $iso (keys %isocodes){
+	    			 $class{labels}{$iso} = $classes{$cid}{$iso};
+	    		}
+	    		push @classes, \%class;
+	    	}
+	    	
+	    	@classes = sort { $a->{labels}->{en} cmp $b->{labels}->{en} } @classes;
+			$res->{terms} = \@classes;
 			
-		$isocodes{$isocode} = 1;
-	}		
-	$sth->finish;
-    undef $sth;
-    
-    #$c->app->log->debug("ch: ".$c->app->dumper(\%children));
-    
-    # create an array (just as in the metadata tree)
-    foreach my $tid (keys %children){
-    	my %child;
-    	$child{uri} = $r->{xmlns}.'/cls_'.$r->{cid}.'/'.$tid;    	
-    	$child{upstream_identifier} = $children{$tid}{upstream_identifier};        	
-    	foreach my $iso (keys %isocodes){
-    		if($children{$tid}{preferred}{$iso}){    		
-    			$child{labels}{$iso} = $children{$tid}{preferred}{$iso};
-    			$child{term_id} = $children{$tid}{preferred}{term_id};
-    		}    		    			
-    	}
-    	if($children{$tid}{nonpreferred}){
-    		foreach my $termid (keys %{$children{$tid}{nonpreferred}}){
-    			my %ch;
-    			$ch{term_id} = $termid;
-    			foreach my $iso (keys %{$children{$tid}{nonpreferred}{$termid}}){
-   					$ch{labels}{$iso} = $children{$tid}{nonpreferred}{$termid}{$iso};
-    			}
-    			push @{$child{nonpreferred}}, \%ch;    			
-    		}
-    		@{$child{nonpreferred}} = sort { $a->{labels}->{en} cmp $b->{labels}->{en} } @{$child{nonpreferred}};    		
-    	}
-    	push @children, \%child;
-    }
+		}else{			
 
-    @children = sort { $a->{labels}->{en} cmp $b->{labels}->{en} } @children;
+			# get children
+			my ($child_tid, $entry, $isocode, $preferred, $upstream_identifier, $term_id);
+			my %isocodes;	
+			my $ss = "SELECT t.tid, t.upstream_identifier, tv.term_id, ve.entry, ve.isocode, tv.preferred FROM taxon t LEFT JOIN taxon_vocentry tv ON tv.tid = t.tid LEFT JOIN vocabulary_entry ve ON tv.veid = ve.veid WHERE t.cid = (?)";
+			if($r->{tid}){
+				$ss .= "AND t.tid_parent = (?);";
+			}else{
+				$ss .= "AND t.tid_parent IS NULL;";
+			}
+			my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+			if($r->{tid}){
+				$sth->execute($r->{cid}, $r->{tid});
+			}else{
+				$sth->execute($r->{cid});
+			}
+			$sth->bind_columns(undef, \$child_tid, \$upstream_identifier, \$term_id, \$entry, \$isocode, \$preferred);
+			while($sth->fetch){
+				
+				$children{$child_tid}{upstream_identifier} = $upstream_identifier;
+				
+				if($preferred){
+					$children{$child_tid}{preferred}{$isocode} = $entry;
+					$children{$child_tid}{preferred}{term_id} = $term_id;						
+				}else{
+					$children{$child_tid}{nonpreferred}{$term_id}{$isocode} = $entry;
+				}	
+					
+				$isocodes{$isocode} = 1;
+			}		
+			$sth->finish;
+		    undef $sth;
+		    
+		    #$c->app->log->debug("ch: ".$c->app->dumper(\%children));
+		    
+		    # create an array (just as in the metadata tree)
+		    foreach my $tid (keys %children){
+		    	my %child;
+		    	$child{uri} = $r->{xmlns}.'/cls_'.$r->{cid}.'/'.$tid;    	
+		    	$child{upstream_identifier} = $children{$tid}{upstream_identifier};        	
+		    	foreach my $iso (keys %isocodes){
+		    		if($children{$tid}{preferred}{$iso}){    		
+		    			$child{labels}{$iso} = $children{$tid}{preferred}{$iso};
+		    			$child{term_id} = $children{$tid}{preferred}{term_id};
+		    		}    		    			
+		    	}
+		    	if($children{$tid}{nonpreferred}){
+		    		foreach my $termid (keys %{$children{$tid}{nonpreferred}}){
+		    			my %ch;
+		    			$ch{term_id} = $termid;
+		    			foreach my $iso (keys %{$children{$tid}{nonpreferred}{$termid}}){
+		   					$ch{labels}{$iso} = $children{$tid}{nonpreferred}{$termid}{$iso};
+		    			}
+		    			push @{$child{nonpreferred}}, \%ch;    			
+		    		}
+		    		@{$child{nonpreferred}} = sort { $a->{labels}->{en} cmp $b->{labels}->{en} } @{$child{nonpreferred}};    		
+		    	}
+		    	push @children, \%child;
+		    }
 
-	$res->{terms} = \@children;
+		    @children = sort { $a->{labels}->{en} cmp $b->{labels}->{en} } @children;
+
+			$res->{terms} = \@children;
+		}
+
+		$c->app->chi->set($cachekey, $res, '1 day');
+
+    }else{
+      $c->app->log->debug("[cache hit] $cachekey");     
+    }		
 
 	return $res;	
 }
 
-sub taxonpath{
+sub taxonpath {
 	my $self = shift;
     my $c = shift;  
     my $uri = shift;    
@@ -347,62 +393,75 @@ sub taxonpath{
     my $res = { alerts => [], status => 200 };	
     
     my @taxonpath;
+
+    my $cachekey = 'taxonpath_'.$uri;	
+    unless($res = $c->app->chi->get($cachekey))
+    {
+      $c->app->log->debug("[cache miss] $cachekey");
+
     
-    my $r = $self->_parse_uri($c, $uri);
-	if($r->{status} != 200){				
-		return $r;
-	}
-	
-	if($r->{xmlns} ne $classification_ns){		
-		push @{$res->{alerts}}, { type => 'danger', msg => 'Taxon path can only be obtained for a classification.' };
-		$res->{status} = 400;
-		return $res;
-	}
-	
-	unless($r->{cid}){
-		push @{$res->{alerts}}, { type => 'danger', msg => 'To get taxon path the uri must specify the classification id' };
-		$res->{status} = 400;
-		return $res;
-	}
-	
-	unless($r->{tid}){
-		push @{$res->{alerts}}, { type => 'danger', msg => 'To get taxon path the uri must specify the taxon id' };
-		$res->{status} = 400;
-		return $res;
-	}	
-    
-    my $labels = $self->_get_taxon_labels($c, $r->{cid}, $r->{tid});
-    $labels->{uri} = $uri;
-    unshift @taxonpath, $labels;
-        
-    my $ptid = $r->{tid};
-    my $cnt = 0;
-    while($ptid){
-    	
-    	if($cnt > 50){
-    		# nah..
-    		push @{$res->{alerts}}, { type => 'danger', msg => 'Too many cycles' };
-			$res->{status} = 500;
+	    my $r = $self->_parse_uri($c, $uri);
+		if($r->{status} != 200){				
+			return $r;
+		}
+		
+		if($r->{xmlns} ne $classification_ns){		
+			push @{$res->{alerts}}, { type => 'danger', msg => 'Taxon path can only be obtained for a classification' };
+			$res->{status} = 400;
 			return $res;
-    	}
-    	$cnt++;    	
-    	$ptid = $self->_get_parent_tid($c, $r->{cid}, $ptid);
-    	#$c->app->log->debug("ptid: $ptid");
-    	if($ptid){
-    		my $puri = $r->{xmlns}.'/cls_'.$r->{cid}.'/'.$ptid;
-    		my $plabels = $self->_get_taxon_labels($c, $r->{cid}, $ptid);
-    		$plabels->{uri} = $puri;
-    		unshift @taxonpath, $plabels;
-    	}else{
-    		# first time there is no tid it means we reached the root - classification
-    		# we need to get the data for the 'source' element
-    		my $curi = $r->{xmlns}.'/cls_'.$r->{cid};
-    		my $clabels = $self->_get_vocab_labels($c, undef, undef, $r->{cid});
-    		unshift @taxonpath, { uri => $curi, labels => $clabels };
-    	}
-    }
+		}
+		
+		unless($r->{cid}){
+			push @{$res->{alerts}}, { type => 'danger', msg => 'To get taxon path the uri must specify the classification id' };
+			$res->{status} = 400;
+			return $res;
+		}
+		
+		unless($r->{tid}){
+			push @{$res->{alerts}}, { type => 'danger', msg => 'To get taxon path the uri must specify the taxon id' };
+			$res->{status} = 400;
+			return $res;
+		}	
+	    
+	    my $labels = $self->_get_taxon_labels($c, $r->{cid}, $r->{tid});
+	    $labels->{uri} = $uri;
+	    unshift @taxonpath, $labels;
+	        
+	    my $ptid = $r->{tid};
+	    my $cnt = 0;
+	    while($ptid){
+	    	
+	    	if($cnt > 50){
+	    		# nah..
+	    		push @{$res->{alerts}}, { type => 'danger', msg => 'Too many cycles' };
+				$res->{status} = 500;
+				return $res;
+	    	}
+	    	$cnt++;    	
+	    	$ptid = $self->_get_parent_tid($c, $r->{cid}, $ptid);
+	    	#$c->app->log->debug("ptid: $ptid");
+	    	if($ptid){
+	    		my $puri = $r->{xmlns}.'/cls_'.$r->{cid}.'/'.$ptid;
+	    		my $plabels = $self->_get_taxon_labels($c, $r->{cid}, $ptid);
+	    		$plabels->{uri} = $puri;
+	    		unshift @taxonpath, $plabels;
+	    	}else{
+	    		# first time there is no tid it means we reached the root - classification
+	    		# we need to get the data for the 'source' element
+	    		my $curi = $r->{xmlns}.'/cls_'.$r->{cid};
+	    		my $clabels = $self->_get_vocab_labels($c, undef, undef, $r->{cid});
+	    		unshift @taxonpath, { uri => $curi, labels => $clabels };
+	    	}
+	    }
 	
-	$res->{taxonpath} = \@taxonpath;
+		$res->{taxonpath} = \@taxonpath;
+
+		$c->app->chi->set($cachekey, $res, '1 day');
+
+    }else{
+      $c->app->log->debug("[cache hit] $cachekey");     
+    }		
+
 	return $res;
 }
 
@@ -432,35 +491,48 @@ sub parent {
     
     my %parent;
     
-    my $r = $self->_parse_uri($c, $uri);
-	if($r->{status} != 200){				
-		return $r;
-	}
-	
-	if($r->{xmlns} ne $classification_ns){		
-		push @{$res->{alerts}}, { type => 'danger', msg => 'Parent can only be obtained for a classification.' };
-		$res->{status} = 400;
-		return $res;
-	}
-	
-	unless($r->{cid}){
-		push @{$res->{alerts}}, { type => 'danger', msg => 'To get the parent the uri must specify the classification id' };
-		$res->{status} = 400;
-		return $res;
-	}
-	
-	unless($r->{tid}){
-		push @{$res->{alerts}}, { type => 'danger', msg => 'To get the parent the uri must specify the taxon id' };
-		$res->{status} = 400;
-		return $res;
-	}
-	
-	my $ptid = $self->_get_parent_tid($c, $r->{cid}, $r->{tid});
-	
-    $res->{parent} = $r->{xmlns}.'/cls_'.$r->{cid};
-    if($ptid){
-    	$res->{parent} .= '/'.$ptid;
-    }
+	my $cachekey = 'parent_'.$uri;	
+    unless($res = $c->app->chi->get($cachekey))
+    {
+
+    	$c->app->log->debug("[cache miss] $cachekey");
+
+	    my $r = $self->_parse_uri($c, $uri);
+		if($r->{status} != 200){				
+			return $r;
+		}
+		
+		if($r->{xmlns} ne $classification_ns){		
+			push @{$res->{alerts}}, { type => 'danger', msg => 'Parent can only be obtained for a classification.' };
+			$res->{status} = 400;
+			return $res;
+		}
+		
+		unless($r->{cid}){
+			push @{$res->{alerts}}, { type => 'danger', msg => 'To get the parent the uri must specify the classification id' };
+			$res->{status} = 400;
+			return $res;
+		}
+		
+		unless($r->{tid}){
+			push @{$res->{alerts}}, { type => 'danger', msg => 'To get the parent the uri must specify the taxon id' };
+			$res->{status} = 400;
+			return $res;
+		}
+		
+		my $ptid = $self->_get_parent_tid($c, $r->{cid}, $r->{tid});
+		
+	    $res->{parent} = $r->{xmlns}.'/cls_'.$r->{cid};
+	    if($ptid){
+	    	$res->{parent} .= '/'.$ptid;
+	    }
+
+	   $c->app->chi->set($cachekey, $res, '1 day');
+
+    }else{
+      $c->app->log->debug("[cache hit] $cachekey");     
+    }		
+
 	return $res;
 }
 

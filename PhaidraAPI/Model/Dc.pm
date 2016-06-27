@@ -546,12 +546,12 @@ sub generate_dc_from_uwmetadata {
 
   # Fedora's DC - for backward compatibility with frontend which only updates DC (see Hooks)
 
-  my $r1 = $object_model->add_or_modify_datastream($c, $pid, "DC", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", $username, $password, 1);
-  foreach my $a (@{$r1->{alerts}}){
+  my $r3 = $object_model->add_or_modify_datastream($c, $pid, "DC", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", $username, $password, 1);
+  foreach my $a (@{$r3->{alerts}}){
     push @{$res->{alerts}}, $a;
   }
-  if($r1->{status} ne 200){
-    $res->{status} = $r1->{status};
+  if($r3->{status} ne 200){
+    $res->{status} = $r3->{status};
   }
 
 
@@ -682,8 +682,8 @@ if(ref($v) eq 'HASH'){
   $dc_p{identifier} = $identifiers if(defined($identifiers));
   $dc_p{title} = $titles if(defined($titles));
   $dc_p{description} = $descriptions if(defined($descriptions));
-  $dc_p{subject} = \@subjects if(defined(@subjects));
-  $dc_p{language} = \@langs if(defined(@langs));
+  $dc_p{subject} = \@subjects if(@subjects);
+  $dc_p{language} = \@langs if(@langs);
   $dc_p{creator} = $creators_p if(defined($creators_p));
   $dc_p{date} = $dates if(defined($dates));
   $dc_p{type} = $types_p;

@@ -10,6 +10,12 @@ sub stats {
     my $self = shift; 
        
     my $pid = $self->stash('pid');
+
+    unless(defined($pid)){
+        $self->render(json => { alerts => [{ type => 'info', msg => 'Undefined pid' }]}, status => 400);
+        return;
+    }
+
     my $key = $self->stash('stats_param_key');
 
     my $cachekey = 'stats_'.$pid;
