@@ -19,21 +19,26 @@ use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Terms;
 use PhaidraAPI::Model::Util;
 
-our %basic_input_types_map = (
-	"input_text_lang" => "input_text",
-	"input_datetime" => "input_text",
-	"input_text" => "input_text",
-	"input_duration" => "input_text",
-	"input_textarea_lang" => "input_text",
-	"static" => "input_text",
+our %input_types_map = (
+	"LangString" => "input_text",
+	"DateTime" => "input_text",
+	"CharacterString" => "input_text",
+	"GPS" => "input_text",
+	"Duration" => "input_text",
+	"FileSize" => "input_text",
 
-	"select" => "select",
-	"language_select" => "select",
-	"select_yesno" => "select",
-	"input_checkbox" => "select",
-
-	"node" => "node",	
-	"label_only" => "node"	
+	"Vocabulary" => "select",
+	"License" => "select",
+	"Faculty" => "select",
+	"Department" => "select",
+	"SPL" => "select",
+	"Curriculum" => "select",
+	"Language" => "select",
+	"Boolean" => "select",
+	"Taxon" => "select",
+	"ClassificationSource" => "select",
+	
+	"Node" => "node"
 );
 
 sub metadata_tree {
@@ -446,22 +451,20 @@ sub get_metadata_tree {
 		}elsif($element->{datatype} eq "SPL"){
 
 			my %vocabulary;
-
+			my $terms_model = PhaidraAPI::Model::Terms->new;
 			$vocabulary{namespace} = $element->{xmlns}.'/voc_'.$element->{xmlname}.'/';
 			my $langs = $c->app->config->{directory}->{study_plans_languages};
 			foreach my $lang (@$langs){
-
-				my $res = $c->app->directory->get_study_plans($c, undef, $lang);
-				if(exists($res->{alerts})){
-					if($res->{status} != 200){
+				
+				my $spls = $terms_model->get_study_plans($c, $lang);												
+				if(exists($spls->{alerts})){
+					if($spls->{status} != 200){
 						# there are only alerts
-						return { alerts => $res->{alerts}, status => $res->{status} };
+						return { alerts => $spls->{alerts}, status => $spls->{status} };
 					}
 				}
 
-				my $study_plans = $res->{study_plans};
-
-				foreach my $sp (@$study_plans){
+				foreach my $sp (@$spls){
 					$vocabulary{'terms'}->{$sp->{value}}->{uri} = $vocabulary{namespace}.$sp->{value};
 					$vocabulary{'terms'}->{$sp->{value}}->{labels}->{$lang} = $sp->{name};
 
@@ -493,6 +496,92 @@ sub get_metadata_tree {
 	}
 
 	return \@metadata_tree;
+}
+
+sub get_datatype_hash {
+	my ($self, $c) = @_;	
+
+	my $datatype_hash;
+	my $cachekey = 'uwmetadata_datatype_hash';	
+    unless($datatype_hash = $c->app->chi->get($cachekey))
+    {
+    	$c->app->log->debug("[cache miss] $cachekey");
+     
+    	my $tree_res = $self->metadata_tree($c);
+    	my %h;
+		$self->_create_datatype_hash($c, $tree_res->{metadata_tree}, \%h);
+		$datatype_hash = \%h;	
+		$c->app->chi->set($cachekey, $datatype_hash, '1 day');
+
+    }else{
+      $c->app->log->debug("[cache hit] $cachekey");           
+    }	
+	
+	return $datatype_hash;
+}
+
+sub _create_datatype_hash {
+
+	my $self = shift;
+	my $c = shift;
+	my $children = shift;
+	my $h = shift;
+
+	foreach my $n (@{$children}){
+
+		$h->{$n->{xmlns}.'/'.$n->{xmlname}} = $n->{datatype};
+
+		my $children_size = defined($n->{children}) ? scalar (@{$n->{children}}) : 0;
+		if($children_size > 0){
+			$self->_create_datatype_hash($c, $n->{children}, $h);
+		}
+	}
+
+}
+
+sub get_voc_ns_hash {
+	my ($self, $c) = @_;	
+
+	my $vocns_hash;
+	my $cachekey = 'uwmetadata_voc_ns_hash';	
+    unless($vocns_hash = $c->app->chi->get($cachekey))
+    {
+    	$c->app->log->debug("[cache miss] $cachekey");
+     
+    	my $tree_res = $self->metadata_tree($c);
+    	my %h;
+		$self->_create_voc_ns_hash($c, $tree_res->{metadata_tree}, \%h);
+		$vocns_hash = \%h;
+		$c->app->chi->set($cachekey, $vocns_hash, '1 day');
+
+    }else{
+      $c->app->log->debug("[cache hit] $cachekey");           
+    }	
+	
+	return $vocns_hash;
+}
+
+sub _create_voc_ns_hash {
+
+	my $self = shift;
+	my $c = shift;
+	my $children = shift;
+	my $h = shift;
+
+	foreach my $n (@{$children}){
+
+		if(($n->{datatype} eq 'Vocabulary') || ($n->{datatype} eq 'License')){
+			for my $v (@{$n->{vocabularies}}){
+				$h->{$n->{xmlns}.'/'.$n->{xmlname}} = $v->{namespace};
+			}
+		}
+
+		my $children_size = defined($n->{children}) ? scalar (@{$n->{children}}) : 0;
+		if($children_size > 0){
+			$self->_create_voc_ns_hash($c, $n->{children}, $h);
+		}
+	}
+
 }
 
 sub uwmetadata_2_json {
@@ -538,20 +627,10 @@ sub uwmetadata_2_json {
 sub uwmetadata_2_json_basic {
 	my ($self, $c, $uwmetadata_xml, $mode) = @_;
 
-	# this structure contains the metadata default structure (equals to empty uwmetadataeditor) to which
-	# we are going to load the data of some real object
-	my $tree_res = $self->metadata_tree($c);
-	
-	if($tree_res->{status} ne 200){
-		return $tree_res;
-	}
+	my $terms_model = PhaidraAPI::Model::Terms->new;
 
-	my $metadata_tree = $tree_res->{metadata_tree};
-
-	# this is a hash where the key is 'ns/id' and value is a default representation of a node
-	# -> we use this when adding nodes (eg a second title) to get a new empty node
-	my %metadata_nodes_hash;
-	$self->create_md_nodes_hash($c, $metadata_tree, \%metadata_nodes_hash);
+	my $datatype_hash = $self->get_datatype_hash($c);
+	my $vocns_hash = $self->get_voc_ns_hash($c);
 
 	my $uwmetadata = Mojo::DOM->new();
     $uwmetadata->xml(1);
@@ -566,89 +645,74 @@ sub uwmetadata_2_json_basic {
 		$nsmap->{$newkey} = delete $nsmap->{$key};
     }
 
-    my $arr = $self->uwmetadata_2_json_basic_rec($c, $uwmetadata->find('uwmetadata')->first, $mode, $nsmap, \%metadata_nodes_hash, undef);
+    my $arr = $self->uwmetadata_2_json_basic_rec($c, $terms_model, $uwmetadata->find('uwmetadata')->first, $mode, $nsmap, $datatype_hash, $vocns_hash, undef);
 
     return { alerts => [], uwmetadata => $arr, status => 200 };
 }
 
 sub uwmetadata_2_json_basic_rec {
 
-	my ($self, $c, $uwmetadata, $mode, $nsmap, $metadata_nodes_hash, $contextdata) = @_;
+	my ($self, $c, $terms_model, $uwmetadata, $mode, $nsmap, $datatype_hash, $vocns_hash, $contextdata) = @_;
 
 	my @children;
 	for my $e ($uwmetadata->children->each) {
 
-	    my $type = $e->tag;
-
-	    # type looks like this: ns1:general
-	    # get namespace and identifier from it
-	    # namespace = 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0'
-	    # identifier = 'general'
-	    $type =~ m/(ns\d+):([0-9a-zA-Z_]+)/;
-	    my $ns = $1;
-	    my $id = $2;
+	    my $type = $e->tag;	  	   
+	    my ($ns, $id) = $self->_get_ns_id($c, $type);
 
 		my $xmlns = $nsmap->{$ns};
 		
-		my $ref_node = $metadata_nodes_hash->{$xmlns.'/'.$id};
-		
-		my $input_type = $ref_node->{input_type};
+		my $datatype = $datatype_hash->{$xmlns.'/'.$id};
+		my $vocns = $vocns_hash->{$xmlns.'/'.$id};
 
 		# we're going to dumb this down
-		$input_type = $basic_input_types_map{$input_type};
+		my $input_type = $input_types_map{$datatype};
 
 		my %node = (
 			xmlname => $id,
-    		input_type => $input_type
+			xmlns => $xmlns,
+    		input_type => $input_type,
+    		datatype => $datatype
 		);
+
+		if(($mode eq 'resolved') && ($node{xmlname} eq 'taxonpath')){
+			# if this is taxon path, save classification id in context data
+			# so that we have it when resolving taxons
+			for my $elm ($e->children->each){
+				my $elm_type = $elm->tag;
+   				my ($elm_ns, $elm_id) = $self->_get_ns_id($c, $elm_type);
+   				if($elm_id eq 'source'){
+ 					$contextdata->{cls} = $elm->text;
+   				}
+			}					
+		}
 		
 		if($e->text){
 
 			my $value = $e->text;
-
 			$node{ui_value} = $value;
 
 			if($mode eq 'resolved'){
-=cut
-				if($node{xmlname} eq 'taxonpath'){
-					# it this is taxon path, save classification id in context data
-					# so that we have it when resolving taxons
-					for my $elm ($e->children->each){
-						my $elm_type = $elm->tag;
-	    				$elm_type =~ m/(ns\d+):([0-9a-zA-Z_]+)/;
-	    				my $elm_ns = $1;
-	    				my $elm_id = $2;
-	    				if($elm_id eq 'source'){
-	    					$contextdata->{cls} = $elm->text;
-	    				}
-					}
-					
-				}
-
 
 				my $labels;
-				if($labels = $self->resolve_if_id($c, $e, $value, $ref_node)){				
+				if($labels = $self->resolve_if_id($c, $terms_model, $datatype, $vocns, $value, $contextdata)){				
 					$node{labels} = $labels;
 				}
-				#while ( my ($isocode, $label) = each %{$values} ){
-				#	$node{labels} = $labels;		
-				#}
-				#$node{label} = $value;	
-=cut									
+						
+			}												
+		}
+
+		if(defined($e->attr)){
+			if($e->attr->{language}){
+				push @{$node{attributes}}, { xmlname => 'lang', input_type => 'select', ui_value => $e->attr->{language}};
 			}
-			
-			if(defined($e->attr)){
-			   	if($e->attr->{language}){
-			   		push @{$node{attributes}}, { xmlname => 'lang', input_type => 'select', ui_value => $e->attr->{language}};
-			   	}
-			   	if(defined($e->attr->{seq})){
-			   		push @{$node{attributes}}, { xmlname => 'data_order', input_type => 'input_text', ui_value => $e->attr->{seq}};
-			  	}
-			}						
+			if(defined($e->attr->{seq})){
+				push @{$node{attributes}}, { xmlname => 'data_order', input_type => 'input_text', ui_value => $e->attr->{seq}};
+			}
 		}
 
 		if($e->children->size > 0){
-	    	$node{children} = $self->uwmetadata_2_json_basic_rec($c, $e, $mode, $nsmap, $metadata_nodes_hash, $contextdata);
+	    	$node{children} = $self->uwmetadata_2_json_basic_rec($c, $terms_model, $e, $mode, $nsmap, $datatype_hash, $vocns_hash, $contextdata);
 	    }
 
 	    push @children, \%node;
@@ -656,38 +720,61 @@ sub uwmetadata_2_json_basic_rec {
 	return \@children;
 }
 
+sub _get_ns_id {
+
+	my ($self, $c, $elm_type) = @_;
+
+	# type looks like this: ns1:general
+	# get namespace and identifier from it
+	# namespace = 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0'
+	# identifier = 'general'
+	$elm_type =~ m/(ns\d+):([0-9a-zA-Z_]+)/;
+	return ($1, $2);
+}
+
 sub resolve_if_id {
-	my ($self, $c, $e, $value, $ref_node) = @_;
+	my ($self, $c, $terms_model, $datatype, $vocns, $value, $contextdata) = @_;
 
-	if(
-		$ref_node->{datatype} eq 'Vocabulary' ||
-		$ref_node->{datatype} eq 'License' ||
-		$ref_node->{datatype} eq 'Faculty'
-	){
+	if($datatype eq 'Vocabulary' || $datatype eq 'License'){
 
-		my $uri = $ref_node->{vocabularies}[0]->{namespace}.'/'.$value;
+		my $r = $terms_model->label($c, $vocns.$value);		
+		return $r->{labels};
 
-		for my $t (@{$ref_node->{vocabularies}[0]->{terms}}){
-			if($t->{uri} eq $uri){
-				return $t->{labels};
+	}elsif($datatype eq 'Faculty'){
+
+		my $r = $terms_model->label($c, $PhaidraAPI::Model::Terms::organization_ns.'/voc_faculty/'.$value);		
+		return $r->{labels};
+
+	}elsif($datatype eq 'Department'){
+
+		my $r = $terms_model->label($c, $PhaidraAPI::Model::Terms::organization_ns.'/voc_department/'.$value);		
+		return $r->{labels};
+
+	}elsif($datatype eq 'SPL'){ 
+	# || $datatype eq 'Curriculum' we'll ignore curriculum now, it's complicated, uni-specfic and rarely used
+
+		my $labels;
+		my $langs = $c->app->config->{directory}->{study_plans_languages};
+		foreach my $lang (@$langs){
+			my $r = $terms_model->get_study_plans($c, $lang);
+			if($r->{status} eq 200){
+				for my $spl (@{$r->{study_plans}}){
+					if($spl->{value} eq $value){						
+						$labels->{$lang} = $spl->{name};
+						last;
+					}
+				}
 			}
 		}
 
-	}elsif(
-		$ref_node->{datatype} eq 'Department' ||
-		$ref_node->{datatype} eq 'SPL' ||
-		$ref_node->{datatype} eq 'Curriculum'
-	){
+		return $labels;
 
-		
-
-	}elsif($ref_node->{datatype} eq 'ClassificationSource'){
+	}elsif($datatype eq 'ClassificationSource'){
 
 		# eg http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/cls_7
 
 		my $uri = $PhaidraAPI::Model::Terms::classification_ns.'/cls_'.$value;
-
-		my $terms_model = PhaidraAPI::Model::Terms->new;
+		
 		my $r = $terms_model->children($c, $PhaidraAPI::Model::Terms::classification_ns);
 		if($r->{status} eq 200){		
 			for my $t (@{$r->{terms}}){	
@@ -697,12 +784,19 @@ sub resolve_if_id {
 			}
 		}
 
-		# get taxons from $e (-> parent -> taxonchildren)
+	}elsif($datatype eq 'Taxon'){
+			
+		my $r = $terms_model->label($c, $PhaidraAPI::Model::Terms::classification_ns."/cls_".$contextdata->{cls}."/".$value);		
+		return $r->{labels}->{labels};
+	
+	}elsif($datatype eq 'Boolean'){
 
-	}elsif($ref_node->{datatype} eq 'Boolean'){
-		return $value eq 'yes' ? 1 : 0;		
+		if($value eq 'yes'){
+			return { en => 'Yes', de => 'Ja', it => 'Sì' };
+		}else{
+			return { en => 'No', de => 'Nein', it => 'No' };
+		}
 	}
-
 	
 }
 
@@ -897,14 +991,7 @@ sub fill_object_metadata {
 	for my $e ($uwmetadata->children->each) {
 
 	    my $type = $e->tag;
-
-	    # type looks like this: ns1:general
-	    # get namespace and identifier from it
-	    # namespace = 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0'
-	    # identifier = 'general'
-	    $type =~ m/(ns\d+):([0-9a-zA-Z_]+)/;
-	    my $ns = $1;
-	    my $id = $2;
+	    my ($ns, $id) = $self->_get_ns_id($c, $type);
       #$c->app->log->debug("XXXXXXX type [$type] ns [$ns] id [$id]");
 	    my $node;
 	    if($id ne 'uwmetadata'){
@@ -962,9 +1049,7 @@ sub fill_object_metadata {
 			    				}
 
 			    				my $child_type = $child->type;
-			    				$child_type =~ m/(ns\d+):([0-9a-zA-Z_]+)/;
-							    my $ns = $1;
-							    my $id = $2;
+							    my ($ns, $id) = $self->_get_ns_id($c, $child_type);
 							    if($id eq 'spl'){
 							    	$spl = $child->text;
 							    	next;
@@ -1125,7 +1210,6 @@ sub get_empty_node {
 
 	return $node;
 }
-
 
 sub create_md_nodes_hash {
 
@@ -1553,13 +1637,26 @@ sub json_2_uwmetadata_rec(){
 		}
 
 		my %attrs;
+
+		### attributes, old way		
 		if($child->{ordered}){
 			$attrs{seq} = $child->{data_order};
 		}
+	  	if(defined($child->{value_lang}) && $child->{value_lang} ne ''){
+	  		$attrs{language} = $child->{value_lang};
+	  	}
 
-  	if(defined($child->{value_lang}) && $child->{value_lang} ne ''){
-  		$attrs{language} = $child->{value_lang};
-  	}
+	  	### attributes, new way
+	  	if(exists($child->{attributes})){
+	  		for my $a (@{$child->{attributes}}){
+	  			if($a->{xmlname} eq 'data_order'){
+	  				$attrs{seq} = $a->{ui_value};
+	  			}
+	  			if($a->{xmlname} eq 'lang'){
+	  				$attrs{language} = $a->{ui_value};
+	  			}
+	  		}
+	  	}
 
 
 		if (%attrs){
