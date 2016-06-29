@@ -230,16 +230,18 @@ sub update_index {
       if($r->{dshash}->{'GEO'}){
         my $geo_model = PhaidraAPI::Model::Geo->new;
         my $r_geo = $geo_model->get_object_geo_json($self, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
-        push @{$index{$f->{geo}}}, $r_geo;
+        push @{$index{'geo'}}, $r_geo->{geo};
       }
 
       # metadata
       if($r->{dshash}->{'UWMETADATA'}){
-
-        
-
-        # get roles
+        $self->_add_uwm_index($c, $pid, $index);
       }
+      if($r->{dshash}->{'MODS'}){
+        $self->_add_mods_index($c, $pid, $index);
+      }
+      
+      
 
     }else{
       push @res, { pid => $pid, res => $r };
@@ -266,5 +268,105 @@ sub update_index {
   $self->render(json => { results => \@res }, status => 200);
 }
 
+sub _add_mods_index {
+  my ($self, $c, $pid, $index) = @_;
+
+}
+
+sub _add_uwm_index {
+  my ($self, $c, $pid, $index) = @_;
+
+  my $uwmetadata_model = PhaidraAPI::Model::Uwmetadata->new;  
+  my $r_uwm = $uwmetadata_model->get_object_metadata($self, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 'resolved');      
+  if($r_uwm->{status} ne 200){        
+    push @res, { pid => $pid, res => $r_uwm };              
+  }
+
+  my $uwm = $r_uwm->{uwmetadata};
+
+  # author
+  my $digital_authors = $self->_get_uwm_role($c, "46", $uwm);
+  my $analogue_authors = $self->_get_uwm_role($c, "1552095", $uwm);
+  push @{$index{uwm}->{authors}} = $digital_authors if defined $digital_authors; 
+  push @{$index{uwm}->{authors}} = $analogue_authors if defined $analogue_authors; 
+
+  # publisher
+  my $publishers = $self->_get_uwm_role($c, "47", $uwm);
+  push @{$index{uwm}->{publishers}} = $publishers if defined $publishers; 
+}
+
+sub _get_uwm_role {
+  my ($self, $c, $role, $uwm, $index) = @_;
+
+  my $life = $self->_find_first_uwm_node_rec("http://phaidra.univie.ac.at/XML/metadata/lom/V1.0", "lifecycle", $uwm);
+
+  my @names;
+  for my $ch (@{$life}){
+    if($ch->{xmlname} eq "contribute"){
+      my $found = 0;
+      for my $n (@{$ch->{children}}){
+        if(($ch->{xmlname} eq "role") && ($ch->{ui_value} eq $role)){
+          $found = 1;
+        }
+      }
+      
+      if($found){
+        for my $l1 (@{$ch->{children}}){
+
+          my $fn;
+          my $ln;
+          my $in;
+          if($l1->{xmlname} eq "entity"){
+            
+            for my $l2 (@{$l1->{children}}){
+              if($l2->{xmlname} eq "firstname"){
+                $fn = $l2->{ui_value};
+              }
+              if($l2->{xmlname} eq "lastname"){
+                $ln = $l2->{ui_value};
+              }
+              if($l2->{xmlname} eq "institution"){
+                $in = $l2->{ui_value};
+              }
+            }
+          }
+
+          my $name;
+          if($fn || $ln){
+            $name = "$fn $ln";
+          }else{
+            if($in){
+              $name = $in;
+            }
+          }
+
+          push @names, $name if defined $name;
+        }
+      }
+    }
+  }
+
+  return \@names;
+}
+
+sub _find_first_uwm_node_rec {
+  my ($self, $c, $xmlns, $xmlname, $uwm) = @_;
+
+  my $ret;
+  for my $n (@{$uwm}){
+    if(($n->{xmlname} eq $xmlname) && ($n->{xmlns} eq $xmlns)){
+      $ret = $n;
+      last;
+    }else{
+      my $ch_size = defined($->{children}) ? scalar (@{$n->{children}}) : 0;
+      if($ch_size > 0){
+        $ret = $self->_find_uwm_node_rec($c, $n->{children});
+        last if $ret;
+      }
+    }
+  }
+
+  return $ret;
+}
 
 1;
