@@ -160,7 +160,7 @@ sub get_object_dc_json {
     return $res;
   }
 
-  my $output_label = $dsid eq 'DC_P' ? 'dc' : 'oai_dc';
+  my $output_label = ($dsid eq 'DC_P') || ($dsid eq 'DC') ? 'dc' : 'oai_dc';
   return $self->xml_2_json($c, $res->{$dsid}, $output_label);
 
 }
