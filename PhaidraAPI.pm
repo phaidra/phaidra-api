@@ -280,7 +280,7 @@ sub startup {
   # lucene query can be long -> post
   $r->route('search/lucene')                      ->via('post')   ->to('search#search_lucene');
 
-  $r->route('utils/get_all_pids')                 ->via('get')    ->to('utils#get_all_pids');
+  $r->route('utils/get_all_pids')                 ->via('get')    ->to('utils#get_all_pids');  
 
 	$r->route('terms/label')                   		  ->via('get')    ->to('terms#label');
 	$r->route('terms/children')                	    ->via('get')    ->to('terms#children');
@@ -306,10 +306,10 @@ sub startup {
   $r->route('object/:pid/rights')                 ->via('get')    ->to('rights#get');
   $r->route('object/:pid/geo')                    ->via('get')    ->to('geo#get');
   $r->route('object/:pid/techinfo')               ->via('get')    ->to('techinfo#get');
-  # these two are XML  
   $r->route('object/:pid/dc')                     ->via('get')    ->to('dc#get', dsid => 'DC_P');
   $r->route('object/:pid/oai_dc')                 ->via('get')    ->to('dc#get', dsid => 'DC_OAI');
 
+  $r->route('object/:pid/index')                  ->via('get')    ->to('utils#get_index');
   $r->route('object/:pid/id')                     ->via('get')    ->to('search#id');
 
   $r->route('dc/uwmetadata_2_dc_index')           ->via('post')   ->to('dc#uwmetadata_2_dc_index');
