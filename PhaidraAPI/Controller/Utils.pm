@@ -389,7 +389,7 @@ sub _add_mods_index {
   my $res = { alerts => [], status => 200 };
 
   my $mods_model = PhaidraAPI::Model::Mods->new;  
-  my $r_mods = $mods_model->get_object_mods_json($self, $pid, 'basic' $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});      
+  my $r_mods = $mods_model->get_object_mods_json($self, $pid, 'basic', $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});      
   if($r_mods->{status} ne 200){        
     return $r_mods;            
   }
@@ -399,10 +399,10 @@ sub _add_mods_index {
 
     if($n->{xmlname} eq 'name'){
       next unless exists $n->{children};
-      for my $n1 (@{$n->{children}}){
-        my $firstname;
-        my $lastname;
-        my $role;
+      my $firstname;
+      my $lastname;
+      my $role;
+      for my $n1 (@{$n->{children}}){        
         if($n1->{xmlname} eq 'namePart'){          
           if(exists($n1->{attributes})){
             for my $a (@{$n1->{attributes}}){
@@ -425,7 +425,8 @@ sub _add_mods_index {
           }
         }        
       }
-      push @roles, { name => "$firstname $lastname", role => $role };
+      my $name = "$firstname $lastname";
+      push @roles, { name => "$firstname $lastname", role => $role } unless $name eq ' ';
     }
 
     if($n->{xmlname} eq 'originInfo'){
@@ -559,7 +560,8 @@ sub _get_uwm_roles {
                 $entity{$l2->{xmlname}} = $l2->{ui_value};
               }
             }
-            $entity{name} = "$firstname $lastname";
+            my $name = "$firstname $lastname";
+            $entity{name} = $name unless $name eq ' ';
             $entity{role} = $role;
           }
 
