@@ -281,7 +281,7 @@ sub _get_index {
         push @{$res->{alerts}}, $a;
       }
     }else{
-      push $index{geo}, $r_geo->{geo};
+      push @{$index{geo}}, $r_geo->{geo};
     }
   }
 
