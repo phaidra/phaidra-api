@@ -113,7 +113,7 @@ sub xml_2_json {
       $self->create_mods_nodes_hash($c, $mods_tree, \%mods_nodes_hash, '');
 
       foreach my $n (@{$mods}){
-        if(defined($mode) && $mode eq 'light'){
+        if(defined($mode) && $mode eq 'basic'){
           $self->add_properties_rec($c, '', $n, \%mods_nodes_hash, 0);
         }else{
           $self->add_properties_rec($c, '', $n, \%mods_nodes_hash, 1);

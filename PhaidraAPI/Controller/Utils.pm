@@ -10,6 +10,7 @@ use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Dc;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Geo;
+use PhaidraAPI::Model::Relationships;
 
 our %uwm_2_mods_roles = (
   "46" => "aut",
@@ -217,14 +218,15 @@ sub get_index {
   my $pid = $self->stash('pid');
   my $dc_model = PhaidraAPI::Model::Dc->new;
   my $search_model = PhaidraAPI::Model::Search->new;
+  my $rel_model = PhaidraAPI::Model::Relationships->new;
 
-  my $r = $self->_get_index($pid, $dc_model, $search_model);
+  my $r = $self->_get_index($pid, $dc_model, $search_model, $rel_model);
 
   $self->render(json => $r, status => $r->{status});
 }
 
 sub _get_index {
-  my ($self, $pid, $dc_model, $search_model) = @_;
+  my ($self, $pid, $dc_model, $search_model, $rel_model) = @_;
 
   my $res = { status => 200 };        
 
@@ -287,21 +289,42 @@ sub _get_index {
   if($r_ds->{dshash}->{'UWMETADATA'}){
     my $r_add_uwm = $self->_add_uwm_index($pid, \%index);
     if($r_add_uwm->{status} ne 200){
-      $res->{alerts} = [{ type => 'danger', msg => "Error adding UWMETADATA fields from $pid, skipping" }];
+      $res->{alerts} = [{ type => 'danger', msg => "Error adding UWMETADATA fields for $pid, skipping" }];
       for $a (@{$r_add_uwm->{alerts}}){
         push @{$res->{alerts}}, $a;
       }
     }    
   }
-
   if($r_ds->{dshash}->{'MODS'}){
     my $r_add_mods = $self->_add_mods_index($pid, \%index);
     if($r_add_mods->{status} ne 200){
-      $res->{alerts} = [{ type => 'danger', msg => "Error adding MODS fields from $pid, skipping" }];
+      $res->{alerts} = [{ type => 'danger', msg => "Error adding MODS fields for $pid, skipping" }];
       for $a (@{$r_add_mods->{alerts}}){
         push @{$res->{alerts}}, $a;
       }
     } 
+  }
+
+  # triples
+  my $r_add_triples = $self->_add_triples_index($pid, $search_model, \%index);
+  if($r_add_triples->{status} ne 200){
+    $res->{alerts} = [{ type => 'danger', msg => "Error getting triples for $pid, skipping" }];
+    for $a (@{$r_add_triples->{alerts}}){
+      push @{$res->{alerts}}, $a;
+    }
+  }   
+
+  # relationships
+  my $r_rel = $rel_model->get($self, $pid, $search_model);
+  if($r_rel->{status} ne 200){
+    $res->{alerts} = [{ type => 'danger', msg => "Error getting relationships for $pid, skipping" }];
+    for $a (@{$r_rel->{alerts}}){
+      push @{$res->{alerts}}, $a;
+    }
+  }else{
+    while (my ($k, $v) = each %{$r_rel->{relationships}}) {
+      $index{$k} = $v;
+    }
   }
     
   # list of datastreams
@@ -318,10 +341,113 @@ sub _get_index {
   return $res;
 }
 
+sub _add_triples_index {
+
+  my ($self, $pid, $search_model, $index) = @_;
+
+  my $res = { alerts => [], status => 200 };
+
+  my $r_trip = $search_model->triples($self, "<info:fedora/$pid> * *", 0);
+  if($r_trip->{status} ne 200){
+    return $r_trip;
+  }
+   
+  for my $triple (@{$r_trip->{result}}){
+    my $predicate = @$triple[1];
+    my $object = @$triple[2];
+
+    if($predicate eq '<info:fedora/fedora-system:def/model#hasModel>'){      
+      if($object =~ m/^<info:fedora\/cmodel:(.*)>$/){
+        $index->{cmodel} = $1;        
+      }
+    }
+
+    if($predicate eq '<info:fedora/fedora-system:def/model#ownerId>'){
+      $object =~ m/^"(.*)"$/;
+      $index->{owner} = $1;  
+    }
+
+    if($predicate eq '<info:fedora/fedora-system:def/view#lastModifiedDate>'){
+      $object =~ m/\"([\d\-\:\.TZ]+)\"/;
+      $index->{modified} = $1;    
+    }
+
+    if($predicate eq '<info:fedora/fedora-system:def/model#createdDate>'){
+      $object =~ m/\"([\d\-\:\.TZ]+)\"/;
+      $index->{created} = $1;
+    }
+
+  }
+
+  return $res;
+
+}
+
 sub _add_mods_index {
   my ($self, $pid, $index) = @_;
 
   my $res = { alerts => [], status => 200 };
+
+  my $mods_model = PhaidraAPI::Model::Mods->new;  
+  my $r_mods = $mods_model->get_object_mods_json($self, $pid, 'basic' $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});      
+  if($r_mods->{status} ne 200){        
+    return $r_mods;            
+  }
+
+  my @roles;
+  for my $n (@{$r_mods->{mods}}){
+
+    if($n->{xmlname} eq 'name'){
+      next unless exists $n->{children};
+      for my $n1 (@{$n->{children}}){
+        my $firstname;
+        my $lastname;
+        my $role;
+        if($n1->{xmlname} eq 'namePart'){          
+          if(exists($n1->{attributes})){
+            for my $a (@{$n1->{attributes}}){
+              if($a->{xmlname} eq 'type' && $a->{ui_value} eq 'given'){
+                $firstname = $n1->{ui_value};
+              }
+              if($a->{xmlname} eq 'type' && $a->{ui_value} eq 'family'){
+                $lastname = $n1->{ui_value};
+              }
+            }
+          }
+        }
+        if($n1->{xmlname} eq 'role'){
+          if(exists($n1->{children})){
+            for my $ch (@{$n1->{children}}){
+              if($ch->{xmlname} eq 'roleTerm'){
+                $role = $ch->{ui_value};
+              }
+            }
+          }
+        }        
+      }
+      push @roles, { name => "$firstname $lastname", role => $role };
+    }
+
+    if($n->{xmlname} eq 'originInfo'){
+      next unless exists $n->{children};
+      for my $n1 (@{$n->{children}}){
+        if($n1->{xmlname} eq 'dateIssued'){
+          push @{$index->{bib}->{published}}, $n1->{ui_value};
+        }
+        if($n1->{xmlname} eq 'publisher'){
+          push @{$index->{bib}->{publisher}}, $n1->{ui_value};
+        }
+        if($n1->{xmlname} eq 'place'){
+          push @{$index->{bib}->{publisherlocation}}, $n1->{ui_value};
+        }
+        if($n1->{xmlname} eq 'edition'){
+          push @{$index->{bib}->{edition}}, $n1->{ui_value};
+        }
+      }
+    }
+  }
+
+  push @{$index->{bib}->{roles}}, \@roles;   
 
   return $res;
 }
@@ -354,23 +480,7 @@ sub _add_uwm_index {
   # roles
   my $roles = $self->_get_uwm_roles($uwm);
   push @{$index->{bib}->{roles}}, $roles;   
-=cut
-  # author
-  my $digital_authors = $self->_get_uwm_role("46", $uwm);
-  for my $a (@{$digital_authors}){
-    push @{$index->{bib}->{author}}, $a;   
-  }
-  my $analogue_authors = $self->_get_uwm_role("1552095", $uwm);
-  for my $a (@{$analogue_authors}){
-    push @{$index->{bib}->{author}}, $a;   
-  }  
 
-  # publisher
-  my $publishers = $self->_get_uwm_role("47", $uwm);
-  for my $a (@{$publishers}){
-    push @{$index->{bib}->{publisher}}, $a;   
-  }  
-=cut
   # digital book stuff
   my $digbook = $self->_find_first_uwm_node_rec("http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0", "digitalbook", $uwm);
   if($digbook){
@@ -411,6 +521,7 @@ sub _get_uwm_roles {
     if($ch->{xmlname} eq "contribute"){
 
       my $role;
+      my $contribution_data_order;
       my @names;
       for my $n (@{$ch->{children}}){
         if(($n->{xmlname} eq "role")){
@@ -421,100 +532,50 @@ sub _get_uwm_roles {
           }
         }
       }
+      for my $n (@{$ch->{attributes}}){
+        if($n->{xmlname} eq 'data_order'){
+          # we are going to make the hierarchy flat so multiply the higher level order value
+          $contribution_data_order = $n->{ui_value}*100;
+        }
+      }
 
       if($role){
         for my $l1 (@{$ch->{children}}){
 
-          my $fn;
-          my $ln;
-          my $in;
-          if($l1->{xmlname} eq "entity"){
-            
+          my %entity;
+
+          next if $l1->{xmlname} eq "role";
+
+          if($l1->{xmlname} eq "entity"){      
+            my $firstname;      
+            my $lastname;
             for my $l2 (@{$l1->{children}}){
+              next if $l2->{xmlname} eq "type";
               if($l2->{xmlname} eq "firstname"){
-                $fn = $l2->{ui_value};
+                $firstname = $l2->{ui_value};
+              }elsif($l2->{xmlname} eq "lastname"){
+                $lastname = $l2->{ui_value};
+              }else{
+                $entity{$l2->{xmlname}} = $l2->{ui_value};
               }
-              if($l2->{xmlname} eq "lastname"){
-                $ln = $l2->{ui_value};
-              }
-              if($l2->{xmlname} eq "institution"){
-                $in = $l2->{ui_value};
-              }
+            }
+            $entity{name} = "$firstname $lastname";
+            $entity{role} = $role;
+          }
+
+          for my $n (@{$l1->{attributes}}){
+            if($n->{xmlname} eq 'data_order'){
+              $entity{data_order} = $n->{ui_value} + $contribution_data_order;
             }
           }
 
-          my $name;
-          if($fn || $ln){
-            $name = "$fn $ln";
-          }else{
-            if($in){
-              $name = $in;
-            }
-          }
-
-          push @names, $name if defined $name;
-        }
-      }
-
-      push @roles, {role => $role, names => \@names}
-    }
-  }
-
-  return \@roles;
-}
-
-sub _get_uwm_role {
-  my ($self, $role, $uwm) = @_;
-
-  my $life = $self->_find_first_uwm_node_rec("http://phaidra.univie.ac.at/XML/metadata/lom/V1.0", "lifecycle", $uwm);
-
-  my @names;
-  for my $ch (@{$life->{children}}){
-    if($ch->{xmlname} eq "contribute"){
-      my $found = 0;
-      for my $n (@{$ch->{children}}){
-        if(($n->{xmlname} eq "role") && ($n->{ui_value} eq $role)){
-          $found = 1;
-        }
-      }
-
-      if($found){
-        for my $l1 (@{$ch->{children}}){
-
-          my $fn;
-          my $ln;
-          my $in;
-          if($l1->{xmlname} eq "entity"){
-            
-            for my $l2 (@{$l1->{children}}){
-              if($l2->{xmlname} eq "firstname"){
-                $fn = $l2->{ui_value};
-              }
-              if($l2->{xmlname} eq "lastname"){
-                $ln = $l2->{ui_value};
-              }
-              if($l2->{xmlname} eq "institution"){
-                $in = $l2->{ui_value};
-              }
-            }
-          }
-
-          my $name;
-          if($fn || $ln){
-            $name = "$fn $ln";
-          }else{
-            if($in){
-              $name = $in;
-            }
-          }
-
-          push @names, $name if defined $name;
+          push @roles, \%entity if defined $role;
         }
       }
     }
   }
 
-  return \@names;
+  return \@roles;
 }
 
 sub _find_first_uwm_node_rec {
