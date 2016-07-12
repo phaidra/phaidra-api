@@ -1163,7 +1163,7 @@ sub _get_publishers {
     # check publisher in digitalbook only once, not for 'provenience' namespace
     if($ns eq 'lom'){
       my $publishers = $dom->find($doc_uwns{'digitalbook'}.'\:publisher')->first;
-      push @res, $publishers->text if(defined($publishers));
+      push @res, { value => $publishers->text } if(defined($publishers));
     }
   }
 
@@ -1300,7 +1300,6 @@ sub _get_uwm_element_values {
 sub _create_dc_from_hash {
 
   my ($self, $c, $dc) = @_;
-
   my $dc_xml = '<oai_dc:dc xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/">'."\n";
   foreach my $k (keys %{$dc})
   {
