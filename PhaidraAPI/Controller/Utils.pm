@@ -439,7 +439,13 @@ sub _add_mods_index {
           push @{$index->{bib}->{publisher}}, $n1->{ui_value};
         }
         if($n1->{xmlname} eq 'place'){
-          push @{$index->{bib}->{publisherlocation}}, $n1->{ui_value};
+          if(exists($n1->{children})){
+            for my $n2 (@{$n1->{children}}){
+              if($n2->{xmlname} eq 'placeTerm'){
+                push @{$index->{bib}->{publisherlocation}}, $n2->{ui_value};  
+              }
+            }            
+          }          
         }
         if($n1->{xmlname} eq 'edition'){
           push @{$index->{bib}->{edition}}, $n1->{ui_value};
