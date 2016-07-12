@@ -19,9 +19,9 @@ sub process {
 
   my $hash = hmac_sha1_hex($pid, $self->app->config->{imageserver}->{hash_secret});
 
-  $self->instance_mongo->db->collection('jobs')->insert({pid => $pid, agent => "pige", status => "new", idhash => $hash, created => time });      
+  $self->paf_mongo->db->collection('jobs')->insert({pid => $pid, agent => "pige", status => "new", idhash => $hash, created => time });      
 
-  my $res = $self->instance_mongo->db->collection('jobs')->find({pid => $pid})->sort({ "created" => -1})->next;
+  my $res = $self->paf_mongo->db->collection('jobs')->find({pid => $pid})->sort({ "created" => -1})->next;
 
   $self->render(json => $res, status => 200);
 
@@ -50,7 +50,7 @@ sub process_pids {
 
     # create new job to process image
     my $hash = hmac_sha1_hex($pid, $self->app->config->{imageserver}->{hash_secret});    
-    $self->instance_mongo->db->collection('jobs')->insert({ pid => $pid, agent => "pige", status => "new", idhash => $hash, created => time });
+    $self->paf_mongo->db->collection('jobs')->insert({ pid => $pid, agent => "pige", status => "new", idhash => $hash, created => time });
 
     # create a temporary hash for the image to hide the real hash in case we want to forbid access to the picture
     my $tmp_hash = hmac_sha1_hex($hash, $self->app->config->{imageserver}->{tmp_hash_secret});
@@ -69,7 +69,7 @@ sub status {
 
   my $pid = $self->stash('pid');
 
-  my $res = $self->instance_mongo->db->collection('jobs')->find({pid => $pid})->sort({ "created" => -1})->next;
+  my $res = $self->paf_mongo->db->collection('jobs')->find({pid => $pid})->sort({ "created" => -1})->next;
 
   $self->render(json => $res, status => 200);
 
@@ -91,7 +91,7 @@ sub tmp_hash {
     my $res = $self->mango->db->collection('imgsrv.hashmap')->find_one({pid => $pid});
     if(!defined($res) || !exists($res->{tmp_hash})){
       # if we could not find the temp hash, look into the jobs if the image isn't there as processed
-      my $res1 = $self->instance_mongo->db->collection('jobs')->find({pid => $pid})->sort({ "created" => -1})->next;
+      my $res1 = $self->paf_mongo->db->collection('jobs')->find({pid => $pid})->sort({ "created" => -1})->next;
       if(!defined($res1) || $res1->{status} ne 'finished'){
         # if it isn't then this image isn't known to imageserver
         $self->render(json => { alerts => [{ type => 'info', msg => 'Not found in imageserver' }]}, status => 404);

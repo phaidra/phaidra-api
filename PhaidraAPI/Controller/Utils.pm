@@ -336,6 +336,13 @@ sub _get_index {
   my @dskeys = keys %{$r_ds->{dshash}};
   $index{datastreams} = \@dskeys;
 
+  # inventory
+  my $inv_coll = $self->paf_mongo->db->collection('foxml.ds');
+  if($inv_coll){
+    my $ds_doc = $inv_coll->find({pid => $pid})->sort({ "updated_at" => -1})->next;
+    $index{size} = $ds_doc->{fs_size};
+  }
+
   # pid
   $index{pid} = $pid;    
 
@@ -412,10 +419,10 @@ sub _add_mods_index {
           if(exists($n1->{attributes})){
             for my $a (@{$n1->{attributes}}){
               if($a->{xmlname} eq 'type' && $a->{ui_value} eq 'given'){
-                $firstname = $n1->{ui_value};
+                $firstname = $n1->{ui_value} if $n1->{ui_value} ne '';
               }
               if($a->{xmlname} eq 'type' && $a->{ui_value} eq 'family'){
-                $lastname = $n1->{ui_value};
+                $lastname = $n1->{ui_value} if $n1->{ui_value} ne '';
               }
             }
           }
@@ -424,7 +431,7 @@ sub _add_mods_index {
           if(exists($n1->{children})){
             for my $ch (@{$n1->{children}}){
               if($ch->{xmlname} eq 'roleTerm'){
-                $role = $ch->{ui_value};
+                $role = $ch->{ui_value} if $ch->{ui_value} ne '';
               }
             }
           }
@@ -438,22 +445,22 @@ sub _add_mods_index {
       next unless exists $n->{children};
       for my $n1 (@{$n->{children}}){
         if($n1->{xmlname} eq 'dateIssued'){
-          push @{$index->{bib}->{published}}, $n1->{ui_value};
+          push @{$index->{bib}->{published}}, $n1->{ui_value} if $n1->{ui_value} ne '';
         }
         if($n1->{xmlname} eq 'publisher'){
-          push @{$index->{bib}->{publisher}}, $n1->{ui_value};
+          push @{$index->{bib}->{publisher}}, $n1->{ui_value} if $n1->{ui_value} ne '';
         }
         if($n1->{xmlname} eq 'place'){
           if(exists($n1->{children})){
             for my $n2 (@{$n1->{children}}){
               if($n2->{xmlname} eq 'placeTerm'){
-                push @{$index->{bib}->{publisherlocation}}, $n2->{ui_value};  
+                push @{$index->{bib}->{publisherlocation}}, $n2->{ui_value} if $n2->{ui_value} ne '';  
               }
             }            
           }          
         }
         if($n1->{xmlname} eq 'edition'){
-          push @{$index->{bib}->{edition}}, $n1->{ui_value};
+          push @{$index->{bib}->{edition}}, $n1->{ui_value} if $n1->{ui_value} ne '';
         }
       }
     }
@@ -483,7 +490,7 @@ sub _add_uwm_index {
     if($general->{children}){
       for my $gf (@{$general->{children}}){
         if($gf->{xmlname} eq 'irdata'){
-          push @{$index->{bib}->{ir}}, $gf->{ui_value};  
+          push @{$index->{bib}->{ir}}, $gf->{ui_value} if $gf->{ui_value} ne '';  
         }
       }
     }
@@ -499,22 +506,22 @@ sub _add_uwm_index {
     if($digbook->{children}){
       for my $dbf (@{$digbook->{children}}){
         if($dbf->{xmlname} eq 'publisher'){
-          push @{$index->{bib}->{publisher}}, $dbf->{ui_value};  
+          push @{$index->{bib}->{publisher}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
         if($dbf->{xmlname} eq 'publisherlocation'){
-          push @{$index->{bib}->{publisherlocation}}, $dbf->{ui_value};  
+          push @{$index->{bib}->{publisherlocation}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
         if($dbf->{xmlname} eq 'name_magazine'){
-          push @{$index->{bib}->{journal}}, $dbf->{ui_value};  
+          push @{$index->{bib}->{journal}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
         if($dbf->{xmlname} eq 'volume'){
-          push @{$index->{bib}->{volume}}, $dbf->{ui_value};  
+          push @{$index->{bib}->{volume}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
         if($dbf->{xmlname} eq 'edition'){
-          push @{$index->{bib}->{edition}}, $dbf->{ui_value};  
+          push @{$index->{bib}->{edition}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
         if($dbf->{xmlname} eq 'releaseyear'){
-          push @{$index->{bib}->{published}}, $dbf->{ui_value};  
+          push @{$index->{bib}->{published}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
       }
     }
@@ -564,11 +571,11 @@ sub _get_uwm_roles {
             for my $l2 (@{$l1->{children}}){
               next if $l2->{xmlname} eq "type";
               if($l2->{xmlname} eq "firstname"){
-                $firstname = $l2->{ui_value};
+                $firstname = $l2->{ui_value} if $ls->{ui_value} ne '';
               }elsif($l2->{xmlname} eq "lastname"){
-                $lastname = $l2->{ui_value};
+                $lastname = $l2->{ui_value} if $ls->{ui_value} ne '';
               }else{
-                $entity{$l2->{xmlname}} = $l2->{ui_value};
+                $entity{$l2->{xmlname}} = $l2->{ui_value} if $ls->{ui_value} ne '';
               }
             }
             my $name = "$firstname $lastname";
