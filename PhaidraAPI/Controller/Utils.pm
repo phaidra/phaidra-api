@@ -571,11 +571,11 @@ sub _get_uwm_roles {
             for my $l2 (@{$l1->{children}}){
               next if $l2->{xmlname} eq "type";
               if($l2->{xmlname} eq "firstname"){
-                $firstname = $l2->{ui_value} if $ls->{ui_value} ne '';
+                $firstname = $l2->{ui_value} if $l2->{ui_value} ne '';
               }elsif($l2->{xmlname} eq "lastname"){
-                $lastname = $l2->{ui_value} if $ls->{ui_value} ne '';
+                $lastname = $l2->{ui_value} if $l2->{ui_value} ne '';
               }else{
-                $entity{$l2->{xmlname}} = $l2->{ui_value} if $ls->{ui_value} ne '';
+                $entity{$l2->{xmlname}} = $l2->{ui_value} if $l2->{ui_value} ne '';
               }
             }
             my $name = "$firstname $lastname";
