@@ -154,6 +154,11 @@ sub update_index {
   my $self = shift;
   my $pid_param = $self->stash('pid');
 
+  unless(exists($self->app->config->{index_mongodb})){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'The index database is not configured' }]} , status => 400) ;
+    return;
+  }
+
   my $username = $self->stash->{basic_auth_credentials}->{username};
   my $password = $self->stash->{basic_auth_credentials}->{password};
 
@@ -200,7 +205,7 @@ sub update_index {
     my $r = $self->_get_index($pid, $dc_model, $search_model);    
     if($r->{status} eq 200){
       # save
-      #$self->index_mongo->db->collection($self->app->config->{index_mongodb}->{collection})->update({pid => $pid}, $r->{index}, { upsert => 1 });         
+      $self->index_mongo->db->collection($self->app->config->{index_mongodb}->{collection})->update({pid => $pid}, $r->{index}, { upsert => 1 });         
       push @res, { pid => $pid, status => 200 };
     }else{
       $r->{pid} = $pid;
