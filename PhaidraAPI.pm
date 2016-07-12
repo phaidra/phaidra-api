@@ -118,8 +118,8 @@ sub startup {
   $self->plugin('database', { databases => \%databases } );
 
 	$self->helper(mango => sub { state $mango = Mango->new('mongodb://'.$config->{mongodb}->{username}.':'.$config->{mongodb}->{password}.'@'.$config->{mongodb}->{host}.'/'.$config->{mongodb}->{database}) });
-  if(exists($config->{paf_mongodb})){
-    $self->helper(paf_mongo => sub { state $paf_mongo = Mango->new('mongodb://'.$config->{paf_mongodb}->{username}.':'.$config->{paf_mongodb}->{password}.'@'.$config->{paf_mongodb}->{host}.'/'.$config->{paf_mongodb}->{database}) });
+  if(exists($config->{instance_mongodb})){
+    $self->helper(instance_mongo => sub { state $instance_mongo = Mango->new('mongodb://'.$config->{instance_mongodb}->{username}.':'.$config->{instance_mongodb}->{password}.'@'.$config->{instance_mongodb}->{host}.'/'.$config->{instance_mongodb}->{database}) });
   }
   if(exists($config->{index_mongodb})){
     if($config->{index_mongodb}->{username}){

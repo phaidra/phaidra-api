@@ -146,7 +146,15 @@
         "database": "database"
     },
 
-   "paf_mongodb": {
+   "instance_mongodb": {
+      "host" : "host",
+      "port" : "27017",
+      "username" : "username",
+      "password" : "password",
+      "database" : "database"
+   },
+
+   "index_mongodb": {
       "host" : "host",
       "port" : "27017",
       "username" : "username",
