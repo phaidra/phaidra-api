@@ -45,8 +45,8 @@ use PhaidraAPI::Model::Session::Transport::Header;
 use PhaidraAPI::Model::Session::Store::Mongo;
 
 $ENV{MOJO_MAX_MESSAGE_SIZE} = 20737418240;
-$ENV{MOJO_INACTIVITY_TIMEOUT} = 600;
-$ENV{MOJO_HEARTBEAT_TIMEOUT} = 600;
+$ENV{MOJO_INACTIVITY_TIMEOUT} = 1209600;
+$ENV{MOJO_HEARTBEAT_TIMEOUT} = 1209600;
 #$ENV{MOJO_TMPDIR} = '/usr/local/fedora/imagemanipulator/tmp';
 
 # This method will run once at server start

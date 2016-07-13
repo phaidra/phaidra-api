@@ -13,9 +13,84 @@ use PhaidraAPI::Model::Geo;
 use PhaidraAPI::Model::Relationships;
 
 our %uwm_2_mods_roles = (
+
+  # unmapped
+  "49" => "initiator",
+  "51" => "evaluator",  
+  "56" => "technicalinspector",
+  "58" => "textprocessor",
+  "59" => "pedagogicexpert",
+  "61" => "interpreter",
+  "1552154" => "digitiser",
+  "1552155" => "keeperoftheoriginal",
+  "1552167" => "adviser",
+  "1557124" => "degreegrantor",
+  "1557146" => "uploader",
+
+  # data supplier -> data contributor
+  "55" => "dtc",
+  # author digital
   "46" => "aut",
+  # author analogue
   "1552095" => "aut",
-  "47" => "pbl"
+  "47" => "pbl",  
+  "52" => "edt",
+  "53" => "dsr",
+  "54" => "trl",
+  "60" => "exp",
+  "63" => "oth",
+  "10867" => "art",
+  "10868" => "dnr",
+  "10869" => "pht",
+  "1552168" => "jud",
+  "1557130" => "prf",
+  "1557145" => "wde",
+  "1557142" => "rce",
+  "1557139" => "sce",
+  "1557136" => "ths",
+  "1557133" => "sds",
+  "1557129" => "lyr",
+  "1557126" => "ilu",  
+  "1557121" => "eng",
+  "1557116" => "cnd",
+  "1557113" => "dto",
+  "1557111" => "opn",
+  "1557109" => "cmp",
+  "1557107" => "ctg",
+  "1557104" => "dub",
+  "1557103" => "wam",
+  "1557100" => "arc",
+  "1557144" => "vdg",
+  "1557140" => "scl",
+  "1557138" => "aus",
+  "1557134" => "own",
+  "1557131" => "fmo",
+  "1557127" => "mus",
+  "1557122" => "ive",
+  "1557119" => "ill",
+  "1557117" => "cng",
+  "1557114" => "dte",
+  "1557110" => "sad",
+  "1557105" => "mte",
+  "1557101" => "arr",
+  "1557098" => "etr",
+  "1557143" => "dis",
+  "1557141" => "prt",
+  "1557137" => "flm",
+  "1557135" => "rev",
+  "1557132" => "pro",
+  "1557128" => "att",
+  "1557125" => "lbt",
+  "1557123" => "ivr",
+  "1557120" => "egr",
+  "1557118" => "msd",
+  "1557115" => "ard",
+  "1557112" => "chr",
+  "1557108" => "com",
+  "1557106" => "sng",
+  "1557102" => "act",
+  "1557099" => "adp"  
+
 );
 
 
@@ -194,6 +269,7 @@ sub update_index {
   #my $object_model = PhaidraAPI::Model::Object->new;
   my $dc_model = PhaidraAPI::Model::Dc->new;
   my $search_model = PhaidraAPI::Model::Search->new;
+  my $rel_model = PhaidraAPI::Model::Relationships->new;
   my @res;
   my $pidscount = scalar @pidsarr;
   my $i = 0;
@@ -202,7 +278,7 @@ sub update_index {
     $i++;
     $self->app->log->info("Processing $pid [$i/$pidscount]");
 
-    my $r = $self->_get_index($pid, $dc_model, $search_model);    
+    my $r = $self->_get_index($pid, $dc_model, $search_model, $rel_model);    
     if($r->{status} eq 200){
       # save
       $self->index_mongo->db->collection($self->app->config->{index_mongodb}->{collection})->update({pid => $pid}, $r->{index}, { upsert => 1 });         
@@ -547,7 +623,7 @@ sub _get_uwm_roles {
           if(exists($uwm_2_mods_roles{$n->{ui_value}})){
             $role = $uwm_2_mods_roles{$n->{ui_value}};
           }else{
-            $self->app->log->error("Failed to map uwm role ".$n->{ui_value}." to a MARC role.");
+            $self->app->log->error("Failed to map uwm role ".$n->{ui_value}." to a role code.");
           }
         }
       }
