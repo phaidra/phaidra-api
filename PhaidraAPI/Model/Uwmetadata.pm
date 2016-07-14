@@ -18,6 +18,7 @@ use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Terms;
 use PhaidraAPI::Model::Util;
+use PhaidraAPI::Model::Licenses;
 
 our %input_types_map = (
 	"LangString" => "input_text",
@@ -735,10 +736,15 @@ sub _get_ns_id {
 sub resolve_if_id {
 	my ($self, $c, $terms_model, $datatype, $vocns, $value, $contextdata) = @_;
 
-	if($datatype eq 'Vocabulary' || $datatype eq 'License'){
+	if($datatype eq 'Vocabulary'){ 
 
 		my $r = $terms_model->label($c, $vocns.$value);		
 		return $r->{labels};
+
+	}elsif($datatype eq 'License'){
+
+		my $r = $terms_model->license_label($c, $value);
+		return $r->{labels};			
 
 	}elsif($datatype eq 'Faculty'){
 

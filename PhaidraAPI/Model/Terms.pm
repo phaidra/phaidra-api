@@ -160,6 +160,38 @@ sub get_study_plans {
 	return $res;
 }
 
+sub license_label {
+	my $self = shift;
+    my $c = shift;
+    my $lid = shift;
+
+    my $res = { alerts => [], status => 200 };	
+
+    my $labels;
+	my $cachekey = 'license_'.$lid.'_labels';	
+	unless($labels = $c->app->chi->get($cachekey))
+	{
+    	$c->app->log->debug("[cache miss] $cachekey");
+		
+		my $lic_model = PhaidraAPI::Model::Licenses->new;		
+		my $r = $lic_model->get_licenses($c);
+		if($r->{status} ne 200){		
+  		  return $r;
+	    }
+		for my $l (@{$r->{licenses}}){
+			if($l->{lid} eq $lid){
+				$labels = $l->{labels};
+			}
+		}
+		$c->app->chi->set($cachekey, $labels, '1 day');
+	}else{
+	    $c->app->log->debug("[cache hit] $cachekey");           
+	}	
+
+	$res->{labels} = $labels;
+	return $res;
+}
+
 sub label {
     my $self = shift;
     my $c = shift;
