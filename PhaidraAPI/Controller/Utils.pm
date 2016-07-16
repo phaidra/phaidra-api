@@ -343,16 +343,16 @@ sub _get_index {
     if(exists($f->{attributes})){
       for my $a (@{$f->{attributes}}){
         if($a->{xmlname} eq 'xml:lang'){
-          push @{$index{dc}->{$f->{xmlname}}}, $f->{ui_value};
-          push @{$index{dc}->{$f->{xmlname}."_".$a->{ui_value}}}, $f->{ui_value};     
+          push @{$index{'dc.'.$f->{xmlname}}}, $f->{ui_value};
+          push @{$index{'dc.'.$f->{xmlname}."_".$a->{ui_value}}}, $f->{ui_value};     
         }
       }        
     }else{
-      push @{$index{dc}->{$f->{xmlname}}}, $f->{ui_value};
+      push @{$index{'dc.'.$f->{xmlname}}}, $f->{ui_value};
     }
   }    
 
-  # get GEO
+  # get GEO and turn to solr geospatial types
   if($r_ds->{dshash}->{'GEO'}){
     my $geo_model = PhaidraAPI::Model::Geo->new;
     my $r_geo = $geo_model->get_object_geo_json($self, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
@@ -362,7 +362,31 @@ sub _get_index {
         push @{$res->{alerts}}, $a;
       }
     }else{
-      push @{$index{geo}}, $r_geo->{geo};
+      for my $plm (@{$r_geo->{geo}->{kml}->{document}->{placemark}}){
+
+        # bbox -> WKT/CQL ENVELOPE syntax. Example: ENVELOPE(-10, 20, 15, 10) which is minX, maxX, maxY, minY order
+        if(exists($r_geo->{polygon})){
+          my $coords = $r_geo->{polygon}->{outerboundaryis}->{linearring}->{coordinates};
+          # we have to sort them minX, maxX, maxY, minY
+          my $minLat = 9999;
+          my $maxLat = 0;
+          my $minLon = 9999;
+          my $maxLon = 0;
+          for my $ll (@$coords){            
+            $maxLon = $ll->{longitude} if $ll->{longitude} > $maxLon;
+            $minLon = $ll->{longitude} if $ll->{longitude} < $minLon;
+            $maxLat = $ll->{latitude} if $ll->{latitude} > $maxLat;
+            $minLat = $ll->{latitude} if $ll->{latitude} < $minLat;
+          }
+
+          push @{$index{bbox}}, "ENVELOPE($minLat, $maxLat, $maxLon, $minLon)";
+        }
+        
+        # latlong -> latitude,longitude
+        if(exists($r_geo->{point})){
+          push @{$index{latlong}}, $r_geo->{point}->{coordinates}->{latitude}.",".$r_geo->{point}->{coordinates}->{longitude};
+        }
+      }      
     }
   }
 
@@ -602,6 +626,31 @@ sub _add_uwm_index {
       }
     }
   }  
+
+  # "GPS"
+  #<ns9:gps>13°3&apos;6&apos;&apos;E|47°47&apos;45&apos;&apos;N</ns9:gps>
+  #<ns9:gps>23°12&apos;19&apos;&apos;E|35°27&apos;8&apos;&apos;N</ns9:gps>
+  my $gps = $self->_find_first_uwm_node_rec("http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0", "gps", $uwm);
+  #"ui_value": "13Â°3'6''E|47Â°47'45''N",
+  my $coord = $gps->{ui_value};
+  $coord =~ s/Â//g;
+  $coord =~ m/(\d+)°(\d+)'(\d+)''(E|W)\|(\d+)°(\d+)'(\d+)''(N|S)/g;
+  my $lon_deg = $1;
+  my $lon_min = $2;
+  my $lon_sec = $3;
+  my $lon_sign = $4;
+  my $lat_deg = $5;
+  my $lat_min = $6;
+  my $lat_sec = $7;
+  my $lat_sign = $8;
+
+  my $lon_dec = $lon_deg + ($lon_min/60) + ($lon_sec/3600);
+  $lon_dec = -$lon_dec if $lon_sign eq 'S';
+
+  my $lat_dec = $lat_deg + ($lat_min/60) + ($lat_sec/3600);
+  $lat_dec = -$lat_dec if $lat_sign eq 'W';
+  
+  push @{$index->{latlong}}, "$lat_dec,$lon_dec";
 
   return $res;
 }

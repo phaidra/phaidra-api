@@ -29,8 +29,12 @@ sub get {
       push @{$res->{alerts}}, $a;
     }
   }else{  
-    $rels{haspart} = $r_col->{haspart};
-    $rels{ispartof} = $r_col->{ispartof};
+    if(scalar @{$r_col->{haspart}} > 0){
+      $rels{haspart} = $r_col->{haspart};
+    }
+    if(scalar @{$r_col->{ispartof}} > 0){
+      $rels{ispartof} = $r_col->{ispartof};
+    }
   }
 
   # isBackSideOf  
@@ -90,12 +94,16 @@ sub get {
   my %formats;
   my %checked = ($pid => 0);
   $self->_get_alt_formats_rec($c, $search_model, $pid, $pid, \%graph, \%formats, \%checked);
-  $rels{alt_formats} = \%formats;
+  if(%formats){
+    $rels{altformats} = \%formats;
+  }
 
   my %versions;
   my %checkedv = ($pid => 0);
   $self->_get_alt_versions_rec($c, $search_model, $pid, $pid, \%graph, \%versions, \%checkedv);
-  $rels{alt_versions} = \%versions;
+  if(%versions){
+    $rels{altversions} = \%versions;
+  }
 
   $res->{relationships} = \%rels;
   return $res;
