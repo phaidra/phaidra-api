@@ -601,10 +601,14 @@ sub map_uwmetadata_2_dc_hash {
   unless(defined($dates)){
     $dates = $self->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:upload_date');
   }
+  $dates = [] unless (defined ($dates));
   my $embargodates = $self->_get_uwm_element_values($c, $dom, $doc_uwns{'extended'}.'\:infoeurepoembargo');
-  $dates= [] unless (defined ($dates)); # this should fix this error: [Tue Mar 15 15:45:50 2016] [error] Type of arg 1 to push must be array (not private variable) at PhaidraAPI/Model/Dc.pm line 581, near "$em;"
   for my $em (@{$embargodates}){
     push @$dates, $em;
+  }
+  my $contributedates = $self->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:date');
+  for my $cd (@{$contributedates}){
+    push @$dates, $cd;
   }
   my $types_p = $self->_get_types($c, $cmodel, $dom, $tree, $metadata_model, 'p');
   my $types_oai = $self->_get_types($c, $cmodel, $dom, $tree, $metadata_model, 'oai');
@@ -656,6 +660,7 @@ sub map_uwmetadata_2_dc_hash {
     }
   }
 
+=cut
   for my $v (@$creators_p){
 if(ref($v) eq 'HASH'){
     if(defined($v->{date}) && ($v->{date} ne '')) {
@@ -677,6 +682,8 @@ if(ref($v) eq 'HASH'){
 }   
  }
   }
+
+=cut
 
   my %dc_p;
   $dc_p{identifier} = $identifiers if(defined($identifiers));
@@ -1051,23 +1058,19 @@ sub _get_entities {
       my $lastname = $e->find($entity_ns.'\:lastname')->first;
       if(defined($lastname)){
         $lastname = $lastname->text;
-      }
-      my $date = $ctr->find($doc_uwns{$ns}.'\:date')->first;
-      if(defined($date)){
-        $date = $date->text;
-      }
+      } 
 
       if($firstname && $lastname){
         if($type eq 'oai'){
           # APA bibliographic style
           my $initials = ucfirst(substr($firstname, 0, 1));
-          push @res, { value => "$lastname, $initials ($firstname)", date => $date};
+          push @res, { value => "$lastname, $initials ($firstname)"};
         }else{
-          push @res, { value => "$lastname, $firstname", date => $date};
+          push @res, { value => "$lastname, $firstname"};
         }
       }else{
-        push @res, { value => $firstname, date => $date } if(defined($firstname) && $firstname ne '');
-        push @res, { value => $lastname, date => $date } if(defined($lastname) && $lastname ne '');
+        push @res, { value => $firstname } if(defined($firstname) && $firstname ne '');
+        push @res, { value => $lastname} if(defined($lastname) && $lastname ne '');
       }
 
       my $institution = $e->find($entity_ns.'\:institution')->first;
@@ -1082,14 +1085,14 @@ sub _get_entities {
             foreach my $lang (@{$c->app->config->{directory}->{org_units_languages}})
             {
               if(my $inststr = $self->_get_affiliation_cached($c, $institution, $lang)){
-                push @res, { value => $inststr, lang => $lang, date => $date };
+                push @res, { value => $inststr, lang => $lang };
               }
             }
           }
         }
         else
         {
-          push @res, { value => $institution, date => $date } if ($institution ne '');
+          push @res, { value => $institution} if ($institution ne '');
         }
       }
     }
@@ -1177,7 +1180,7 @@ sub _get_creators {
   my @res;
   for my $ns (('lom','provenience')){
     my %creators;
-    for my $con ($dom->find($doc_uwns{$ns}.'\:contribute')->sort(sub{ $a->attr('seq') cmp $b->attr('seq') })->each){
+    for my $con ($dom->find($doc_uwns{$ns}.'\:contribute')->sort(sub{ $a->attr('seq') cmp $b->attr('seq') })->each){      
       my $role = $con->find($doc_uwns{$ns}.'\:role')->first;
       if(defined($role)){
         $role = $role->text;
@@ -1204,6 +1207,7 @@ sub _get_creators {
     }
 
     push @res, $self->_get_entities($c, \@creators, $ns, $type);
+
   }
   return \@res;
 }
