@@ -5,12 +5,26 @@ use warnings;
 use v5.10;
 use base 'Mojolicious::Controller';
 use Mojo::ByteStream qw(b);
-use Mojo::JSON qw(decode_json);
+use Mojo::JSON qw(decode_json encode_json);
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Dc;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Geo;
 use PhaidraAPI::Model::Relationships;
+
+our %cmodel_2_resourcetype = (
+  "Asset" => "other",
+  "Audio" => "sound",
+  "Book" => "book",
+  "Collection" => "collection",
+  "Container" => "dataset",
+  "LaTeXDocument" => "text",
+  "PDFDocument" => "text",
+  "Page" => "bookpart",
+  "Picture" => "image",
+  "Resource" => "interactiveresource",
+  "Video" => "video"
+);
 
 our %uwm_2_mods_roles = (
 
@@ -363,10 +377,9 @@ sub _get_index {
       }
     }else{
       for my $plm (@{$r_geo->{geo}->{kml}->{document}->{placemark}}){
-
         # bbox -> WKT/CQL ENVELOPE syntax. Example: ENVELOPE(-10, 20, 15, 10) which is minX, maxX, maxY, minY order
-        if(exists($r_geo->{polygon})){
-          my $coords = $r_geo->{polygon}->{outerboundaryis}->{linearring}->{coordinates};
+        if(exists($plm->{polygon})){
+          my $coords = $plm->{polygon}->{outerboundaryis}->{linearring}->{coordinates};
           # we have to sort them minX, maxX, maxY, minY
           my $minLat = 9999;
           my $maxLat = 0;
@@ -383,8 +396,8 @@ sub _get_index {
         }
         
         # latlong -> latitude,longitude
-        if(exists($r_geo->{point})){
-          push @{$index{latlong}}, $r_geo->{point}->{coordinates}->{latitude}.",".$r_geo->{point}->{coordinates}->{longitude};
+        if(exists($plm->{point})){
+          push @{$index{latlong}}, $plm->{point}->{coordinates}->{latitude}.",".$plm->{point}->{coordinates}->{longitude};
         }
       }      
     }
@@ -445,6 +458,20 @@ sub _get_index {
 
   # pid
   $index{pid} = $pid;    
+
+  my $resourcetype;
+  $resourcetype = $cmodel_2_resourcetype{$index{cmodel}};    
+  if($index{"bib.ir"} eq "yes"){
+    $resourcetype = "journalarticle";
+  }  
+  if(exists($index{"dc.subject"})){
+    for my $s (@{$index{"dc.subject"}}){
+      if ($s eq "Altkarte"){
+        $resourcetype = "map";
+      }
+    }  
+  }
+  $index{resourcetype} = $resourcetype;
 
   # ts
   $index{_updated} = time;    
@@ -513,6 +540,7 @@ sub _add_mods_index {
       next unless exists $n->{children};
       my $firstname;
       my $lastname;
+      my $institution;
       my $role;
       for my $n1 (@{$n->{children}}){        
         if($n1->{xmlname} eq 'namePart'){          
@@ -523,6 +551,9 @@ sub _add_mods_index {
               }
               if($a->{xmlname} eq 'type' && $a->{ui_value} eq 'family'){
                 $lastname = $n1->{ui_value} if $n1->{ui_value} ne '';
+              }
+              if($a->{xmlname} eq 'type' && $a->{ui_value} eq 'corporate'){
+                $institution = $n1->{ui_value} if $n1->{ui_value} ne '';
               }
             }
           }
@@ -538,35 +569,34 @@ sub _add_mods_index {
         }        
       }
       my $name = "$firstname $lastname";
-      push @roles, { name => "$firstname $lastname", role => $role } unless $name eq ' ';
+      push @{$index->{"bib.roles.pers.$role"}}, $name unless $name eq ' ';
+      push @{$index->{"bib.roles.corp.$role"}}, $institution if defined $institution;
     }
 
     if($n->{xmlname} eq 'originInfo'){
       next unless exists $n->{children};
       for my $n1 (@{$n->{children}}){
         if($n1->{xmlname} eq 'dateIssued'){
-          push @{$index->{bib}->{published}}, $n1->{ui_value} if $n1->{ui_value} ne '';
+          push @{$index->{"bib.published"}}, $n1->{ui_value} if $n1->{ui_value} ne '';
         }
         if($n1->{xmlname} eq 'publisher'){
-          push @{$index->{bib}->{publisher}}, $n1->{ui_value} if $n1->{ui_value} ne '';
+          push @{$index->{"bib.publisher"}}, $n1->{ui_value} if $n1->{ui_value} ne '';
         }
         if($n1->{xmlname} eq 'place'){
           if(exists($n1->{children})){
             for my $n2 (@{$n1->{children}}){
               if($n2->{xmlname} eq 'placeTerm'){
-                push @{$index->{bib}->{publisherlocation}}, $n2->{ui_value} if $n2->{ui_value} ne '';  
+                push @{$index->{"bib.publisherlocation"}}, $n2->{ui_value} if $n2->{ui_value} ne '';  
               }
             }            
           }          
         }
         if($n1->{xmlname} eq 'edition'){
-          push @{$index->{bib}->{edition}}, $n1->{ui_value} if $n1->{ui_value} ne '';
+          push @{$index->{"bib.edition"}}, $n1->{ui_value} if $n1->{ui_value} ne '';
         }
       }
     }
   }
-
-  push @{$index->{bib}->{roles}}, \@roles;   
 
   return $res;
 }
@@ -590,15 +620,19 @@ sub _add_uwm_index {
     if($general->{children}){
       for my $gf (@{$general->{children}}){
         if($gf->{xmlname} eq 'irdata'){
-          push @{$index->{bib}->{ir}}, $gf->{ui_value} if $gf->{ui_value} ne '';  
+          $index->{"bib.ir"} = $gf->{ui_value} if $gf->{ui_value} ne '';  
         }
       }
     }
   }
 
   # roles
-  my $roles = $self->_get_uwm_roles($uwm);
-  push @{$index->{bib}->{roles}}, $roles;   
+  my ($roles, $contributions) = $self->_get_uwm_roles($uwm);
+  $index->{"bib.roles_json"} = encode_json $contributions;
+  for my $r (@{$roles}){
+    push @{$index->{"bib.roles.pers.".$r->{role}}}, $r->{name} if $r->{name} ne '';   
+    push @{$index->{"bib.roles.corp.".$r->{role}}}, $r->{institution} if $r->{institution} ne '';   
+  }
 
   # digital book stuff
   my $digbook = $self->_find_first_uwm_node_rec("http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0", "digitalbook", $uwm);
@@ -606,22 +640,22 @@ sub _add_uwm_index {
     if($digbook->{children}){
       for my $dbf (@{$digbook->{children}}){
         if($dbf->{xmlname} eq 'publisher'){
-          push @{$index->{bib}->{publisher}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+          push @{$index->{"bib.publisher"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
         if($dbf->{xmlname} eq 'publisherlocation'){
-          push @{$index->{bib}->{publisherlocation}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+          push @{$index->{"bib.publisherlocation"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
         if($dbf->{xmlname} eq 'name_magazine'){
-          push @{$index->{bib}->{journal}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+          push @{$index->{"bib.journal"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
         if($dbf->{xmlname} eq 'volume'){
-          push @{$index->{bib}->{volume}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+          push @{$index->{"bib.volume"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
         if($dbf->{xmlname} eq 'edition'){
-          push @{$index->{bib}->{edition}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+          push @{$index->{"bib.edition"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
         if($dbf->{xmlname} eq 'releaseyear'){
-          push @{$index->{bib}->{published}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+          push @{$index->{"bib.published"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
       }
     }
@@ -632,25 +666,28 @@ sub _add_uwm_index {
   #<ns9:gps>23°12&apos;19&apos;&apos;E|35°27&apos;8&apos;&apos;N</ns9:gps>
   my $gps = $self->_find_first_uwm_node_rec("http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0", "gps", $uwm);
   #"ui_value": "13Â°3'6''E|47Â°47'45''N",
-  my $coord = $gps->{ui_value};
-  $coord =~ s/Â//g;
-  $coord =~ m/(\d+)°(\d+)'(\d+)''(E|W)\|(\d+)°(\d+)'(\d+)''(N|S)/g;
-  my $lon_deg = $1;
-  my $lon_min = $2;
-  my $lon_sec = $3;
-  my $lon_sign = $4;
-  my $lat_deg = $5;
-  my $lat_min = $6;
-  my $lat_sec = $7;
-  my $lat_sign = $8;
+  if($gps){
+    my $coord = $gps->{ui_value};
+    $coord =~ s/Â//g;
+    if($coord =~ m/(\d+)°(\d+)'(\d+)''(E|W)\|(\d+)°(\d+)'(\d+)''(N|S)/g){
+      my $lon_deg = $1;
+      my $lon_min = $2;
+      my $lon_sec = $3;
+      my $lon_sign = $4;
+      my $lat_deg = $5;
+      my $lat_min = $6;
+      my $lat_sec = $7;
+      my $lat_sign = $8;
 
-  my $lon_dec = $lon_deg + ($lon_min/60) + ($lon_sec/3600);
-  $lon_dec = -$lon_dec if $lon_sign eq 'S';
+      my $lon_dec = $lon_deg + ($lon_min/60) + ($lon_sec/3600);
+      $lon_dec = -$lon_dec if $lon_sign eq 'S';
 
-  my $lat_dec = $lat_deg + ($lat_min/60) + ($lat_sec/3600);
-  $lat_dec = -$lat_dec if $lat_sign eq 'W';
-  
-  push @{$index->{latlong}}, "$lat_dec,$lon_dec";
+      my $lat_dec = $lat_deg + ($lat_min/60) + ($lat_sec/3600);
+      $lat_dec = -$lat_dec if $lat_sign eq 'W';
+      
+      push @{$index->{latlong}}, "$lat_dec,$lon_dec";
+    }
+  }
 
   return $res;
 }
@@ -661,16 +698,19 @@ sub _get_uwm_roles {
   my $life = $self->_find_first_uwm_node_rec("http://phaidra.univie.ac.at/XML/metadata/lom/V1.0", "lifecycle", $uwm);
 
   my @roles;
+  my @contributions_json;
   for my $ch (@{$life->{children}}){
     if($ch->{xmlname} eq "contribute"){
 
-      my $role;
+      my %contribution_json;
       my $contribution_data_order;
+      my $role;
       my @names;
       for my $n (@{$ch->{children}}){
         if(($n->{xmlname} eq "role")){
           if(exists($uwm_2_mods_roles{$n->{ui_value}})){
             $role = $uwm_2_mods_roles{$n->{ui_value}};
+            $contribution_json{role} = $role;
           }else{
             $self->app->log->error("Failed to map uwm role ".$n->{ui_value}." to a role code.");
           }
@@ -680,6 +720,7 @@ sub _get_uwm_roles {
         if($n->{xmlname} eq 'data_order'){
           # we are going to make the hierarchy flat so multiply the higher level order value
           $contribution_data_order = $n->{ui_value}*100;
+          $contribution_json{data_order} = $n->{ui_value};
         }
       }
 
@@ -687,40 +728,53 @@ sub _get_uwm_roles {
         for my $l1 (@{$ch->{children}}){
 
           my %entity;
+          my %entity_json;
 
           next if $l1->{xmlname} eq "role";
 
           if($l1->{xmlname} eq "entity"){      
             my $firstname;      
             my $lastname;
+            my $institution;
             for my $l2 (@{$l1->{children}}){
               next if $l2->{xmlname} eq "type";
+
+              $entity_json{$l2->{xmlname}} = $l2->{ui_value};
+
               if($l2->{xmlname} eq "firstname"){
                 $firstname = $l2->{ui_value} if $l2->{ui_value} ne '';
               }elsif($l2->{xmlname} eq "lastname"){
                 $lastname = $l2->{ui_value} if $l2->{ui_value} ne '';
+              }elsif($l2->{xmlname} eq "institution"){
+                $institution = $l2->{ui_value} if $l2->{ui_value} ne '';
               }else{
                 $entity{$l2->{xmlname}} = $l2->{ui_value} if $l2->{ui_value} ne '';
               }
             }
             my $name = "$firstname $lastname";
             $entity{name} = $name unless $name eq ' ';
+            $entity{institution} = $institution if defined($institution);
             $entity{role} = $role;
           }
 
           for my $n (@{$l1->{attributes}}){
             if($n->{xmlname} eq 'data_order'){
               $entity{data_order} = $n->{ui_value} + $contribution_data_order;
+              $entity_json{data_order} = $n->{ui_value};
             }
           }
+
+          push @{$contribution_json{entities}}, \%entity_json;        
 
           push @roles, \%entity if defined $role;
         }
       }
-    }
+
+      push @contributions_json, \%contribution_json;
+    }    
   }
 
-  return \@roles;
+  return \@roles, \@contributions_json;
 }
 
 sub _find_first_uwm_node_rec {
