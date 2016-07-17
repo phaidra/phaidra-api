@@ -357,12 +357,12 @@ sub _get_index {
     if(exists($f->{attributes})){
       for my $a (@{$f->{attributes}}){
         if($a->{xmlname} eq 'xml:lang'){
-          push @{$index{'dc.'.$f->{xmlname}}}, $f->{ui_value};
-          push @{$index{'dc.'.$f->{xmlname}."_".$a->{ui_value}}}, $f->{ui_value};     
+          push @{$index{'dc_'.$f->{xmlname}}}, $f->{ui_value};
+          push @{$index{'dc_'.$f->{xmlname}."_".$a->{ui_value}}}, $f->{ui_value};     
         }
       }        
     }else{
-      push @{$index{'dc.'.$f->{xmlname}}}, $f->{ui_value};
+      push @{$index{'dc_'.$f->{xmlname}}}, $f->{ui_value};
     }
   }    
 
@@ -392,12 +392,12 @@ sub _get_index {
             $minLat = $ll->{latitude} if $ll->{latitude} < $minLat;
           }
 
-          push @{$index{bbox}}, "ENVELOPE($minLat, $maxLat, $maxLon, $minLon)";
+          $index{bbox} = "ENVELOPE($minLat, $maxLat, $maxLon, $minLon)";
         }
         
         # latlong -> latitude,longitude
         if(exists($plm->{point})){
-          push @{$index{latlong}}, $plm->{point}->{coordinates}->{latitude}.",".$plm->{point}->{coordinates}->{longitude};
+          $index{latlong} = $plm->{point}->{coordinates}->{latitude}.",".$plm->{point}->{coordinates}->{longitude};
         }
       }      
     }
@@ -461,11 +461,11 @@ sub _get_index {
 
   my $resourcetype;
   $resourcetype = $cmodel_2_resourcetype{$index{cmodel}};    
-  if($index{"bib.ir"} eq "yes"){
+  if($index{"bib_ir"} eq "yes"){
     $resourcetype = "journalarticle";
   }  
-  if(exists($index{"dc.subject"})){
-    for my $s (@{$index{"dc.subject"}}){
+  if(exists($index{"dc_subject"})){
+    for my $s (@{$index{"dc_subject"}}){
       if ($s eq "Altkarte"){
         $resourcetype = "map";
       }
@@ -569,30 +569,30 @@ sub _add_mods_index {
         }        
       }
       my $name = "$firstname $lastname";
-      push @{$index->{"bib.roles.pers.$role"}}, $name unless $name eq ' ';
-      push @{$index->{"bib.roles.corp.$role"}}, $institution if defined $institution;
+      push @{$index->{"bib_roles_pers_$role"}}, $name unless $name eq ' ';
+      push @{$index->{"bib_roles_corp_$role"}}, $institution if defined $institution;
     }
 
     if($n->{xmlname} eq 'originInfo'){
       next unless exists $n->{children};
       for my $n1 (@{$n->{children}}){
         if($n1->{xmlname} eq 'dateIssued'){
-          push @{$index->{"bib.published"}}, $n1->{ui_value} if $n1->{ui_value} ne '';
+          push @{$index->{"bib_published"}}, $n1->{ui_value} if $n1->{ui_value} ne '';
         }
         if($n1->{xmlname} eq 'publisher'){
-          push @{$index->{"bib.publisher"}}, $n1->{ui_value} if $n1->{ui_value} ne '';
+          push @{$index->{"bib_publisher"}}, $n1->{ui_value} if $n1->{ui_value} ne '';
         }
         if($n1->{xmlname} eq 'place'){
           if(exists($n1->{children})){
             for my $n2 (@{$n1->{children}}){
               if($n2->{xmlname} eq 'placeTerm'){
-                push @{$index->{"bib.publisherlocation"}}, $n2->{ui_value} if $n2->{ui_value} ne '';  
+                push @{$index->{"bib_publisherlocation"}}, $n2->{ui_value} if $n2->{ui_value} ne '';  
               }
             }            
           }          
         }
         if($n1->{xmlname} eq 'edition'){
-          push @{$index->{"bib.edition"}}, $n1->{ui_value} if $n1->{ui_value} ne '';
+          push @{$index->{"bib_edition"}}, $n1->{ui_value} if $n1->{ui_value} ne '';
         }
       }
     }
@@ -620,7 +620,7 @@ sub _add_uwm_index {
     if($general->{children}){
       for my $gf (@{$general->{children}}){
         if($gf->{xmlname} eq 'irdata'){
-          $index->{"bib.ir"} = $gf->{ui_value} if $gf->{ui_value} ne '';  
+          $index->{"bib_ir"} = $gf->{ui_value} if $gf->{ui_value} ne '';  
         }
       }
     }
@@ -628,10 +628,10 @@ sub _add_uwm_index {
 
   # roles
   my ($roles, $contributions) = $self->_get_uwm_roles($uwm);
-  $index->{"bib.roles_json"} = encode_json $contributions;
+  $index->{"bib_roles_json"} = encode_json $contributions;
   for my $r (@{$roles}){
-    push @{$index->{"bib.roles.pers.".$r->{role}}}, $r->{name} if $r->{name} ne '';   
-    push @{$index->{"bib.roles.corp.".$r->{role}}}, $r->{institution} if $r->{institution} ne '';   
+    push @{$index->{"bib_roles_pers_".$r->{role}}}, $r->{name} if $r->{name} ne '';   
+    push @{$index->{"bib_roles_corp_".$r->{role}}}, $r->{institution} if $r->{institution} ne '';   
   }
 
   # digital book stuff
@@ -640,22 +640,22 @@ sub _add_uwm_index {
     if($digbook->{children}){
       for my $dbf (@{$digbook->{children}}){
         if($dbf->{xmlname} eq 'publisher'){
-          push @{$index->{"bib.publisher"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+          push @{$index->{"bib_publisher"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
         if($dbf->{xmlname} eq 'publisherlocation'){
-          push @{$index->{"bib.publisherlocation"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+          push @{$index->{"bib_publisherlocation"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
         if($dbf->{xmlname} eq 'name_magazine'){
-          push @{$index->{"bib.journal"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+          push @{$index->{"bib_journal"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
         if($dbf->{xmlname} eq 'volume'){
-          push @{$index->{"bib.volume"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+          push @{$index->{"bib_volume"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
         if($dbf->{xmlname} eq 'edition'){
-          push @{$index->{"bib.edition"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+          push @{$index->{"bib_edition"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
         if($dbf->{xmlname} eq 'releaseyear'){
-          push @{$index->{"bib.published"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+          push @{$index->{"bib_published"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
       }
     }
