@@ -628,7 +628,7 @@ sub _add_uwm_index {
 
   # roles
   my ($roles, $contributions) = $self->_get_uwm_roles($uwm);
-  $index->{"bib_roles_json"} = encode_json $contributions;
+  $index->{"uwm_roles_json"} = encode_json $contributions;
   for my $r (@{$roles}){
     push @{$index->{"bib_roles_pers_".$r->{role}}}, $r->{name} if $r->{name} ne '';   
     push @{$index->{"bib_roles_corp_".$r->{role}}}, $r->{institution} if $r->{institution} ne '';   
