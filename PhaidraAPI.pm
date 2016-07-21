@@ -45,8 +45,8 @@ use PhaidraAPI::Model::Session::Transport::Header;
 use PhaidraAPI::Model::Session::Store::Mongo;
 
 $ENV{MOJO_MAX_MESSAGE_SIZE} = 20737418240;
-$ENV{MOJO_INACTIVITY_TIMEOUT} = 600;
-$ENV{MOJO_HEARTBEAT_TIMEOUT} = 600;
+$ENV{MOJO_INACTIVITY_TIMEOUT} = 1209600;
+$ENV{MOJO_HEARTBEAT_TIMEOUT} = 1209600;
 #$ENV{MOJO_TMPDIR} = '/usr/local/fedora/imagemanipulator/tmp';
 
 # This method will run once at server start
@@ -280,7 +280,7 @@ sub startup {
   # lucene query can be long -> post
   $r->route('search/lucene')                      ->via('post')   ->to('search#search_lucene');
 
-  $r->route('utils/get_all_pids')                 ->via('get')    ->to('utils#get_all_pids');
+  $r->route('utils/get_all_pids')                 ->via('get')    ->to('utils#get_all_pids');  
 
 	$r->route('terms/label')                   		  ->via('get')    ->to('terms#label');
 	$r->route('terms/children')                	    ->via('get')    ->to('terms#children');
@@ -307,10 +307,10 @@ sub startup {
   $r->route('object/:pid/rights')                 ->via('get')    ->to('rights#get');
   $r->route('object/:pid/geo')                    ->via('get')    ->to('geo#get');
   $r->route('object/:pid/techinfo')               ->via('get')    ->to('techinfo#get');
-  # these two are XML  
   $r->route('object/:pid/dc')                     ->via('get')    ->to('dc#get', dsid => 'DC_P');
   $r->route('object/:pid/oai_dc')                 ->via('get')    ->to('dc#get', dsid => 'DC_OAI');
 
+  $r->route('object/:pid/index')                  ->via('get')    ->to('utils#get_index');
   $r->route('object/:pid/id')                     ->via('get')    ->to('search#id');
 
   $r->route('dc/uwmetadata_2_dc_index')           ->via('post')   ->to('dc#uwmetadata_2_dc_index');

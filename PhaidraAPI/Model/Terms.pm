@@ -6,6 +6,7 @@ use v5.10;
 use base qw/Mojo::Base/;
 
 our $classification_ns = "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification";
+our $organization_ns = "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization";
 
 # FIXME get this from database
 our %voc_ids = (
@@ -130,6 +131,67 @@ sub _get_vocab_labels {
 	return $labels;	
 }
 
+sub get_study_plans {
+	my ($self, $c, $lang) = @_;
+
+	my $res;
+	my $cachekey = 'study_plans';	
+    unless($res = $c->app->chi->get($cachekey))
+    {
+    	$c->app->log->debug("[cache miss] $cachekey");
+
+    	$res = $c->app->directory->get_study_plans($c, $lang);
+    	
+    	if(exists($res->{alerts})){
+			if($res->{status} != 200){
+				# there are only alerts
+				return { alerts => $res->{alerts}, status => $res->{status} };
+			}
+		}else{
+			$res->{status} = 200;
+		}
+
+    	$c->app->chi->set($cachekey, $res, '1 day');
+
+    }else{
+      $c->app->log->debug("[cache hit] $cachekey");           
+    }	
+	
+	return $res;
+}
+
+sub license_label {
+	my $self = shift;
+    my $c = shift;
+    my $lid = shift;
+
+    my $res = { alerts => [], status => 200 };	
+
+    my $labels;
+	my $cachekey = 'license_'.$lid.'_labels';	
+	unless($labels = $c->app->chi->get($cachekey))
+	{
+    	$c->app->log->debug("[cache miss] $cachekey");
+		
+		my $lic_model = PhaidraAPI::Model::Licenses->new;		
+		my $r = $lic_model->get_licenses($c);
+		if($r->{status} ne 200){		
+  		  return $r;
+	    }
+		for my $l (@{$r->{licenses}}){
+			if($l->{lid} eq $lid){
+				$labels = $l->{labels};
+			}
+		}
+		$c->app->chi->set($cachekey, $labels, '1 day');
+	}else{
+	    $c->app->log->debug("[cache hit] $cachekey");           
+	}	
+
+	$res->{labels} = $labels;
+	return $res;
+}
+
 sub label {
     my $self = shift;
     my $c = shift;
@@ -137,21 +199,39 @@ sub label {
     
     my $res = { alerts => [], status => 200 };	
 	
-	my $r = $self->_parse_uri($c, $uri);
-	if($r->{status} != 200){		
-		return $r;
-	}
-
 	my $labels;
 	my $cachekey = 'labels_'.$uri;	
     unless($labels = $c->app->chi->get($cachekey))
     {
       $c->app->log->debug("[cache miss] $cachekey");
+
+      # stuff like "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_faculty/A150"
+      # or "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_department/A767"
+      my $orgns = "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization";
+      if($uri =~ m/$orgns\/voc_(faculty|department)\/(\w+)\/?$/){
+    	my $fac_or_dep = $1;
+    	my $unit_id = $2;
+
+		for my $lang (@{$c->app->config->{directory}->{org_units_languages}}){
+    		my $name = $c->app->directory->get_org_unit_name($c, $unit_id, $lang);
+    		$labels->{$lang} = $name;
+    	}
+		
+      }else{
       
-      if($r->{tid}){			
-		$labels = $self->_get_taxon_labels($c, $r->{cid}, $r->{tid});	    
-	  }else{		
-		$labels = $self->_get_vocab_labels($c, $r->{vid}, $r->{veid}, $r->{cid});
+        # other stuff, like "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_17/1552253"
+        # or "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/cls_1/347"
+        my $r = $self->_parse_uri($c, $uri);
+	    if($r->{status} != 200){		
+  		  return $r;
+	    }
+
+        if($r->{tid}){			
+  		  $labels = $self->_get_taxon_labels($c, $r->{cid}, $r->{tid});	    
+    	}else{		
+		  $labels = $self->_get_vocab_labels($c, $r->{vid}, $r->{veid}, $r->{cid});
+	    }
+
 	  }
 
       $c->app->chi->set($cachekey, $labels, '1 day');
@@ -268,6 +348,8 @@ sub children {
     unless($res = $c->app->chi->get($cachekey))
     {
       $c->app->log->debug("[cache miss] $cachekey");
+
+      $res = { alerts => [], status => 200 };
 
 		my $r = $self->_parse_uri($c, $uri);
 		if($r->{status} != 200){				
