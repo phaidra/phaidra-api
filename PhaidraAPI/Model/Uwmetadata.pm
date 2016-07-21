@@ -759,7 +759,7 @@ sub fix_taxonpath_nodes {
 
 sub get_object_metadata {
 
-  my ($self, $c, $pid, $username, $password, $mode) = @_;
+  my ($self, $c, $pid, $mode, $username, $password) = @_;
 
   my $object_model = PhaidraAPI::Model::Object->new;
   #my $res = $object_model->get_dissemination($c, $pid, 'bdef:Asset', 'getUWMETADATA', $username, $password);

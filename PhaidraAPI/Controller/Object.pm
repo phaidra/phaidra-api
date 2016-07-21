@@ -9,6 +9,10 @@ use Mojo::Util qw(encode decode);
 use Mojo::ByteStream qw(b);
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Search;
+use PhaidraAPI::Model::Rights;
+use PhaidraAPI::Model::Uwmetadata;
+use PhaidraAPI::Model::Geo;
+use PhaidraAPI::Model::Mods;
 use Time::HiRes qw/tv_interval gettimeofday/;
 
 sub delete {
@@ -298,6 +302,72 @@ sub add_or_modify_datastream {
 	my $r = $object_model->add_or_modify_datastream($self, $self->stash('pid'), $self->stash('dsid'), $mimetype, $location, $label, $dscontent, $controlgroup, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 
 	$self->render(json => $r, status => $r->{status}) ;
+}
+
+sub get_metadata {
+  my $self = shift;
+
+  my $res = { alerts => [], status => 200 };
+
+  my $pid = $self->stash('pid');
+  my $username = $self->stash->{basic_auth_credentials}->{username};
+  my $password = $self->stash->{basic_auth_credentials}->{password};
+
+  my $search_model = PhaidraAPI::Model::Search->new;
+  my $r = $search_model->datastreams_hash($self, $pid);
+  if($r->{status} ne 200){
+    return $r;
+  }
+
+  if($r->{dshash}->{'MODS'}){   
+    my $mods_model = PhaidraAPI::Model::Mods->new;
+    my $r = $mods_model->get_object_mods_json($self, $pid, 'basic', $username, $password);
+    if($r->{status} ne 200){
+      for my $a (@{$r->{alerts}}){
+        push @{$res->{alerts}}, $a;
+      }
+    }else{
+      $res->{metadata}->{mods} = $r->{mods};
+    }
+  }
+
+  if($r->{dshash}->{'UWMETADATA'}){   
+    my $uwmetadata_model = PhaidraAPI::Model::Uwmetadata->new;
+    my $r = $uwmetadata_model->get_object_metadata($self, $pid, 'basic', $username, $password);
+    if($r->{status} ne 200){
+      for my $a (@{$r->{alerts}}){
+        push @{$res->{alerts}}, $a;
+      }
+    }else{
+      $res->{metadata}->{uwmetadata} = $r->{uwmetadata};
+    }
+  }
+
+  if($r->{dshash}->{'GEO'}){
+    my $geo_model = PhaidraAPI::Model::Geo->new;
+    my $r = $geo_model->get_object_geo_json($self, $pid, $username, $password);
+    if($r->{status} ne 200){
+      for my $a (@{$r->{alerts}}){
+        push @{$res->{alerts}}, $a;
+      }
+    }else{
+      $res->{metadata}->{geo} = $r->{geo};
+    }
+  }
+
+  if($r->{dshash}->{'RIGHTS'}){
+    my $rights_model = PhaidraAPI::Model::Rights->new;
+    my $r = $rights_model->get_object_rights_json($self, $pid, $username, $password);
+    if($r->{status} ne 200){
+      for my $a (@{$r->{alerts}}){
+        push @{$res->{alerts}}, $a;
+      }
+    }else{
+      $res->{metadata}->{rights} = $r->{rights};
+    }
+  }
+
+  $self->render(json => $res , status => $res->{status});
 }
 
 sub metadata {

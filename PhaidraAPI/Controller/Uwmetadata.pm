@@ -41,7 +41,7 @@ sub get {
 
 	# get metadata datastructure
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
-	my $res= $metadata_model->get_object_metadata($self, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, $mode);
+	my $res= $metadata_model->get_object_metadata($self, $pid, $mode, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 	if($res->{status} ne 200){
 		$self->render(json => { alerts => $res->{alerts} }, status => $res->{status});
     return;

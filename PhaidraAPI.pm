@@ -301,6 +301,7 @@ sub startup {
 
   # we will get this datastreams by using intcall credentials
   # (instead of defining a API-A disseminator for each of them)
+  $r->route('object/:pid/metadata')               ->via('get')    ->to('object#get_metadata');
   $r->route('object/:pid/uwmetadata')             ->via('get')    ->to('uwmetadata#get');
   $r->route('object/:pid/mods')                   ->via('get')    ->to('mods#get');
   $r->route('object/:pid/rights')                 ->via('get')    ->to('rights#get');
