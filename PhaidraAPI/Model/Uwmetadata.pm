@@ -676,7 +676,7 @@ sub uwmetadata_2_json_basic_rec {
     		datatype => $datatype
 		);
 
-		if(($mode eq 'resolved') && ($node{xmlname} eq 'taxonpath')){
+		if($node{xmlname} eq 'taxonpath'){
 			# if this is taxon path, save classification id in context data
 			# so that we have it when resolving taxons
 			for my $elm ($e->children->each){
@@ -690,15 +690,32 @@ sub uwmetadata_2_json_basic_rec {
 		
 		if($e->text){
 
-			my $value = $e->text;
-			$node{ui_value} = $value;
+			my $value = $e->text;			
+
+			if($datatype eq 'Vocabulary'){ 
+				$node{ui_value} = $vocns.$value;
+			}elsif($datatype eq 'License'){
+				$node{ui_value} = $vocns.$value;
+			}elsif($datatype eq 'Faculty'){
+				$node{ui_value} = $PhaidraAPI::Model::Terms::organization_ns.'/voc_faculty/'.$value;	
+			}elsif($datatype eq 'Department'){
+				$node{ui_value} = $PhaidraAPI::Model::Terms::organization_ns.'/voc_department/'.$value;	
+			}elsif($datatype eq 'SPL'){ 
+				$node{ui_value} = $PhaidraAPI::Model::Terms::organization_ns.'/voc_spl/'.$value;	
+			}elsif($datatype eq 'ClassificationSource'){
+				$node{ui_value} = $PhaidraAPI::Model::Terms::classification_ns.'/cls_'.$value;		
+			}elsif($datatype eq 'Taxon'){
+				$node{ui_value} = $PhaidraAPI::Model::Terms::classification_ns."/cls_".$contextdata->{cls}."/".$value;		
+			}else{
+				$node{ui_value} = $value;
+			}
 
 			if($mode eq 'resolved'){
 
 				my $labels;
 				if($labels = $self->resolve_if_id($c, $terms_model, $datatype, $vocns, $value, $contextdata)){				
 					$node{labels} = $labels;
-				}
+				}				
 						
 			}												
 		}

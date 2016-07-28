@@ -106,7 +106,7 @@ sub create {
   	$c->app->log->debug("Created object: $pid");
   	$res->{pid} = $pid;
 
-  	my $oaiid = "oai:".$c->app->config->{phaidra}->{baseurl}.":".$pid;
+  	my $oaiid = "oai:".$c->app->config->{phaidra}->{proaiRepositoryIdentifier}.":".$pid;
   	my @relationships;
 	push @relationships, { predicate => "info:fedora/fedora-system:def/model#hasModel", object => "info:fedora/".$contentmodel };
 	push @relationships, { predicate => "http://www.openarchives.org/OAI/2.0/itemID", object => $oaiid };
@@ -278,7 +278,6 @@ sub save_metadata {
 	foreach my $f (keys %{$metadata}){
 
 		if($f eq "uwmetadata") {
-
 			
 			$c->app->log->debug("Adding uwmetadata");
 			my $uwmetadata = $metadata->{uwmetadata};
