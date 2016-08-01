@@ -381,10 +381,10 @@ sub _get_index {
         if(exists($plm->{polygon})){
           my $coords = $plm->{polygon}->{outerboundaryis}->{linearring}->{coordinates};
           # we have to sort them minX, maxX, maxY, minY
-          my $minLat = -90;
-          my $maxLat = 90;
-          my $minLon = -180;
-          my $maxLon = 180;
+          my $minLat = 90;
+          my $maxLat = -90;
+          my $minLon = 180;
+          my $maxLon = -180;
           for my $ll (@$coords){            
             $maxLon = $ll->{longitude} if $ll->{longitude} >= $maxLon;
             $minLon = $ll->{longitude} if $ll->{longitude} <= $minLon;
