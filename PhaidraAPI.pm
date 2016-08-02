@@ -340,7 +340,7 @@ sub startup {
   $check_auth->route('group/:gid')                                      ->via('get')      ->to('groups#get_group');
 
   $apiauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
-  $apiauth->route('authz/check/:pid/:op')                               ->via('get')      ->to('authentication#check_rights');
+  $apiauth_optional->route('authz/check/:pid/:op')                      ->via('get')      ->to('authentication#check_rights');
   $apiauth->route('object/:pid/octets')                                 ->via('get')      ->to('octets#get');
   $check_admin_auth->route('imageserver/:pid/status')                   ->via('get')      ->to('imageserver#status');    
   $apiauth_optional->route('imageserver')                               ->via('get')      ->to('imageserver#get');

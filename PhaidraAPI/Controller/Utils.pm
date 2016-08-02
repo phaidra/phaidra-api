@@ -377,7 +377,7 @@ sub _get_index {
       }
     }else{
       for my $plm (@{$r_geo->{geo}->{kml}->{document}->{placemark}}){
-        # bbox -> WKT/CQL ENVELOPE syntax. Example: ENVELOPE(-10, 20, 15, 10) which is minX, maxX, maxY, minY order
+        # bbox -> WKT/CQL ENVELOPE syntax. Example: ENVELOPE(-175.360000, -173.906827, -18.568055, -21.268064) which is minX, maxX, maxY, minY order
         if(exists($plm->{polygon})){
           my $coords = $plm->{polygon}->{outerboundaryis}->{linearring}->{coordinates};
           # we have to sort them minX, maxX, maxY, minY
@@ -392,7 +392,7 @@ sub _get_index {
             $minLat = $ll->{latitude} if $ll->{latitude} <= $minLat;
           }          
 
-          $index{bbox} = "ENVELOPE($minLat, $maxLat, $maxLon, $minLon)";
+          $index{bbox} = "ENVELOPE($minLon, $maxLon, $maxLat, $minLat)";
 
           # add some latlong
           $index{latlong} = (($minLat + $maxLat)/2).','.(($minLon + $maxLon)/2);
