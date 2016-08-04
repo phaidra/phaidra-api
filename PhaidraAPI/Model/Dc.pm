@@ -705,11 +705,13 @@ if(ref($v) eq 'HASH'){
   $dc_p{coverage} = $coverages;
   # copy this, not just assign reference
   # otherwise the $license will contain the $infoeurepoaccess_p values later
-  for my $v (@{$licenses}){ 
-    push @{$dc_p{rights}}, $v;
-  }
-  for my $v (@{$infoeurepoaccess_p}){
-    push @{$dc_p{rights}}, $v;
+  if(($cmodel ne 'Resource') && ($cmodel ne 'Collection')){
+    for my $v (@{$licenses}){ 
+      push @{$dc_p{rights}}, $v;
+    }
+    for my $v (@{$infoeurepoaccess_p}){
+      push @{$dc_p{rights}}, $v;
+    }
   }
 
   # see https://guidelines.openaire.eu/wiki/OpenAIRE_Guidelines:_For_Literature_repositories
@@ -719,12 +721,14 @@ if(ref($v) eq 'HASH'){
   for my $v (@$versions_oai){
     push @{$dc_oai->{type}}, $v;
   }
-  $dc_oai->{rights} = ();
-  for my $v (@{$licenses}){ 
-    push @{$dc_oai->{rights}}, $v;
-  }
-  for my $v (@{$infoeurepoaccess_oai}){
-    push @{$dc_oai->{rights}}, $v;
+  if(($cmodel ne 'Resource') && ($cmodel ne 'Collection')){
+    $dc_oai->{rights} = ();
+    for my $v (@{$licenses}){ 
+      push @{$dc_oai->{rights}}, $v;
+    }
+    for my $v (@{$infoeurepoaccess_oai}){
+      push @{$dc_oai->{rights}}, $v;
+    }
   }
   $dc_oai->{publisher} = $publishers_oai if(defined($publishers_oai));
   $dc_oai->{contributor} = $contributors_oai if(defined($contributors_oai));
@@ -935,7 +939,10 @@ sub _get_formats {
 
   my ($self, $c, $pid, $cmodel, $dom) = @_;
   
-  my $formats = $self->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:format');
+  my $formats;
+  if(($cmodel ne 'Resource') && ($cmodel ne 'Collection')){
+    $formats = $self->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:format');
+  }
 
   # include filesize and mimetype of OCTETS
   

@@ -392,15 +392,15 @@ sub _get_index {
             $minLat = $ll->{latitude} if $ll->{latitude} <= $minLat;
           }          
 
-          $index{bbox} = "ENVELOPE($minLon, $maxLon, $maxLat, $minLat)";
+          push @{$index{bbox}}, "ENVELOPE($minLon, $maxLon, $maxLat, $minLat)";
 
-          # add some latlong
-          $index{latlong} = (($minLat + $maxLat)/2).','.(($minLon + $maxLon)/2);
+          # add some latlon
+          push @{$index{latlon}}, (($minLat + $maxLat)/2).','.(($minLon + $maxLon)/2);
         }
         
-        # latlong -> latitude,longitude
+        # latlon -> latitude,longitude
         if(exists($plm->{point})){
-          $index{latlong} = $plm->{point}->{coordinates}->{latitude}.",".$plm->{point}->{coordinates}->{longitude};
+          push @{$index{latlon}}, $plm->{point}->{coordinates}->{latitude}.",".$plm->{point}->{coordinates}->{longitude};
         }
       }      
     }
@@ -688,7 +688,7 @@ sub _add_uwm_index {
       my $lat_dec = $lat_deg + ($lat_min/60) + ($lat_sec/3600);
       $lat_dec = -$lat_dec if $lat_sign eq 'W';
       
-      push @{$index->{latlong}}, "$lat_dec,$lon_dec";
+      push @{$index->{latlon}}, "$lat_dec,$lon_dec";
     }
   }
 
