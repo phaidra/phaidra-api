@@ -133,17 +133,17 @@ sub startup {
     # so we are not going to use cookies, but a database instead
     $self->plugin(
         session => {
-            stash_key     => 'mojox-session',
-	    	store  => PhaidraAPI::Model::Session::Store::Mongo->new(
-	    		mango => $self->mango,
-	    		'log' => $self->log
-	    	),
-	    	transport => PhaidraAPI::Model::Session::Transport::Header->new(
-	    		name => $config->{authentication}->{token_header},
-	    		'log' => $self->log
+          stash_key     => 'mojox-session',
+	    	  store  => PhaidraAPI::Model::Session::Store::Mongo->new(
+	    		  mango => $self->mango,
+	    		  'log' => $self->log
+	    	  ),
+	    	  transport => PhaidraAPI::Model::Session::Transport::Header->new(
+	    		  name => $config->{authentication}->{token_header},
+	    		  'log' => $self->log
 	    		),
-            expires_delta => $config->{session_expiration},
-	    	ip_match      => 1
+          expires_delta => $config->{session_expiration},
+	    	  ip_match      => 1
         }
     );
 
