@@ -161,7 +161,7 @@ sub signout {
 		$session->expire;							
 		$session->flush;	
 
-		$self->render(json => { alerts => [{ type => 'success', msg => 'You have been signed out' }]}, status => 200);
+		$self->render(json => { alerts => [{ type => 'success', msg => 'You have been signed out. [SID: '.$session->sid.']' }]}, status => 200);
 	}else{
 		$self->render(json => { alerts => [{ type => 'info', msg => 'No session found' }]}, status => 200);
 	}
