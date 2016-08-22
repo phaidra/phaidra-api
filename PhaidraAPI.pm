@@ -303,8 +303,7 @@ sub startup {
   # (instead of defining a API-A disseminator for each of them)
   $r->route('object/:pid/metadata')               ->via('get')    ->to('object#get_metadata');
   $r->route('object/:pid/uwmetadata')             ->via('get')    ->to('uwmetadata#get');
-  $r->route('object/:pid/mods')                   ->via('get')    ->to('mods#get');
-  $r->route('object/:pid/rights')                 ->via('get')    ->to('rights#get');
+  $r->route('object/:pid/mods')                   ->via('get')    ->to('mods#get');  
   $r->route('object/:pid/geo')                    ->via('get')    ->to('geo#get');
   $r->route('object/:pid/techinfo')               ->via('get')    ->to('techinfo#get');
   $r->route('object/:pid/dc')                     ->via('get')    ->to('dc#get', dsid => 'DC_P');
@@ -340,22 +339,24 @@ sub startup {
   $check_auth->route('group/:gid')                                      ->via('get')      ->to('groups#get_group');
 
   $apiauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
-  $apiauth_optional->route('authz/check/:pid/:op')                      ->via('get')      ->to('authentication#check_rights');
-  $apiauth->route('object/:pid/octets')                                 ->via('get')      ->to('octets#get');
+  $apiauth_optional->route('authz/check/:pid/:op')                      ->via('get')      ->to('authentication#check_rights');  
   $check_admin_auth->route('imageserver/:pid/status')                   ->via('get')      ->to('imageserver#status');    
   $apiauth_optional->route('imageserver')                               ->via('get')      ->to('imageserver#get');
 
+  $apiauth_optional->route('object/:pid/octets')                        ->via('get')      ->to('octets#get');
+  $apiauth->route('object/:pid/rights')                                 ->via('get')      ->to('rights#get');
+
   unless($self->app->config->{readonly}){
 
-    $check_admin_auth->route('utils/:pid/update_dc')                    ->via('post')     ->to('utils#update_dc');
-    # here 'pids' param is expected in post
     $check_admin_auth->route('utils/update_dc')                         ->via('post')     ->to('utils#update_dc');
-    $check_admin_auth->route('utils/:pid/update_index')                 ->via('post')     ->to('utils#update_index');
-    # here 'pids' param is expected in post
-    $check_admin_auth->route('utils/update_index')                      ->via('post')     ->to('utils#update_index');
-    $check_admin_auth->route('imageserver/:pid/process')                ->via('post')     ->to('imageserver#process');
-    $check_admin_auth->route('imageserver/process')                     ->via('post')     ->to('imageserver#process_pids');
+    $check_admin_auth->route('utils/:pid/update_dc')                    ->via('post')     ->to('utils#update_dc');
     
+    $check_admin_auth->route('utils/update_index')                      ->via('post')     ->to('utils#update_index');
+    $check_admin_auth->route('utils/:pid/update_index')                 ->via('post')     ->to('utils#update_index');
+
+    $check_admin_auth->route('imageserver/process')                     ->via('post')     ->to('imageserver#process_pids');
+    $check_admin_auth->route('imageserver/:pid/process')                ->via('post')     ->to('imageserver#process');            
+
     $apiauth->route('object/:pid/modify')                               ->via('post')     ->to('object#modify');
     $apiauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');
     $apiauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');

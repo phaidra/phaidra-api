@@ -160,9 +160,12 @@ sub signout {
 	if($session->sid){	
 		$session->expire;							
 		$session->flush;	
+
+		$self->render(json => { alerts => [{ type => 'success', msg => 'You have been signed out' }]}, status => 200);
+	}else{
+		$self->render(json => { alerts => [{ type => 'info', msg => 'No session found' }]}, status => 200);
 	}
 	
-	$self->render(json => { alerts => [{ type => 'success', msg => 'You have been signed out' }]}, status => 200);
 }
 
 sub check_rights {

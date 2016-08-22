@@ -103,10 +103,8 @@ sub get_object_rights_json {
 
 	my ($self, $c, $pid, $username, $password) = @_;
 
-	# FIXME:
-	# HACK: remove the intcall auth and make it an Asset's disseminator??
 	my $object_model = PhaidraAPI::Model::Object->new;
-	my $res = $object_model->get_datastream($c, $pid, 'RIGHTS', $username, $password, 1);
+	my $res = $object_model->get_datastream($c, $pid, 'RIGHTS', $username, $password);
 	if($res->{status} ne 200){
 		return $res;
 	}
