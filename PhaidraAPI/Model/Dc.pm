@@ -698,7 +698,9 @@ if(ref($v) eq 'HASH'){
   for my $v (@$versions_p){
     push @{$dc_p{type}}, $v;
   }
-  $dc_p{format} = $formats;
+  if(($cmodel ne 'Resource') && ($cmodel ne 'Collection')){
+    $dc_p{format} = $formats;
+  }
   $dc_p{publisher} = $publishers_p if(defined($publishers_p));
   $dc_p{contributor} = $contributors_p if(defined($contributors_p));
   $dc_p{relation} = $relations;
