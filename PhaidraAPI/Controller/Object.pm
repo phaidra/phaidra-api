@@ -416,7 +416,7 @@ sub metadata {
 
   }else{
     my $t1 = tv_interval($t0);
-    unshift @{$res->{alerts}}, { type => 'success', msg => "Metadata for $pid saved successfuly ($t1 s)"};
+    unshift @{$res->{alerts}}, { type => 'success', msg => "Metadata for $pid saved successfully ($t1 s)"};
 
   }
 
