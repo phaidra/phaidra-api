@@ -90,7 +90,7 @@ sub authenticate {
     	$self->render(json => { alerts => $res->{alerts}} , status => $res->{status}) ;
     	return 0;    		
     }    
-    $self->app->log->info("User $username successfuly authenticated");
+    $self->app->log->info("User $username successfully authenticated");
     return 1;
 }
 
@@ -106,7 +106,7 @@ sub authenticate_admin {
     	$self->render(json => { alerts => [{ type => 'danger', msg => "Not authenticated" }]}, status => 403 );
     	return 0;    		
     }    
-    $self->app->log->info("Admin successfuly authenticated");
+    $self->app->log->info("Admin successfully authenticated");
     return 1;
 }
 
@@ -132,7 +132,7 @@ sub signin {
     	$self->render(json => { alerts => $res->{alerts}} , status => $res->{status});
     	return;    		
     }    
-    $self->app->log->info("User $username successfuly authenticated");
+    $self->app->log->info("User $username successfully authenticated");
     
 	# init session, save credentials
 	my $session = $self->stash('mojox-session');

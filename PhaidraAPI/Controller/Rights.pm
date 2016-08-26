@@ -164,7 +164,7 @@ sub post {
 
   my $t1 = tv_interval($t0);
   if($res->{status} eq 200){
-    unshift @{$res->{alerts}}, { type => 'success', msg => "RIGHTS for $pid saved successfuly ($t1 s)"};
+    unshift @{$res->{alerts}}, { type => 'success', msg => "RIGHTS for $pid saved successfully ($t1 s)"};
   }
 
   $self->render(json => { alerts => $res->{alerts} } , status => $res->{status});
