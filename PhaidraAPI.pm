@@ -320,7 +320,7 @@ sub startup {
 
   # this just extracts the credentials - authentication will be done by fedora
 	my $apiauth = $r->under('/')->to('authentication#extract_credentials', must_be_present => 1);
-  my $apiauth_optional = $r->under('/')->to('authentication#extract_credentials', must_be_present => 0);
+  my $apiauth_optional = $r->under('/')->to('authentication#extract_credentials', must_be_present => 0);  
 
   # we authenticate the user, because we are not going to call fedora
   my $check_auth = $apiauth->under('/')->to('authentication#authenticate');
@@ -344,6 +344,7 @@ sub startup {
   $apiauth_optional->route('imageserver')                               ->via('get')      ->to('imageserver#get');
 
   $apiauth_optional->route('object/:pid/octets')                        ->via('get')      ->to('octets#get');
+  $apiauth_optional->route('object/:pid/diss/:bdef/:method')            ->via('get')      ->to('object#diss');
   $apiauth->route('object/:pid/rights')                                 ->via('get')      ->to('rights#get');
 
   unless($self->app->config->{readonly}){

@@ -16,8 +16,10 @@ sub get {
     return;
   }
 
-  my $object_model = PhaidraAPI::Model::Object->new;  
-  $object_model->proxy_datastream($self, $pid, 'OCTETS', $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  my $object_model = PhaidraAPI::Model::Object->new;
+  $object_model->proxy_datastream($self, $pid, 'OCTETS', $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}); 	  
+  
 }
+
 
 1;

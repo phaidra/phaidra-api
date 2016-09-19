@@ -423,4 +423,70 @@ sub metadata {
   $self->render(json => { alerts => $res->{alerts} } , status => $res->{status});
 
 }
+
+# Diss method is for calling the disseminator which is api-a access, so it can also be called without credentials.
+# However, if the credentials are necessary, we want to send 401 so that the browser creates login prompt. Fedora sends 403
+# in such case which won't create login prompt, so user cannot access locked object even if he should be able to login.
+sub diss {
+  my $self = shift;
+
+  my $pid = $self->stash('pid');
+  my $bdef = $self->stash('bdef');
+  my $method = $self->stash('method');
+
+  unless(defined($pid)){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
+    return;
+  }
+
+  my $object_model = PhaidraAPI::Model::Object->new;
+  # do we have access without credentials?
+  unless($self->stash->{basic_auth_credentials}->{username}){
+    my $res = $object_model->get_datastream($self, $pid, 'READONLY', undef, undef);
+    $self->app->log->info("pid[$pid] read rights: ".$res->{status});
+    unless($res->{status} eq '404'){
+      $self->res->headers->www_authenticate('Basic');
+      $self->render(json => { alerts => [{ type => 'danger', msg => 'authentication needed' }]} , status => 401) ;  
+      return;
+    }
+  }
+
+  # if there are credentials, or there are no credentials but the object is not locked, forward the request
+  my $url = Mojo::URL->new;
+  $url->scheme('https');
+  $url->host($self->app->config->{phaidra}->{fedorabaseurl});
+  $url->userinfo($self->stash->{basic_auth_credentials}->{username}.":".$self->stash->{basic_auth_credentials}->{password}) if $self->stash->{basic_auth_credentials}->{username};
+  $url->path("/fedora/get/$pid/bdef:$bdef/$method");
+
+  $self->app->log->info("user[".$self->stash->{basic_auth_credentials}->{username}."] proxying $url");
+
+  if (Mojo::IOLoop->is_running) {
+    $self->render_later;
+    $self->ua->get(
+      $url,
+      sub {
+        my ($c, $tx) = @_;
+        _proxy_tx($self, $tx);
+      }
+    );
+  }else {
+    my $tx = $self->ua->get($url);
+    _proxy_tx($self, $tx);
+  }
+}
+
+sub _proxy_tx {
+  my ($c, $tx) = @_;
+  if (my $res = $tx->success) {
+    $c->tx->res($res);
+    $c->rendered;
+  }
+  else {
+    my $error = $tx->error;
+    $c->tx->res->headers->add('X-Remote-Status', $error->{code} . ': ' . $error->{message});
+    $c->render(status => 500, text => 'Failed to fetch data from Fedora: '.$tx->error);
+  }
+}
+
+
 1;

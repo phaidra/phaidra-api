@@ -36,7 +36,9 @@ sub extract_credentials {
 	if($self->stash('must_be_present')){  
 	    unless(defined($username) && defined($password)){
 	    	$self->app->log->info("No authentication provided");
-	    	$self->res->headers->www_authenticate('Basic "'.$self->app->config->{authentication}->{realm}.'"');
+	    	# If I use the realm the browser does not want to show the prompt!
+	    	# $self->res->headers->www_authenticate('Basic "'.$self->app->config->{authentication}->{realm}.'"');
+	    	$self->res->headers->www_authenticate('Basic');
 	    	$self->render(json => { alerts => [{ type => 'danger', msg => 'no credentials found' }]} , status => 401) ;
 	    	return 0;
 	    }

@@ -456,7 +456,7 @@ sub proxy_datastream {
 
 	if($intcallauth){
 		$url->userinfo($c->app->config->{phaidra}->{intcallusername}.':'.$c->app->config->{phaidra}->{intcallpassword});
-	}else{
+	}elsif($username){
 		$url->userinfo("$username:$password");
 	}
 
