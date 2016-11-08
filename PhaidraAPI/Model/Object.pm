@@ -871,7 +871,7 @@ sub add_relationships {
 
     my $res = { alerts => [], status => 200 };
 
-    for my $rel (@relationships){
+    for my $rel (@$relationships){
     	my $rr = $self->add_relationship($c, $pid, $rel->{predicate}, $rel->{object}, $username, $password);
     	if($rr->{status} ne 200){
 			$res = $rr;
@@ -1012,9 +1012,10 @@ sub purge_relationship {
     my $password = shift;
 
     my $res = { alerts => [], status => 200 };
-
+   
     if($c->app->config->{fedora}->{version} eq '3.8'){
 
+	my %params;
     	$params{subject} = 'info:fedora/'.$pid;
 	    $params{predicate} = $predicate;
 	    $params{object} = $object;
@@ -1089,7 +1090,7 @@ sub purge_relationships {
 
     my $res = { alerts => [], status => 200 };
 
-    for my $rel (@relationships){
+    for my $rel (@$relationships){
     	my $rr = $self->purge_relationship($c, $pid, $rel->{predicate}, $rel->{object}, $username, $password);
     	if($rr->{status} ne 200){
 			$res = $rr;
