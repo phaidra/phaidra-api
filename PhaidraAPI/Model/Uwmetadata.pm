@@ -1848,6 +1848,8 @@ sub decompress_json {
 	my $c = shift;
 	my $compressed = shift;
 
+	my $terms_model = PhaidraAPI::Model::Terms->new;
+
 	# this structure contains the metadata default structure (equals to empty uwmetadataeditor) to which
 	# we are going to load the data of some real object
 	my $tree_res = $self->metadata_tree($c);
@@ -1863,7 +1865,7 @@ sub decompress_json {
 	my $metadata_tree_copy = dclone($metadata_tree);
 	$self->create_md_nodes_hash($c, $metadata_tree_copy, \%metadata_nodes_hash);
 
-	$self->decompress_json_rec($c, $compressed, $metadata_tree, undef, \%metadata_nodes_hash);
+	$self->decompress_json_rec($c, $terms_model, $compressed, $metadata_tree, undef, \%metadata_nodes_hash);
 
 	return $metadata_tree;
 }
@@ -1872,6 +1874,7 @@ sub decompress_json_rec {
 
 	my $self = shift;
 	my $c = shift;
+	my $terms_model = shift;
 	my $compressed = shift;
 	my $decompressed = shift;
 	my $decompressed_parent = shift;
@@ -1901,6 +1904,15 @@ sub decompress_json_rec {
 				$node->{value_lang} = $ch->{value_lang} if ($ch->{value_lang});
 			   	$node->{data_order} = $ch->{data_order} if ($ch->{data_order});
 
+			   	if($node->{xmlname} eq 'taxon'){			   		
+			   		my $labels = $terms_model->label($c, $ch->{ui_value});
+			   		if($labels->{status} eq 200){
+						$node->{value_labels} = $labels->{labels};
+					}else{
+						$c->app->log->error("Can't get labels for taxon [".$ch->{ui_value}."]");
+					}
+			   	}
+
 			   	if($node->{ordered}){
 			   		@{$decompressed_parent->{children}} = sort { sort_ordered($a) <=> sort_ordered($b) } @{$decompressed_parent->{children}};			   	
 			  	}
@@ -1908,7 +1920,7 @@ sub decompress_json_rec {
 
 	    }
 	    if($children_size > 0){
-	    	$self->decompress_json_rec($c, $ch->{children}, $decompressed, $node, $metadata_nodes_hash);
+	    	$self->decompress_json_rec($c, $terms_model, $ch->{children}, $decompressed, $node, $metadata_nodes_hash);
 	    }
 	}
 
