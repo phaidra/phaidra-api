@@ -464,8 +464,7 @@ sub get_metadata_tree {
 						return { alerts => $spls->{alerts}, status => $spls->{status} };
 					}
 				}
-
-				foreach my $sp (@$spls){
+				foreach my $sp (@{$spls->{study_plans}}){
 					$vocabulary{'terms'}->{$sp->{value}}->{uri} = $vocabulary{namespace}.$sp->{value};
 					$vocabulary{'terms'}->{$sp->{value}}->{labels}->{$lang} = $sp->{name};
 
