@@ -39,9 +39,9 @@ sub get {
 
   # isBackSideOf  
   my $r_bs = $search_model->triples($c, "<info:fedora/$pid> <http://phaidra.org/XML/V1.0/relations#isBackSideOf> *", 0);
-  if($r_col->{status} ne 200){
+  if($r_bs->{status} ne 200){
     $res->{alerts} = [{ type => 'danger', msg => "Error getting isBackSideOf relationships for $pid, skipping" }];
-    for $a (@{$r_col->{alerts}}){
+    for $a (@{$r_bs->{alerts}}){
       push @{$res->{alerts}}, $a;
     }
   }else{  
@@ -53,14 +53,14 @@ sub get {
   }
 
   # later versions
-  my $r_bs = $search_model->triples($c, "<info:fedora/$pid> <http://phaidra.univie.ac.at/XML/V1.0/relations#hasSuccessor> *", 0);
-  if($r_col->{status} ne 200){
+  my $r_lv = $search_model->triples($c, "<info:fedora/$pid> <http://phaidra.univie.ac.at/XML/V1.0/relations#hasSuccessor> *", 0);
+  if($r_lv->{status} ne 200){
     $res->{alerts} = [{ type => 'danger', msg => "Error getting hasSuccessor relationships for $pid, skipping" }];
-    for $a (@{$r_col->{alerts}}){
+    for $a (@{$r_lv->{alerts}}){
       push @{$res->{alerts}}, $a;
     }
   }else{  
-  	for my $t (@{$r_bs->{result}}){
+  	for my $t (@{$r_lv->{result}}){
   	  my $object = @$t[2];
       $object =~ m/^<info:fedora\/(.*)>$/;
       $rels{successor} = $1;  
@@ -68,14 +68,14 @@ sub get {
   }
 
   # previous versions
-  my $r_bs = $search_model->triples($c, "* <http://phaidra.univie.ac.at/XML/V1.0/relations#hasSuccessor> <info:fedora/$pid>", 0);
-  if($r_col->{status} ne 200){
+  my $r_pv = $search_model->triples($c, "* <http://phaidra.univie.ac.at/XML/V1.0/relations#hasSuccessor> <info:fedora/$pid>", 0);
+  if($r_pv->{status} ne 200){
     $res->{alerts} = [{ type => 'danger', msg => "Error getting reverse hasSuccessor relationships for $pid, skipping" }];
-    for $a (@{$r_col->{alerts}}){
+    for $a (@{$r_pv->{alerts}}){
       push @{$res->{alerts}}, $a;
     }
   }else{  
-  	for my $t (@{$r_bs->{result}}){
+  	for my $t (@{$r_pv->{result}}){
   	  my $subject = @$t[0];
       $subject =~ m/^<info:fedora\/(.*)>$/;
       $rels{predecessor} = $1;  

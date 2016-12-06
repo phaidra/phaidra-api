@@ -308,8 +308,8 @@ sub startup {
   $r->route('object/:pid/techinfo')               ->via('get')    ->to('techinfo#get');
   $r->route('object/:pid/dc')                     ->via('get')    ->to('dc#get', dsid => 'DC_P');
   $r->route('object/:pid/oai_dc')                 ->via('get')    ->to('dc#get', dsid => 'DC_OAI');
+  $r->route('object/:pid/index')                  ->via('get')    ->to('index#get');
 
-  $r->route('object/:pid/index')                  ->via('get')    ->to('utils#get_index');
   $r->route('object/:pid/id')                     ->via('get')    ->to('search#id');
 
   $r->route('dc/uwmetadata_2_dc_index')           ->via('post')   ->to('dc#uwmetadata_2_dc_index');
@@ -349,14 +349,14 @@ sub startup {
 
   unless($self->app->config->{readonly}){
 
-    $check_admin_auth->route('utils/update_dc')                         ->via('post')     ->to('utils#update_dc');
-    $check_admin_auth->route('utils/:pid/update_dc')                    ->via('post')     ->to('utils#update_dc');
-    
-    $check_admin_auth->route('utils/update_index')                      ->via('post')     ->to('utils#update_index');
-    $check_admin_auth->route('utils/:pid/update_index')                 ->via('post')     ->to('utils#update_index');
-
     $check_admin_auth->route('imageserver/process')                     ->via('post')     ->to('imageserver#process_pids');
-    $check_admin_auth->route('imageserver/:pid/process')                ->via('post')     ->to('imageserver#process');            
+    $check_admin_auth->route('imageserver/:pid/process')                ->via('post')     ->to('imageserver#process');
+
+    $check_admin_auth->route('index')                                   ->via('post')     ->to('index#update');
+    $check_admin_auth->route('dc')                                      ->via('post')     ->to('dc#update');
+    
+    $check_admin_auth->route('object/:pid/index')                       ->via('post')     ->to('index#update');
+    $check_admin_auth->route('object/:pid/dc')                          ->via('post')     ->to('dc#update');
 
     $apiauth->route('object/:pid/modify')                               ->via('post')     ->to('object#modify');
     $apiauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');

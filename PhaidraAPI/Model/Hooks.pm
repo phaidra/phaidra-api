@@ -9,6 +9,7 @@ use Mojo::ByteStream qw(b);
 use PhaidraAPI::Model::Dc;
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Search;
+use PhaidraAPI::Model::Index;
  
 sub add_or_modify_datastream_hooks {
 
@@ -26,6 +27,20 @@ sub add_or_modify_datastream_hooks {
       my $dc_model = PhaidraAPI::Model::Dc->new;      
       $res = $dc_model->generate_dc_from_mods($c, $pid, $dscontent, $username, $password);
   
+  }
+
+  if(exists($c->app->config->{index_mongodb})){
+    my $dc_model = PhaidraAPI::Model::Dc->new;
+    my $search_model = PhaidraAPI::Model::Search->new;
+    my $rel_model = PhaidraAPI::Model::Relationships->new;
+    my $index_model = PhaidraAPI::Model::Index->new;  
+    my $r = $index_model->update($c, $pid, $dc_model, $search_model, $rel_model);
+    if($r->{status} ne 200){
+      $res->{status} = $r->{status};
+      for my $a (@{$r->{alerts}}){
+        push @{$res->{alerts}}, $a;
+      }
+    }
   }
 
   return $res;
@@ -63,6 +78,18 @@ sub add_or_modify_relationships_hooks {
     }  
     $res->{MODS} = b($res->{MODS})->decode('UTF-8');
     return $dc_model->generate_dc_from_mods($c, $pid, $res->{MODS}, $username, $password);    
+  }
+
+  if(exists($c->app->config->{index_mongodb})){    
+    my $rel_model = PhaidraAPI::Model::Relationships->new;
+    my $index_model = PhaidraAPI::Model::Index->new;  
+    my $r = $index_model->update($c, $pid, $dc_model, $search_model, $rel_model);
+    if($r->{status} ne 200){
+      $res->{status} = $r->{status};
+      for my $a (@{$r->{alerts}}){
+        push @{$res->{alerts}}, $a;
+      }
+    }
   }
 
   return $res;
