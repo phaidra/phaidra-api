@@ -155,8 +155,8 @@ sub _get {
     return $r_state;
   }
   unless($r_state->{state} eq 'Active'){
-    $self->app->log->warn("Object $pid is ".$r_state->{state}.", skipping");
-    $res->{alerts} = [{ type => 'danger', msg => "Object $pid is ".$r_state->{state}.", skipping" }];
+    $c->app->log->warn("[_get index] Object $pid is ".$r_state->{state}.", skipping");
+    $res->{alerts} = [{ type => 'danger', msg => "[_get index] Object $pid is ".$r_state->{state}.", skipping" }];
     return $res;
   }
 
@@ -454,7 +454,7 @@ sub _add_uwm_index {
 
   # roles
   my ($roles, $contributions) = $self->_get_uwm_roles($c, $uwm);
-  $c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($contributions));
+#  $c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($contributions));
   $index->{"uwm_roles_json"} = encode_json $contributions;
   for my $r (@{$roles}){
     push @{$index->{"bib_roles_pers_".$r->{role}}}, $r->{name} if $r->{name} ne '';   

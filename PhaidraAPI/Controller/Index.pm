@@ -72,12 +72,19 @@ sub update {
     $i++;
     $self->app->log->info("Processing $pid [$i/$pidscount]");
 
-    my $r = $index_model->update($self, $pid, $dc_model, $search_model, $rel_model);  
-    if($r->{status} eq 200){      
-      push @res, { pid => $pid, status => 200 };
-    }else{
-      $r->{pid} = $pid;
-      push @res, $r;
+    eval {
+
+	    my $r = $index_model->update($self, $pid, $dc_model, $search_model, $rel_model);  
+	    if($r->{status} eq 200){      
+	      push @res, { pid => $pid, status => 200 };
+	    }else{
+	      $r->{pid} = $pid;
+	      push @res, $r;
+	    }
+	};
+
+	if($@){
+      $self->app->log->error("pid $pid Error: $@");         
     }
     
   }

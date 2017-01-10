@@ -171,51 +171,63 @@ sub update {
     $i++;
     $self->app->log->info("Processing $pid [$i/$pidscount]");
 
-    # check if it's active
+    # check if it's active   
     my $r = $search_model->get_state($self, $pid);
     if($r->{status} ne 200){
       push @res, { pid => $pid, res => $r };
       next;
     }
     unless($r->{state} eq 'Active'){
-      $self->app->log->warn("Object $pid is ".$r->{state}.", skipping");
+      $self->app->log->warn("[update DC] Object $pid is ".$r->{state}.", skipping");
       next;
     }
 
-    my $r_dsh = $search_model->datastreams_hash($self, $pid);
-    if($r_dsh->{status} ne 200){
-      push @res, { pid => $pid, res => $r_dsh };
-      next;
+    eval {
+      my $r_dsh = $search_model->datastreams_hash($self, $pid);
+      if($r_dsh->{status} ne 200){
+        push @res, { pid => $pid, res => $r_dsh };
+        next;
+      }
+
+      if($r_dsh->{dshash}->{'UWMETADATA'}){
+        my $rs = $object_model->get_datastream($self, $pid, 'UWMETADATA', $username, $password);        
+        if($rs->{status} ne 200){          
+          $rs->{pid} = $pid;
+          push @res, $rs;
+          next;
+        }  
+        $rs->{UWMETADATA} = b($rs->{UWMETADATA})->decode('UTF-8');
+        my $gr = $dc_model->generate_dc_from_uwmetadata($self, $pid, $rs->{UWMETADATA}, $username, $password);
+        if($gr->{status} ne 200){
+          $gr->{pid} = $pid;
+          push @res, $gr;
+          next;
+        }  
+      }
+      if($r_dsh->{dshash}->{'MODS'}){
+        my $rs = $object_model->get_datastream($self, $pid, 'MODS', $username, $password);
+        if($rs->{status} ne 200){
+          $rs->{pid} = $pid;
+          push @res, $rs;
+          next;
+        }  
+        $rs->{MODS} = b($rs->{MODS})->decode('UTF-8');
+        my $gr = $dc_model->generate_dc_from_mods($self, $pid, $rs->{MODS}, $username, $password);
+        if($gr->{status} ne 200){
+          $gr->{pid} = $pid;
+          push @res, $gr;
+          next;
+        }  
+      }
+    };
+
+    if($@){
+      $self->app->log->error("pid $pid Error: $@");         
+    }else{
+      push @res, { pid => $pid, status => 200 };
     }
 
-    if($r_dsh->{dshash}->{'UWMETADATA'}){
-      my $res = $object_model->get_datastream($self, $pid, 'UWMETADATA', $username, $password);
-      if($res->{status} ne 200){
-        push @res, { pid => $pid, res => $res };
-        next;
-      }  
-      $res->{UWMETADATA} = b($res->{UWMETADATA})->decode('UTF-8');
-      my $gr = $dc_model->generate_dc_from_uwmetadata($self, $pid, $res->{UWMETADATA}, $username, $password);
-      if($gr->{status} ne 200){
-        push @res, { pid => $pid, res => $gr };
-        next;
-      }  
-    }
-    if($r_dsh->{dshash}->{'MODS'}){
-      my $res = $object_model->get_datastream($self, $pid, 'MODS', $username, $password);
-      if($res->{status} ne 200){
-        push @res, { pid => $pid, res => $res };
-        next;
-      }  
-      $res->{MODS} = b($res->{MODS})->decode('UTF-8');
-      my $gr = $dc_model->generate_dc_from_mods($self, $pid, $res->{MODS}, $username, $password);
-      if($gr->{status} ne 200){
-        push @res, { pid => $pid, res => $gr };
-        next;
-      }  
-    }
-
-    push @res, { pid => $pid, res => 'OK'};
+    
   }
   
   $self->render(json => { results => \@res }, status => 200);

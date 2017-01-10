@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use v5.10;
 use base qw/Mojo::Base/;
+use Data::Dumper;
 use Mojo::Util qw(xml_escape encode decode);
 use lib "lib/phaidra_binding";
 use Phaidra::API;
@@ -588,7 +589,7 @@ sub modify_datastream {
   $params{logMessage} = 'PhaidraAPI object/modify_datastream';
   $params{force} = 0;
 
-  $c->app->log->debug("Modify datastream: ".$c->app->dumper(\%params));
+  #$c->app->log->debug("pid[$pid] dsid[$dsid] Modify datastream: ".$c->app->dumper(\%params));
   #$params{ignoreContent}
 #$c->app->log->debug("XXXXXXXXXX ".$c->app->dumper(\%params));
 #$username = $c->app->{config}->{phaidra}->{adminusername};

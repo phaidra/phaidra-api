@@ -141,7 +141,7 @@ sub remove_collection_members {
 	# remove members
 	my @relationships;
 	foreach my $member (@{$members}){
-		push @relationships, { predicate => "info:fedora/fedora-system:def/relations-external#hasCollectionMember", object => $member->{pid} };
+		push @relationships, { predicate => "info:fedora/fedora-system:def/relations-external#hasCollectionMember", object => "info:fedora/".$member->{pid} };
 	}
 	my $object_model = PhaidraAPI::Model::Object->new;
 	my $r = $object_model->purge_relationships($self, $pid, \@relationships, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
