@@ -694,13 +694,7 @@ if(ref($v) eq 'HASH'){
   $dc_p{creator} = $creators_p if(defined($creators_p));
   $dc_p{date} = $dates if(defined($dates));
   $dc_p{type} = $types_p;
-  $dc_p{source} = $srcs;
-  for my $v (@$versions_p){
-    push @{$dc_p{type}}, $v;
-  }
-  if(($cmodel ne 'Resource') && ($cmodel ne 'Collection')){
-    $dc_p{format} = $formats;
-  }
+  $dc_p{source} = $srcs;  
   $dc_p{publisher} = $publishers_p if(defined($publishers_p));
   $dc_p{contributor} = $contributors_p if(defined($contributors_p));
   $dc_p{relation} = $relations;
@@ -708,21 +702,22 @@ if(ref($v) eq 'HASH'){
   # copy this, not just assign reference
   # otherwise the $license will contain the $infoeurepoaccess_p values later
   if(($cmodel ne 'Resource') && ($cmodel ne 'Collection')){
+    for my $v (@$versions_p){
+      push @{$dc_p{type}}, $v;
+    }    
     for my $v (@{$licenses}){ 
       push @{$dc_p{rights}}, $v;
     }
     for my $v (@{$infoeurepoaccess_p}){
       push @{$dc_p{rights}}, $v;
     }
+    $dc_p{format} = $formats;
   }
 
   # see https://guidelines.openaire.eu/wiki/OpenAIRE_Guidelines:_For_Literature_repositories
   my $dc_oai = dclone \%dc_p;
   $dc_oai->{creator} = $creators_oai if(defined($creators_oai));
-  $dc_oai->{type} = $types_oai;
-  for my $v (@$versions_oai){
-    push @{$dc_oai->{type}}, $v;
-  }
+  $dc_oai->{type} = $types_oai;  
   if(($cmodel ne 'Resource') && ($cmodel ne 'Collection')){
     $dc_oai->{rights} = ();
     for my $v (@{$licenses}){ 
@@ -730,6 +725,9 @@ if(ref($v) eq 'HASH'){
     }
     for my $v (@{$infoeurepoaccess_oai}){
       push @{$dc_oai->{rights}}, $v;
+    }
+    for my $v (@$versions_oai){
+      push @{$dc_oai->{type}}, $v;
     }
   }
   $dc_oai->{publisher} = $publishers_oai if(defined($publishers_oai));
