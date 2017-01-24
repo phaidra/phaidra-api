@@ -35,6 +35,8 @@
 		"validate_rights":"/var/www/phaidra-api/public/xsd/rights/rights.xsd",
 
 		"validate_geo":"/var/www/phaidra-api/public/xsd/geo/ogckml22.xsd",
+        
+        "validate_annotations": "/var/www/phaidra-api/public/xsd/annotations/annotations.xsd",
 
     "local_uwmetadata_tree":"/var/www/phaidra-api/public/uwmetadata/tree.json",
 

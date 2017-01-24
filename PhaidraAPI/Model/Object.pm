@@ -527,7 +527,7 @@ sub add_datastream {
   $params{mimeType} = $mimetype if $mimetype;
   $params{logMessage} = 'PhaidraAPI object/add_datastream';
 
-  $c->app->log->debug("Add datastream: ".$c->app->dumper(\%params));
+  $c->app->log->debug("Add datastream $dsid: ".$c->app->dumper(\%params));
 
 	my $url = Mojo::URL->new;
 	$url->scheme('https');

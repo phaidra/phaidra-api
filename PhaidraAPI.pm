@@ -266,6 +266,11 @@ sub startup {
   $r->route('geo/validate')                       ->via('post')   ->to('geo#validate');
   $r->route('geo/json2xml_validate')              ->via('post')   ->to('geo#json2xml_validate');
 
+  $r->route('annotations/json2xml')                ->via('post')   ->to('annotations#json2xml');
+  $r->route('annotations/xml2json')                ->via('post')   ->to('annotations#xml2json');
+  $r->route('annotations/validate')                ->via('post')   ->to('annotations#validate');
+  $r->route('annotations/json2xml_validate')       ->via('post')   ->to('annotations#json2xml_validate');
+
 	$r->route('help/tooltip')                       ->via('get')    ->to('help#tooltip');
 
 	$r->route('directory/get_org_units')            ->via('get')    ->to('directory#get_org_units');
@@ -305,6 +310,7 @@ sub startup {
   $r->route('object/:pid/uwmetadata')             ->via('get')    ->to('uwmetadata#get');
   $r->route('object/:pid/mods')                   ->via('get')    ->to('mods#get');  
   $r->route('object/:pid/geo')                    ->via('get')    ->to('geo#get');
+  $r->route('object/:pid/annotations')            ->via('get')    ->to('annotations#get');
   $r->route('object/:pid/techinfo')               ->via('get')    ->to('techinfo#get');
   $r->route('object/:pid/dc')                     ->via('get')    ->to('dc#get', dsid => 'DC_P');
   $r->route('object/:pid/oai_dc')                 ->via('get')    ->to('dc#get', dsid => 'DC_OAI');
@@ -363,6 +369,7 @@ sub startup {
     $apiauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');
     $apiauth->route('object/:pid/mods')                                 ->via('post')     ->to('mods#post');
     $apiauth->route('object/:pid/geo')                                  ->via('post')     ->to('geo#post');
+    $apiauth->route('object/:pid/annotations')                          ->via('post')     ->to('annotations#post');
     $apiauth->route('object/:pid/rights')                               ->via('post')     ->to('rights#post');
     $apiauth->route('object/:pid/metadata')                             ->via('post')     ->to('object#metadata');
     $apiauth->route('object/create')                                    ->via('post')     ->to('object#create_empty');
