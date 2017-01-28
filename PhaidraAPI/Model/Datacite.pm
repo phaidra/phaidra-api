@@ -118,14 +118,18 @@ sub map_uwmetadata_2_datacite {
   }
 
   my %data;
-  $data{identifiers} = $ext->_get_uwm_identifiers($c, $dom, \%doc_uwns, $tree, $metadata_model);
   my $relids = $self->_get_relsext_identifiers($c, $pid);
+  my $relids2 = $ext->_get_uwm_identifiers($c, $dom, \%doc_uwns, $tree, $metadata_model);
+  for my $ri (@{$relids2}){
+    push $relids, $ri;
+  }
   for my $relid (@$relids){
     if($relid->{value} =~ /hdl/i){
       $relid->{type} = 'Handle';
       push @{$data{identifiers}}, $relid;
     }elsif($relid->{value} =~ /doi/i){
       $relid->{type} = 'DOI';
+      $relid->{value} =~ s/^doi://;
       push @{$data{identifiers}}, $relid;
     }elsif($relid->{value} =~ /urn/i){
       $relid->{type} = 'URN';
@@ -191,13 +195,19 @@ sub map_mods_2_datacite {
   $data{subjects} = $ext->_get_mods_subjects($c, $dom);
   my $classifications = $ext->_get_mods_classifications($c, $dom);
   push @{$data{subjects}}, @$classifications;
-  my $relids = $ext->_get_mods_element_values($c, $dom, 'mods > identifier');
+  my $relids = $self->_get_relsext_identifiers($c, $pid);
+  my $relids2 = $ext->_get_mods_element_values($c, $dom, 'mods > identifier');
+  for my $ri (@{$relids2}){
+    push $relids, $ri;
+  }
   for my $relid (@$relids){
+    my $rrr = $relid->{value} =~ /doi/i;
     if($relid->{value} =~ /hdl/i){
       $relid->{type} = 'Handle';
       push @{$data{identifiers}}, $relid;
     }elsif($relid->{value} =~ /doi/i){
       $relid->{type} = 'DOI';
+      $relid->{value} =~ s/^doi://;
       push @{$data{identifiers}}, $relid;
     }elsif($relid->{value} =~ /urn/i){
       $relid->{type} = 'URN';
@@ -214,10 +224,6 @@ sub map_mods_2_datacite {
     }
   }
   push @{$data{identifiers}}, { value => "http://".$c->app->config->{phaidra}->{baseurl}."/".$pid, type => "URL" };
-  my $relids = $self->_get_relsext_identifiers($c, $pid);
-  for my $relid (@$relids){
-    push @{$data{identifiers}}, $relid;
-  }
   $data{relations} = $ext->_get_mods_relations($c, $dom);
   my $editions = $ext->_get_mods_element_values($c, $dom, 'mods > originInfo > edition');
   push @{$data{relations}}, @$editions;
