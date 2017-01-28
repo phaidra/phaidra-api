@@ -211,16 +211,17 @@ sub json_2_xml_rec(){
     }
 
     if (defined($child->{attributes}) && (scalar @{$child->{attributes}} > 0)){
-      #$writer->startTag($child->{xmlname}, $child->{attributes});
-      my %attrs;
-      foreach my $a (@{$child->{attributes}}){
-        if(defined($a->{ui_value}) && $a->{ui_value} ne ''){
-          $attrs{$a->{xmlname}} = $a->{ui_value};
+      my @attrs;
+      for my $a (@{$child->{attributes}}){
+        if(defined($a->{value}) && $a->{value} ne ''){
+          if($a->{xmlname} eq 'lang'){
+            push @attrs, ['http://www.w3.org/XML/1998/namespace', 'lang'] => $a->{value};
+          }else{
+            push @attrs, $a->{xmlname} => $a->{value};
+          }
         }
       }
-      $writer->startTag([$modsns, $child->{xmlname}], %attrs);
     }else{
-      #$writer->startTag($child->{xmlname});
       $writer->startTag([$modsns, $child->{xmlname}]);
     }
 
@@ -232,8 +233,6 @@ sub json_2_xml_rec(){
       }
       $writer->characters($child->{value});
     }
-
-    #$writer->endTag($child->{xmlname});
     $writer->endTag([$modsns, $child->{xmlname}]);
   }
 }
