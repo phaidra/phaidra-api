@@ -42,7 +42,7 @@
   <xs:element name="annotations">
     <xs:complexType>
       <xs:sequence>
-        <xs:element name="annotation" minOccurs="1" maxOccurs="unbounded">
+        <xs:element name="annotation" minOccurs="0" maxOccurs="unbounded">
           <xs:complexType>
             <xs:all>
               <xs:element ref="x" minOccurs="1" maxOccurs="1"/>
