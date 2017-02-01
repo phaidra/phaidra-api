@@ -584,7 +584,7 @@ sub _get_uwm_element_values {
 
   my @vals;
   for my $e ($dom->find($elm)->each){
-    my $value = $e->text;
+    my $value = $e->content;
     $value = $self->_remove_phaidra_tags($c, $value);
     my %v = ( value => $value, ns => $e->namespace );
     if($e->attr('language')){

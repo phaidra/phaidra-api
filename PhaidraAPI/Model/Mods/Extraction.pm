@@ -228,7 +228,7 @@ sub _get_mods_element_values {
 
   my @vals;
   for my $e ($dom->find($elm)->each){
-    my %v = ( value => $e->text );
+    my %v = ( value => $e->content );
     if($e->attr('lang')){
         $v{lang} = $e->attr('lang');
     }
