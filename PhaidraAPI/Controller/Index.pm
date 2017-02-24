@@ -81,9 +81,9 @@ sub update {
 	      $r->{pid} = $pid;
 	      push @res, $r;
 	    }
-	};
+	  };
 
-	if($@){
+	  if($@){
       $self->app->log->error("pid $pid Error: $@");         
     }
     
