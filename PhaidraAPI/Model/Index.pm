@@ -183,7 +183,7 @@ sub _get {
           push @{$index{'dc_'.$f->{xmlname}."_".$a->{ui_value}}}, $f->{ui_value};     
           if($f->{xmlname} eq 'title'){
             $index{sort_dc_title} = $f->{ui_value};
-            $index{'sort_dc_title_'.$a->{ui_value}} = $f->{ui_value};
+            $index{'sort_' . $a->{ui_value} . 'dc_title'} = $f->{ui_value};
           }
         }
       }        
