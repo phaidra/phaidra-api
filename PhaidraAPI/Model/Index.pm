@@ -125,10 +125,9 @@ sub update {
   my $r = $self->_get($c, $pid, $dc_model, $search_model, $rel_model);
   if($r->{status} eq 200){
     $c->index_mongo->db->collection($c->app->config->{index_mongodb}->{collection})->update({pid => $pid}, $r->{index}, { upsert => 1 });         
-  }else{
-    $res = $r;
   }
-
+  
+  $res = $r;
   return $res;
 }
 

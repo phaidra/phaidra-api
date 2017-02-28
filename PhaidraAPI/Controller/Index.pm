@@ -75,7 +75,7 @@ sub update {
     eval {
 
 	    my $r = $index_model->update($self, $pid, $dc_model, $search_model, $rel_model);  
-	    if($r->{status} eq 200){      
+	    if($r->{status} eq 200 && $pidscount > 1){      
 	      push @res, { pid => $pid, status => 200 };
 	    }else{
 	      $r->{pid} = $pid;

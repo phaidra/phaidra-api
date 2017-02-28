@@ -457,22 +457,34 @@ sub diss {
   $url->userinfo($self->stash->{basic_auth_credentials}->{username}.":".$self->stash->{basic_auth_credentials}->{password}) if $self->stash->{basic_auth_credentials}->{username};
   $url->path("/fedora/get/$pid/bdef:$bdef/$method");
 
-  $self->client->async->get($url, sub {
-    my ($self, $tx) = @_;
-            
-    if (my $res=$tx->success) {
-      $self->tx->res($res);
-      $self->rendered;
-    }else {
-      my ($msg,$error) = $tx->error;
-      $self->tx->res->headers->add('X-Remote-Status',$error.': '.$msg); 
-      $self->render(
-        status => 500,
-        text => 'Failed to fetch data from Fedora: '.$self->app->dumper($tx->error)
-      );
-    }
-  })->start;
+  $self->app->log->info("user[".$self->stash->{basic_auth_credentials}->{username}."] proxying $url");
 
+  if (Mojo::IOLoop->is_running) {
+    $self->render_later;
+    $self->ua->get(
+      $url,
+      sub {
+        my ($c, $tx) = @_;
+        _proxy_tx($self, $tx);
+      }
+    );
+  }else {
+    my $tx = $self->ua->get($url);
+    _proxy_tx($self, $tx);
+  }
+}
+
+sub _proxy_tx {
+  my ($c, $tx) = @_;
+  if (my $res = $tx->success) {
+    $c->tx->res($res);
+    $c->rendered;
+  }
+  else {
+    my $error = $tx->error;
+    $c->tx->res->headers->add('X-Remote-Status', $error->{code} . ': ' . $error->{message});
+    $c->render(status => 500, text => 'Failed to fetch data from Fedora: '.$tx->error);
+  }
 }
 
 
