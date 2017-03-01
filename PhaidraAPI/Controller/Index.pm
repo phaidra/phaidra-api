@@ -89,7 +89,11 @@ sub update {
     
   }
   
-  $self->render(json => { results => \@res }, status => 200);
+  if(scalar @res == 1){
+    $self->render(json => { result => $res[0] }, status => 200);
+  }else{
+    $self->render(json => { results => \@res }, status => 200);
+  }
 }
 
 1;
