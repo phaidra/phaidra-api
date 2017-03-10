@@ -453,11 +453,11 @@ sub _add_uwm_index {
       for my $gf (@{$general->{children}}){
         if($gf->{xmlname} eq 'irdata'){
           $index->{"bib_ir"} = $gf->{ui_value} if $gf->{ui_value} ne '';  
-        }
+        }        
       }
     }
   }
-
+  
   # roles
   my ($roles, $contributions) = $self->_get_uwm_roles($c, $uwm);
 #  $c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($contributions));

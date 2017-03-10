@@ -51,8 +51,8 @@ sub xml_2_json_rec {
         my $id = $2;
         my $node;
         $node->{xmlname} = $id;
-        if(defined($e->text) && $e->text ne ''){
-          $node->{ui_value} = b($e->text)->decode('UTF-8');
+        if(defined($e->content) && $e->content ne ''){
+          $node->{ui_value} = b($e->content)->decode('UTF-8');
         }
 
         if(defined($e->attr)){
