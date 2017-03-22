@@ -125,10 +125,9 @@ sub update {
   my $r = $self->_get($c, $pid, $dc_model, $search_model, $rel_model);
   if($r->{status} eq 200){
     $c->index_mongo->db->collection($c->app->config->{index_mongodb}->{collection})->update({pid => $pid}, $r->{index}, { upsert => 1 });         
-  }else{
-    $res = $r;
   }
-
+  
+  $res = $r;
   return $res;
 }
 
@@ -181,10 +180,17 @@ sub _get {
         if($a->{xmlname} eq 'xml:lang'){
           push @{$index{'dc_'.$f->{xmlname}}}, $f->{ui_value};
           push @{$index{'dc_'.$f->{xmlname}."_".$a->{ui_value}}}, $f->{ui_value};     
+          if($f->{xmlname} eq 'title'){
+            $index{sort_dc_title} = $f->{ui_value};
+            $index{'sort_' . $a->{ui_value} . '_dc_title'} = $f->{ui_value};
+          }
         }
       }        
     }else{
       push @{$index{'dc_'.$f->{xmlname}}}, $f->{ui_value};
+      if($f->{xmlname} eq 'title'){
+        $index{sort_dc_title} = $f->{ui_value};
+      }
     }
   }    
 
@@ -447,11 +453,11 @@ sub _add_uwm_index {
       for my $gf (@{$general->{children}}){
         if($gf->{xmlname} eq 'irdata'){
           $index->{"bib_ir"} = $gf->{ui_value} if $gf->{ui_value} ne '';  
-        }
+        }        
       }
     }
   }
-
+  
   # roles
   my ($roles, $contributions) = $self->_get_uwm_roles($c, $uwm);
 #  $c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($contributions));

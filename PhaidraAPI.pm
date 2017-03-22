@@ -315,6 +315,7 @@ sub startup {
   $r->route('object/:pid/dc')                     ->via('get')    ->to('dc#get', dsid => 'DC_P');
   $r->route('object/:pid/oai_dc')                 ->via('get')    ->to('dc#get', dsid => 'DC_OAI');
   $r->route('object/:pid/index')                  ->via('get')    ->to('index#get');
+  $r->route('object/:pid/datacite')               ->via('get')    ->to('datacite#get');
 
   $r->route('object/:pid/id')                     ->via('get')    ->to('search#id');
 

@@ -451,7 +451,6 @@ sub diss {
     }
   }
 
-  # if there are credentials, or there are no credentials but the object is not locked, forward the request
   my $url = Mojo::URL->new;
   $url->scheme('https');
   $url->host($self->app->config->{phaidra}->{fedorabaseurl});
@@ -484,7 +483,7 @@ sub _proxy_tx {
   else {
     my $error = $tx->error;
     $c->tx->res->headers->add('X-Remote-Status', $error->{code} . ': ' . $error->{message});
-    $c->render(status => 500, text => 'Failed to fetch data from Fedora: '.$c->app->dumper($tx->error));
+    $c->render(status => 500, text => 'Failed to fetch data from Fedora: '.$tx->error);
   }
 }
 
