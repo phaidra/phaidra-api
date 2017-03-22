@@ -71,19 +71,34 @@ sub add_collection_members {
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
     	$self->render(json => $res, status => $res->{status});
+    	return;
     }
 
-    # order members, if any positions are defined
-    my @ordered_members;
-    foreach my $member (@{$members}){
-    	if(exists($member->{'pos'})){
-    		push @ordered_members, $member;
-    	}
+
+	my $order_available = 0;
+	for my $m_ord (@{$members}){
+		if(exists($m_ord->{pos})){
+			$order_available = 1;
+			last;
+		}
 	}
-	my $ordered_members_size = scalar @ordered_members;
-	if($ordered_members_size > 0){
+
+	if($order_available){
+
+		# this should now also contain the new members
 		my $coll_model = PhaidraAPI::Model::Collection->new;
-		my $r = $coll_model->order($self, $pid, \@ordered_members, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  		my $res = $coll_model->get_members($self, $pid);
+  		for my $m (@{$res->{members}){
+  			for my $m_ord (@{$members}){
+  				if($m->{pid} eq $m_ord->{pid}){
+  					if(exists($m_ord->{pos})){
+  						$m->{pos} = $m_ord->{pos};
+  					}
+  				}
+  			}
+  		}
+
+		my $r = $coll_model->order($self, $pid, $res->{members}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 		push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
 	    $res->{status} = $r->{status};
 	    if($r->{status} ne 200){
@@ -147,6 +162,25 @@ sub remove_collection_members {
 	my $r = $object_model->purge_relationships($self, $pid, \@relationships, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 
 	# FIXME: remove from COLLECTIONORDER
+	my $search_model = PhaidraAPI::Model::Search->new;
+	my $r = $search_model->datastreams_hash($c, $pid);
+	if($r->{status} ne 200){
+	  return $r;
+	}
+
+	if(exists($r->{dshash}->{'COLLECTIONORDER'})){
+
+		# this should not contain the deleted members anymore
+		my $coll_model = PhaidraAPI::Model::Collection->new;
+  		my $res = $coll_model->get_members($self, $pid);
+  		
+		my $r = $coll_model->order($self, $pid, $res->{members}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+		push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+	    $res->{status} = $r->{status};
+	    if($r->{status} ne 200){
+	    	$self->render(json => $res, status => $res->{status});
+	    }
+	}
 
 	$self->render(json => $r, status => $r->{status});
 
