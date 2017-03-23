@@ -234,6 +234,29 @@ sub _get {
     }
   }
 
+  # get ANNOTATIONS 
+  if($r_ds->{dshash}->{'ANNOTATIONS'}){
+    my $ann_model = PhaidraAPI::Model::Annotations->new;
+    my $r_ann = $ann_model->get_object_annotations_json($self, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+    if($r_ann->{status} ne 200){      
+      $res->{alerts} = [{ type => 'danger', msg => "Error adding ANNOTATIONS from $pid" }];
+      for $a (@{$r_ann->{alerts}}){
+        push @{$res->{alerts}}, $a;
+      }
+    }else{
+      for my $id (keys %{$r_ann->{annotations}}){
+        
+          my $title = $r_ann->{annotations}->{$id}->{title} if exists $r_ann->{annotations}->{$id}->{title};
+          my $text = $r_ann->{annotations}->{$id}->{text} if exists $r_ann->{annotations}->{$id}->{text};
+          my $ann = ""; 
+          $ann .= $title . ": " if defined $title;
+          $ann .= $text;
+          push @{$index{annotations}}, $ann;
+
+      }      
+    }
+  }
+
   # metadata
   if($r_ds->{dshash}->{'UWMETADATA'}){
     my $r_add_uwm = $self->_add_uwm_index($c, $pid, \%index);
