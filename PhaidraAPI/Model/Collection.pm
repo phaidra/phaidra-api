@@ -155,7 +155,7 @@ sub get_members {
 	if($cachekey){
 		$cached_members = $c->app->chi->get($cachekey);		
 	}
-	
+
   	if($cached_members){
   		$c->app->log->debug("[cache hit] $cachekey");
   	}else{  		
@@ -202,11 +202,13 @@ sub get_members {
 					}
 
 					sub undef_sort {
-					  return 1 unless(defined($a->{'pos'}));
-					  return -1 unless(defined($b->{'pos'}));
-					  return $a->{'pos'} <=> $b->{'pos'};
+					 $a->{pos} eq "" && $b->{pos} eq "" ? 0
+				     : $a->{pos} eq "" ? +1
+				     : $b->{pos} eq "" ? -1
+				     : $a->{pos} cmp $b->{pos}
 					}
 					@$cached_members = sort undef_sort @$cached_members;									
+
 				}
 			}
 		}

@@ -52,13 +52,14 @@ sub add_or_modify_relationships_hooks {
 
   my $res = { alerts => [], status => 200 };
 
-  
+  my $dc_model = PhaidraAPI::Model::Dc->new;
+  my $search_model = PhaidraAPI::Model::Search->new;
 # No DC refresh, too costly
 =cut
 
-  my $dc_model = PhaidraAPI::Model::Dc->new;
+  
   my $object_model = PhaidraAPI::Model::Object->new;
-  my $search_model = PhaidraAPI::Model::Search->new;
+  
   my $r = $search_model->datastreams_hash($c, $pid);
   if($r->{status} ne 200){
     return $r;

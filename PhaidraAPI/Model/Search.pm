@@ -428,9 +428,10 @@ sub related {
 					});
 
 					sub undef_sort {
-					  return 1 unless(defined($a->{'pos'}));
-					  return -1 unless(defined($b->{'pos'}));
-					  return $a->{'pos'} <=> $b->{'pos'};
+					 $a->{pos} eq "" && $b->{pos} eq "" ? 0
+				     : $a->{pos} eq "" ? +1
+				     : $b->{pos} eq "" ? -1
+				     : $a->{pos} cmp $b->{pos}
 					}
 					@{$sr->{objects}} = sort undef_sort @{$sr->{objects}};
 

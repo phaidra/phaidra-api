@@ -88,7 +88,7 @@ sub add_collection_members {
 		# this should now also contain the new members
 		my $coll_model = PhaidraAPI::Model::Collection->new;
   		my $res = $coll_model->get_members($self, $pid);
-  		for my $m (@{$res->{members}){
+  		for my $m (@{$res->{members}}){
   			for my $m_ord (@{$members}){
   				if($m->{pid} eq $m_ord->{pid}){
   					if(exists($m_ord->{pos})){
@@ -163,21 +163,21 @@ sub remove_collection_members {
 
 	# FIXME: remove from COLLECTIONORDER
 	my $search_model = PhaidraAPI::Model::Search->new;
-	my $r = $search_model->datastreams_hash($c, $pid);
-	if($r->{status} ne 200){
-	  return $r;
+	my $r2 = $search_model->datastreams_hash($self, $pid);
+	if($r2->{status} ne 200){
+	  return $r2;
 	}
 
-	if(exists($r->{dshash}->{'COLLECTIONORDER'})){
+	if(exists($r2->{dshash}->{'COLLECTIONORDER'})){
 
 		# this should not contain the deleted members anymore
 		my $coll_model = PhaidraAPI::Model::Collection->new;
   		my $res = $coll_model->get_members($self, $pid);
   		
-		my $r = $coll_model->order($self, $pid, $res->{members}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
-		push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
-	    $res->{status} = $r->{status};
-	    if($r->{status} ne 200){
+		my $r3 = $coll_model->order($self, $pid, $res->{members}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+		push @{$res->{alerts}}, $r3->{alerts} if scalar @{$r3->{alerts}} > 0;
+	    $res->{status} = $r3->{status};
+	    if($r3->{status} ne 200){
 	    	$self->render(json => $res, status => $res->{status});
 	    }
 	}
