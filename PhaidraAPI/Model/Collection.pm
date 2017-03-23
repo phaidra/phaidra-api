@@ -137,6 +137,7 @@ sub get_members {
 	my $self = shift;
     my $c = shift;
     my $pid = shift;
+    my $nocache = shift;
 
 	my $res = { members => [], alerts => [], status => 200 };
 
@@ -156,7 +157,7 @@ sub get_members {
 		$cached_members = $c->app->chi->get($cachekey);		
 	}
 
-  	if($cached_members){
+  	if($cached_members && ($nocache != 1)){
   		$c->app->log->debug("[cache hit] $cachekey");
   	}else{  		
   		$c->app->log->debug("[cache miss] $cachekey");
@@ -194,7 +195,7 @@ sub get_members {
 					$xml->find('member[pos]')->each(sub {
 						my $m = shift;
 						my $pid = $m->text;
-						$members{$pid}->{'pos'} = $m->{'pos'};
+						$members{$pid}->{'pos'} = $m->{'pos'} if exists $members{$pid};
 					});
 
 					foreach my $p (keys %members){

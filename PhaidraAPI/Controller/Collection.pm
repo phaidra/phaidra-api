@@ -191,9 +191,10 @@ sub get_collection_members {
 	my $self = shift;
 
 	my $pid = $self->stash('pid');
+	my $nocache = $self->param('nocache');
 
 	my $coll_model = PhaidraAPI::Model::Collection->new;
-	my $res = $coll_model->get_members($self, $pid);
+	my $res = $coll_model->get_members($self, $pid, $nocache);
 
 	$self->render(json => { alerts => $res->{alerts}, metadata => { members => $res->{members} } }, status => $res->{status});
 }
