@@ -54,10 +54,7 @@ sub add_or_modify_relationships_hooks {
 
   my $dc_model = PhaidraAPI::Model::Dc->new;
   my $search_model = PhaidraAPI::Model::Search->new;
-# No DC refresh, too costly
-=cut
 
-  
   my $object_model = PhaidraAPI::Model::Object->new;
   
   my $r = $search_model->datastreams_hash($c, $pid);
@@ -82,7 +79,6 @@ sub add_or_modify_relationships_hooks {
     $res->{MODS} = b($res->{MODS})->decode('UTF-8');
     return $dc_model->generate_dc_from_mods($c, $pid, $res->{MODS}, $username, $password);    
   }
-=cut
 
   if(exists($c->app->config->{index_mongodb})){    
     my $rel_model = PhaidraAPI::Model::Relationships->new;

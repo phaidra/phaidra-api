@@ -795,6 +795,7 @@ sub add_relationship {
     my $object = shift;
     my $username = shift;
     my $password = shift;
+    my $skiphook = shift;
 
     my $res = { alerts => [], status => 200 };
 
@@ -850,12 +851,14 @@ sub add_relationship {
 		}
 	}
 
-	my $hooks_model = PhaidraAPI::Model::Hooks->new;
-	my $hr = $hooks_model->add_or_modify_relationships_hooks($c, $pid, $username, $password);
-	push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
-	$res->{status} = $hr->{status};
-	if($hr->{status} ne 200){
-		return $res;
+	unless($skiphook){
+		my $hooks_model = PhaidraAPI::Model::Hooks->new;
+		my $hr = $hooks_model->add_or_modify_relationships_hooks($c, $pid, $username, $password);
+		push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
+		$res->{status} = $hr->{status};
+		if($hr->{status} ne 200){
+			return $res;
+		}
 	}
 
   	return $res;
@@ -873,7 +876,7 @@ sub add_relationships {
     my $res = { alerts => [], status => 200 };
 
     for my $rel (@$relationships){
-    	my $rr = $self->add_relationship($c, $pid, $rel->{predicate}, $rel->{object}, $username, $password);
+    	my $rr = $self->add_relationship($c, $pid, $rel->{predicate}, $rel->{object}, $username, $password, 1);
     	if($rr->{status} ne 200){
 			$res = $rr;
     		last;
@@ -1011,6 +1014,7 @@ sub purge_relationship {
     my $object = shift;
     my $username = shift;
     my $password = shift;
+    my $skiphook = shift;
 
     my $res = { alerts => [], status => 200 };
    
@@ -1067,12 +1071,14 @@ sub purge_relationship {
 		}
 	}
 
-	my $hooks_model = PhaidraAPI::Model::Hooks->new;
-	my $hr = $hooks_model->add_or_modify_relationships_hooks($c, $pid, $username, $password);
-	push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
-	$res->{status} = $hr->{status};
-	if($hr->{status} ne 200){
-		return $res;
+	unless($skiphook){
+		my $hooks_model = PhaidraAPI::Model::Hooks->new;
+		my $hr = $hooks_model->add_or_modify_relationships_hooks($c, $pid, $username, $password);
+		push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
+		$res->{status} = $hr->{status};
+		if($hr->{status} ne 200){
+			return $res;
+		}
 	}
 
   	return $res;
@@ -1092,7 +1098,7 @@ sub purge_relationships {
     my $res = { alerts => [], status => 200 };
 
     for my $rel (@$relationships){
-    	my $rr = $self->purge_relationship($c, $pid, $rel->{predicate}, $rel->{object}, $username, $password);
+    	my $rr = $self->purge_relationship($c, $pid, $rel->{predicate}, $rel->{object}, $username, $password, 1);
     	if($rr->{status} ne 200){
 			$res = $rr;
     		last;

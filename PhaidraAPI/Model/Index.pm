@@ -15,6 +15,7 @@ use PhaidraAPI::Model::Mods;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Dc;
 use PhaidraAPI::Model::Relationships;
+use PhaidraAPI::Model::Annotations;
 
 our %cmodel_2_resourcetype = (
   "Asset" => "other",
@@ -237,7 +238,7 @@ sub _get {
   # get ANNOTATIONS 
   if($r_ds->{dshash}->{'ANNOTATIONS'}){
     my $ann_model = PhaidraAPI::Model::Annotations->new;
-    my $r_ann = $ann_model->get_object_annotations_json($self, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+    my $r_ann = $ann_model->get_object_annotations_json($c, $pid, $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});
     if($r_ann->{status} ne 200){      
       $res->{alerts} = [{ type => 'danger', msg => "Error adding ANNOTATIONS from $pid" }];
       for $a (@{$r_ann->{alerts}}){
@@ -295,7 +296,20 @@ sub _get {
     }
   }else{
     while (my ($k, $v) = each %{$r_rel->{relationships}}) {
-      $index{$k} = $v;
+      # don't index haspart, too much data, for search we only need ispartof anyways
+      unless($k eq 'haspart'){
+        if($k eq 'altformats'){
+          for my $kf (keys %{$r_rel->{relationships}->{altformats}}){
+            push @{$index{altformats}}, $kf;
+          }
+        }elsif($k eq 'altversions'){
+          for my $kv (keys %{$r_rel->{relationships}->{altversions}}){
+            push @{$index{altversions}}, $kv;
+          }
+        }else{
+          $index{$k} = $v;
+        }
+      }
     }
   }
     
