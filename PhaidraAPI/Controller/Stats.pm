@@ -63,7 +63,7 @@ sub stats {
         $siteid = $fr->{stats}->{siteid};
 
         # get
-        $self->app->log->debug("XXXXXXXXXXXX "."select count(*) from piwik_log_link_visit_action as a where a.idsite=$siteid and a.custom_var_v2 = \"$pid\" and a.custom_var_k2 = \"Download\"");         
+        #$self->app->log->debug("XXXXXXXXXXXX "."select count(*) from piwik_log_link_visit_action as a where a.idsite=$siteid and a.custom_var_v2 = \"$pid\" and a.custom_var_k2 = \"Download\"");         
         my $downloads = $self->app->db_stats_phaidra_catalyst->selectrow_array("select count(*) from piwik_log_link_visit_action as a where a.idsite=$siteid and a.custom_var_v2 = \"$pid\" and a.custom_var_k2 = \"Download\"") or $self->app->log->error("Error querying piwik database for downloads:".$self->app->db_stats_phaidra_catalyst->errstr);
         my $detail_page = $self->app->db_stats_phaidra_catalyst->selectrow_array("select count(*) from piwik_log_link_visit_action as a where a.idsite=$siteid and a.custom_var_v4 = \"$pid\" and a.custom_var_k4 = \"Detail page\"") or $self->app->log->error("Error querying piwik database for detail views:".$self->app->db_stats_phaidra_catalyst->errstr);
         $cacheval = { downloads => $downloads, detail_page => $detail_page };        

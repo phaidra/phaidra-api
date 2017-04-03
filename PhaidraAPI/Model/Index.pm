@@ -7,6 +7,8 @@ use utf8;
 use Mojo::ByteStream qw(b);
 use Mojo::Util qw(xml_escape encode decode);
 use Mojo::JSON qw(encode_json decode_json);
+use Mojo::URL;
+use Mojo::UserAgent;
 use base qw/Mojo::Base/;
 use XML::LibXML;
 use Storable qw(dclone);
@@ -113,22 +115,48 @@ our %uwm_2_mods_roles = (
 );
 
 sub update {
-  my ($self, $c, $pid, $dc_model, $search_model, $rel_model) = @_;
+  my ($self, $c, $pid, $dc_model, $search_model, $rel_model, $object_model) = @_;
 
   my $res = { status => 200 };    
 
-  unless(exists($c->app->config->{index_mongodb})){
-    push @{$res->{alerts}}, { type => 'danger', msg => 'The index database is not configured' };
-    $res->{status} = 400;
-    return $res;
+  if( exists($c->app->config->{index_mongodb}) || exists($c->app->config->{solr})){
+
+    my $r = $self->_get($c, $pid, $dc_model, $search_model, $rel_model, $object_model);
+    $res = $r;
+
+    if($r->{status} eq 200){
+      if(exists($c->app->config->{index_mongodb})){
+
+        $c->index_mongo->db->collection($c->app->config->{index_mongodb}->{collection})->update({pid => $pid}, $r->{index}, { upsert => 1 });
+        $c->app->log->debug("[$pid] mongo index updated");          
+      }
+
+      if(exists($c->app->config->{solr})){
+
+        my $url = Mojo::URL->new;
+        $url->scheme($c->app->config->{solr}->{scheme});
+        $url->userinfo($c->app->config->{solr}->{username}.":".$c->app->config->{solr}->{password});
+        $url->host($c->app->config->{solr}->{host});
+        $url->port($c->app->config->{solr}->{port});
+        $url->path("/solr/".$c->app->config->{solr}->{core}."/update/json/docs");
+        $url->query({commit => 'true'});
+
+        my $ua = Mojo::UserAgent->new;
+        my $post = $ua->post($url => json => $r->{index});
+
+        if (my $r = $post->success) {
+          $c->app->log->debug("[$pid] solr updated");
+        }else {
+          my ($err, $code) = $post->error;
+          unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+          $res->{status} =  $code ? $code : 500;
+        }
+        
+      }
+    }
+
   }
 
-  my $r = $self->_get($c, $pid, $dc_model, $search_model, $rel_model);
-  if($r->{status} eq 200){
-    $c->index_mongo->db->collection($c->app->config->{index_mongodb}->{collection})->update({pid => $pid}, $r->{index}, { upsert => 1 });         
-  }
-  
-  $res = $r;
   return $res;
 }
 
@@ -138,12 +166,13 @@ sub get {
   my $dc_model = PhaidraAPI::Model::Dc->new;
   my $search_model = PhaidraAPI::Model::Search->new;
   my $rel_model = PhaidraAPI::Model::Relationships->new;
+  my $object_model = PhaidraAPI::Model::Object->new;
 
-  return $self->_get($c, $pid, $dc_model, $search_model, $rel_model);
+  return $self->_get($c, $pid, $dc_model, $search_model, $rel_model, $object_model);
 }
 
 sub _get {
-  my ($self, $c, $pid, $dc_model, $search_model, $rel_model) = @_;
+  my ($self, $c, $pid, $dc_model, $search_model, $rel_model, $object_model) = @_;
 
   my $res = { status => 200 };        
 
@@ -156,7 +185,7 @@ sub _get {
   }
   unless($r_state->{state} eq 'Active'){
     $c->app->log->warn("[_get index] Object $pid is ".$r_state->{state}.", skipping");
-    $res->{alerts} = [{ type => 'danger', msg => "[_get index] Object $pid is ".$r_state->{state}.", skipping" }];
+    push @{$res->{alerts}}, { type => 'danger', msg => "[_get index] Object $pid is ".$r_state->{state}.", skipping" };
     return $res;
   }
 
@@ -165,42 +194,12 @@ sub _get {
     return $r_ds;
   }
 
-  # get DC (prefferably DC_P)
-  my $dclabel = 'DC';
-  if($r_ds->{dshash}->{'DC_P'}){
-    $dclabel = 'DC_P';
-  }
-  my $r_dc = $dc_model->get_object_dc_json($c, $pid, $dclabel, $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});
-  if($r_dc->{status} ne 200){    
-    return $r_dc;        
-  }
-  # DC fields      
-  for my $f (@{$r_dc->{dc}}){      
-    if(exists($f->{attributes})){
-      for my $a (@{$f->{attributes}}){
-        if($a->{xmlname} eq 'xml:lang'){
-          push @{$index{'dc_'.$f->{xmlname}}}, $f->{ui_value};
-          push @{$index{'dc_'.$f->{xmlname}."_".$a->{ui_value}}}, $f->{ui_value};     
-          if($f->{xmlname} eq 'title'){
-            $index{sort_dc_title} = $f->{ui_value};
-            $index{'sort_' . $a->{ui_value} . '_dc_title'} = $f->{ui_value};
-          }
-        }
-      }        
-    }else{
-      push @{$index{'dc_'.$f->{xmlname}}}, $f->{ui_value};
-      if($f->{xmlname} eq 'title'){
-        $index{sort_dc_title} = $f->{ui_value};
-      }
-    }
-  }    
-
   # get GEO and turn to solr geospatial types
   if($r_ds->{dshash}->{'GEO'}){
     my $geo_model = PhaidraAPI::Model::Geo->new;
     my $r_geo = $geo_model->get_object_geo_json($c, $pid, $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});
     if($r_geo->{status} ne 200){      
-      $res->{alerts} = [{ type => 'danger', msg => "Error adding GEO fields from $pid" }];
+      push @{$res->{alerts}}, { type => 'danger', msg => "Error adding GEO fields from $pid" };
       for $a (@{$r_geo->{alerts}}){
         push @{$res->{alerts}}, $a;
       }
@@ -240,7 +239,7 @@ sub _get {
     my $ann_model = PhaidraAPI::Model::Annotations->new;
     my $r_ann = $ann_model->get_object_annotations_json($c, $pid, $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});
     if($r_ann->{status} ne 200){      
-      $res->{alerts} = [{ type => 'danger', msg => "Error adding ANNOTATIONS from $pid" }];
+      push @{$res->{alerts}}, { type => 'danger', msg => "Error adding ANNOTATIONS from $pid" };
       for $a (@{$r_ann->{alerts}}){
         push @{$res->{alerts}}, $a;
       }
@@ -258,39 +257,77 @@ sub _get {
     }
   }
 
-  # metadata
-  if($r_ds->{dshash}->{'UWMETADATA'}){
-    my $r_add_uwm = $self->_add_uwm_index($c, $pid, \%index);
-    if($r_add_uwm->{status} ne 200){
-      $res->{alerts} = [{ type => 'danger', msg => "Error adding UWMETADATA fields for $pid, skipping" }];
-      for $a (@{$r_add_uwm->{alerts}}){
-        push @{$res->{alerts}}, $a;
-      }
-    }    
-  }
-  if($r_ds->{dshash}->{'MODS'}){
-    my $r_add_mods = $self->_add_mods_index($c, $pid, \%index);
-    if($r_add_mods->{status} ne 200){
-      $res->{alerts} = [{ type => 'danger', msg => "Error adding MODS fields for $pid, skipping" }];
-      for $a (@{$r_add_mods->{alerts}}){
-        push @{$res->{alerts}}, $a;
-      }
-    } 
-  }
-
   # triples
   my $r_add_triples = $self->_add_triples_index($c, $pid, $search_model, \%index);
   if($r_add_triples->{status} ne 200){
-    $res->{alerts} = [{ type => 'danger', msg => "Error getting triples for $pid, skipping" }];
+    push @{$res->{alerts}}, { type => 'danger', msg => "Error getting triples for $pid" };
     for $a (@{$r_add_triples->{alerts}}){
       push @{$res->{alerts}}, $a;
     }
-  }   
+  }
+
+  my $cmodel = $index{cmodel};
+
+  # uwmetadata
+  if($r_ds->{dshash}->{'UWMETADATA'}){
+    my $r_uw = $object_model->get_datastream($c, $pid, 'UWMETADATA', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password}, 1);
+    if($r_uw->{status} ne 200){
+      push @{$res->{alerts}}, { type => 'danger', msg => "Error adding UWMETADATA fields for $pid" };
+      for $a (@{$r_uw->{alerts}}){
+        push @{$res->{alerts}}, $a;
+      }
+    }else{
+      my $uwmetadataxml = $r_uw->{UWMETADATA};
+      my $r_add_uwm = $self->_add_uwm_index($c, $pid, $uwmetadataxml, \%index);
+      if($r_add_uwm->{status} ne 200){
+        push @{$res->{alerts}}, { type => 'danger', msg => "Error adding UWMETADATA fields for $pid" };
+        for $a (@{$r_add_uwm->{alerts}}){
+          push @{$res->{alerts}}, $a;
+        }
+      }
+        
+      my $uw_model = PhaidraAPI::Model::Uwmetadata->new;
+      my $r0 = $uw_model->metadata_tree($c);
+      if($r0->{status} ne 200){
+        push @{$res->{alerts}}, { type => 'danger', msg => "Error getting UWMETADATA tree for $pid" };
+        for $a (@{$r_add_uwm->{alerts}}){
+          push @{$res->{alerts}}, $a;
+        }
+      }else{
+        my ($dc_p, $dc_oai) = $dc_model->map_uwmetadata_2_dc_hash($c, $pid, $cmodel, $uwmetadataxml, $r0->{metadata_tree}, $uw_model);
+        $self->_add_dc_index($c, $dc_p, \%index);
+      }
+    }
+  }
+
+  # mods
+  if($r_ds->{dshash}->{'MODS'}){
+    my $r_mods = $object_model->get_datastream($c, $pid, 'MODS', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password}, 1);
+    if($r_mods->{status} ne 200){
+      push @{$res->{alerts}}, { type => 'danger', msg => "Error adding MODS fields for $pid" };
+      for $a (@{$r_mods->{alerts}}){
+        push @{$res->{alerts}}, $a;
+      }
+    }else{
+      my $modsxml = $r_mods->{MODS};
+      my $r_add_mods = $self->_add_mods_index($c, $pid, $modsxml, \%index);
+      if($r_add_mods->{status} ne 200){
+        push @{$res->{alerts}}, { type => 'danger', msg => "Error adding MODS fields for $pid" };
+        for $a (@{$r_add_mods->{alerts}}){
+          push @{$res->{alerts}}, $a;
+        }
+      }else{
+        my $mods_model = PhaidraAPI::Model::Mods->new;
+        my ($dc_p, $dc_oai) = $dc_model->map_mods_2_dc_hash($c, $pid, $cmodel, $modsxml, $mods_model);
+        $self->_add_dc_index($c, $dc_p, \%index);
+      }
+    }
+  }
 
   # relationships
   my $r_rel = $rel_model->get($c, $pid, $search_model);
   if($r_rel->{status} ne 200){
-    $res->{alerts} = [{ type => 'danger', msg => "Error getting relationships for $pid, skipping" }];
+    push @{$res->{alerts}}, { type => 'danger', msg => "Error getting relationships for $pid" };
     for $a (@{$r_rel->{alerts}}){
       push @{$res->{alerts}}, $a;
     }
@@ -348,6 +385,30 @@ sub _get {
   return $res;
 }
 
+sub _add_dc_index {
+
+  my ($self, $c, $dc, $index) = @_;
+
+  while (my ($xmlname, $values) = each %{$dc}) {
+    for my $v (@{$values}){
+      if(exists($v->{lang})){
+        push @{$index->{'dc_'.$xmlname}}, $v->{value};
+        push @{$index->{'dc_'.$xmlname."_".$v->{lang}}}, $v->{value};     
+        if($xmlname eq 'title'){
+          $index->{sort_dc_title} = $v->{value};
+          $index->{'sort_' . $v->{lang} . '_dc_title'} = $v->{value};
+        }
+      }else{
+        push @{$index->{'dc_'.$xmlname}}, $v->{value};
+        if($xmlname eq 'title'){
+          $index->{sort_dc_title} = $v->{value};
+        }
+      }
+    }
+  }
+     
+}
+
 sub _add_triples_index {
 
   my ($self, $c, $pid, $search_model, $index) = @_;
@@ -391,12 +452,13 @@ sub _add_triples_index {
 }
 
 sub _add_mods_index {
-  my ($self, $c, $pid, $index) = @_;
+  my ($self, $c, $pid, $modsxml, $index) = @_;
 
   my $res = { alerts => [], status => 200 };
 
   my $mods_model = PhaidraAPI::Model::Mods->new;  
-  my $r_mods = $mods_model->get_object_mods_json($c, $pid, 'basic', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});      
+  my $r_mods = $mods_model->xml_2_json($c, $modsxml, 'basic');
+  #my $r_mods = $mods_model->get_object_mods_json($c, $pid, 'basic', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});      
   if($r_mods->{status} ne 200){        
     return $r_mods;            
   }
@@ -470,12 +532,13 @@ sub _add_mods_index {
 }
 
 sub _add_uwm_index {
-  my ($self, $c, $pid, $index) = @_;
+  my ($self, $c, $pid, $uwmetadataxml, $index) = @_;
 
   my $res = { alerts => [], status => 200 };
 
   my $uwmetadata_model = PhaidraAPI::Model::Uwmetadata->new;  
-  my $r_uwm = $uwmetadata_model->get_object_metadata($c, $pid, 'resolved', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});      
+  my $r_uwm = $uwmetadata_model->uwmetadata_2_json_basic($c, $uwmetadataxml, 'resolved');
+  #my $r_uwm = $uwmetadata_model->get_object_metadata($c, $pid, 'resolved', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});      
 #  $c->app->log->debug("XXXXXXXXXXXXXXX".$c->app->dumper($r_uwm));
   if($r_uwm->{status} ne 200){        
     return $r_uwm;            
@@ -498,7 +561,7 @@ sub _add_uwm_index {
   # roles
   my ($roles, $contributions) = $self->_get_uwm_roles($c, $uwm);
 #  $c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($contributions));
-  $index->{"uwm_roles_json"} = encode_json $contributions;
+  $index->{"uwm_roles_json"} = b(encode_json($contributions))->decode('UTF-8');
   for my $r (@{$roles}){
     push @{$index->{"bib_roles_pers_".$r->{role}}}, $r->{name} if $r->{name} ne '';   
     push @{$index->{"bib_roles_corp_".$r->{role}}}, $r->{institution} if $r->{institution} ne '';   

@@ -687,9 +687,9 @@ sub uwmetadata_2_json_basic_rec {
 			}					
 		}
 		
-		if($e->content){
+		if($e->content && ($input_type ne 'node')){
 
-			my $value = $e->content;			
+			my $value = b($e->content)->decode('UTF-8');	
 
 			if($datatype eq 'Vocabulary'){ 
 				$node{ui_value} = $vocns.$value;

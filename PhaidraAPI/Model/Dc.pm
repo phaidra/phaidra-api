@@ -145,9 +145,9 @@ sub generate_dc_from_mods {
 }
 
 
-sub map_mods_2_dc {
+sub map_mods_2_dc_hash {
 
-  my ($self, $c, $pid, $cmodel, $xml, $tree, $metadata_model) = @_;
+  my ($self, $c, $pid, $cmodel, $xml, $metadata_model) = @_;
 
   my $dom = Mojo::DOM->new();
   $dom->xml(1);
@@ -198,18 +198,22 @@ sub map_mods_2_dc {
 
   # FIXME GEO datastream to DCMI BOX
 
-  #$c->app->log->debug("XXXXXXXXXXX dc_p hash:".$c->app->dumper(\%dc_p));
-  my $dc_p_xml = $self->_create_dc_from_hash($c, \%dc_p);
-  #$c->app->log->debug("XXXXXXXXXXX dc_p xml:".$dc_p_xml);
-
   # see https://guidelines.openaire.eu/wiki/OpenAIRE_Guidelines:_For_Literature_repositories
   my %dc_oai = %dc_p;
   $dc_oai{creator} = $ext->_get_mods_creators($c, $dom, 'oai');
   $dc_oai{contributor} = $ext->_get_mods_contributors($c, $dom, 'oai');
 
-  #$c->app->log->debug("XXXXXXXXXXX dc_oai hash:".$c->app->dumper(\%dc_oai));
-  my $dc_oai_xml = $self->_create_dc_from_hash($c, \%dc_oai);
-  #$c->app->log->debug("XXXXXXXXXXX dc_oai xml:".$dc_oai_xml);
+  return (\%dc_p, \%dc_oai);
+}
+
+sub map_mods_2_dc {
+
+  my ($self, $c, $pid, $cmodel, $xml, $metadata_model) = @_;
+
+  my ($dc_p, $dc_oai) = $self->map_mods_2_dc_hash($c, $pid, $cmodel, $xml, $metadata_model);
+  
+  my $dc_p_xml = $self->_create_dc_from_hash($c, $dc_p);
+  my $dc_oai_xml = $self->_create_dc_from_hash($c, $dc_oai);
 
   return ($dc_p_xml, $dc_oai_xml);
 }

@@ -7,6 +7,9 @@ use base 'Mojolicious::Controller';
 use Mojo::ByteStream qw(b);
 use Mojo::JSON qw(encode_json decode_json);
 use PhaidraAPI::Model::Index;
+use PhaidraAPI::Model::Object;
+use PhaidraAPI::Model::Relationships;
+use PhaidraAPI::Model::Search;
 
 sub get {
   my ($self) = @_;
@@ -64,6 +67,7 @@ sub update {
   my $dc_model = PhaidraAPI::Model::Dc->new;
   my $search_model = PhaidraAPI::Model::Search->new;
   my $rel_model = PhaidraAPI::Model::Relationships->new;
+  my $object_model = PhaidraAPI::Model::Object->new;
   my @res;
   my $pidscount = scalar @pidsarr;
   my $i = 0;
@@ -74,7 +78,7 @@ sub update {
 
     eval {
 
-	    my $r = $index_model->update($self, $pid, $dc_model, $search_model, $rel_model);  
+	    my $r = $index_model->update($self, $pid, $dc_model, $search_model, $rel_model, $object_model);  
 	    if($r->{status} eq 200 && $pidscount > 1){      
 	      push @res, { pid => $pid, status => 200 };
 	    }else{

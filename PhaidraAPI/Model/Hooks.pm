@@ -33,8 +33,9 @@ sub add_or_modify_datastream_hooks {
     my $dc_model = PhaidraAPI::Model::Dc->new;
     my $search_model = PhaidraAPI::Model::Search->new;
     my $rel_model = PhaidraAPI::Model::Relationships->new;
-    my $index_model = PhaidraAPI::Model::Index->new;  
-    my $r = $index_model->update($c, $pid, $dc_model, $search_model, $rel_model);
+    my $index_model = PhaidraAPI::Model::Index->new;
+    my $object_model = PhaidraAPI::Model::Object->new;
+    my $r = $index_model->update($c, $pid, $dc_model, $search_model, $rel_model, $object_model);
     if($r->{status} ne 200){
       $res->{status} = $r->{status};
       for my $a (@{$r->{alerts}}){
@@ -83,7 +84,7 @@ sub add_or_modify_relationships_hooks {
   if(exists($c->app->config->{index_mongodb})){    
     my $rel_model = PhaidraAPI::Model::Relationships->new;
     my $index_model = PhaidraAPI::Model::Index->new;  
-    my $r = $index_model->update($c, $pid, $dc_model, $search_model, $rel_model);
+    my $r = $index_model->update($c, $pid, $dc_model, $search_model, $rel_model, $object_model);
     if($r->{status} ne 200){
       $res->{status} = $r->{status};
       for my $a (@{$r->{alerts}}){
