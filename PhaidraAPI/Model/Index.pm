@@ -121,38 +121,51 @@ sub update {
 
   if( exists($c->app->config->{index_mongodb}) || exists($c->app->config->{solr})){
 
-    my $r = $self->_get($c, $pid, $dc_model, $search_model, $rel_model, $object_model);
-    $res = $r;
+    my $cmodel_res = $search_model->get_cmodel($c, $pid);
+    if($cmodel_res->{status} ne 200){
+      return $cmodel_res;
+    }
 
-    if($r->{status} eq 200){
-      if(exists($c->app->config->{index_mongodb})){
+    if($cmodel_res->{cmodel} ne 'Page'){
 
-        $c->index_mongo->db->collection($c->app->config->{index_mongodb}->{collection})->update({pid => $pid}, $r->{index}, { upsert => 1 });
-        $c->app->log->debug("[$pid] mongo index updated");          
-      }
+      my $r = $self->_get($c, $pid, $dc_model, $search_model, $rel_model, $object_model);
+      $res = $r;
 
-      if(exists($c->app->config->{solr})){
+      if($r->{status} eq 200){
+        if(exists($c->app->config->{index_mongodb})){
 
-        my $url = Mojo::URL->new;
-        $url->scheme($c->app->config->{solr}->{scheme});
-        $url->userinfo($c->app->config->{solr}->{username}.":".$c->app->config->{solr}->{password});
-        $url->host($c->app->config->{solr}->{host});
-        $url->port($c->app->config->{solr}->{port});
-        $url->path("/solr/".$c->app->config->{solr}->{core}."/update/json/docs");
-        $url->query({commit => 'true'});
-
-        my $ua = Mojo::UserAgent->new;
-        my $post = $ua->post($url => json => $r->{index});
-
-        if (my $r = $post->success) {
-          $c->app->log->debug("[$pid] solr updated");
-        }else {
-          my ($err, $code) = $post->error;
-          unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-          $res->{status} =  $code ? $code : 500;
+          $c->index_mongo->db->collection($c->app->config->{index_mongodb}->{collection})->update({pid => $pid}, $r->{index}, { upsert => 1 });
+          $c->app->log->debug("[$pid] mongo index updated");          
         }
-        
+
+        if(exists($c->app->config->{solr})){
+
+          my $url = Mojo::URL->new;
+          $url->scheme($c->app->config->{solr}->{scheme});
+          $url->userinfo($c->app->config->{solr}->{username}.":".$c->app->config->{solr}->{password});
+          $url->host($c->app->config->{solr}->{host});
+          $url->port($c->app->config->{solr}->{port});
+          $url->path("/solr/".$c->app->config->{solr}->{core}."/update/json/docs");
+          $url->query({commit => 'true'});
+
+          my $ua = Mojo::UserAgent->new;
+          my $post = $ua->post($url => json => $r->{index});
+
+          if (my $r = $post->success) {
+            $c->app->log->debug("[$pid] solr updated");
+          }else {
+            my ($err, $code) = $post->error;
+            unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+            $res->{status} =  $code ? $code : 500;
+          }
+          
+        }
       }
+
+    }else{
+      my $msg = "[$pid] cmodel: ".$cmodel_res->{cmodel}.", skipping update";
+      $c->app->log->debug($msg); 
+      unshift @{$res->{alerts}}, { type => 'info', msg => $msg };
     }
 
   }
@@ -391,17 +404,20 @@ sub _add_dc_index {
 
   while (my ($xmlname, $values) = each %{$dc}) {
     for my $v (@{$values}){
-      if(exists($v->{lang})){
-        push @{$index->{'dc_'.$xmlname}}, $v->{value};
-        push @{$index->{'dc_'.$xmlname."_".$v->{lang}}}, $v->{value};     
-        if($xmlname eq 'title'){
-          $index->{sort_dc_title} = $v->{value};
-          $index->{'sort_' . $v->{lang} . '_dc_title'} = $v->{value};
-        }
-      }else{
-        push @{$index->{'dc_'.$xmlname}}, $v->{value};
-        if($xmlname eq 'title'){
-          $index->{sort_dc_title} = $v->{value};
+      if($v->{value} ne ''){
+        my $val = b($v->{value})->decode('UTF-8');
+        if(exists($v->{lang})){
+          push @{$index->{'dc_'.$xmlname}}, $val;
+          push @{$index->{'dc_'.$xmlname."_".$v->{lang}}}, $val;     
+          if($xmlname eq 'title'){
+            $index->{sort_dc_title} = $val;
+            $index->{'sort_' . $v->{lang} . '_dc_title'} = $val;
+          }
+        }else{
+          push @{$index->{'dc_'.$xmlname}}, $val;
+          if($xmlname eq 'title'){
+            $index->{sort_dc_title} = $val;
+          }
         }
       }
     }

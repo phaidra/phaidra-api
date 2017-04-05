@@ -385,7 +385,7 @@ sub map_uwmetadata_2_dc_hash {
   my @langs;  
   for my $l (@{$languages}){
     unless($l->{value} eq 'xx'){
-      push @langs, { value => $PhaidraAPI::Model::Languages::iso639map{$l->{value}} };
+      push @langs, { value => $PhaidraAPI::Model::Languages::iso639map{$l->{value}}};
     }
   }
 
