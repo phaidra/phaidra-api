@@ -4,7 +4,7 @@ use strict;
 use warnings;
 use v5.10;
 use utf8;
-use Mojo::Util qw(xml_escape);
+use Mojo::Util qw(html_unescape);
 use base qw/Mojo::Base/;
 use PhaidraAPI::Model::Terms;
 
@@ -585,7 +585,7 @@ sub _get_uwm_element_values {
   my @vals;
   for my $e ($dom->find($elm)->each){
     my $value = $e->content;
-    $value = $self->_remove_phaidra_tags($c, $value);
+    $value = html_unescape $self->_remove_phaidra_tags($c, $value);
     my %v = ( value => $value, ns => $e->namespace );
     if($e->attr('language')){
         $v{lang} = $e->attr('language');
