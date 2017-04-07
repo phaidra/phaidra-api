@@ -147,11 +147,16 @@ sub generate_dc_from_mods {
 
 sub map_mods_2_dc_hash {
 
-  my ($self, $c, $pid, $cmodel, $xml, $metadata_model) = @_;
+  my ($self, $c, $pid, $cmodel, $xml, $metadata_model, $indexing) = @_;
 
-  my $dom = Mojo::DOM->new();
-  $dom->xml(1);
-  $dom->parse($xml);
+  my $dom;
+  if(ref $xml eq 'Mojo::DOM'){
+    $dom = $xml;
+  }else{
+    $dom = Mojo::DOM->new();
+    $dom->xml(1);
+    $dom->parse($xml);
+  }
 
   my $ext = PhaidraAPI::Model::Mods::Extraction->new;
 
@@ -165,9 +170,11 @@ sub map_mods_2_dc_hash {
   push @{$dc_p{subject}}, @$classifications;
   $dc_p{identifier} = $ext->_get_mods_element_values($c, $dom, 'mods > identifier');
   push @{$dc_p{identifier}}, { value => "http://".$c->app->config->{phaidra}->{baseurl}."/".$pid };
-  my $relids = $self->_get_relsext_identifiers($c, $pid);
-  for my $relid (@$relids){
-    push @{$dc_p{identifier}}, $relid;
+  unless($indexing){
+    my $relids = $self->_get_relsext_identifiers($c, $pid);
+    for my $relid (@$relids){
+      push @{$dc_p{identifier}}, $relid;
+    }
   }
   $dc_p{relation} = $ext->_get_mods_relations($c, $dom);
   my $editions = $ext->_get_mods_element_values($c, $dom, 'mods > originInfo > edition');
@@ -193,8 +200,10 @@ sub map_mods_2_dc_hash {
 
   $dc_p{rights} = $ext->_get_mods_element_values($c, $dom, 'mods > accessCondition[type="use and reproduction"]');
 
-  my $filesize = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
-  push @{$dc_p{format}} => { value => "$filesize bytes" };
+  unless($indexing){
+    my $filesize = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
+    push @{$dc_p{format}} => { value => "$filesize bytes" };
+  }
 
   # FIXME GEO datastream to DCMI BOX
 
@@ -294,27 +303,44 @@ sub map_uwmetadata_2_dc {
 
 sub map_uwmetadata_2_dc_hash {
 
-  my ($self, $c, $pid, $cmodel, $xml, $tree, $metadata_model) = @_;
-
-  my $dom = Mojo::DOM->new();
-  $dom->xml(1);
-  $dom->parse($xml);
+  my ($self, $c, $pid, $cmodel, $xml, $tree, $metadata_model, $indexing) = @_;
 
   my $ext = PhaidraAPI::Model::Uwmetadata::Extraction->new;
 
   my %doc_uwns = {};
 
-  # fill $doc_ns, namespace mapping for this document
-  my $nss = $dom->find('uwmetadata')->first->attr;
-  for my $nsa_key (keys %{$nss}){
-    $nsa_key =~ /(\w+):(\w+)/;
-    $doc_uwns{$PhaidraAPI::Model::Uwmetadata::Extraction::uwns{$nss->{$nsa_key}}} = $2;
+  my $dom;
+  if(ref $xml eq 'Mojo::DOM'){
+    $dom = $xml;
+
+    # ns0="http://phaidra.univie.ac.at/XML/metadata/V1.0"
+
+    # fill $doc_ns, namespace mapping for this document
+    my $nss = $dom->find('uwmetadata')->first->attr;
+    while (my ($k, $v) = each %{$nss}) {
+      $doc_uwns{$PhaidraAPI::Model::Uwmetadata::Extraction::uwns{$v}} = $k;
+    }
+  }else{
+    $dom = Mojo::DOM->new();
+    $dom->xml(1);
+    $dom->parse($xml);
+
+    # xmlns:ns0="http://phaidra.univie.ac.at/XML/metadata/V1.0"
+
+    # fill $doc_ns, namespace mapping for this document
+    my $nss = $dom->find('uwmetadata')->first->attr;
+    for my $nsa_key (keys %{$nss}){
+      $nsa_key =~ /(\w+):(\w+)/;
+      $doc_uwns{$PhaidraAPI::Model::Uwmetadata::Extraction::uwns{$nss->{$nsa_key}}} = $2;
+    }
   }
 
   my $identifiers = $ext->_get_uwm_identifiers($c, $dom, \%doc_uwns, $tree, $metadata_model);
-  my $relids = $self->_get_relsext_identifiers($c, $pid);
-  for my $relid (@$relids){
-    push @$identifiers, $relid;
+  unless($indexing){
+    my $relids = $self->_get_relsext_identifiers($c, $pid);
+    for my $relid (@$relids){
+      push @$identifiers, $relid;
+    }
   }
   my $titles = $ext->_get_titles($c, $dom, \%doc_uwns);
   my $descriptions = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:description');
@@ -344,9 +370,11 @@ sub map_uwmetadata_2_dc_hash {
 
   my $formats = $ext->_get_formats($c, $pid, $cmodel, $dom, \%doc_uwns);
   # include filesize and mimetype of OCTETS
-  my $filesize = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
-  push @$formats, { value => $filesize." bytes" } if defined($filesize);
-  
+  unless($indexing){
+    my $filesize = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
+    push @$formats, { value => $filesize." bytes" } if defined($filesize);
+  }
+
   my $srcs = $ext->_get_sources($c, $dom, \%doc_uwns, $tree, $metadata_model);
 
   my $publishers_p = $ext->_get_publishers($c, $dom, \%doc_uwns, 'p');

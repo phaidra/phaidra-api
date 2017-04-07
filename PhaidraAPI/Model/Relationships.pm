@@ -52,6 +52,20 @@ sub get {
     } 
   }
 
+  my $r_rbs = $search_model->triples($c, "* <http://phaidra.org/XML/V1.0/relations#isBackSideOf> <info:fedora/$pid>", 0);
+  if($r_rbs->{status} ne 200){
+    $res->{alerts} = [{ type => 'danger', msg => "Error getting reverse isBackSideOf relationships for $pid, skipping" }];
+    for $a (@{$r_rbs->{alerts}}){
+      push @{$res->{alerts}}, $a;
+    }
+  }else{  
+    for my $t (@{$r_rbs->{result}}){
+      my $object = @$t[2];
+      $object =~ m/^<info:fedora\/(.*)>$/;
+      $rels{hasbackside} = $1; 
+    } 
+  }
+
   # later versions
   my $r_lv = $search_model->triples($c, "<info:fedora/$pid> <http://phaidra.univie.ac.at/XML/V1.0/relations#hasSuccessor> *", 0);
   if($r_lv->{status} ne 200){

@@ -89,9 +89,15 @@ sub xml_2_json {
 
     my $res = { alerts => [], status => 200 };
 
-    my $dom = Mojo::DOM->new();
-    $dom->xml(1);
-    $dom->parse($xml);
+    my $dom;
+    if(ref $xml eq 'Mojo::DOM'){
+      $dom = $xml;
+    }else{
+      $dom = Mojo::DOM->new();
+      $dom->xml(1);
+      $dom->parse($xml);
+    }
+    
     my %json;
     $self->xml_2_json_rec($c, \%json, $dom->children);
 

@@ -399,6 +399,35 @@ sub get_dissemination {
 }
 
 
+sub get_foxml {
+
+	my $self = shift;
+	my $c = shift;
+	my $pid = shift;
+	my $dsid = shift;
+
+	my $res = { alerts => [], status => 200 };
+
+	my $url = Mojo::URL->new;
+	$url->scheme('https');
+	$url->userinfo($c->app->config->{phaidra}->{intcallusername}.':'.$c->app->config->{phaidra}->{intcallpassword});
+	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
+	$url->path("/fedora/objects/$pid/objectXML");
+
+  	my $get = Mojo::UserAgent->new->get($url);
+
+  	if (my $r = $get->success) {
+  		$res->{status} = 200;
+  		$res->{foxml} = $r->body;
+  	}else{
+	  unshift @{$res->{alerts}}, { type => 'danger', msg => $get->error->{message} };
+	  $res->{status} = $get->error->{code} ? $get->error->{code} : 500;
+	}
+
+	return $res;
+}
+
+
 # by using intcallauth it is possible to bypass the 'owner' policies
 # this might be needed eg because fedora always requires authentication
 # (api property, it's not because of policies)

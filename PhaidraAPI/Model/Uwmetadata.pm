@@ -54,15 +54,33 @@ sub metadata_tree {
 		return $res;
 	}
 
- 		if($c->app->config->{local_uwmetadata_tree}){
+	$c->app->log->debug("Reading uwmetadata tree from cache");
+
+	my $cachekey = 'uwmetadata_tree';
+	my $cacheval = $c->app->chi->get($cachekey);
+
+	my $miss = 1;
+
+  	if($cacheval){
+  		if(scalar @{$cacheval} > 0){
+  			$miss = 0;
+ 			$c->app->log->debug("[cache hit] $cachekey");
+  		}
+  	}
+
+    if($miss){
+    	$c->app->log->debug("[cache miss] $cachekey");
+
+    	if($c->app->config->{local_uwmetadata_tree}){
  			$c->app->log->debug("Reading uwmetadata tree from file");
 
-      unless( -e $c->app->config->{local_uwmetadata_tree}){
-        $c->app->log->error("Error reading local_uwmetadata_tree, file ".$c->app->config->{local_uwmetadata_tree}." does not exist");
-        push @{$res->{alerts}}, "Error reading local_uwmetadata_tree";
-        $res->{status} = 500;
-        return $res;
-      }
+	      	unless( -e $c->app->config->{local_uwmetadata_tree}){
+		        $c->app->log->error("Error reading local_uwmetadata_tree, file ".$c->app->config->{local_uwmetadata_tree}." does not exist");
+		        push @{$res->{alerts}}, "Error reading local_uwmetadata_tree";
+		        $res->{status} = 500;
+		        return $res;
+	      	}
+
 	 	    # read metadata tree from file
 			my $content;
 			open my $fh, "<", $c->app->config->{local_uwmetadata_tree} or push @{$res->{alerts}}, "Error reading local_uwmetadata_tree, ".$!;
@@ -71,47 +89,32 @@ sub metadata_tree {
 		    close $fh;
 
 		    unless(defined($content)){
-          my $msg = "Error reading local_uwmetadata_tree, no content";
-          $c->app->log->error($msg);
-          push @{$res->{alerts}}, $msg;
-          $res->{status} = 500;
-          return $res;
+	        	my $msg = "Error reading local_uwmetadata_tree, no content";
+	        	$c->app->log->error($msg);
+	        	push @{$res->{alerts}}, $msg;
+	         	$res->{status} = 500;
+	         	return $res;
 		    }
 
 			my $metadata = decode_json($content);
-	 		$res->{metadata_tree} = $metadata->{tree};
+
+	 		$cacheval = $metadata->{tree};
 
  		}else{
 
-			$c->app->log->debug("Reading uwmetadata tree from cache");
-
-			my $cachekey = 'uwmetadata_tree';
-	 		my $cacheval = $c->app->chi->get($cachekey);
-
-	  		my $miss = 1;
-
-  		if($cacheval){
-  			if(scalar @{$cacheval} > 0){
-  				$miss = 0;
- 				$c->app->log->debug("[cache hit] $cachekey");
-  			}
-  		}
-
-    	if($miss){
-    		$c->app->log->debug("[cache miss] $cachekey");
     		$cacheval = $self->get_metadata_tree($c);
+    	}
 
-    		$c->app->chi->set($cachekey, $cacheval, '1 day');
+    	$c->app->chi->set($cachekey, $cacheval, '1 day');
 
-  			# save and get the value. the serialization can change integers to strings so
-  			# if we want to get the same structure for cache miss and cache hit we have to run it through
-  			# the cache serialization process even if cache miss [when we already have the structure]
-  			# so instead of using the structure created we will get the one just saved from cache.
-	   		$cacheval = $c->app->chi->get($cachekey);
-	   		#$c->app->log->debug($c->app->dumper($res));
-	   	}
-	   	$res->{metadata_tree} = $cacheval;
- 	}
+  		# save and get the value. the serialization can change integers to strings so
+  		# if we want to get the same structure for cache miss and cache hit we have to run it through
+  		# the cache serialization process
+	   	$cacheval = $c->app->chi->get($cachekey);
+	   	#$c->app->log->debug($c->app->dumper($res));
+	}
+	$res->{metadata_tree} = $cacheval;
+ 	
  	return $res;
 }
 
@@ -632,9 +635,15 @@ sub uwmetadata_2_json_basic {
 	my $datatype_hash = $self->get_datatype_hash($c);
 	my $vocns_hash = $self->get_voc_ns_hash($c);
 
-	my $uwmetadata = Mojo::DOM->new();
-    $uwmetadata->xml(1);
-    $uwmetadata->parse($uwmetadata_xml);
+	my $uwmetadata;
+
+	if(ref $uwmetadata_xml eq 'Mojo::DOM'){
+		$uwmetadata = $uwmetadata_xml;
+	}else{
+		$uwmetadata = Mojo::DOM->new();
+	    $uwmetadata->xml(1);
+	    $uwmetadata->parse($uwmetadata_xml);
+	}
 
     my $nsattr = $uwmetadata->find('uwmetadata')->first->attr;
 	my $nsmap  = $nsattr;

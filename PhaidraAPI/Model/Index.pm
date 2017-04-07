@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use v5.10;
 use utf8;
+use Time::HiRes qw/tv_interval gettimeofday/;
 use Mojo::ByteStream qw(b);
 use Mojo::Util qw(xml_escape encode decode);
 use Mojo::JSON qw(encode_json decode_json);
@@ -18,6 +19,14 @@ use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Dc;
 use PhaidraAPI::Model::Relationships;
 use PhaidraAPI::Model::Annotations;
+
+our %indexed_datastreams = (
+  "UWMETADATA" => 1,
+  "MODS" => 1,
+  "ANNOTATIONS" => 1,
+  "GEO" => 1,
+  "RELS-EXT" => 1
+);
 
 our %cmodel_2_resourcetype = (
   "Asset" => "other",
@@ -185,38 +194,116 @@ sub get {
 }
 
 sub _get {
+
   my ($self, $c, $pid, $dc_model, $search_model, $rel_model, $object_model) = @_;
 
   my $res = { status => 200 };        
 
+  my $t0 = [gettimeofday];
+
   my %index;
 
-  # check if it's active
-  my $r_state = $search_model->get_state($c, $pid);
-  if($r_state->{status} ne 200){
-    return $r_state;
-  }
-  unless($r_state->{state} eq 'Active'){
-    $c->app->log->warn("[_get index] Object $pid is ".$r_state->{state}.", skipping");
-    push @{$res->{alerts}}, { type => 'danger', msg => "[_get index] Object $pid is ".$r_state->{state}.", skipping" };
-    return $res;
+  my $r_oxml = $object_model->get_foxml($c, $pid);
+
+  my $dom = Mojo::DOM->new();
+  $dom->xml(1);
+  $dom->parse($r_oxml->{foxml});
+
+  for my $e ($dom->find('foxml\:objectProperties')->each){
+    for my $e1 ($e->find('foxml\:property')->each){
+
+      if($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#state'){
+        # skip inactive objects
+        if($e1->attr('VALUE') ne 'Active'){
+          $c->app->log->warn("[_get index] $pid is ".$e1->attr('VALUE').", skipping");
+          push @{$res->{alerts}}, { type => 'danger', msg => "[_get index] $pid is ".$e1->attr('VALUE').", skipping" };
+          return $res;
+        }
+      }
+
+      if($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#ownerId'){
+        $index{owner} = $e1->attr('VALUE');
+      }
+
+      if($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#createdDate'){
+        $index{created} = $e1->attr('VALUE');
+      }
+
+      if($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#lastModifiedDate'){
+        $index{modified} = $e1->attr('VALUE');
+      }
+
+    }
   }
 
-  my $r_ds = $search_model->datastreams_hash($c, $pid);
-  if($r_ds->{status} ne 200){
-    return $r_ds;
+  my %datastreams;
+  my %datastreamids;
+  for my $e ($dom->find('foxml\:datastream')->each){
+
+    $datastreamids{$e->attr('ID')} = 1;
+
+    if($indexed_datastreams{$e->attr('ID')}){
+      my $latestVersion = $e->find('foxml\:datastreamVersion')->first;
+      for my $e1 ($e->find('foxml\:datastreamVersion')->each){
+        if($e1->attr('CREATED') gt $latestVersion->attr('CREATED')){
+          $latestVersion = $e1;
+        }
+      }
+      $datastreams{$e->attr('ID')} = $latestVersion;
+    }
+
   }
 
-  # get GEO and turn to solr geospatial types
-  if($r_ds->{dshash}->{'GEO'}){
+  push @{$index{datastreams}}, keys %datastreamids; 
+
+  if(exists($datastreams{'RELS-EXT'})){ # it should
+
+    my $r_relsext = $self->_index_relsext($c, $datastreams{'RELS-EXT'}->find('foxml\:xmlContent')->first, \%index);
+    if($r_relsext->{status} ne 200){
+      push @{$res->{alerts}}, { type => 'danger', msg => "Error indexing RELS-EXT for $pid" };
+      for $a (@{$r_relsext->{alerts}}){
+        push @{$res->{alerts}}, $a;
+      }
+    }
+
+  }
+
+  if(exists($datastreams{'UWMETADATA'})){
+
+    my $r_add_uwm = $self->_add_uwm_index($c, $pid, $datastreams{'UWMETADATA'}->find('foxml\:xmlContent')->first, \%index);
+    if($r_add_uwm->{status} ne 200){
+      push @{$res->{alerts}}, { type => 'danger', msg => "Error adding UWMETADATA fields for $pid" };
+      for $a (@{$r_add_uwm->{alerts}}){
+        push @{$res->{alerts}}, $a;
+      }
+    }
+        
+    my $uw_model = PhaidraAPI::Model::Uwmetadata->new;
+    my $r0 = $uw_model->metadata_tree($c);
+    if($r0->{status} ne 200){
+      push @{$res->{alerts}}, { type => 'danger', msg => "Error getting UWMETADATA tree for $pid" };
+      for $a (@{$r_add_uwm->{alerts}}){
+        push @{$res->{alerts}}, $a;
+      }
+    }else{
+      my ($dc_p, $dc_oai) = $dc_model->map_uwmetadata_2_dc_hash($c, $pid, $index{cmodel}, $datastreams{'UWMETADATA'}->find('foxml\:xmlContent')->first, $r0->{metadata_tree}, $uw_model, 1);
+      $self->_add_dc_index($c, $dc_p, \%index);
+    }
+  }
+ 
+  if(exists($datastreams{'GEO'})){
+
     my $geo_model = PhaidraAPI::Model::Geo->new;
-    my $r_geo = $geo_model->get_object_geo_json($c, $pid, $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});
+    my $r_geo = $geo_model->xml_2_json($c, $datastreams{'GEO'}->find('foxml\:xmlContent')->first);
     if($r_geo->{status} ne 200){      
+     
       push @{$res->{alerts}}, { type => 'danger', msg => "Error adding GEO fields from $pid" };
       for $a (@{$r_geo->{alerts}}){
         push @{$res->{alerts}}, $a;
       }
+
     }else{
+
       for my $plm (@{$r_geo->{geo}->{kml}->{document}->{placemark}}){
         # bbox -> WKT/CQL ENVELOPE syntax. Example: ENVELOPE(-175.360000, -173.906827, -18.568055, -21.268064) which is minX, maxX, maxY, minY order
         if(exists($plm->{polygon})){
@@ -245,85 +332,20 @@ sub _get {
         }
       }      
     }
+
   }
 
-  # get ANNOTATIONS 
-  if($r_ds->{dshash}->{'ANNOTATIONS'}){
-    my $ann_model = PhaidraAPI::Model::Annotations->new;
-    my $r_ann = $ann_model->get_object_annotations_json($c, $pid, $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});
-    if($r_ann->{status} ne 200){      
-      push @{$res->{alerts}}, { type => 'danger', msg => "Error adding ANNOTATIONS from $pid" };
-      for $a (@{$r_ann->{alerts}}){
-        push @{$res->{alerts}}, $a;
-      }
-    }else{
-      for my $id (keys %{$r_ann->{annotations}}){
-        
-          my $title = $r_ann->{annotations}->{$id}->{title} if exists $r_ann->{annotations}->{$id}->{title};
-          my $text = $r_ann->{annotations}->{$id}->{text} if exists $r_ann->{annotations}->{$id}->{text};
-          my $ann = ""; 
-          $ann .= $title . ": " if defined $title;
-          $ann .= $text;
-          push @{$index{annotations}}, $ann;
-
-      }      
-    }
-  }
-
-  # triples
-  my $r_add_triples = $self->_add_triples_index($c, $pid, $search_model, \%index);
-  if($r_add_triples->{status} ne 200){
-    push @{$res->{alerts}}, { type => 'danger', msg => "Error getting triples for $pid" };
-    for $a (@{$r_add_triples->{alerts}}){
-      push @{$res->{alerts}}, $a;
-    }
-  }
-
-  my $cmodel = $index{cmodel};
-
-  # uwmetadata
-  if($r_ds->{dshash}->{'UWMETADATA'}){
-    my $r_uw = $object_model->get_datastream($c, $pid, 'UWMETADATA', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password}, 1);
-    if($r_uw->{status} ne 200){
-      push @{$res->{alerts}}, { type => 'danger', msg => "Error adding UWMETADATA fields for $pid" };
-      for $a (@{$r_uw->{alerts}}){
-        push @{$res->{alerts}}, $a;
-      }
-    }else{
-      my $uwmetadataxml = $r_uw->{UWMETADATA};
-      my $r_add_uwm = $self->_add_uwm_index($c, $pid, $uwmetadataxml, \%index);
-      if($r_add_uwm->{status} ne 200){
-        push @{$res->{alerts}}, { type => 'danger', msg => "Error adding UWMETADATA fields for $pid" };
-        for $a (@{$r_add_uwm->{alerts}}){
-          push @{$res->{alerts}}, $a;
-        }
-      }
-        
-      my $uw_model = PhaidraAPI::Model::Uwmetadata->new;
-      my $r0 = $uw_model->metadata_tree($c);
-      if($r0->{status} ne 200){
-        push @{$res->{alerts}}, { type => 'danger', msg => "Error getting UWMETADATA tree for $pid" };
-        for $a (@{$r_add_uwm->{alerts}}){
-          push @{$res->{alerts}}, $a;
-        }
-      }else{
-        my ($dc_p, $dc_oai) = $dc_model->map_uwmetadata_2_dc_hash($c, $pid, $cmodel, $uwmetadataxml, $r0->{metadata_tree}, $uw_model);
-        $self->_add_dc_index($c, $dc_p, \%index);
-      }
-    }
-  }
-
-  # mods
-  if($r_ds->{dshash}->{'MODS'}){
-    my $r_mods = $object_model->get_datastream($c, $pid, 'MODS', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password}, 1);
-    if($r_mods->{status} ne 200){
-      push @{$res->{alerts}}, { type => 'danger', msg => "Error adding MODS fields for $pid" };
+  if(exists($datastreams{'MODS'})){
+    
+    my $mods_model = PhaidraAPI::Model::Mods->new;  
+    my $r_mods = $mods_model->xml_2_json($c, $datastreams{'MODS'}->find('foxml\:xmlContent')->first, 'basic');
+    if($r_mods->{status} ne 200){        
+      push @{$res->{alerts}}, { type => 'danger', msg => "Error converting MODS xml to json for $pid" };
       for $a (@{$r_mods->{alerts}}){
         push @{$res->{alerts}}, $a;
-      }
+      }           
     }else{
-      my $modsxml = $r_mods->{MODS};
-      my $r_add_mods = $self->_add_mods_index($c, $pid, $modsxml, \%index);
+      my $r_add_mods = $self->_add_mods_index($c, $pid, $r_mods->{mods}, \%index);
       if($r_add_mods->{status} ne 200){
         push @{$res->{alerts}}, { type => 'danger', msg => "Error adding MODS fields for $pid" };
         for $a (@{$r_add_mods->{alerts}}){
@@ -331,41 +353,38 @@ sub _get {
         }
       }else{
         my $mods_model = PhaidraAPI::Model::Mods->new;
-        my ($dc_p, $dc_oai) = $dc_model->map_mods_2_dc_hash($c, $pid, $cmodel, $modsxml, $mods_model);
+        my ($dc_p, $dc_oai) = $dc_model->map_mods_2_dc_hash($c, $pid, $index{cmodel}, $datastreams{'MODS'}->find('foxml\:xmlContent')->first, $mods_model, 1);
         $self->_add_dc_index($c, $dc_p, \%index);
       }
     }
+
   }
 
-  # relationships
-  my $r_rel = $rel_model->get($c, $pid, $search_model);
-  if($r_rel->{status} ne 200){
-    push @{$res->{alerts}}, { type => 'danger', msg => "Error getting relationships for $pid" };
-    for $a (@{$r_rel->{alerts}}){
-      push @{$res->{alerts}}, $a;
-    }
-  }else{
-    while (my ($k, $v) = each %{$r_rel->{relationships}}) {
-      # don't index haspart, too much data, for search we only need ispartof anyways
-      unless($k eq 'haspart'){
-        if($k eq 'altformats'){
-          for my $kf (keys %{$r_rel->{relationships}->{altformats}}){
-            push @{$index{altformats}}, $kf;
-          }
-        }elsif($k eq 'altversions'){
-          for my $kv (keys %{$r_rel->{relationships}->{altversions}}){
-            push @{$index{altversions}}, $kv;
-          }
-        }else{
-          $index{$k} = $v;
-        }
+  if(exists($datastreams{'ANNOTATIONS'})){
+
+    my $ann_model = PhaidraAPI::Annotations::Geo->new;
+    my $r_ann = $ann_model->xml_2_json($c, $datastreams{'ANNOTATIONS'}->find('foxml\:xmlContent')->first);
+    if($r_ann->{status} ne 200){      
+     
+      push @{$res->{alerts}}, { type => 'danger', msg => "Error adding ANNOTATIONS from $pid" };
+      for $a (@{$r_ann->{alerts}}){
+        push @{$res->{alerts}}, $a;
+      }
+
+    }else{
+
+      for my $id (keys %{$r_ann->{annotations}}){
+        
+        my $title = $r_ann->{annotations}->{$id}->{title} if exists $r_ann->{annotations}->{$id}->{title};
+        my $text = $r_ann->{annotations}->{$id}->{text} if exists $r_ann->{annotations}->{$id}->{text};
+        my $ann = ""; 
+        $ann .= $title . ": " if defined $title;
+        $ann .= $text;
+        push @{$index{annotations}}, $ann;
+
       }
     }
   }
-    
-  # list of datastreams
-  my @dskeys = keys %{$r_ds->{dshash}};
-  $index{datastreams} = \@dskeys;
 
   # inventory
   my $inv_coll = $c->paf_mongo->db->collection('foxml.ds');
@@ -395,6 +414,60 @@ sub _get {
   $index{_updated} = time;    
 
   $res->{index} = \%index;
+
+  #$c->app->log->debug("XXXXXXX indexing took ".tv_interval($t0));
+  return $res;
+}
+
+=cut
+info:fedora/fedora-system:def/model#hasModel
+info:fedora/fedora-system:def/relations-external#hasCollectionMember
+http://phaidra.org/XML/V1.0/relations#isBackSideOf
+http://phaidra.univie.ac.at/XML/V1.0/relations#hasSuccessor
+http://phaidra.org/XML/V1.0/relations#isAlternativeFormatOf
+http://phaidra.org/XML/V1.0/relations#isAlternativeVersionOf
+=cut
+sub _index_relsext {
+  my ($self, $c, $xml, $index) = @_;
+
+  my $res = { alerts => [], status => 200 };
+
+  my $cmodel = $xml->find('hasModel')->first->attr('rdf:resource');
+  $cmodel =~ s/^info:fedora\/cmodel:(.*)$/$1/;
+  $index->{cmodel} = $cmodel;
+
+  for my $e ($xml->find('isBackSideOf')->each){
+    my $o = $e->attr('rdf:resource');
+    $o =~ s/^info:fedora\/(.*)$/$1/;
+    push @{$index->{isbacksideof}}, $o;
+  }
+
+  for my $e ($xml->find('hasSuccessor')->each){
+    my $o = $e->attr('rdf:resource');
+    $o =~ s/^info:fedora\/(.*)$/$1/;
+    push @{$index->{hassuccessor}}, $o;
+  }
+
+  for my $e ($xml->find('isAlternativeFormatOf')->each){
+    my $o = $e->attr('rdf:resource');
+    $o =~ s/^info:fedora\/(.*)$/$1/;
+    push @{$index->{isalternativeformatof}}, $o;
+  }
+
+  for my $e ($xml->find('isAlternativeVersionOf')->each){
+    my $o = $e->attr('rdf:resource');
+    $o =~ s/^info:fedora\/(.*)$/$1/;
+    push @{$index->{isalternativeversionof}}, $o;
+  }
+
+  # we save this now as haspart but this should not go to index
+  # instead the array should be used to create ispartof in members
+  for my $e ($xml->find('hasCollectionMember')->each){
+    my $o = $e->attr('rdf:resource');
+    $o =~ s/^info:fedora\/(.*)$/$1/;
+    push @{$index->{haspart}}, $o;
+  }
+
   return $res;
 }
 
@@ -424,7 +497,7 @@ sub _add_dc_index {
   }
      
 }
-
+=cut
 sub _add_triples_index {
 
   my ($self, $c, $pid, $search_model, $index) = @_;
@@ -466,21 +539,14 @@ sub _add_triples_index {
   return $res;
 
 }
-
+=cut
 sub _add_mods_index {
-  my ($self, $c, $pid, $modsxml, $index) = @_;
+  my ($self, $c, $pid, $modsjson, $index) = @_;
 
   my $res = { alerts => [], status => 200 };
 
-  my $mods_model = PhaidraAPI::Model::Mods->new;  
-  my $r_mods = $mods_model->xml_2_json($c, $modsxml, 'basic');
-  #my $r_mods = $mods_model->get_object_mods_json($c, $pid, 'basic', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});      
-  if($r_mods->{status} ne 200){        
-    return $r_mods;            
-  }
-
   my @roles;
-  for my $n (@{$r_mods->{mods}}){
+  for my $n (@{$modsjson}){
 
     if($n->{xmlname} eq 'name'){
       next unless exists $n->{children};
@@ -548,12 +614,12 @@ sub _add_mods_index {
 }
 
 sub _add_uwm_index {
-  my ($self, $c, $pid, $uwmetadataxml, $index) = @_;
+  my ($self, $c, $pid, $uwmetadata, $index) = @_;
 
   my $res = { alerts => [], status => 200 };
 
   my $uwmetadata_model = PhaidraAPI::Model::Uwmetadata->new;  
-  my $r_uwm = $uwmetadata_model->uwmetadata_2_json_basic($c, $uwmetadataxml, 'resolved');
+  my $r_uwm = $uwmetadata_model->uwmetadata_2_json_basic($c, $uwmetadata, 'resolved');
   #my $r_uwm = $uwmetadata_model->get_object_metadata($c, $pid, 'resolved', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});      
 #  $c->app->log->debug("XXXXXXXXXXXXXXX".$c->app->dumper($r_uwm));
   if($r_uwm->{status} ne 200){        
