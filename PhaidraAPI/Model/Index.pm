@@ -140,6 +140,20 @@ sub update {
       my $r = $self->_get($c, $pid, $dc_model, $search_model, $rel_model, $object_model);
       $res = $r;
 
+      my $members = $r->{index}->{haspart} if exists $r->{index}->{haspart};
+      # don't save this
+      delete $r->{index}->{haspart};
+
+      my $updateurl = Mojo::URL->new;
+      $updateurl->scheme($c->app->config->{solr}->{scheme});
+      $updateurl->userinfo($c->app->config->{solr}->{username}.":".$c->app->config->{solr}->{password});
+      $updateurl->host($c->app->config->{solr}->{host});
+      $updateurl->port($c->app->config->{solr}->{port});
+      $updateurl->path("/solr/".$c->app->config->{solr}->{core}."/update/json/docs");
+      $updateurl->query({commit => 'true'});
+
+      my $ua = Mojo::UserAgent->new;
+
       if($r->{status} eq 200){
         if(exists($c->app->config->{index_mongodb})){
 
@@ -149,16 +163,7 @@ sub update {
 
         if(exists($c->app->config->{solr})){
 
-          my $url = Mojo::URL->new;
-          $url->scheme($c->app->config->{solr}->{scheme});
-          $url->userinfo($c->app->config->{solr}->{username}.":".$c->app->config->{solr}->{password});
-          $url->host($c->app->config->{solr}->{host});
-          $url->port($c->app->config->{solr}->{port});
-          $url->path("/solr/".$c->app->config->{solr}->{core}."/update/json/docs");
-          $url->query({commit => 'true'});
-
-          my $ua = Mojo::UserAgent->new;
-          my $post = $ua->post($url => json => $r->{index});
+          my $post = $ua->post($updateurl => json => $r->{index});
 
           if (my $r = $post->success) {
             $c->app->log->debug("[$pid] solr updated");
@@ -170,13 +175,120 @@ sub update {
           
         }
       }
+=cut
+      if($r->{index}->{cmodel} eq 'Collection'){
 
+        # get current members
+        my $urlget = Mojo::URL->new;
+        $urlget->scheme($c->app->config->{solr}->{scheme});
+        $urlget->host($c->app->config->{solr}->{host});
+        $urlget->port($c->app->config->{solr}->{port});
+        $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
+        $urlget->query({q => "ispartof:\"$pid\"", fl => "pid"});        
+        my $get = $ua->get($urlget => json => $r->{index});
+
+        my @curr_members;
+        for my $c_m (@{$get->response->json->{docs}}){
+          push @curr_members, $c_m->{pid};
+        }
+
+        my @add_to;
+        my @remove_from;
+
+        for my $m (@{$members}){
+          unless( $m ~~ @curr_members ) {
+            push  @add_to, $m;
+          }
+        } 
+        for my $m (@curr_members){
+          unless( $m ~~ @{$members} ) {
+            push  @remove_from, $m;
+          }
+        } 
+
+        my $r_add = $self->_update_ispartof($c, $pid, \@add_to, $updateurl, 'add');
+        if($r_add->{status} ne 200){
+          for my $a (@{$r_add->{alerts}}){
+            push @{$res->{alerts}}, $a;
+            $res->{status} = $r->{status};
+          }
+        }
+
+        my $r_remove = $self->_update_ispartof($c, $pid, \@remove_from, $updateurl, 'remove');
+        if($r_remove->{status} ne 200){
+          for my $a (@{$r_remove->{alerts}}){
+            push @{$res->{alerts}}, $a;
+            $res->{status} = $r->{status};
+          }
+        }
+        
+      }
+=cut
     }else{
       my $msg = "[$pid] cmodel: ".$cmodel_res->{cmodel}.", skipping update";
       $c->app->log->debug($msg); 
       unshift @{$res->{alerts}}, { type => 'info', msg => $msg };
     }
 
+  }
+
+  return $res;
+}
+
+sub _update_ispartof {
+
+  my ($self, $c, $pid, $members, $updateurl, $action) = @_;
+
+  my $res = { status => 200 };
+
+  $c->app->log->debug("[$pid] updating members");
+
+  if(scalar $members <= 500){
+    return $self->_update_ispartof_post($c, $pid, $members, $updateurl, $action);
+  }else{
+    my @batch;
+    for my $m (@{$members}){
+      push @batch, $m;
+      if(scalar @batch >= 500){
+        my $r = $self->_update_ispartof_post($c, $pid, \@batch, $updateurl, $action);
+        if($r->{status} ne 200){
+          for my $a (@{$r->{alerts}}){
+            push @{$res->{alerts}}, $a;
+            $res->{status} = $r->{status};
+          }
+        }
+        @batch = ();
+      }
+    }
+  }
+  
+  return $res;
+}
+
+sub _update_ispartof_post {
+
+  my ($self, $c, $pid, $members, $updateurl, $action) = @_;
+
+  my $res = { status => 200 };
+
+  my @update;
+  for my $m (@{$members}){
+    push @update, {
+      pid => $pid,
+      ispartof => { $action => $m }
+    };
+  }
+
+  my $ua = Mojo::UserAgent->new;
+  my $post = $ua->post($updateurl => json => \@update);
+
+  my $cnt = scalar $members;
+  if (my $r = $post->success) {
+     $c->app->log->debug("[$pid] updated $cnt documents");
+  }else {
+    my ($err, $code) = $post->error;
+    unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+    $res->{status} =  $code ? $code : 500;
   }
 
   return $res;
@@ -411,7 +523,7 @@ sub _get {
   $index{resourcetype} = $resourcetype;
 
   # ts
-  $index{_updated} = time;    
+  $index{_updated} = time; 
 
   $res->{index} = \%index;
 
@@ -481,10 +593,10 @@ sub _add_dc_index {
         my $val = b($v->{value})->decode('UTF-8');
         if(exists($v->{lang})){
           push @{$index->{'dc_'.$xmlname}}, $val;
-          push @{$index->{'dc_'.$xmlname."_".$v->{lang}}}, $val;     
+          push @{$index->{'dc_'.$xmlname."_".$PhaidraAPI::Model::Languages::iso639map{$v->{lang}}}}, $val;     
           if($xmlname eq 'title'){
             $index->{sort_dc_title} = $val;
-            $index->{'sort_' . $v->{lang} . '_dc_title'} = $val;
+            $index->{'sort_' . $PhaidraAPI::Model::Languages::iso639map{$v->{lang}} . '_dc_title'} = $val;
           }
         }else{
           push @{$index->{'dc_'.$xmlname}}, $val;
