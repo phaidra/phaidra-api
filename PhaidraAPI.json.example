@@ -164,6 +164,10 @@
       "database" : "database"
    },
 
+    "hooks": {
+        "updatedc": 0,
+        "updateindex": 1
+    },
 
     "authentication": {
 

@@ -137,10 +137,13 @@ sub update {
 
     if($cmodel_res->{cmodel} ne 'Page'){
 
+      my $t0 = [gettimeofday];
       my $r = $self->_get($c, $pid, $dc_model, $search_model, $rel_model, $object_model);
+      $c->app->log->debug("XXXXXXX indexing took ".tv_interval($t0));
       $res = $r;
 
       my $members = $r->{index}->{haspart} if exists $r->{index}->{haspart};
+
       # don't save this
       delete $r->{index}->{haspart};
 
@@ -149,12 +152,13 @@ sub update {
       $updateurl->userinfo($c->app->config->{solr}->{username}.":".$c->app->config->{solr}->{password});
       $updateurl->host($c->app->config->{solr}->{host});
       $updateurl->port($c->app->config->{solr}->{port});
-      $updateurl->path("/solr/".$c->app->config->{solr}->{core}."/update/json/docs");
-      $updateurl->query({commit => 'true'});
+      $updateurl->path("/solr/".$c->app->config->{solr}->{core}."/update");
+      $updateurl->query(commit => 'true');
 
       my $ua = Mojo::UserAgent->new;
 
       if($r->{status} eq 200){
+
         if(exists($c->app->config->{index_mongodb})){
 
           $c->index_mongo->db->collection($c->app->config->{index_mongodb}->{collection})->update({pid => $pid}, $r->{index}, { upsert => 1 });
@@ -162,11 +166,12 @@ sub update {
         }
 
         if(exists($c->app->config->{solr})){
-
-          my $post = $ua->post($updateurl => json => $r->{index});
-
+          $t0 = [gettimeofday];
+          my @docs = ($r->{index});
+          my $post = $ua->post($updateurl => json => \@docs);
+          $c->app->log->debug("XXXXXXX posting index took ".tv_interval($t0));
           if (my $r = $post->success) {
-            $c->app->log->debug("[$pid] solr updated");
+            $c->app->log->debug("[$pid] solr document updated");
           }else {
             my ($err, $code) = $post->error;
             unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
@@ -175,8 +180,11 @@ sub update {
           
         }
       }
-=cut
-      if($r->{index}->{cmodel} eq 'Collection'){
+
+      if($r->{index}->{cmodel} eq 'Collection' && defined($members)){
+
+        $c->app->log->debug("[$pid] this collection should have ".(scalar @{$members})." members");
+        $c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($members));
 
         # get current members
         my $urlget = Mojo::URL->new;
@@ -184,13 +192,43 @@ sub update {
         $urlget->host($c->app->config->{solr}->{host});
         $urlget->port($c->app->config->{solr}->{port});
         $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
-        $urlget->query({q => "ispartof:\"$pid\"", fl => "pid"});        
-        my $get = $ua->get($urlget => json => $r->{index});
 
-        my @curr_members;
-        for my $c_m (@{$get->response->json->{docs}}){
-          push @curr_members, $c_m->{pid};
+        $urlget->query(q => "ispartof:\"$pid\"", fl => "pid", rows => "0", wt => "json");
+
+        my $get = $ua->get($urlget);
+        my $numFound;
+        if (my $r_num = $get->success) {
+          $numFound = $r_num->json->{response}->{numFound};
+        }else{
+          my ($err, $code) = $get->error;
+          $c->app->log->error("[$pid] error getting collection members count ".$c->app->dumper($err));
+          unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting collection members count" };
+          unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+          $res->{status} =  $code ? $code : 500;
+          return $res;
         }
+
+        $urlget->query(q => "ispartof:\"$pid\"", fl => "pid", rows => $numFound, wt => "json"); 
+
+        $get = $ua->get($urlget);
+  
+        my @curr_members;
+        if (my $r_mem = $get->success) {
+          for my $c_m (@{$r_mem->json->{response}->{docs}}){
+            push @curr_members, $c_m->{pid};
+          }
+        }else{
+          my ($err, $code) = $get->error;
+          $c->app->log->error($urlget);
+          $c->app->log->error("[$pid] error getting collection members ".$c->app->dumper($err));
+          unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting collection members" };
+          unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+          $res->{status} =  $code ? $code : 500;
+          return $res;
+        }       
+
+        $c->app->log->debug("[$pid] this collection currently has ".(scalar @curr_members)." members");
+        #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper(\@curr_members));
 
         my @add_to;
         my @remove_from;
@@ -200,30 +238,38 @@ sub update {
             push  @add_to, $m;
           }
         } 
+        $c->app->log->debug("[$pid] found ".(scalar @add_to)." members to add");
+        #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper(\@add_to));
         for my $m (@curr_members){
           unless( $m ~~ @{$members} ) {
             push  @remove_from, $m;
           }
-        } 
+        }
+        $c->app->log->debug("[$pid] found ".(scalar @remove_from)." members to remove");
+        #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper(\@remove_from));
 
-        my $r_add = $self->_update_ispartof($c, $pid, \@add_to, $updateurl, 'add');
-        if($r_add->{status} ne 200){
-          for my $a (@{$r_add->{alerts}}){
-            push @{$res->{alerts}}, $a;
-            $res->{status} = $r->{status};
+        if(scalar @add_to > 0){
+          my $r_add = $self->_update_ispartof($c, $pid, \@add_to, $updateurl, 'add');
+          if($r_add->{status} ne 200){
+            for my $a (@{$r_add->{alerts}}){
+              push @{$res->{alerts}}, $a;
+              $res->{status} = $r->{status};
+            }
           }
         }
 
-        my $r_remove = $self->_update_ispartof($c, $pid, \@remove_from, $updateurl, 'remove');
-        if($r_remove->{status} ne 200){
-          for my $a (@{$r_remove->{alerts}}){
-            push @{$res->{alerts}}, $a;
-            $res->{status} = $r->{status};
+        if(scalar @remove_from > 0){
+          my $r_remove = $self->_update_ispartof($c, $pid, \@remove_from, $updateurl, 'remove');
+          if($r_remove->{status} ne 200){
+            for my $a (@{$r_remove->{alerts}}){
+              push @{$res->{alerts}}, $a;
+              $res->{status} = $r->{status};
+            }
           }
         }
         
       }
-=cut
+
     }else{
       my $msg = "[$pid] cmodel: ".$cmodel_res->{cmodel}.", skipping update";
       $c->app->log->debug($msg); 
@@ -241,9 +287,9 @@ sub _update_ispartof {
 
   my $res = { status => 200 };
 
-  $c->app->log->debug("[$pid] updating members");
+  #$c->app->log->debug("[$pid] updating ".(scalar @{$members})." members");
 
-  if(scalar $members <= 500){
+  if(scalar @{$members} <= 500){
     return $self->_update_ispartof_post($c, $pid, $members, $updateurl, $action);
   }else{
     my @batch;
@@ -260,6 +306,13 @@ sub _update_ispartof {
         @batch = ();
       }
     }
+    my $r = $self->_update_ispartof_post($c, $pid, \@batch, $updateurl, $action);
+      if($r->{status} ne 200){
+        for my $a (@{$r->{alerts}}){
+          push @{$res->{alerts}}, $a;
+          $res->{status} = $r->{status};
+       }
+    }
   }
   
   return $res;
@@ -274,18 +327,23 @@ sub _update_ispartof_post {
   my @update;
   for my $m (@{$members}){
     push @update, {
-      pid => $pid,
-      ispartof => { $action => $m }
+      pid => $m,
+      ispartof => { $action => $pid }
     };
   }
 
   my $ua = Mojo::UserAgent->new;
+
+  # versions makes sure the document exists already
+  # if it does not the field would be created as "ispartof.add" which is wrong
+  # plus the member might not exist for a reason, eg it's a Page, we don't want to add it
+  $updateurl->query(commit => 'true', versions => 'true', _version_ => 1);
+
   my $post = $ua->post($updateurl => json => \@update);
 
-  my $cnt = scalar $members;
   if (my $r = $post->success) {
-     $c->app->log->debug("[$pid] updated $cnt documents");
-  }else {
+    $c->app->log->debug("[$pid] updated ".(scalar @{$members})." documents");
+  }else{
     my ($err, $code) = $post->error;
     unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
     $res->{status} =  $code ? $code : 500;
@@ -435,12 +493,12 @@ sub _get {
           push @{$index{bbox}}, "ENVELOPE($minLon, $maxLon, $maxLat, $minLat)";
 
           # add some latlon
-          push @{$index{latlon}}, (($minLat + $maxLat)/2).','.(($minLon + $maxLon)/2);
+          $index{latlon} = (($minLat + $maxLat)/2).','.(($minLon + $maxLon)/2);
         }
         
         # latlon -> latitude,longitude
         if(exists($plm->{point})){
-          push @{$index{latlon}}, $plm->{point}->{coordinates}->{latitude}.",".$plm->{point}->{coordinates}->{longitude};
+          $index{latlon} = $plm->{point}->{coordinates}->{latitude}.",".$plm->{point}->{coordinates}->{longitude};
         }
       }      
     }

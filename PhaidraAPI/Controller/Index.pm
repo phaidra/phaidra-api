@@ -27,11 +27,6 @@ sub update {
   my $self = shift;
   my $pid_param = $self->stash('pid');
 
-  unless(exists($self->app->config->{index_mongodb})){
-    $self->render(json => { alerts => [{ type => 'danger', msg => 'The index database is not configured' }]} , status => 400) ;
-    return;
-  }
-
   my $username = $self->stash->{basic_auth_credentials}->{username};
   my $password = $self->stash->{basic_auth_credentials}->{password};
 
