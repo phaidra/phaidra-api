@@ -1135,7 +1135,7 @@ sub fill_object_metadata {
 				    $node->{ui_value} = $v;
 				    $node->{loaded_ui_value} = $v;
 	    		}else{
-	    			my $v = b($e->text)->decode('UTF-8');
+	    			my $v = b($e->content)->decode('UTF-8');
 	    			#$node->{value} = $v;
 				    $node->{loaded_value} = $v;
 				    $node->{ui_value} = $v;
