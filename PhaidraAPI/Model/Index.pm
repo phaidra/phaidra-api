@@ -532,7 +532,7 @@ sub _get {
 
   if(exists($datastreams{'ANNOTATIONS'})){
 
-    my $ann_model = PhaidraAPI::Annotations::Geo->new;
+    my $ann_model = PhaidraAPI::Model::Annotations->new;
     my $r_ann = $ann_model->xml_2_json($c, $datastreams{'ANNOTATIONS'}->find('foxml\:xmlContent')->first);
     if($r_ann->{status} ne 200){      
      
