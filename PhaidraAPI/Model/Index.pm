@@ -184,7 +184,7 @@ sub update {
       if($r->{index}->{cmodel} eq 'Collection' && defined($members)){
 
         $c->app->log->debug("[$pid] this collection should have ".(scalar @{$members})." members");
-        $c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($members));
+        #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($members));
 
         # get current members
         my $urlget = Mojo::URL->new;
@@ -554,6 +554,9 @@ sub _get {
 
       }
     }
+
+    # for fast annotation access, add them as json as well
+    $index{annotations_json} = b(encode_json($r_ann->{annotations}))->decode('UTF-8');
   }
 
   # inventory
