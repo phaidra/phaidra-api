@@ -79,6 +79,14 @@ sub modify {
 	  $res->{status} =  $code ? $code : 500;
 	}
 
+	my $hooks_model = PhaidraAPI::Model::Hooks->new;
+	my $hr = $hooks_model->modify_object_hooks($c, $pid, $username, $password);
+	push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
+	$res->{status} = $hr->{status};
+	if($hr->{status} ne 200){
+		return $res;
+	}
+
   	return $res;
 }
 

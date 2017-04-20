@@ -106,5 +106,31 @@ sub add_or_modify_relationships_hooks {
   return $res;
 }
 
+sub modify_object_hooks {
+
+  my ($self, $c, $pid, $username, $password) = @_;
+
+  my $res = { alerts => [], status => 200 };
+
+  if(exists($c->app->config->{hooks})){
+    if(exists($c->app->config->{hooks}->{updateindex}) && $c->app->config->{hooks}->{updateindex}){
+      my $dc_model = PhaidraAPI::Model::Dc->new;
+      my $search_model = PhaidraAPI::Model::Search->new;
+      my $rel_model = PhaidraAPI::Model::Relationships->new;
+      my $index_model = PhaidraAPI::Model::Index->new;
+      my $object_model = PhaidraAPI::Model::Object->new;
+      my $r = $index_model->update($c, $pid, $dc_model, $search_model, $rel_model, $object_model);
+      if($r->{status} ne 200){
+        $res->{status} = $r->{status};
+        for my $a (@{$r->{alerts}}){
+          push @{$res->{alerts}}, $a;
+        }
+      }
+    }
+  }
+
+  return $res;
+}
+
 1;
 __END__

@@ -145,7 +145,7 @@ sub update {
 
       my $t0 = [gettimeofday];
       my $r = $self->_get($c, $pid, $dc_model, $search_model, $rel_model, $object_model);
-      $c->app->log->debug("XXXXXXX indexing took ".tv_interval($t0));
+      #$c->app->log->debug("XXXXXXX indexing took ".tv_interval($t0));
       $res = $r;
 
       my $members = $r->{index}->{haspart} if exists $r->{index}->{haspart};
@@ -175,7 +175,7 @@ sub update {
           $t0 = [gettimeofday];
           my @docs = ($r->{index});
           my $post = $ua->post($updateurl => json => \@docs);
-          $c->app->log->debug("XXXXXXX posting index took ".tv_interval($t0));
+          #$c->app->log->debug("XXXXXXX posting index took ".tv_interval($t0));
           if (my $r = $post->success) {
             $c->app->log->debug("[$pid] solr document updated");
           }else {
