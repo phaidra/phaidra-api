@@ -42,6 +42,12 @@ our %cmodel_2_resourcetype = (
   "Video" => "video"
 );
 
+our %uwm_metadataqualitycheck = (
+  "http://phaidra.univie.ac.at/XML/metadata/extended/V1.0/voc_40/1557089" => "nok",
+  "http://phaidra.univie.ac.at/XML/metadata/extended/V1.0/voc_40/1557088" => "ok",
+  "http://phaidra.univie.ac.at/XML/metadata/extended/V1.0/voc_40/1557087" => "todo"
+);
+
 our %uwm_2_mods_roles = (
 
   # unmapped
@@ -812,7 +818,13 @@ sub _add_uwm_index {
       }
     }
   }
-  
+
+  # lifecycle -> metadataqualitycheck
+  my $metadataqualitycheck = $self->_find_first_uwm_node_rec($c, "http://phaidra.univie.ac.at/XML/metadata/extended/V1.0", "metadataqualitycheck", $uwm);
+  if($metadataqualitycheck){
+    $index->{"bib_mqc"} = $uwm_metadataqualitycheck{$metadataqualitycheck->{ui_value}};
+  }
+
   # roles
   my ($roles, $contributions) = $self->_get_uwm_roles($c, $uwm);
 #  $c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($contributions));
