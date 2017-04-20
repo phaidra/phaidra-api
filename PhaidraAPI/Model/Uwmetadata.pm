@@ -10,6 +10,7 @@ use Switch;
 use Data::Dumper;
 use Mojo::ByteStream qw(b);
 use Mojo::JSON qw(encode_json decode_json);
+use Mojo::Util qw(html_unescape);
 use XML::Writer;
 use XML::LibXML;
 use lib "lib/phaidra_binding";
@@ -698,7 +699,7 @@ sub uwmetadata_2_json_basic_rec {
 		
 		if($e->content && ($input_type ne 'node')){
 
-			my $value = b($e->content)->decode('UTF-8');	
+			my $value = html_unescape b($e->content)->decode('UTF-8');	
 
 			if($datatype eq 'Vocabulary'){ 
 				$node{ui_value} = $vocns.$value;
@@ -1135,7 +1136,7 @@ sub fill_object_metadata {
 				    $node->{ui_value} = $v;
 				    $node->{loaded_ui_value} = $v;
 	    		}else{
-	    			my $v = b($e->content)->decode('UTF-8');
+	    			my $v = html_unescape b($e->content)->decode('UTF-8');
 	    			#$node->{value} = $v;
 				    $node->{loaded_value} = $v;
 				    $node->{ui_value} = $v;
