@@ -1411,11 +1411,11 @@ sub fix_uwmetadata() {
 	    	xmlns => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0",
 	        xmlname => "cost",
 	        datatype => "Boolean",
-	        ui_value => 0
+	        ui_value => "no"
 	    });
 	}
 	if(!defined($n->{ui_value}) || $n->{ui_value} eq ''){
-		$n->{ui_value} = 0;
+		$n->{ui_value} = "no";
 	}
 
 	# add and set copyright if not there
@@ -1427,11 +1427,11 @@ sub fix_uwmetadata() {
 	    	xmlns => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0",
 	        xmlname => "copyright",
 	        datatype => "Boolean",
-	        ui_value => 1
+	        ui_value => "yes"
 	    });
 	}
 	if(!defined($n->{ui_value}) || $n->{ui_value} eq ''){
-		$n->{ui_value} = 1;
+		$n->{ui_value} = "yes";
 	}
 
 	# add empty classification node if missing
@@ -1703,9 +1703,9 @@ sub json_2_uwmetadata_rec(){
 
 			# copy the 'ui_value' to 'value' (or transform, if needed)
 
-  		if(!defined($child->{value}) || $child->{value} eq ''){
-  			$child->{value} = $child->{ui_value};
-  		}
+	  		if(!defined($child->{value}) || $child->{value} eq ''){
+	  			$child->{value} = $child->{ui_value};
+	  		}
 
 			# hack, until vocabulary server
 			if(
@@ -1738,7 +1738,7 @@ sub json_2_uwmetadata_rec(){
 
 			}else{
 				if($child->{datatype} eq 'Boolean'){
-					$writer->characters($child->{value} ? 'yes' : 'no');
+					$writer->characters($child->{value});
 				}else{
 					if($child->{value}){
 						$writer->characters($child->{value});
