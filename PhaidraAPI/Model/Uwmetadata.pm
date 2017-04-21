@@ -1123,18 +1123,6 @@ sub fill_object_metadata {
 		    			}
 	    			}
 
-	    		}elsif($node->{input_type} eq "input_checkbox" || $node->{input_type} eq "select_yesno"){
-	    			my $v;
-	    			if($e->text eq 'yes'){
-	    				$v = '1';
-	    			}
-	    			if($e->text eq 'no'){
-	    				$v = '0';
-	    			}
-	    			#$node->{value} = $v;
-				    $node->{loaded_value} = $v;
-				    $node->{ui_value} = $v;
-				    $node->{loaded_ui_value} = $v;
 	    		}else{
 	    			my $v = html_unescape b($e->content)->decode('UTF-8');
 	    			#$node->{value} = $v;
