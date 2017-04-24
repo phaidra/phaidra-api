@@ -565,6 +565,15 @@ sub _get {
     $index{annotations_json} = b(encode_json($r_ann->{annotations}))->decode('UTF-8');
   }
 
+  # relations
+  my $r_add_rrels = $self->_add_reverse_relations($c, $pid, $search_model, \%index);
+  if($r_add_rrels->{status} ne 200){
+    push @{$res->{alerts}}, { type => 'danger', msg => "Error adding reverse relationships for $pid" };
+    for $a (@{$r_add_rrels->{alerts}}){
+      push @{$res->{alerts}}, $a;
+    }
+  }
+  
   # inventory
   my $inv_coll = $c->paf_mongo->db->collection('foxml.ds');
   if($inv_coll){
@@ -639,8 +648,8 @@ sub _index_relsext {
     push @{$index->{isalternativeversionof}}, $o;
   }
 
-  # we save this now as haspart but this should not go to index
-  # instead the array should be used to create ispartof in members
+  # we save this now as haspart but this is later removed
+  # instead the array is used to create ispartof in members
   for my $e ($xml->find('hasCollectionMember')->each){
     my $o = $e->attr('rdf:resource');
     $o =~ s/^info:fedora\/(.*)$/$1/;
@@ -676,6 +685,28 @@ sub _add_dc_index {
   }
      
 }
+
+sub _add_reverse_relations {
+
+  my ($self, $c, $pid, $search_model, $index) = @_;
+
+  my $res = { alerts => [], status => 200 };
+
+  my $r_trip = $search_model->triples($c, "* <info:fedora/fedora-system:def/relations-external#hasCollectionMember> <info:fedora/$pid>", 0);
+  if($r_trip->{status} ne 200){
+    return $r_trip;
+  }
+   
+  for my $triple (@{$r_trip->{result}}){
+    my $subject = @$triple[0];
+    if($subject =~ m/^<info:fedora\/(.*)>$/){
+      push @{$index->{ispartof}}, $1;        
+    }    
+  }
+
+  return $res;
+}
+
 =cut
 sub _add_triples_index {
 
