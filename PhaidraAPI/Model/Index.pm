@@ -149,7 +149,6 @@ sub update {
       $res = $r;
 
       my $members = $r->{index}->{haspart} if exists $r->{index}->{haspart};
-
       # don't save this
       delete $r->{index}->{haspart};
 
@@ -166,7 +165,6 @@ sub update {
       if($r->{status} eq 200){
 
         if(exists($c->app->config->{index_mongodb})){
-
           $c->index_mongo->db->collection($c->app->config->{index_mongodb}->{collection})->update({pid => $pid}, $r->{index}, { upsert => 1 });
           $c->app->log->debug("[$pid] mongo index updated");          
         }
@@ -180,10 +178,23 @@ sub update {
             $c->app->log->debug("[$pid] solr document updated");
           }else {
             my ($err, $code) = $post->error;
-            unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+            unshift @{$res->{alerts}}, { type => 'danger', msg => "[$pid] Error updating solr: $err" };
             $res->{status} =  $code ? $code : 500;
           }
           
+        }
+      }elsif(($r->{status} eq 301) || ($r->{status} eq 302)){
+        # 301 - object is in state Deleted
+        # 302 - object is in state Inactive
+        if(exists($c->app->config->{solr})){
+          my $post = $ua->post($updateurl => json => { delete => $pid });
+          if (my $r = $post->success) {
+            $c->app->log->debug("[$pid] solr document deleted");
+          }else {
+            my ($err, $code) = $post->error;
+            unshift @{$res->{alerts}}, { type => 'danger', msg => "[$pid] Error deleting document from solr: $err" };
+            $res->{status} =  $code ? $code : 500;
+          }
         }
       }
 
@@ -390,9 +401,17 @@ sub _get {
 
       if($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#state'){
         # skip inactive objects
-        if($e1->attr('VALUE') ne 'Active'){
-          $c->app->log->warn("[_get index] $pid is ".$e1->attr('VALUE').", skipping");
-          push @{$res->{alerts}}, { type => 'danger', msg => "[_get index] $pid is ".$e1->attr('VALUE').", skipping" };
+        my $state = $e1->attr('VALUE');
+        if($state ne 'Active'){
+          my $errmsg = "[_get index] $pid is $state, deleting from index.";
+          $c->app->log->warn($errmsg);
+          push @{$res->{alerts}}, { type => 'danger', msg => $errmsg };
+          if($state eq 'Deleted'){
+            $res->{status} = 301;
+          }
+          if($state eq 'Inactive'){
+            $res->{status} = 302;
+          }
           return $res;
         }
       }
