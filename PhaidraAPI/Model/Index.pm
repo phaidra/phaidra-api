@@ -594,10 +594,12 @@ sub _get {
   }
   
   # inventory
-  my $inv_coll = $c->paf_mongo->db->collection('foxml.ds');
-  if($inv_coll){
-    my $ds_doc = $inv_coll->find({pid => $pid})->sort({ "updated_at" => -1})->next;
-    $index{size} = $ds_doc->{fs_size};
+  if(exists($c->{paf_mongo})){
+    my $inv_coll = $c->paf_mongo->db->collection('foxml.ds');
+    if($inv_coll){
+      my $ds_doc = $inv_coll->find({pid => $pid})->sort({ "updated_at" => -1})->next;
+      $index{size} = $ds_doc->{fs_size};
+    }
   }
 
   # pid
