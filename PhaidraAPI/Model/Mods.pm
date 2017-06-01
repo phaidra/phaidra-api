@@ -7,7 +7,7 @@ use base qw/Mojo::Base/;
 use Storable qw(dclone);
 use Mojo::ByteStream qw(b);
 use Mojo::JSON qw(encode_json decode_json);
-use Mojo::Util qw(slurp);
+use Mojo::File;
 use POSIX qw/strftime/;
 use XML::Writer;
 use XML::LibXML;
@@ -26,8 +26,9 @@ sub metadata_tree {
 	if($nocache){
 		$c->app->log->debug("Reading mods tree from file (nocache request)");
 
-		# read metadata tree from file
-		my $bytes = slurp $c->app->config->{local_mods_tree};
+		# read metadata tree from file		
+    my $path = Mojo::File($c->app->config->{local_mods_tree})->new;
+    my $bytes = $path->slurp;
 	    unless(defined($bytes)){
 	    	push @{$res->{alerts}}, "Error reading local_mods_tree, no content";
 	    	$res->{status} = 500;
@@ -59,7 +60,8 @@ sub metadata_tree {
 	    	$c->app->log->debug("[cache miss] $cachekey");
 
 			# read metadata tree from file
-			my $bytes = slurp $c->app->config->{local_mods_tree};
+        my $path = Mojo::File($c->app->config->{local_mods_tree})->new;
+        my $bytes = $path->slurp;
 		    unless(defined($bytes)){
 		    	push @{$res->{alerts}}, "Error reading local_mods_tree, no content";
 		    	$res->{status} = 500;

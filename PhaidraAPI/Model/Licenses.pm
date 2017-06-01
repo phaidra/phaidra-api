@@ -6,7 +6,7 @@ use v5.10;
 use base qw/Mojo::Base/;
 use Mojo::ByteStream qw(b);
 use Mojo::JSON qw(encode_json decode_json);
-use Mojo::Util qw(slurp);
+use Mojo::File;
 
 sub get_licenses {
 
@@ -17,8 +17,9 @@ sub get_licenses {
 	if($nocache){
 	  $c->app->log->debug("Reading licenses_file (nocache request)");
 
-	  # read metadata tree from file
-	  my $bytes = slurp $c->app->config->{licenses_file};
+	  # read metadata tree from file	  
+	  my $path = Mojo::File($c->app->config->{licenses_file})->new;
+	  my $bytes = $path->slurp;
 	  unless(defined($bytes)){
 	    push @{$res->{alerts}}, "Error reading licenses_file, no content";
 	    $res->{status} = 500;
@@ -48,7 +49,8 @@ sub get_licenses {
 	    	$c->app->log->debug("[cache miss] $cachekey");
 
 			# read metadata tree from file
-			my $bytes = slurp $c->app->config->{licenses_file};
+			my $path = Mojo::File($c->app->config->{licenses_file})->new;
+	  		my $bytes = $path->slurp;
 		    unless(defined($bytes)){
 		    	push @{$res->{alerts}}, "Error reading licenses_file, no content";
 		    	$res->{status} = 500;

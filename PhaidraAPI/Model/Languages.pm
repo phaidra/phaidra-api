@@ -6,7 +6,7 @@ use v5.10;
 use base qw/Mojo::Base/;
 use Mojo::ByteStream qw(b);
 use Mojo::JSON qw(encode_json decode_json);
-use Mojo::Util qw(slurp);
+use Mojo::File;
 
 our %iso639map=
 (
@@ -214,7 +214,8 @@ sub get_languages {
 	  $c->app->log->debug("Reading languages_file (nocache request)");
 
 	  # read metadata tree from file
-	  my $bytes = slurp $c->app->config->{languages_file};
+    my $path = Mojo::File($c->app->config->{languages_file})->new;
+	  my $bytes = $path->slurp;
 	  unless(defined($bytes)){
 	    push @{$res->{alerts}}, "Error reading languages_file, no content";
 	    $res->{status} = 500;
@@ -244,7 +245,8 @@ sub get_languages {
 	    $c->app->log->debug("[cache miss] $cachekey");
 
 			# read metadata tree from file
-			my $bytes = slurp $c->app->config->{languages_file};
+      my $path = Mojo::File($c->app->config->{languages_file})->new;
+      my $bytes = $path->slurp;			
 		    unless(defined($bytes)){
 		    	push @{$res->{alerts}}, "Error reading languages_file, no content";
 		    	$res->{status} = 500;
