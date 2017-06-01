@@ -18,7 +18,7 @@ sub get_licenses {
 	  $c->app->log->debug("Reading licenses_file (nocache request)");
 
 	  # read metadata tree from file	  
-	  my $path = Mojo::File($c->app->config->{licenses_file})->new;
+	  my $path = Mojo::File->new($c->app->config->{licenses_file});
 	  my $bytes = $path->slurp;
 	  unless(defined($bytes)){
 	    push @{$res->{alerts}}, "Error reading licenses_file, no content";
@@ -49,7 +49,7 @@ sub get_licenses {
 	    	$c->app->log->debug("[cache miss] $cachekey");
 
 			# read metadata tree from file
-			my $path = Mojo::File($c->app->config->{licenses_file})->new;
+			my $path = Mojo::File->new($c->app->config->{licenses_file});
 	  		my $bytes = $path->slurp;
 		    unless(defined($bytes)){
 		    	push @{$res->{alerts}}, "Error reading licenses_file, no content";

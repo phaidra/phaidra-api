@@ -214,7 +214,7 @@ sub get_languages {
 	  $c->app->log->debug("Reading languages_file (nocache request)");
 
 	  # read metadata tree from file
-    my $path = Mojo::File($c->app->config->{languages_file})->new;
+    my $path = Mojo::File->new($c->app->config->{languages_file});
 	  my $bytes = $path->slurp;
 	  unless(defined($bytes)){
 	    push @{$res->{alerts}}, "Error reading languages_file, no content";
@@ -245,7 +245,7 @@ sub get_languages {
 	    $c->app->log->debug("[cache miss] $cachekey");
 
 			# read metadata tree from file
-      my $path = Mojo::File($c->app->config->{languages_file})->new;
+      my $path = Mojo::File->new($c->app->config->{languages_file});
       my $bytes = $path->slurp;			
 		    unless(defined($bytes)){
 		    	push @{$res->{alerts}}, "Error reading languages_file, no content";

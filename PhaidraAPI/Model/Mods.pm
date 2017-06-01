@@ -27,7 +27,7 @@ sub metadata_tree {
 		$c->app->log->debug("Reading mods tree from file (nocache request)");
 
 		# read metadata tree from file		
-    my $path = Mojo::File($c->app->config->{local_mods_tree})->new;
+    my $path = Mojo::File->new($c->app->config->{local_mods_tree});
     my $bytes = $path->slurp;
 	    unless(defined($bytes)){
 	    	push @{$res->{alerts}}, "Error reading local_mods_tree, no content";
@@ -60,7 +60,7 @@ sub metadata_tree {
 	    	$c->app->log->debug("[cache miss] $cachekey");
 
 			# read metadata tree from file
-        my $path = Mojo::File($c->app->config->{local_mods_tree})->new;
+        my $path = Mojo::File->new($c->app->config->{local_mods_tree});
         my $bytes = $path->slurp;
 		    unless(defined($bytes)){
 		    	push @{$res->{alerts}}, "Error reading local_mods_tree, no content";
