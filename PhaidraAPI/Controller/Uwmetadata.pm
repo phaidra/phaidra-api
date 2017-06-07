@@ -4,7 +4,6 @@ use strict;
 use warnings;
 use v5.10;
 use Mojo::UserAgent;
-use Mojo::Util 'squish';
 use Mojo::ByteStream qw(b);
 use Mojo::JSON qw(encode_json decode_json);
 use base 'Mojolicious::Controller';
