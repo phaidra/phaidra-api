@@ -71,13 +71,17 @@ sub stats {
         my $downloads = 0; #$self->app->db_stats_phaidra_catalyst->selectrow_array("select count(*) from piwik_log_link_visit_action as a where a.idsite=$siteid and a.custom_var_v2 = \"$pid\" and a.custom_var_k2 = \"Download\"") or $self->app->log->error("Error querying piwik database for downloads:".$self->app->db_stats_phaidra_catalyst->errstr);
 
         # this counts *any* page with pid in URL. But that kind of makes sense anyways...
-        my $sth = $self->app->db_stats_phaidra_catalyst->prepare("CREATE TEMPORARY TABLE pid_visits_idsite_$pidnum AS (SELECT piwik_log_link_visit_action.idsite FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE piwik_log_action.name like '%view/o:197084%' OR piwik_log_action.name like '%detail_object/o:197084%');");
+        my $sth = $self->app->db_stats_phaidra_catalyst->prepare("CREATE TEMPORARY TABLE pid_visits_idsite_$pidnum AS (SELECT piwik_log_link_visit_action.idsite FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE piwik_log_action.name like '%view/$pid%' OR piwik_log_action.name like '%detail_object/$pid%');");
         $sth->execute();
-        $sth->fetchall_arrayref();
-        my $detail_page = $self->app->db_stats_phaidra_catalyst->selectrow_array("SELECT count(*) FROM pid_visits_idsite_$pidnum WHERE idsite = $siteid;") or $self->app->log->error("Error querying piwik database for detail views:".$self->app->db_stats_phaidra_catalyst->errstr);
-        $cacheval = { downloads => $downloads, detail_page => $detail_page };        
-
-        $self->app->chi->set($cachekey, $cacheval, '1 day');
+#        $sth->fetchall_arrayref();
+        my $detail_page = $self->app->db_stats_phaidra_catalyst->selectrow_array("SELECT count(*) FROM pid_visits_idsite_$pidnum WHERE idsite = $siteid;");
+        
+        if(defined($detail_page)){
+            $cacheval = { downloads => $downloads, detail_page => $detail_page };        
+            $self->app->chi->set($cachekey, $cacheval, '1 day');
+        }else{
+            $self->app->log->error("Error querying piwik database for detail views:".$self->app->db_stats_phaidra_catalyst->errstr);
+        }
     }else{
         $self->app->log->debug("[cache hit] $cachekey");
     }

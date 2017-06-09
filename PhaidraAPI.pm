@@ -108,7 +108,7 @@ sub startup {
             dsn      => $f->{stats}->{db_piwik}->{dsn},
             username => $f->{stats}->{db_piwik}->{username},
             password => $f->{stats}->{db_piwik}->{password},
-            options  => { mysql_auto_reconnect => 1}
+            options  => { mysql_auto_reconnect => 1, RaiseError => 1}
           };
         }   
       }
