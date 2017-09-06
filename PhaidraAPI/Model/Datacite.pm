@@ -245,6 +245,10 @@ sub data_2_datacite {
 
   my @datacite;
 
+=begin comment
+
+... does not apply, we need a DataCite DOI, no just any DOI
+
   if(exists($data->{identifiers})){
     #<identifier identifierType="DOI">10.5072/example-full</identifier>
     for my $i (@{$data->{identifiers}}){
@@ -261,6 +265,14 @@ sub data_2_datacite {
         };
       }
     }
+
+=end comment
+=cut
+
+=begin comment
+
+DataCite is unhappy about this (or the ordering)
+
     #
     #<alternateIdentifiers>
     #  <alternateIdentifier alternateIdentifierType="URL">
@@ -289,6 +301,9 @@ sub data_2_datacite {
       }
     }
   }
+
+=end comment
+=cut
 
   if(exists($data->{creators})){
     #
@@ -362,12 +377,15 @@ sub data_2_datacite {
       push @titles_children, {
         xmlname => "title",
         value => $t->{title},
-        attributes => [
-          {
-            xmlname => "lang",
-            value => $t->{lang} 
-          }
-        ]
+
+        # ATTN: register_doi POST metadata returned code1=[400] res1=[[xml] xml error: cvc-complex-type.3.2.2: Attribute 'lang' is not allowed to appear in element 'title'.]
+        # attributes => [
+        #   {
+        #     xmlname => "lang",
+        #     value => $t->{lang} 
+        #   }
+        # ]
+
       };
       if(defined($t->{subtitle})){
         push @titles_children, {
@@ -392,16 +410,30 @@ sub data_2_datacite {
     };
   }
 
+my $has_publisher= 0;
   if(exists($data->{publishers})){
     #<publisher>DataCite</publisher>
     for my $p (@{$data->{publishers}}){
+      if ($p->{value})
+      {
       push @datacite, {
         xmlname => "publisher",
         value => $p->{value}
       };
+        $has_publisher++;
+      }
     }
   }
 
+  unless ($has_publisher)
+  {
+      push @datacite, {
+        xmlname => "publisher",
+        value => 'Uni Wien'
+      };
+  }
+
+  my $has_publicationYear= 0; # NOTE: the code below seems to allow multiple publicationYear, check if this is valid
   if(exists($data->{embargodates}) || exists($data->{pubyears})){
     #<publicationYear>2014</publicationYear>
     # Year when the data is made publicly available. If an embargo period has been in effect, use the date when the embargo period ends.
@@ -411,6 +443,7 @@ sub data_2_datacite {
           xmlname => "publicationYear",
           value => $em->{value}
         };
+	$has_publicationYear++;
       }
     }else{  
       for my $py (@{$data->{pubyears}}){
@@ -418,8 +451,17 @@ sub data_2_datacite {
           xmlname => "publicationYear",
           value => $py->{value}
         };
+	$has_publicationYear++;
       }
     }
+  }
+
+  unless ($has_publicationYear)
+  {
+        push @datacite, {
+          xmlname => "publicationYear",
+          value => '2017', # TODO: find something more meaningful!
+        };
   }
 
   if(exists($data->{descriptions})){
@@ -434,15 +476,17 @@ sub data_2_datacite {
       my $ch = {
         xmlname => "description",
         value => $de->{value}, 
-        attributes => [
-          {
-            xmlname => "descriptionType",
-            value => "Other" # we don't have description type 
-          },
-          {
-            xmlname => "lang",
-            value => $de->{lang} 
-          }
+
+         attributes => [
+#          {
+#            xmlname => "descriptionType",
+#            value => "Other" # we don't have description type 
+#          },
+# ATTN: register_doi POST metadata returned code1=[400] res1=[[xml] xml error: cvc-complex-type.3.2.2: Attribute 'lang' is not allowed to appear in element 'description'.]
+#          {
+#            xmlname => "lang",
+#            value => $de->{lang} 
+#          }
         ]
       };
       push @descriptions_children, $ch;
@@ -509,12 +553,13 @@ sub data_2_datacite {
       my $ch = {
         xmlname => "subject",
         value => $s->{value},
-        attributes => [
-          {
-            xmlname => "lang",
-            value => $s->{lang}
-          }
-        ]
+# ATTN: register_doi POST metadata returned code1=[400] res1=[[xml] xml error: cvc-complex-type.3.2.2: Attribute 'lang' is not allowed to appear in element 'subject'.]
+#        attributes => [
+#          {
+#            xmlname => "lang",
+#            value => $s->{lang}
+#          }
+#        ]
       };
       push @subject_children, $ch;
     }
@@ -529,7 +574,7 @@ sub data_2_datacite {
     #  <size>3KB</size>
     #</sizes>
     for my $fs (@{$data->{filesizes}}){
-      my @datacite, {
+      my @datacite, { # BUG: Useless use of anonymous hash ({}) in void context at PhaidraAPI/Model/Datacite.pm line 550.
         xmlname => "sizes",
         children => [
           {
@@ -546,7 +591,7 @@ sub data_2_datacite {
     #  <format>application/xml</format>
     #</formats>
     for my $f (@{$data->{filesizes}}){
-      my @datacite, {
+      my @datacite, { # BUG: Useless use of anonymous hash ({}) in void context at PhaidraAPI/Model/Datacite.pm line 567.
         xmlname => "formats",
         children => [
           {
@@ -565,7 +610,7 @@ sub data_2_datacite {
     # rightsURI is optional
     if(exists($data->{licenses})){
       for my $v (@{$data->{licenses}}){ 
-        my @datacite, {
+        my @datacite, { # BUG: Useless use of anonymous hash ({}) in void context at PhaidraAPI/Model/Datacite.pm line 567.
           xmlname => "rightsList",
           children => [
             {
@@ -641,7 +686,7 @@ sub json_2_xml {
       PREFIX_MAP => $prefixmap,
       FORCED_NS_DECLS => $forced_declarations,
       DATA_MODE => 1,
-      ENCODING => 'utf-8'
+      ENCODING => 'utf-8' # NOTE: apparently, this leads to double UTF-8 encoding
     );
 
     $writer->startTag("resource");

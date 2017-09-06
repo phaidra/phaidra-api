@@ -122,7 +122,7 @@ sub create {
 
     # set cmodel and oai itemid
     $c->app->log->debug("Set cmodel ($contentmodel) and oaiitemid ($oaiid)");
-	$r = $self->add_relationships($c, $pid, \@relationships, $username, $password);
+	$r = $self->add_relationships($c, $pid, \@relationships, $username, $password, 1);
   	foreach my $a (@{$r->{alerts}}){
    		push @{$res->{alerts}}, $a;
    	}
@@ -909,6 +909,7 @@ sub add_relationships {
     my $relationships = shift;
     my $username = shift;
     my $password = shift;
+    my $skiphook = shift;
 
     my $res = { alerts => [], status => 200 };
 
@@ -920,12 +921,14 @@ sub add_relationships {
     	}
     }
     
-	my $hooks_model = PhaidraAPI::Model::Hooks->new;
-	my $hr = $hooks_model->add_or_modify_relationships_hooks($c, $pid, $username, $password);
-	push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
-	$res->{status} = $hr->{status};
-	if($hr->{status} ne 200){
-		return $res;
+    unless($skiphook){
+		my $hooks_model = PhaidraAPI::Model::Hooks->new;
+		my $hr = $hooks_model->add_or_modify_relationships_hooks($c, $pid, $username, $password);
+		push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
+		$res->{status} = $hr->{status};
+		if($hr->{status} ne 200){
+			return $res;
+		}
 	}
 
   	return $res;

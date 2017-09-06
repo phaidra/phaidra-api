@@ -196,6 +196,8 @@ sub update {
             $res->{status} =  $code ? $code : 500;
           }
         }
+        # change back to 200, deleting an Inactive or Deleted object from index is ok
+        $res->{status} = 200;
       }
 
       if($r->{index}->{cmodel} eq 'Collection' && defined($members)){
