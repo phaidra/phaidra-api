@@ -346,11 +346,11 @@ sub _get_entities {
       
       my $firstname = $e->find($entity_ns.'\:firstname')->first;
       if(defined($firstname)){
-        $firstname = $firstname->text;
+        $firstname = $firstname->content;
       }
       my $lastname = $e->find($entity_ns.'\:lastname')->first;
       if(defined($lastname)){
-        $lastname = $lastname->text;
+        $lastname = $lastname->content;
       } 
 
       if($firstname && $lastname){
@@ -368,7 +368,7 @@ sub _get_entities {
 
       my $institution = $e->find($entity_ns.'\:institution')->first;
       if(defined($institution)){
-        $institution = $institution->text;
+        $institution = $institution->content;
       }
 
       if(defined($institution) &&  $institution ne ''){
@@ -459,7 +459,7 @@ sub _get_publishers {
     # check publisher in digitalbook only once, not for 'provenience' namespace
     if($ns eq 'lom'){
       my $publishers = $dom->find($doc_uwns->{'digitalbook'}.'\:publisher')->first;
-      push @res, { value => $publishers->text } if(defined($publishers));
+      push @res, { value => $publishers->content } if(defined($publishers));
     }
   }
 
@@ -584,7 +584,7 @@ sub _get_uwm_element_values {
 
   my @vals;
   for my $e ($dom->find($elm)->each){
-    my $value = $e->content;
+    my $value = $e->content;      
     $value = html_unescape $self->_remove_phaidra_tags($c, $value);
     my %v = ( value => $value, ns => $e->namespace );
     if($e->attr('language')){

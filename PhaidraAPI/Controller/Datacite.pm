@@ -29,6 +29,11 @@ sub get {
     return;
   }
 
+  # when extracting metadata using Mojo::DOM we use ->content which returns UTF-8 encoded data
+  # since we're not going to save the data to fedora but render them, we need to decode them first before passing it to renderer because
+  # the renderer will UTF-8 encode the data again
+  $self->_decode_rec(undef, $res->{datacite});
+
   if($format eq 'xml'){
     $self->render(text => $model->json_2_xml($self, $res->{datacite}));
     return;
@@ -41,5 +46,39 @@ sub get {
   );
 
 }
+
+sub _decode_rec(){
+
+  my $self = shift;
+  my $parent = shift;
+  my $children = shift;
+
+  foreach my $child (@{$children}){
+
+    my $children_size = defined($child->{children}) ? scalar (@{$child->{children}}) : 0;
+    my $attributes_size = defined($child->{attributes}) ? scalar (@{$child->{attributes}}) : 0;
+
+    if((!defined($child->{value}) || ($child->{value} eq '')) && $children_size == 0 && $attributes_size == 0){
+      next;
+    }
+
+    if (defined($child->{attributes}) && (scalar @{$child->{attributes}} > 0)){
+      my @attrs;
+      foreach my $a (@{$child->{attributes}}){
+        if(defined($a->{value}) && $a->{value} ne ''){
+          $a->{value} = b($a->{value})->decode('UTF-8');
+        }
+      }
+    }
+
+    if($children_size > 0){
+      $self->_decode_rec($child, $child->{children});
+    }else{
+      $child->{value} = b($child->{value})->decode('UTF-8');
+    }
+
+  }
+}
+
 
 1;
