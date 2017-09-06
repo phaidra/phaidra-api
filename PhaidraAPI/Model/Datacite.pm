@@ -574,7 +574,7 @@ my $has_publisher= 0;
     #  <size>3KB</size>
     #</sizes>
     for my $fs (@{$data->{filesizes}}){
-      my @datacite, { # BUG: Useless use of anonymous hash ({}) in void context at PhaidraAPI/Model/Datacite.pm line 550.
+      push @datacite, {
         xmlname => "sizes",
         children => [
           {
@@ -591,7 +591,7 @@ my $has_publisher= 0;
     #  <format>application/xml</format>
     #</formats>
     for my $f (@{$data->{filesizes}}){
-      my @datacite, { # BUG: Useless use of anonymous hash ({}) in void context at PhaidraAPI/Model/Datacite.pm line 567.
+      push @datacite, {
         xmlname => "formats",
         children => [
           {
@@ -610,7 +610,7 @@ my $has_publisher= 0;
     # rightsURI is optional
     if(exists($data->{licenses})){
       for my $v (@{$data->{licenses}}){ 
-        my @datacite, { # BUG: Useless use of anonymous hash ({}) in void context at PhaidraAPI/Model/Datacite.pm line 567.
+        push @datacite, {
           xmlname => "rightsList",
           children => [
             {
