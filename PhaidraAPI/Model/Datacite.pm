@@ -410,30 +410,20 @@ DataCite is unhappy about this (or the ordering)
     };
   }
 
-my $has_publisher= 0;
   if(exists($data->{publishers})){
     #<publisher>DataCite</publisher>
     for my $p (@{$data->{publishers}}){
       if ($p->{value})
       {
-      push @datacite, {
-        xmlname => "publisher",
-        value => $p->{value}
-      };
-        $has_publisher++;
+        push @datacite, {
+          xmlname => "publisher",
+          value => $p->{value}
+        };
       }
     }
   }
 
-  unless ($has_publisher)
-  {
-      push @datacite, {
-        xmlname => "publisher",
-        value => 'Uni Wien'
-      };
-  }
-
-  my $has_publicationYear= 0; # NOTE: the code below seems to allow multiple publicationYear, check if this is valid
+  # NOTE: the code below seems to allow multiple publicationYear, check if this is valid
   if(exists($data->{embargodates}) || exists($data->{pubyears})){
     #<publicationYear>2014</publicationYear>
     # Year when the data is made publicly available. If an embargo period has been in effect, use the date when the embargo period ends.
@@ -442,8 +432,7 @@ my $has_publisher= 0;
         push @datacite, {
           xmlname => "publicationYear",
           value => $em->{value}
-        };
-	$has_publicationYear++;
+        };	
       }
     }else{  
       for my $py (@{$data->{pubyears}}){
@@ -451,17 +440,8 @@ my $has_publisher= 0;
           xmlname => "publicationYear",
           value => $py->{value}
         };
-	$has_publicationYear++;
       }
     }
-  }
-
-  unless ($has_publicationYear)
-  {
-        push @datacite, {
-          xmlname => "publicationYear",
-          value => '2017', # TODO: find something more meaningful!
-        };
   }
 
   if(exists($data->{descriptions})){
