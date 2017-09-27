@@ -3,7 +3,6 @@ package PhaidraAPI::Controller::Languages;
 use strict;
 use warnings;
 use v5.10;
-use Mojo::UserAgent;
 use base 'Mojolicious::Controller';
 use PhaidraAPI::Model::Languages;
 use Time::HiRes qw/tv_interval gettimeofday/;

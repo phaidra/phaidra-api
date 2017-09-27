@@ -3,7 +3,6 @@ package PhaidraAPI::Controller::Uwmetadata;
 use strict;
 use warnings;
 use v5.10;
-use Mojo::UserAgent;
 use Mojo::ByteStream qw(b);
 use Mojo::JSON qw(encode_json decode_json);
 use base 'Mojolicious::Controller';

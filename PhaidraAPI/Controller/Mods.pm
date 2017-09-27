@@ -3,7 +3,6 @@ package PhaidraAPI::Controller::Mods;
 use strict;
 use warnings;
 use v5.10;
-use Mojo::UserAgent;
 use base 'Mojolicious::Controller';
 use PhaidraAPI::Model::Mods;
 use PhaidraAPI::Model::Uwmetadata;

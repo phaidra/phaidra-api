@@ -239,7 +239,7 @@ sub add_octets {
 
 	my %params;
     $params{controlGroup} = 'M';
-    $params{dsLabel} = $self->app->config->{phaidra}->{defaultlabel};
+    $params{dsLabel} = defined($name) ? $name : $self->app->config->{phaidra}->{defaultlabel};
     $params{mimeType} = $self->param('mimetype');
 
 	my $url = Mojo::URL->new;
@@ -250,10 +250,15 @@ sub add_octets {
 	$url->query(\%params);
 
 	my $ua = Mojo::UserAgent->new;
+  my %headers;
+  if($self->stash->{remote_user}){
+    $headers{$self->app->config->{authentication}->{upstream}->{principalheader}} = $self->stash->{remote_user};
+  }
+  $headers{'Content-Type'} = $self->param('mimetype');
 
-    my $post = $ua->post($url => { 'Content-Type' => $self->param('mimetype') } => form => { file => { file => $upload->asset }} );
+  my $post = $ua->post($url => \%headers => form => { file => { file => $upload->asset }} );
 
-  	unless(my $r = $post->success) {
+  unless(my $r = $post->success) {
 	  my ($err, $code) = $post->error;
 	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
 	  $res->{status} =  $code ? $code : 500;

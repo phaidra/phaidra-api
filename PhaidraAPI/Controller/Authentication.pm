@@ -12,39 +12,87 @@ sub extract_credentials {
 	
 	my $username;
 	my $password; 
-	
-	# try to find basic authentication
-	$self->app->log->debug("Trying to extract basic authentication");
-	($username, $password) = $self->extract_basic_auth_credentials();
-	if(defined($username) && defined($password)){
-		$self->app->log->info("User $username, basic authentication provided");
-	    $self->stash->{basic_auth_credentials} = { username => $username, password => $password };
-	    return 1;
+	my $upstream_auth_success = 0;
+	if($self->app->config->{authentication}->{upstream}->{enabled}){
+
+		$self->app->log->debug("Trying to extract upstream authentication");
+
+		my $remoteuser = $self->req->headers->header($self->app->config->{authentication}->{upstream}->{principalheader});
+		
+		if($remoteuser){
+			$self->app->log->debug("remote user: ".$remoteuser);
+
+			my $upstreamusername;
+			my $upstreampassword; 
+			($upstreamusername, $upstreampassword) = $self->extract_basic_auth_credentials();
+
+			my $configupstreamusername = $self->app->config->{authentication}->{upstream}->{upstreamusername};
+			my $configupstreampassword = $self->app->config->{authentication}->{upstream}->{upstreampassword};
+
+			if(
+					defined($upstreamusername) && 
+					defined($upstreampassword) &&
+					defined($configupstreamusername) &&
+					defined($configupstreampassword) &&
+					($upstreamusername eq $configupstreamusername) && 
+					($upstreampassword eq $configupstreampassword)
+			){
+				$self->app->log->debug("upstream credentials OK");
+				$self->stash->{basic_auth_credentials} = { username => $self->app->config->{authentication}->{upstream}->{fedorausername}, password => $self->app->config->{authentication}->{upstream}->{fedorapassword} };
+				$self->stash->{remote_user} = $remoteuser;
+				$upstream_auth_success = 1;
+			}else{
+				# the request contains the principal header with a remote user definition but it has wrong upstream auth credentials
+				$self->render(json => { alerts => [{ type => 'danger', msg => 'upstream authentication failed' }]} , status => 500) ;
+		    return 0;
+			}
+
+		}else{
+		
+			# this is ok, even if upstream auth is enabled, someone can send a non-upstream-auth request
+			$self->app->log->debug("upstream authentication failed: missing principal header");
+		}
+
 	}
-    
-    # try to find token session
-    $self->app->log->debug("Trying to extract token authentication");
-    my $cred = $self->load_cred;	
-	$username = $cred->{username};
-	$password = $cred->{password};
-	if(defined($username) && defined($password)){
-		$self->app->log->info("User $username, token authentication provided");
-	    $self->stash->{basic_auth_credentials} = { username => $username, password => $password };
-	    return 1;
-	}	
-	
-	if($self->stash('must_be_present')){  
-	    unless(defined($username) && defined($password)){
-	    	$self->app->log->info("No authentication provided");
-	    	# If I use the realm the browser does not want to show the prompt!
-	    	# $self->res->headers->www_authenticate('Basic "'.$self->app->config->{authentication}->{realm}.'"');
-	    	$self->res->headers->www_authenticate('Basic');
-	    	$self->render(json => { alerts => [{ type => 'danger', msg => 'no credentials found' }]} , status => 401) ;
-	    	return 0;
-	    }
-	}else{
-		return 1;
+
+	unless($upstream_auth_success){
+		
+		# try to find basic authentication
+		$self->app->log->debug("Trying to extract basic authentication");
+		($username, $password) = $self->extract_basic_auth_credentials();
+		if(defined($username) && defined($password)){
+			$self->app->log->info("User $username, basic authentication provided");
+		    $self->stash->{basic_auth_credentials} = { username => $username, password => $password };
+		    return 1;
+		}
+
+	    
+	    # try to find token session
+	    $self->app->log->debug("Trying to extract token authentication");
+	    my $cred = $self->load_cred;	
+		$username = $cred->{username};
+		$password = $cred->{password};
+		if(defined($username) && defined($password)){
+			$self->app->log->info("User $username, token authentication provided");
+		    $self->stash->{basic_auth_credentials} = { username => $username, password => $password };
+		    return 1;
+		}	
+		
+		if($self->stash('must_be_present')){  
+		    unless(defined($username) && defined($password)){
+		    	$self->app->log->info("No authentication provided");
+		    	# If I use the realm the browser does not want to show the prompt!
+		    	# $self->res->headers->www_authenticate('Basic "'.$self->app->config->{authentication}->{realm}.'"');
+		    	$self->res->headers->www_authenticate('Basic');
+		    	$self->render(json => { alerts => [{ type => 'danger', msg => 'no credentials found' }]} , status => 401) ;
+		    	return 0;
+		    }
+		}else{
+			return 1;
+		}
+
 	}
+	
 }
 
 sub extract_basic_auth_credentials {
@@ -186,14 +234,14 @@ sub check_rights {
 	}
 
 	my $object_model = PhaidraAPI::Model::Object->new;
-    my $res = $object_model->get_datastream($self, $pid, $ds, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  my $res = $object_model->get_datastream($self, $pid, $ds, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 
-    if($res->{status} eq '404'){
-    	$self->render(json => { status => '200' },status => 200);   
-    }else{
-    	$res->{status} = '403';
-    	$self->render(json => $res, status => 403);
-    }    
+  if($res->{status} eq '404'){
+  	$self->render(json => { status => '200' },status => 200);   
+  }else{
+   	$res->{status} = '403';
+   	$self->render(json => $res, status => 403);
+  }    
 
 }
 

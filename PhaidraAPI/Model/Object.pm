@@ -68,8 +68,12 @@ sub modify {
 	$url->query(\%params);
 
 	my $ua = Mojo::UserAgent->new;
+	my %headers;
+  if($c->stash->{remote_user}){
+    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
+  }
 
-  	my $put = $ua->put($url);
+  	my $put = $ua->put($url => \%headers);
   	if (my $r = $put->success) {
   		unshift @{$res->{alerts}}, { type => 'success', msg => $r->body };
   	}
@@ -232,8 +236,13 @@ sub create_simple {
 	$url->query(\%params);
 
 	my $ua = Mojo::UserAgent->new;
+	my %headers;
+  if($c->stash->{remote_user}){
+    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
+  }
+  $headers{'Content-Type'} = $mimetype;
 
-	my $post = $ua->post($url => { 'Content-Type' => $mimetype } => form => { file => { file => $upload->asset }} );
+	my $post = $ua->post($url => \%headers => form => { file => { file => $upload->asset }} );
 
   	unless($r = $post->success) {
 	  my ($err, $code) = $post->error;
@@ -390,7 +399,12 @@ sub get_dissemination {
 	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
 	$url->path("/fedora/get/$pid/$bdef/$disseminator");
 
-	my $get = Mojo::UserAgent->new->get($url);
+	my %headers;
+  if($c->stash->{remote_user}){
+    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
+  }
+
+	my $get = Mojo::UserAgent->new->get($url => \%headers);
 
 	if (my $r = $get->success) {
 		$res->{status} = 200;
@@ -422,7 +436,12 @@ sub get_foxml {
 	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
 	$url->path("/fedora/objects/$pid/objectXML");
 
-  	my $get = Mojo::UserAgent->new->get($url);
+  my %headers;
+  if($c->stash->{remote_user}){
+    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
+  }
+
+	my $get = Mojo::UserAgent->new->get($url => \%headers);
 
   	if (my $r = $get->success) {
   		$res->{status} = 200;
@@ -463,12 +482,17 @@ sub get_datastream {
 	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
 	$url->path("/fedora/objects/$pid/datastreams/$dsid/content");
 
-  	my $get = Mojo::UserAgent->new->get($url);
+	my %headers;
+	if($c->stash->{remote_user}){
+  	  $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
+  }
 
-  	if (my $r = $get->success) {
-  		$res->{status} = 200;
-  		$res->{$dsid} = $r->body;
-  	}
+  my $get = Mojo::UserAgent->new->get($url => \%headers);
+
+  if (my $r = $get->success) {
+  	$res->{status} = 200;
+  	$res->{$dsid} = $r->body;
+  }
 	else
 	{
 	  unshift @{$res->{alerts}}, { type => 'danger', msg => $get->error->{message} };
@@ -574,14 +598,20 @@ sub add_datastream {
 	$url->query(\%params);
 
 	my $ua = Mojo::UserAgent->new;
+
+	my %headers;
+  if($c->stash->{remote_user}){
+    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
+  }
+	
 	my $post;
 	if($dscontent){
 	  if($mimetype eq 'text/xml'){
 	    $dscontent = encode 'UTF-8', $dscontent;
 	  }
-  	  $post = $ua->post($url => $dscontent);
+  	  $post = $ua->post($url => \%headers =>  $dscontent);
 	}else{
-	  $post = $ua->post($url);
+	  $post = $ua->post($url => \%headers);
 	}
   if (my $r = $post->success) {
   	#unshift @{$res->{alerts}}, { type => 'success', msg => $r->body };
@@ -640,14 +670,20 @@ sub modify_datastream {
 	$url->query(\%params);
 
 	my $ua = Mojo::UserAgent->new;
+
+	my %headers;
+  if($c->stash->{remote_user}){
+    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
+  }
+
 	my $put;
 	if($dscontent){
 		if($mimetype eq 'text/xml'){
 		  $dscontent = encode 'UTF-8', $dscontent;
 		}
-  		$put = $ua->put($url => $dscontent);
+  		$put = $ua->put($url => \%headers => $dscontent);
 	}else{
-		$put = $ua->put($url);
+		$put = $ua->put($url => \%headers);
 	}
   if (my $r = $put->success) {
   	#unshift @{$res->{alerts}}, { type => 'success', msg => $r->body };
@@ -763,7 +799,14 @@ sub create_empty {
 
 	my $pid;
 	my $ua = Mojo::UserAgent->new;
-  	my $put = $ua->post($url => {'Content-Type' => 'text/xml'} => $foxml);
+
+	my %headers;
+  if($c->stash->{remote_user}){
+    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
+  }
+  $headers{'Content-Type'} = 'text/xml';
+
+  	my $put = $ua->post($url => \%headers => $foxml);
   	if (my $r = $put->success) {
   		$res->{pid} = $r->body;
   	}else {

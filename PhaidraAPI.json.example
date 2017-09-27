@@ -197,6 +197,15 @@
     		"securitycredentials": ""
     	}
 
+        "upstream": {
+            "enabled": 1,
+            "principalheader": "this is the principal header as in fedora UpstreamAuth config",
+            "upstreamusername": "if someone is calling api with principial header, he has to use this credentials",
+            "upstreampassword": "secret",
+            "fedorausername": "fedora int call user",
+            "fedorapassword": "secret"
+      }
+
     }
 
 }
