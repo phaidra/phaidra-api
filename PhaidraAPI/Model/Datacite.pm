@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use v5.10;
 use utf8;
+
 use Mojo::ByteStream qw(b);
 use Mojo::Util qw(xml_escape encode decode);
 use base qw/Mojo::Base/;
@@ -15,6 +16,9 @@ use PhaidraAPI::Model::Uwmetadata::Extraction;
 use PhaidraAPI::Model::Mods::Extraction;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Languages;
+
+use Data::Dumper;
+$Data::Dumper::Indent= 1;
 
 our $datacite_ns = "http://datacite.org/schema/kernel-4";
 
@@ -105,6 +109,7 @@ sub map_uwmetadata_2_datacite {
   $dom->parse($xml);
 
   my $ext = PhaidraAPI::Model::Uwmetadata::Extraction->new;
+  # $c->app->log->debug("112 UWM ext=".Dumper($ext));
 
   my %doc_uwns = {};
 
@@ -157,6 +162,8 @@ sub map_uwmetadata_2_datacite {
   $data{publishers} = $ext->_get_publishers($c, $dom, \%doc_uwns);
   $data{contributors} = $ext->_get_contributors($c, $dom, \%doc_uwns);
   $data{licenses} = $ext->_get_licenses($c, $dom, \%doc_uwns, $tree, $metadata_model);
+  $data{upload_date}= $ext->_get_upload_date ($c, $dom, \%doc_uwns, $tree, $metadata_model);
+
   my $keywords = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:keyword');
   my $classifications = $ext->_get_uwm_classifications($c, $dom, \%doc_uwns);
   for my $k (@{$keywords}){
@@ -316,6 +323,21 @@ DataCite is unhappy about this (or the ordering)
     #  <affiliation>DataCite</affiliation>
     # </creator>
     #</creators>
+
+    unless (@{$data->{creators}})
+    { # NOTE: one creator is required
+      if (@{$data->{contributors}})
+      { # "steal" one contributor and promote her/him to "creator"
+        push (@{$data->{creators}}, shift @{$data->{contributors}});
+        $c->app->log->debug(join (' ', __FILE__, __LINE__, 'creator stolen from contributors'));
+      }
+      else
+      {
+        push (@{$data->{creators}}, { value => 'Unknown' } );
+        $c->app->log->debug(join (' ', __FILE__, __LINE__, 'creator Unknown'));
+      }
+    }
+
     my @creators_children;
     for my $cr (@{$data->{creators}}){
       my $ch = {
@@ -335,7 +357,7 @@ DataCite is unhappy about this (or the ordering)
       xmlname => "creators",
       children => \@creators_children
     };
-    
+
   }
 
   if(exists($data->{contributors})){
@@ -350,7 +372,13 @@ DataCite is unhappy about this (or the ordering)
     for my $cr (@{$data->{contributors}}){
       my $ch = {
         xmlname => "contributor",
-        children => []
+        children => [],
+        attributes => [
+          {
+            xmlname => "contributorType",
+            value => "Other", # TODO: https://schema.test.datacite.org/meta/kernel-4.1/include/datacite-contributorType-v4.xsd
+          },
+        ]
       };
       push @{$ch->{children}}, { xmlname => "contributorName", value => $cr->{value} };
       if($cr->{firstname}){
@@ -361,10 +389,14 @@ DataCite is unhappy about this (or the ordering)
       }
       push @contributors_children, $ch;
     }
-    push @datacite, {
-      xmlname => "contributors",
-      children => \@contributors_children
-    };
+
+    if (@contributors_children)
+    {
+      push @datacite, {
+        xmlname => "contributors",
+        children => \@contributors_children
+      };
+    }
   }
 
   if(exists($data->{titles})){
@@ -410,44 +442,51 @@ DataCite is unhappy about this (or the ordering)
     };
   }
 
+  $c->app->log->debug(join (' ', __FILE__, __LINE__, 'publisher'));
+  my @publishers;
   if(exists($data->{publishers})){
     #<publisher>DataCite</publisher>
     for my $p (@{$data->{publishers}}){
-      if ($p->{value})
-      {
-        push @datacite, {
-          xmlname => "publisher",
-          value => $p->{value}
-        };
-      }
+      push (@publishers, $p->{value}) if ($p->{value});
     }
   }
-  else
-  {
-    # TODO/DEFAULTS
-    push (@datacite, { xmlname => "publisher", value => "UniWien" });
-  }
+  push (@publishers, 'UniWien') unless (@publishers);
+  push (@datacite, { xmlname => "publisher", value => $publishers[0] } ); # there is only one publsher element?
+  $c->app->log->debug("added default publisher: p=".join(' ', @publishers));
 
+  $c->app->log->debug(join (' ', __FILE__, __LINE__, 'publicationYear'));
   # NOTE: the code below seems to allow multiple publicationYear, check if this is valid
+  my @publication_year;
   if(exists($data->{embargodates}) || exists($data->{pubyears})){
     #<publicationYear>2014</publicationYear>
     # Year when the data is made publicly available. If an embargo period has been in effect, use the date when the embargo period ends.
     if(defined($data->{embargodates})){
       for my $em (@{$data->{embargodates}}){
-        push @datacite, {
-          xmlname => "publicationYear",
-          value => $em->{value}
-        };	
+        push @publication_year, $em->{value};
+        }
       }
-    }else{  
+    }else{
       for my $py (@{$data->{pubyears}}){
-        push @datacite, {
-          xmlname => "publicationYear",
-          value => $py->{value}
-        };
+        push @publication_year, $py->{value};
+        }
       }
+
+  unless (@publication_year)
+  {
+    my $year= 2017; # TODO: get value from <ns1:upload_date>
+
+    if (exists ($data->{upload_date}))
+    {
+      my $d= $data->{upload_date};
+      $c->app->log->debug("upload_date=". Dumper($d));
+      $year= substr ($d->[0], 0, 4);
     }
+
+    @publication_year= $year;
   }
+  @publication_year= sort { $a <=> $b } @publication_year;
+  
+  push @datacite, { xmlname => "publicationYear", value => $publication_year[0] };
 
   if(exists($data->{descriptions})){
     #

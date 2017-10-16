@@ -466,6 +466,22 @@ sub _get_publishers {
   return \@res;
 }
 
+sub _get_upload_date
+{
+  my ($self, $c, $dom, $doc_uwns, $type) = @_;
+
+  my @res;
+  
+  my $vals = $self->_get_uwm_element_values($c, $dom, $doc_uwns->{'lom'}.'\:upload_date');
+  for my $v (@$vals)
+  {
+    push @res, $v->{value};
+  }
+
+
+  \@res;
+}
+
 sub _get_creators {
 
   my ($self, $c, $dom, $doc_uwns, $type) = @_;
