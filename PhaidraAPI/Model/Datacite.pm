@@ -161,7 +161,7 @@ sub map_uwmetadata_2_datacite {
   $data{filesizes} = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
   $data{publishers} = $ext->_get_publishers($c, $dom, \%doc_uwns);
   $data{contributors} = $ext->_get_contributors($c, $dom, \%doc_uwns);
-  $data{licenses} = $ext->_get_licenses($c, $dom, \%doc_uwns, $tree, $metadata_model);
+  $data{licenses} = $ext->_get_licenses_datacite($c, $dom, \%doc_uwns, $tree, $metadata_model);
   $data{upload_date}= $ext->_get_upload_date ($c, $dom, \%doc_uwns, $tree, $metadata_model);
 
   my $keywords = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:keyword');
@@ -428,10 +428,11 @@ DataCite is unhappy about this (or the ordering)
               xmlname => "titleType",
               value => "Subtitle"
             },
-            {
-              xmlname => "lang",
-              value => $t->{lang} 
-            }
+            # cvc-complex-type.3.2.2: Attribute 'lang' is not allowed to appear in element 'title'.
+            # {
+            #   xmlname => "lang",
+            #   value => $t->{lang} 
+            # }
           ]
         };
       }
@@ -631,25 +632,25 @@ DataCite is unhappy about this (or the ordering)
     }
   }
 
+  my @rights_list;
   if(($cmodel ne 'Resource') && ($cmodel ne 'Collection')){
     #<rightsList>
     # <rights rightsURI="http://creativecommons.org/publicdomain/zero/1.0/">CC0 1.0 Universal</rights>
     #</rightsList>
     # rightsURI is optional
     if(exists($data->{licenses})){
-      for my $v (@{$data->{licenses}}){ 
-        push @datacite, {
-          xmlname => "rightsList",
-          children => [
-            {
-              xmlname => "rights",
-              value => $v->{value}
-            }
-          ]
-        }
+      for my $v (@{$data->{licenses}})
+      { 
+        $c->app->log->debug("rights: ". Dumper($v));
+
+        my $rights= { xmlname => "rights", value => $v->{value} };
+	$rights->{attributes}= [ { xmlname => 'rightsURI', value => $v->{link_uri} } ] if (exists ($v->{link_uri}));
+	push (@rights_list, $rights);
       }
     }
   }
+
+  push (@datacite, { xmlname => "rightsList", children => \@rights_list }) if (@rights_list);
 
   return \@datacite;
 }
