@@ -422,6 +422,11 @@ DataCite is unhappy about this (or the ordering)
       }
     }
   }
+  else
+  {
+    # TODO/DEFAULTS
+    push (@datacite, { xmlname => "publisher", value => "UniWien" });
+  }
 
   # NOTE: the code below seems to allow multiple publicationYear, check if this is valid
   if(exists($data->{embargodates}) || exists($data->{pubyears})){
