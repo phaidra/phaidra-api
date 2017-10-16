@@ -458,10 +458,14 @@ DataCite is unhappy about this (or the ordering)
         value => $de->{value}, 
 
          attributes => [
-#          {
-#            xmlname => "descriptionType",
-#            value => "Other" # we don't have description type 
-#          },
+         {
+           # cvc-complex-type.4: Attribute 'descriptionType' must appear on element 'description'.
+	   # https://schema.test.datacite.org/meta/kernel-4.1/include/datacite-descriptionType-v4.xsd
+	   # values: Abstract Methods SeriesInformation TableOfContents TechnicalInfo Other
+
+           xmlname => "descriptionType",
+           value => "Other" # we don't have description type; TODO: add heuristics to select one of the allowed values
+         },
 # ATTN: register_doi POST metadata returned code1=[400] res1=[[xml] xml error: cvc-complex-type.3.2.2: Attribute 'lang' is not allowed to appear in element 'description'.]
 #          {
 #            xmlname => "lang",
