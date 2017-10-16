@@ -11,4 +11,4 @@ kill -TERM `cat hypnotoad.pid`
 Starting
 --------
 
-hypnotodad phaidra-api.cgi
+hypnotoad phaidra-api.cgi
