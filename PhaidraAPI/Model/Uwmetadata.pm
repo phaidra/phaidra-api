@@ -1726,7 +1726,14 @@ sub json_2_uwmetadata_rec(){
 
 			}else{
 				if($child->{datatype} eq 'Boolean'){
-					$writer->characters($child->{value});
+					my $val = $child->{value};
+					if($val eq '1'){
+						$val = 'yes';
+					}
+					if($val eq '0'){
+						$val = 'no';
+					}
+					$writer->characters($val);
 				}else{
 					if($child->{value}){
 						$writer->characters($child->{value});
