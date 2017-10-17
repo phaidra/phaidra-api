@@ -239,6 +239,31 @@ sub _get_licenses {
   return \@arr;
 }
 
+# NOTE: dunno if _get_licenses is used elsewhere, for DataCite, we need the URIs to be an attribute, not an additional value in the list
+sub _get_licenses_datacite
+{
+
+  my ($self, $c, $dom, $doc_uwns, $tree, $metadata_model) = @_;
+
+  my @arr;
+  my $vals = $self->_get_uwm_element_values($c, $dom, $doc_uwns->{'lom'}.'\:license');
+
+  my $licenses_model = PhaidraAPI::Model::Licenses->new;
+  my $licenses = $licenses_model->get_licenses($c);
+  for my $v (@{$vals}){
+    my $lic_label = '';
+    my $lic_link = '';
+    for my $lic (@{$licenses->{licenses}}){
+      if($v->{value} eq $lic->{lid}){
+        push @arr, my $obj= { value => $lic->{labels}->{en} };
+        $obj->{link_uri}= $lic->{link_uri} unless $lic->{lid} eq 1;
+      }
+    }
+  }
+
+  return \@arr;
+}
+
 sub _get_formats {
 
   my ($self, $c, $pid, $cmodel, $dom, $doc_uwns) = @_;
