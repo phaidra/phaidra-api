@@ -21,6 +21,8 @@ sub get_all_pids {
 
     # get only o:N pids (there are also bdef etc..)
     next unless(@{$statement}[0] =~ m/(o:\d+)/);
+    # skip handles
+    next if(@{$statement}[0] =~ m/hdl/);
 
     @{$statement}[2] =~ m/^\<info:fedora\/([a-zA-Z\-]+:[0-9]+)\>$/g;
     my $pid = $1;

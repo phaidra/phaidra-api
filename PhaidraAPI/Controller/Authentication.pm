@@ -43,7 +43,7 @@ sub extract_credentials {
 				$upstream_auth_success = 1;
 			}else{
 				# the request contains the principal header with a remote user definition but it has wrong upstream auth credentials
-				$self->render(json => { alerts => [{ type => 'danger', msg => 'upstream authentication failed' }]} , status => 500) ;
+				$self->render(json => { status => 500, alerts => [{ type => 'danger', msg => 'upstream authentication failed' }]} , status => 500) ;
 		    return 0;
 			}
 
@@ -84,7 +84,7 @@ sub extract_credentials {
 		    	# If I use the realm the browser does not want to show the prompt!
 		    	# $self->res->headers->www_authenticate('Basic "'.$self->app->config->{authentication}->{realm}.'"');
 		    	$self->res->headers->www_authenticate('Basic');
-		    	$self->render(json => { alerts => [{ type => 'danger', msg => 'no credentials found' }]} , status => 401) ;
+		    	$self->render(json => { status => 401, alerts => [{ type => 'danger', msg => 'no credentials found' }]} , status => 401) ;
 		    	return 0;
 		    }
 		}else{
@@ -115,7 +115,7 @@ sub keepalive {
 	unless($session->sid){		
 		$session->create;		
 	}	
-	$self->render(json => { expires => $session->expires, sid => $session->sid  } , status => 200 ) ;
+	$self->render(json => { expires => $session->expires, sid => $session->sid, status => 200  } , status => 200 ) ;
 }
 
 sub cors_preflight {
@@ -137,7 +137,7 @@ sub authenticate {
     my $res = $self->stash('phaidra_auth_result');
     unless(($res->{status} eq 200)){    
     	$self->app->log->info("User $username not authenticated");	
-    	$self->render(json => { alerts => $res->{alerts}} , status => $res->{status}) ;
+    	$self->render(json => { status => $res->{status}, alerts => $res->{alerts} } , status => $res->{status}) ;
     	return 0;    		
     }    
     $self->app->log->info("User $username successfully authenticated");
@@ -153,7 +153,7 @@ sub authenticate_admin {
 	
     unless( ($username eq $self->app->config->{phaidra}->{adminusername}) && ($password eq $self->app->config->{phaidra}->{adminpassword})){    
     	$self->app->log->info("Not authenticated");	
-    	$self->render(json => { alerts => [{ type => 'danger', msg => "Not authenticated" }]}, status => 403 );
+    	$self->render(json => { status => 403, alerts => [{ type => 'danger', msg => "Not authenticated" }]}, status => 403 );
     	return 0;    		
     }    
     $self->app->log->info("Admin successfully authenticated");
@@ -169,7 +169,7 @@ sub signin {
     unless($auth_header)
     {
     	$self->res->headers->www_authenticate('Basic "'.$self->app->config->{authentication}->{realm}.'"');
-    	$self->render(json => { alerts => [{ type => 'danger', msg => 'please authenticate' }]} , status => 401);
+    	$self->render(json => { status => 401, alerts => [{ type => 'danger', msg => 'please authenticate' }]} , status => 401);
     	return;
     }    
     my ($method, $str) = split(/ /,$auth_header);
@@ -179,7 +179,7 @@ sub signin {
     my $res = $self->stash('phaidra_auth_result');
     unless(($res->{status} eq 200)){    
     	$self->app->log->info("User $username not authenticated");	
-    	$self->render(json => { alerts => $res->{alerts}} , status => $res->{status});
+    	$self->render(json => { status => $res->{status}, alerts => $res->{alerts}} , status => $res->{status});
     	return;    		
     }    
     $self->app->log->info("User $username successfully authenticated");
@@ -198,7 +198,7 @@ sub signin {
     $cookie->secure(1);
     $self->tx->res->cookies($cookie);
     
-    $self->render(json => { alerts => [], $self->app->config->{authentication}->{token_cookie} => $session->sid} , status => $res->{status}) ;    
+    $self->render(json => { status => $res->{status}, alerts => [], $self->app->config->{authentication}->{token_cookie} => $session->sid} , status => $res->{status}) ;    
 }
 
 sub signout {
@@ -210,9 +210,9 @@ sub signout {
 	if($session->sid){	
 		$session->expire;							
 		$session->flush;	
-		$self->render(json => { alerts => [{ type => 'success', msg => 'You have been signed out' }], sid => $session->sid }, status => 200);
+		$self->render(json => { status => 200, alerts => [{ type => 'success', msg => 'You have been signed out' }], sid => $session->sid }, status => 200);
 	}else{
-		$self->render(json => { alerts => [{ type => 'info', msg => 'No session found' }]}, status => 200);
+		$self->render(json => { status => 200, alerts => [{ type => 'info', msg => 'No session found' }]}, status => 200);
 	}
 	
 }
@@ -237,7 +237,7 @@ sub check_rights {
   my $res = $object_model->get_datastream($self, $pid, $ds, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 
   if($res->{status} eq '404'){
-  	$self->render(json => { status => '200' },status => 200);   
+  	$self->render(json => { status => '200' }, status => 200);   
   }else{
    	$res->{status} = '403';
    	$self->render(json => $res, status => 403);

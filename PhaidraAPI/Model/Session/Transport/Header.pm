@@ -11,6 +11,7 @@ __PACKAGE__->attr('log');
 
 sub get {
     my ($self) = @_;
+    #$self->log->debug("Loading header=".$self->name.": ".$self->tx->req->headers->header($self->name));
     return $self->tx->req->headers->header($self->name);	
 }
 

@@ -187,7 +187,7 @@ sub startup {
       $allow_headers .= ', '.$config->{authentication}->{upstream}->{principalheader};
     }
 
-		$self->res->headers->add('Access-Control-Allow-Headers' => 'Authorization, Content-Type, X-Prototype-Version, X-Requested-With, '.$config->{authentication}->{token_header});
+		$self->res->headers->add('Access-Control-Allow-Headers' => $allow_headers);
     # comes from prototype's Ajax.Updater
     $self->res->headers->add('Access-Control-Expose-Headers' => 'x-json');
 	});
@@ -213,7 +213,9 @@ sub startup {
 	        $ciphertext = encode_base64url( $cbc->encrypt( $ba ) );
 	    };
 	    $self->app->log->error("Encoding error: $@") if $@;
-		$session->data(cred => $ciphertext, salt => $salt);
+		  $session->data(cred => $ciphertext, salt => $salt);
+
+      #$self->app->log->debug("Created session: ".$session->sid);
     });
 
     $self->helper(load_cred => sub {
@@ -224,6 +226,7 @@ sub startup {
 		unless($session->sid){
 			return undef;
 		}
+    #$self->app->log->debug("Loaded session: ".$session->sid);
 
 		my $salt = $session->data('salt');
 		my $ciphertext = $session->data('cred');
