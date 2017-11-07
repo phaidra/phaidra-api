@@ -3,12 +3,12 @@ phaidra-api
 
 See https://github.com/phaidra/phaidra-api/wiki/Documentation
 
-Stoping
--------
-
-hypnotoad phaidra-api.cgi --stop
-
-Starting
+Starting/Hotreload
 --------
 
 hypnotoad phaidra-api.cgi
+
+Stopping
+-------
+
+hypnotoad phaidra-api.cgi --stop
