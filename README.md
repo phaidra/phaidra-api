@@ -6,7 +6,7 @@ See https://github.com/phaidra/phaidra-api/wiki/Documentation
 Stoping
 -------
 
-kill -TERM `cat hypnotoad.pid`
+hypnotoad phaidra-api.cgi --stop
 
 Starting
 --------
