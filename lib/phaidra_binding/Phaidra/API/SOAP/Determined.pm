@@ -11,14 +11,17 @@ use warnings;
 
 our $VERSION = '1.0';
 use base 'SOAP::Lite';
-
-
+use Log::Log4perl qw(get_logger);
+use Data::Dumper ;
 
 sub call
 {
 	my($self, @args) = @_;
 
 	my %retry_codes = ( 408 => 1, 500 => 1, 502 => 1, 503 => 1, 504 => 1 );
+    my $log = get_logger();
+
+	
 	my $resp;
 	foreach my $pause (1, 3, 15, 0)
 	{
@@ -26,6 +29,7 @@ sub call
 		{
 			SOAP::Trace::debug("Requesting...");
 			$resp = $self->SUPER::call(@args);
+			###$log->debug("Soap object". Dumper $self);
 		};
 		if($@)
 		{

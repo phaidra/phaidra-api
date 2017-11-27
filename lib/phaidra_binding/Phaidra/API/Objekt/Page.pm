@@ -3,7 +3,7 @@
 # Phaidra API Picture Object class.
 #
 # $Id: Page.pm 1382 2013-01-10 15:04:50Z univie $
-# $URL: https://svn.phaidra.univie.ac.at/phaidra/trunk/api/perl/Phaidra/API/Objekt/Page.pm $
+# $URL: https://svn.phaidra.univie.ac.at/phaidra/branches/release_2.9/api/perl/Phaidra/API/Objekt/Page.pm $
 #
 
 use strict;
