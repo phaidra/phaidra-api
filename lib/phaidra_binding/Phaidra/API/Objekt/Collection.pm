@@ -2,8 +2,8 @@
 #
 # Phaidra API Collection Object class.
 #
-# $Id: Collection.pm 1817 2013-07-27 03:37:37Z gg $
-# $URL: https://svn.phaidra.univie.ac.at/phaidra/trunk/api/perl/Phaidra/API/Objekt/Collection.pm $
+# $Id: Collection.pm 1382 2013-01-10 15:04:50Z univie $
+# $URL: https://svn.phaidra.univie.ac.at/phaidra/branches/release_2.9/api/perl/Phaidra/API/Objekt/Collection.pm $
 #
 
 use strict;
@@ -78,8 +78,7 @@ sub addMembers
 
 # Delete a member from the collection.
 # $pids is an arrayref of PIDs
-#
-# The member information will be saved into the object directly. An object that is already deleted will be ignored.
+# # The member information will be saved into the object directly. An object that is already deleted will be ignored.
 sub removeMembers
 {
 	my ($self, $pids) = @_;
