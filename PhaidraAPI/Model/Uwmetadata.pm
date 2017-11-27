@@ -1631,7 +1631,8 @@ sub json_2_uwmetadata_rec(){
 		# some elements are not allowed to be empty, so if these are empty we cannot add them to uwmetadata
 		# but some special needs to be there anyway: classification, mandatory fields like general/description, lifecycle/status, rights/cost, etc..
 		my $canskip = 1;
-		if($child->{xmlname} eq 'classification'){
+		if($child->{xmlname} eq 'classification' ||
+			$child->{xmlname} eq 'description'){
 			$canskip = 0;
 		}
 		if($child->{mandatory}){
