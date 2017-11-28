@@ -317,6 +317,11 @@ sub get_metadata {
   my $pid = $self->stash('pid');
   my $username = $self->stash->{basic_auth_credentials}->{username};
   my $password = $self->stash->{basic_auth_credentials}->{password};
+  my $mode = $self->param('mode');
+
+  unless(defined($mode)){
+    $mode = 'basic';
+  }
 
   my $search_model = PhaidraAPI::Model::Search->new;
   my $r = $search_model->datastreams_hash($self, $pid);
@@ -326,7 +331,7 @@ sub get_metadata {
 
   if($r->{dshash}->{'MODS'}){   
     my $mods_model = PhaidraAPI::Model::Mods->new;
-    my $r = $mods_model->get_object_mods_json($self, $pid, 'basic', $username, $password);
+    my $r = $mods_model->get_object_mods_json($self, $pid, $mode, $username, $password);
     if($r->{status} ne 200){
       for my $a (@{$r->{alerts}}){
         push @{$res->{alerts}}, $a;
@@ -338,7 +343,7 @@ sub get_metadata {
 
   if($r->{dshash}->{'UWMETADATA'}){   
     my $uwmetadata_model = PhaidraAPI::Model::Uwmetadata->new;
-    my $r = $uwmetadata_model->get_object_metadata($self, $pid, 'basic', $username, $password);
+    my $r = $uwmetadata_model->get_object_metadata($self, $pid, $mode, $username, $password);
     if($r->{status} ne 200){
       for my $a (@{$r->{alerts}}){
         push @{$res->{alerts}}, $a;
