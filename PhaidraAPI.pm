@@ -333,6 +333,10 @@ sub startup {
   $r->route('stats/:pid/downloads')               ->via('get')    ->to('stats#stats', stats_param_key => 'downloads');
   $r->route('stats/:pid/detail_page')             ->via('get')    ->to('stats#stats', stats_param_key => 'detail_page');
 
+  $r->route('directory/user/:username/data')      ->via('get')    ->to('directory#get_user_data');
+  $r->route('directory/user/:username/name')      ->via('get')    ->to('directory#get_user_name');
+  $r->route('directory/user/:username/email')     ->via('get')    ->to('directory#get_user_email');
+
   # this just extracts the credentials - authentication will be done by fedora
 	my $apiauth = $r->under('/')->to('authentication#extract_credentials', must_be_present => 1);
   my $apiauth_optional = $r->under('/')->to('authentication#extract_credentials', must_be_present => 0);  
@@ -344,9 +348,6 @@ sub startup {
   my $check_admin_auth = $apiauth->under('/')->to('authentication#authenticate_admin');
 
 	if($self->app->config->{allow_userdata_queries}){
-  	$check_auth->route('directory/user/:username/data')                 ->via('get')      ->to('directory#get_user_data');
-		$check_auth->route('directory/user/:username/name')                 ->via('get')      ->to('directory#get_user_name');
- 		$check_auth->route('directory/user/:username/email')                ->via('get')      ->to('directory#get_user_email');
     $check_auth->route('directory/user/search')                         ->via('get')      ->to('directory#search_user');
   }
 
