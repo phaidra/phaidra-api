@@ -32,7 +32,7 @@ sub get {
   # when extracting metadata using Mojo::DOM we use ->content which returns UTF-8 encoded data
   # since we're not going to save the data to fedora but render them, we need to decode them first before passing it to renderer because
   # the renderer will UTF-8 encode the data again
-  $self->_decode_rec(undef, $res->{datacite});
+  $self->_decode_rec(undef, $res->{datacite}->{datacite_elements});
 
   if($format eq 'xml'){
     $self->render(text => $model->json_2_xml($self, $res->{datacite}), format => 'xml');
@@ -40,9 +40,11 @@ sub get {
   }
 
   $self->respond_to(
-    json => { json => $res->{datacite} },
-    xml  => { text => $model->json_2_xml($self, $res->{datacite})},
-    any => { json => { metadata => { datacite => $res->{datacite}}}}
+    # json => { json => $res->{datacite} },
+    json => { json => $res },
+    xml  => { text => $model->json_2_xml($self, $res->{datacite}->{datacite_elements})},
+    # any => { json => { metadata => { datacite => $res->{datacite}}}}
+    any => { json => $res },
   );
 
 }

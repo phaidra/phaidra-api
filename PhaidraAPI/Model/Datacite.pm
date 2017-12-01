@@ -88,7 +88,6 @@ sub get {
   }
 
   return $res;
-
 }
 
 
@@ -180,7 +179,6 @@ sub map_uwmetadata_2_datacite {
   }
 
   return $self->data_2_datacite($c, $cmodel, \%data);
-
 }
 
 
@@ -251,6 +249,13 @@ sub data_2_datacite {
   my ($self, $c, $cmodel, $data) = @_;
 
   my @datacite;
+  my @errors;
+  my $res=
+  {
+    'status' => 'OK',
+    'datacite_elements' => \@datacite,
+    'errors' => \@errors,
+  };
 
 =begin comment
 
@@ -445,15 +450,24 @@ DataCite is unhappy about this (or the ordering)
 
   $c->app->log->debug(join (' ', __FILE__, __LINE__, 'publisher'));
   my @publishers;
-  if(exists($data->{publishers})){
+  if(exists($data->{publishers}))
+  {
     #<publisher>DataCite</publisher>
     for my $p (@{$data->{publishers}}){
       push (@publishers, $p->{value}) if ($p->{value});
     }
   }
-  push (@publishers, 'UniWien') unless (@publishers);
-  push (@datacite, { xmlname => "publisher", value => $publishers[0] } ); # there is only one publsher element?
-  $c->app->log->debug("added default publisher: p=".join(' ', @publishers));
+
+  if (@publishers)
+  {
+    push (@datacite, { xmlname => "publisher", value => $publishers[0] } ); # there is only one publsher element?
+    $c->app->log->debug("added default publisher: p=".join(' ', @publishers));
+  }
+  else
+  {
+    push (@errors, 'publisher missing');
+    $res->{status}= 'INCOMPLETE';
+  }
 
   $c->app->log->debug(join (' ', __FILE__, __LINE__, 'publicationYear'));
   # NOTE: the code below seems to allow multiple publicationYear, check if this is valid
@@ -472,22 +486,17 @@ DataCite is unhappy about this (or the ordering)
         }
       }
 
-  unless (@publication_year)
+  if (@publication_year)
   {
-    my $year= 2017; # TODO: get value from <ns1:upload_date>
-
-    if (exists ($data->{upload_date}))
-    {
-      my $d= $data->{upload_date};
-      $c->app->log->debug("upload_date=". Dumper($d));
-      $year= substr ($d->[0], 0, 4);
-    }
-
-    @publication_year= $year;
-  }
-  @publication_year= sort { $a <=> $b } @publication_year;
+    @publication_year= sort { $a <=> $b } @publication_year;
   
-  push @datacite, { xmlname => "publicationYear", value => $publication_year[0] };
+    push @datacite, { xmlname => "publicationYear", value => $publication_year[0] };
+  }
+  else
+  {
+    push (@errors, 'publicationYear missing');
+    $res->{status}= 'INCOMPLETE';
+  }
 
   if(exists($data->{descriptions})){
     #
@@ -652,7 +661,7 @@ DataCite is unhappy about this (or the ordering)
 
   push (@datacite, { xmlname => "rightsList", children => \@rights_list }) if (@rights_list);
 
-  return \@datacite;
+  return $res;
 }
 
 sub _get_relsext_identifiers {
