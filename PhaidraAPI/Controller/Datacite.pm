@@ -35,7 +35,7 @@ sub get {
   $self->_decode_rec(undef, $res->{datacite}->{datacite_elements});
 
   if($format eq 'xml'){
-    $self->render(text => $model->json_2_xml($self, $res->{datacite}), format => 'xml');
+    $self->render(text => $model->json_2_xml($self, $res->{datacite}->{datacite_elements}), format => 'xml');
     return;
   }
 
