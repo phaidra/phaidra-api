@@ -67,7 +67,6 @@ sub startup {
     $self->helper( directory => sub { return $directory; } );
 
   	# init I18N
-  	$self->plugin(charset => {charset => 'utf8'});
   	$self->plugin(I18N => {namespace => 'PhaidraAPI::I18N', support_url_langs => [qw(en de it sr)]});
 
   	# init cache
