@@ -493,7 +493,7 @@ sub _proxy_tx {
   else {
     my $error = $tx->error;
     $c->tx->res->headers->add('X-Remote-Status', $error->{code} . ': ' . $error->{message});
-    $c->render(status => 500, text => 'Failed to fetch data from Fedora: '.$tx->error);
+    $c->render(status => 500, text => 'Failed to fetch data from Fedora: '.$c->app->dumper($tx->error));
   }
 }
 

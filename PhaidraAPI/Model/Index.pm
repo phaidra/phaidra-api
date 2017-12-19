@@ -130,7 +130,7 @@ our %uwm_2_mods_roles = (
 );
 
 sub update {
-  my ($self, $c, $pid, $dc_model, $search_model, $rel_model, $object_model) = @_;
+  my ($self, $c, $pid, $dc_model, $search_model, $rel_model, $object_model, $ignorestatus) = @_;
 
   my $res = { status => 200 };    
 
@@ -144,7 +144,7 @@ sub update {
     if($cmodel_res->{cmodel} ne 'Page'){
 
       my $t0 = [gettimeofday];
-      my $r = $self->_get($c, $pid, $dc_model, $search_model, $rel_model, $object_model);
+      my $r = $self->_get($c, $pid, $dc_model, $search_model, $rel_model, $object_model, $ignorestatus);
       #$c->app->log->debug("XXXXXXX indexing took ".tv_interval($t0));
       $res = $r;
 
@@ -372,19 +372,19 @@ sub _update_ispartof_post {
 }
 
 sub get {
-  my ($self, $c, $pid) = @_;
+  my ($self, $c, $pid, $ignorestatus) = @_;
 
   my $dc_model = PhaidraAPI::Model::Dc->new;
   my $search_model = PhaidraAPI::Model::Search->new;
   my $rel_model = PhaidraAPI::Model::Relationships->new;
   my $object_model = PhaidraAPI::Model::Object->new;
 
-  return $self->_get($c, $pid, $dc_model, $search_model, $rel_model, $object_model);
+  return $self->_get($c, $pid, $dc_model, $search_model, $rel_model, $object_model, $ignorestatus);
 }
 
 sub _get {
 
-  my ($self, $c, $pid, $dc_model, $search_model, $rel_model, $object_model) = @_;
+  my ($self, $c, $pid, $dc_model, $search_model, $rel_model, $object_model, $ignorestatus) = @_;
 
   my $res = { status => 200 };        
 
@@ -402,19 +402,23 @@ sub _get {
     for my $e1 ($e->find('foxml\:property')->each){
 
       if($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#state'){
-        # skip inactive objects
-        my $state = $e1->attr('VALUE');
-        if($state ne 'Active'){
-          my $errmsg = "[_get index] $pid is $state, deleting from index.";
-          $c->app->log->warn($errmsg);
-          push @{$res->{alerts}}, { type => 'danger', msg => $errmsg };
-          if($state eq 'Deleted'){
-            $res->{status} = 301;
+        if($ignorestatus && ($ignorestatus eq '1')){
+          $c->app->log->debug("[_get index] ignorestatus=$ignorestatus");
+        }else{
+          # skip inactive objects
+          my $state = $e1->attr('VALUE');
+          if($state ne 'Active'){
+            my $errmsg = "[_get index] $pid is $state, deleting from index.";
+            $c->app->log->warn($errmsg);
+            push @{$res->{alerts}}, { type => 'danger', msg => $errmsg };
+            if($state eq 'Deleted'){
+              $res->{status} = 301;
+            }
+            if($state eq 'Inactive'){
+              $res->{status} = 302;
+            }
+            return $res;
           }
-          if($state eq 'Inactive'){
-            $res->{status} = 302;
-          }
-          return $res;
         }
       }
 

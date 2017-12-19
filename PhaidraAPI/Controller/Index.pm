@@ -15,9 +15,10 @@ sub get {
   my ($self) = @_;
 
   my $pid = $self->stash('pid');
+  my $ignorestatus = $self->param('ignorestatus');
   
   my $index_model = PhaidraAPI::Model::Index->new;
-  my $r = $index_model->get($self, $pid);
+  my $r = $index_model->get($self, $pid, $ignorestatus);
 
   $self->render(json => $r, status => $r->{status});
 }
@@ -26,6 +27,7 @@ sub update {
 
   my $self = shift;
   my $pid_param = $self->stash('pid');
+  my $ignorestatus = $self->param('ignorestatus');
 
   my $username = $self->stash->{basic_auth_credentials}->{username};
   my $password = $self->stash->{basic_auth_credentials}->{password};
@@ -73,7 +75,7 @@ sub update {
 
     eval {
 
-	    my $r = $index_model->update($self, $pid, $dc_model, $search_model, $rel_model, $object_model);  
+	    my $r = $index_model->update($self, $pid, $dc_model, $search_model, $rel_model, $object_model, $ignorestatus);  
 	    if($r->{status} eq 200 && $pidscount > 1){      
 	      push @res, { pid => $pid, status => 200 };
 	    }else{
