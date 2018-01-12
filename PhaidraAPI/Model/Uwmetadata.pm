@@ -1632,7 +1632,7 @@ sub json_2_uwmetadata_rec(){
 		# but some special needs to be there anyway: classification, mandatory fields like general/description, lifecycle/status, rights/cost, etc..
 		my $canskip = 1;
 		if($child->{xmlname} eq 'classification' ||
-			$child->{xmlname} eq 'description'){
+		     (($child->{xmlname} eq 'description') && ($child->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0') && ($parent->{xmlname} ne 'rights'))){
 			$canskip = 0;
 		}
 		if($child->{mandatory}){
