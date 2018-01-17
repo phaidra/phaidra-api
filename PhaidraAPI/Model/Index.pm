@@ -141,7 +141,7 @@ sub update {
       return $cmodel_res;
     }
 
-    if($cmodel_res->{cmodel} ne 'Page'){
+    if($cmodel_res->{cmodel} && $cmodel_res->{cmodel} ne 'Page'){
 
       my $t0 = [gettimeofday];
       my $r = $self->_get($c, $pid, $dc_model, $search_model, $rel_model, $object_model, $ignorestatus);
