@@ -153,12 +153,13 @@ sub map_uwmetadata_2_datacite {
   $data{titles} = $ext->_get_titles($c, $dom, \%doc_uwns);
   $data{descriptions} = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:description');
   $data{creators} = $ext->_get_creators($c, $dom, \%doc_uwns);
-  $data{pubyears} = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'digitalbook'}.'\:releaseyear');
+  $data{pubyears} = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'digitalbook'}.'\:releaseyear'); # does not work!
   $data{uploaddates} = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:upload_date');
   $data{embargodates} = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'extended'}.'\:infoeurepoembargo');
   $data{formats} = $ext->_get_formats($c, $pid, $cmodel, $dom, \%doc_uwns);
   $data{filesizes} = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
   $data{publishers} = $ext->_get_publishers($c, $dom, \%doc_uwns);
+  $data{publicationYear} = $ext->_get_releaseyear($c, $dom, \%doc_uwns);
   $data{contributors} = $ext->_get_contributors($c, $dom, \%doc_uwns);
   $data{licenses} = $ext->_get_licenses_datacite($c, $dom, \%doc_uwns, $tree, $metadata_model);
   $data{upload_date}= $ext->_get_upload_date ($c, $dom, \%doc_uwns, $tree, $metadata_model);
@@ -255,6 +256,7 @@ sub data_2_datacite {
     'status' => 'OK',
     'datacite_elements' => \@datacite,
     'errors' => \@errors,
+    'data' => $data,
   };
 
 =begin comment
@@ -469,26 +471,28 @@ DataCite is unhappy about this (or the ordering)
     $res->{status}= 'INCOMPLETE';
   }
 
+# see also PhaidraAPI/Model/Uwmetadata/Extraction.pm
+
   $c->app->log->debug(join (' ', __FILE__, __LINE__, 'publicationYear'));
-  # NOTE: the code below seems to allow multiple publicationYear, check if this is valid
   my @publication_year;
-  if(exists($data->{embargodates}) || exists($data->{pubyears})){
-    #<publicationYear>2014</publicationYear>
-    # Year when the data is made publicly available. If an embargo period has been in effect, use the date when the embargo period ends.
-    if(defined($data->{embargodates})){
-      for my $em (@{$data->{embargodates}}){
-        push @publication_year, $em->{value};
-        }
+
+      #<publicationYear>2014</publicationYear>
+      # Year when the data is made publicly available. If an embargo period has been in effect, use the date when the embargo period ends.
+  my @pub_year_sources= qw(embargodates publicationYear pubyear);
+  foreach my $an (@pub_year_sources)
+  {
+    if (exists($data->{$an}) && defined($data->{$an}))
+    {
+      for my $av (@{$data->{$an}})
+      {
+        push @publication_year, $av->{value};
       }
-    }else{
-      for my $py (@{$data->{pubyears}}){
-        push @publication_year, $py->{value};
-        }
-      }
+    }
+  }
 
   if (@publication_year)
   {
-    @publication_year= sort { $a <=> $b } @publication_year;
+    # @publication_year= sort { $a <=> $b } @publication_year; # no sorting, data is priorized
   
     push @datacite, { xmlname => "publicationYear", value => $publication_year[0] };
   }
@@ -587,10 +591,15 @@ DataCite is unhappy about this (or the ordering)
     #</subjects>
     # the scheme and URI are optional
     my @subject_children;
-    for my $s (@{$data->{subjects}}){
-      my $ch = {
-        xmlname => "subject",
-        value => $s->{value},
+    my %subject_children;
+    for my $s (@{$data->{subjects}})
+    {
+      my $subject= $s->{value};
+      unless (exists ($subject_children{$subject}))
+      {
+        my $ch = {
+          xmlname => "subject",
+          value => $subject,
 # ATTN: register_doi POST metadata returned code1=[400] res1=[[xml] xml error: cvc-complex-type.3.2.2: Attribute 'lang' is not allowed to appear in element 'subject'.]
 #        attributes => [
 #          {
@@ -598,8 +607,10 @@ DataCite is unhappy about this (or the ordering)
 #            value => $s->{lang}
 #          }
 #        ]
-      };
-      push @subject_children, $ch;
+        };
+        push @subject_children, $ch;
+        $subject_children{$subject}++;
+      }
     }
     push @datacite, {
       xmlname => "subjects",
@@ -624,11 +635,11 @@ DataCite is unhappy about this (or the ordering)
     }
   }
 
-  if(exists($data->{filesizes})){
+  if(exists($data->{formats})){
     #<formats>
     #  <format>application/xml</format>
     #</formats>
-    for my $f (@{$data->{filesizes}}){
+    for my $f (@{$data->{formats}}){
       push @datacite, {
         xmlname => "formats",
         children => [

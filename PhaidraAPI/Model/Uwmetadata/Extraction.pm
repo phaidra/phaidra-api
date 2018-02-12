@@ -491,6 +491,18 @@ sub _get_publishers {
   return \@res;
 }
 
+
+sub _get_releaseyear
+{
+  my ($self, $c, $dom, $doc_uwns, $type) = @_;
+
+  my @res;
+  my $releaseyear = $dom->find($doc_uwns->{'digitalbook'}.'\:releaseyear')->first;
+  push (@res, { value => $releaseyear->text } ) if (defined($releaseyear));
+  \@res;
+}
+
+
 sub _get_upload_date
 {
   my ($self, $c, $dom, $doc_uwns, $type) = @_;

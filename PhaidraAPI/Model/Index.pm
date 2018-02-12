@@ -488,6 +488,7 @@ sub _get {
       }
     }else{
       my ($dc_p, $dc_oai) = $dc_model->map_uwmetadata_2_dc_hash($c, $pid, $index{cmodel}, $datastreams{'UWMETADATA'}->find('foxml\:xmlContent')->first, $r0->{metadata_tree}, $uw_model, 1);
+#$c->app->log->debug("XXXXXXXXXXXXXXXXX ".$c->app->dumper($dc_p));
       $self->_add_dc_index($c, $dc_p, \%index);
     }
   }
@@ -693,7 +694,9 @@ sub _add_dc_index {
   while (my ($xmlname, $values) = each %{$dc}) {
     for my $v (@{$values}){
       if($v->{value} ne ''){
+#      $c->app->log->debug("XXXXXXXXXX value".$v->{value});
         my $val = b($v->{value})->decode('UTF-8');
+#        $c->app->log->debug("XXXXXXXXXX value".$val);
         if(exists($v->{lang})){
           push @{$index->{'dc_'.$xmlname}}, $val;
           push @{$index->{'dc_'.$xmlname."_".$PhaidraAPI::Model::Languages::iso639map{$v->{lang}}}}, $val;     
