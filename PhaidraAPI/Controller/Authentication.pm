@@ -217,32 +217,4 @@ sub signout {
 	
 }
 
-sub check_rights {
-
-	my $self = shift;
-	my $op = $self->stash('op');
-	my $pid = $self->stash('pid');
-
-	my $ds;
-	if($op eq 'ro'){
-		$ds = 'READONLY';
-	}elsif($op eq 'rw'){
-		$ds = 'READWRITE';
-	}else{
-		$self->render(json => { alerts => [{ type => 'danger', msg => 'Unknown operation to check' }]} , status => 400);
-		return;
-	}
-
-	my $object_model = PhaidraAPI::Model::Object->new;
-  my $res = $object_model->get_datastream($self, $pid, $ds, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
-
-  if($res->{status} eq '404'){
-  	$self->render(json => { status => '200' }, status => 200);   
-  }else{
-   	$res->{status} = '403';
-   	$self->render(json => $res, status => 403);
-  }    
-
-}
-
 1;

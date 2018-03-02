@@ -354,8 +354,8 @@ sub startup {
   $check_auth->route('group/:gid')                                      ->via('get')      ->to('groups#get_group');
 
   $apiauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
-  $apiauth_optional->route('authz/check/:pid/:op')                      ->via('get')      ->to('authentication#check_rights');  
-  $check_admin_auth->route('imageserver/:pid/status')                   ->via('get')      ->to('imageserver#status');    
+  $apiauth_optional->route('authz/check/:pid/:op')                      ->via('get')      ->to('authorization#check_rights');  
+  $apiauth->route('imageserver/:pid/status')                            ->via('get')      ->to('imageserver#status');    
   $apiauth_optional->route('imageserver')                               ->via('get')      ->to('imageserver#get');
 
   $apiauth_optional->route('object/:pid/octets')                        ->via('get')      ->to('octets#get');
@@ -370,8 +370,8 @@ sub startup {
     $check_admin_auth->route('object/:pid/index')                       ->via('post')     ->to('index#update');
     $check_admin_auth->route('object/:pid/dc')                          ->via('post')     ->to('dc#update');
 
-    $check_auth->route('imageserver/process')                           ->via('post')     ->to('imageserver#process_pids');
-    $check_auth->route('imageserver/:pid/process')                      ->via('post')     ->to('imageserver#process');
+    $check_admin_auth->route('imageserver/process')                     ->via('post')     ->to('imageserver#process_pids');
+    $apiauth->route('imageserver/:pid/process')                         ->via('post')     ->to('imageserver#process');
 
     $apiauth->route('object/:pid/modify')                               ->via('post')     ->to('object#modify');
     $apiauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');

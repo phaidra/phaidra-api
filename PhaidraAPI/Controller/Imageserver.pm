@@ -10,12 +10,20 @@ use Mojo::Util qw(decode encode url_escape url_unescape);
 use Mojo::ByteStream qw(b);
 use Digest::SHA qw(hmac_sha1_hex);
 use PhaidraAPI::Model::Object;
+use PhaidraAPI::Model::Authorization;
 
 sub process {
 
   my $self = shift;  
 
   my $pid = $self->stash('pid');
+
+  my $authz_model = PhaidraAPI::Model::Authorization->new;
+  my $res = $authz_model->check_rights($self, $pid, 'rw');
+	unless($res->{status} eq '200'){
+		$self->render(json => $res->{json}, status => $res->{status});
+    return;
+	}
 
   my $hash = hmac_sha1_hex($pid, $self->app->config->{imageserver}->{hash_secret});
 
@@ -68,6 +76,13 @@ sub status {
   my $self = shift;  
 
   my $pid = $self->stash('pid');
+
+  my $authz_model = PhaidraAPI::Model::Authorization->new;
+  my $res = $authz_model->check_rights($self, $pid, 'ro');
+	unless($res->{status} eq '200'){
+		$self->render(json => $res->{json}, status => $res->{status});
+    return;
+	}
 
   my $res = $self->paf_mongo->db->collection('jobs')->find({pid => $pid})->sort({ "created" => -1})->next;
 
