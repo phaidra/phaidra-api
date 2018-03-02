@@ -364,14 +364,14 @@ sub startup {
 
   unless($self->app->config->{readonly}){
 
-    $check_admin_auth->route('imageserver/process')                     ->via('post')     ->to('imageserver#process_pids');
-    $check_admin_auth->route('imageserver/:pid/process')                ->via('post')     ->to('imageserver#process');
-
     $check_admin_auth->route('index')                                   ->via('post')     ->to('index#update');
     $check_admin_auth->route('dc')                                      ->via('post')     ->to('dc#update');
     
     $check_admin_auth->route('object/:pid/index')                       ->via('post')     ->to('index#update');
     $check_admin_auth->route('object/:pid/dc')                          ->via('post')     ->to('dc#update');
+
+    $check_auth->route('imageserver/process')                           ->via('post')     ->to('imageserver#process_pids');
+    $check_auth->route('imageserver/:pid/process')                      ->via('post')     ->to('imageserver#process');
 
     $apiauth->route('object/:pid/modify')                               ->via('post')     ->to('object#modify');
     $apiauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');
