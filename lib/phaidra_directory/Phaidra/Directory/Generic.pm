@@ -1,4 +1,4 @@
-package Phaidra::Generic;
+package Phaidra::Directory::Generic;
 
 use strict;
 use warnings;
@@ -7,33 +7,23 @@ use utf8;
 use MongoDB;
 use Data::UUID;
 use YAML::Syck;
+use base 'Phaidra::Directory';
 
 my $config = undef;
-eval { $config = YAML::Syck::LoadFile('/etc/phaidra.yml'); };
-if($@)
-{
-    print "ERR: $@\n";
-}
-
-sub new 
-{
-	my ($class, $mojo, $config) = @_;
-
-	my $self = {};
-	bless($self, $class);
-	$self->_init($mojo, $config);
-	return $self;	
-}
 
 sub _init {
 	my $self = shift;
   	my $mojo = shift;
-  	my $config = shift;	
+	my $conf = shift;
+  	
+	$config = YAML::Syck::LoadFile('/etc/phaidra.yml');
+
   	return $self;	
 }
 
 sub authenticate($$$$){
-	my $app = shift;
+	my $self = shift;
+  my $c = shift; 
 	my $username = shift; 
 	my $password = shift;
 	my $extradata = shift;
@@ -54,52 +44,6 @@ sub authenticate($$$$){
     return undef;
 }
 
-sub validate_user(){
-	my $app = shift;
-	my $username = shift; 
-	my $password = shift;
-	my $extradata = shift;
-	
-	my $ret = authenticate($app, $username, $password, $extradata);
-	
-	# Mojolicious::Plugin::Authenticate requires that error returns undef and success uid
-	if($ret->{status} eq 200){
-		$app->log->info("successfuly authenticated $username");
-		return $username;
-	}else{
-		$app->log->error("authentication failed, error code: ".$ret->{status}."\n".$app->dumper($ret->{alerts}));
-		return undef;	
-	}
-}
-
-sub connect_mongodb_groupmanager()
-{
-	my $uri = "mongodb://"
-		. $config->{mongodb_group_manager}->{username}.":".$config->{mongodb_group_manager}->{password}
-		. "@"
-		. $config->{mongodb_group_manager}->{host}.":".$config->{mongodb_group_manager}->{port}
-		. "/".$config->{mongodb_group_manager}->{database};
-	my $client = MongoDB->connect($uri);
-
-=cut for 0.45 driver
-    my $client = MongoDB::Connection->new(
-    	host => $config->{mongodb_group_manager}->{host}, 
-    	port => $config->{mongodb_group_manager}->{port},
-    	username => $config->{mongodb_group_manager}->{username},
-    	password => $config->{mongodb_group_manager}->{password},
-    	db_name => $config->{mongodb_group_manager}->{database}
-    );
-=cut
-	return $client;
-}
-
-sub get_groups_col()
-{
-	my $client = connect_mongodb_groupmanager();
-	my $db = $client->get_database($config->{mongodb_group_manager}->{database});
-	return $db->get_collection($config->{mongodb_group_manager}->{collection});
-}
-
 #get the email adress for a specific user
 sub get_email
 {
@@ -109,8 +53,8 @@ sub get_email
 	
 	for my $user (@{$config->{users}}){
 		if($user->{username} eq $username){
-      return $user->{email};
-    }
+			return $user->{email};
+		}
 	}
 }
 
@@ -131,19 +75,19 @@ sub get_mame
 #get all departments of a faculty
 sub get_org_units
 {
-	my ($self,$c,$fakcode)=@_;
+	my ($self,$c,$parentid,$lang)=@_;
 
-	$fakcode =~ s/A//g;
+	$parentid =~ s/A//g;
 	my $values;
-	if($fakcode){
-		if($fakcode ne '-1') #fakcode A-1 == whole university => has no departments
+	if($parentid){
+		if($parentid ne '-1') #fakcode A-1 == whole university => has no departments
 		{
 			for my $f (@{$config->{faculties}}){
-			if($f->{fakcode} eq $fakcode){
-				for my $d (@{$f->{departments}}){
-				push @$values, {value => $d->{inum}, name => $d->{name}};
-				}
-			}
+        if($f->{fakcode} eq $parentid){
+          for my $d (@{$f->{departments}}){
+          push @$values, {value => $d->{inum}, name => $d->{name}};
+          }
+        }
 			}
 		}
 	}else{
@@ -152,7 +96,9 @@ sub get_org_units
 		}
 	}
   
-  return $values;
+  my $res = { alerts => [], status => 200 };
+  $res->{org_units} = $values;
+  return $res;
 }
 
 #get the id of a faculty
@@ -180,12 +126,12 @@ sub get_org_unit_name
 	my $name;
 	for my $f (@{$config->{faculties}}){
 		if($f->{fakcode} eq $id){
-		return $f->{name};
+		  return $f->{name};
 		}
 		for my $d (@{$f->{departments}}){
-		if($d->{inum} eq $id){
-			return $d->{name};
-		}
+      if($d->{inum} eq $id){
+        return $d->{name};
+      }
 		}
 	}
 	return $name;
@@ -207,15 +153,17 @@ sub get_org_name
 }
 
 #get all branch of studies
-sub get_study_plans
-{
-	my ($self,$c, $lang) = @_;
+sub get_study_plans {
+	my ($self, $c, $lang) = @_;
 
 	my @values = ();
 	
 	push @values,{value => 1, name=> 'Study 1'};
 	push @values,{value => 2, name=> 'Study 2'};
-	return \@values;
+
+  my $res = { alerts => [], status => 200 };
+  $res->{study_plans} = \@values;
+  return $res;
 }
 
 #get studies
@@ -253,7 +201,10 @@ sub get_study
             push @values,{value=>'0023',name=>'0023'};
 		}
 	}
-	return \@values;
+
+  my $res = { alerts => [], status => 200 };
+  $res->{study} = $values;
+  return $res;
 }
 
 #get the name of a study
@@ -374,81 +325,88 @@ sub search_user
 	return \@persons,$hits;
 } 
 
-# get groups of a user
-sub get_users_groups
+sub _connect_mongodb_group_manager()
 {
-	my ($self, $c, $username)= @_;
+	my $self = shift;
+	my $c = shift;	
 
-	my $groups = get_groups_col();
+	my $uri = "mongodb://"
+		. $c->app->config->{mongodb_group_manager}->{username}.":".$c->app->config->{mongodb_group_manager}->{password}
+		. "@"
+		. $c->app->config->{mongodb_group_manager}->{host}.":".$c->app->config->{mongodb_group_manager}->{port}
+		. "/".$c->app->config->{mongodb_group_manager}->{database};
 
-	my $user_groups = $groups->find({"owner" => $username});
-	my $active_group_name;
-	my @grps = ();
-	while (my $doc = $user_groups->next) {
-		$active_gid = $doc->{'groupid'};
-        $active_group_name = $doc->{'name'};		
-    	push @grps, { gid => $doc->{'groupid'}, group_name => $doc->{'name'} };
-	}
+	my $client = MongoDB->connect($uri);
 
-	return \@grps, $active_group_name, $active_gid;
+=cut
+    my $client = MongoDB::Connection->new(
+    	host => $c->app->config->{mongodb_group_manager}->{host}, 
+    	port => $c->app->config->{mongodb_group_manager}->{port},
+    	username => $c->app->config->{mongodb_group_manager}->{username},
+    	password => $c->app->config->{mongodb_group_manager}->{password},
+    	db_name => $c->app->config->{mongodb_group_manager}->{database}
+    );
+=cut
+
+	return $client;
 }
 
-#get Members of a group
+
+sub _get_groups_col()
+{
+	my $self = shift;
+	my $c = shift;	
+
+	my $client = $self->_connect_mongodb_group_manager($c);
+	my $db = $client->get_database($c->app->config->{mongodb_group_manager}->{database});
+	return $db->get_collection($c->app->config->{mongodb_group_manager}->{collection});
+}
+
+sub get_users_groups
+{
+	my ($self, $c, $owner) = @_;
+
+	my $groups = $self->_get_groups_col($c);
+
+	my $users_groups = $groups->find({"owner" => $owner});
+	my @grps = ();
+	while (my $doc = $users_groups->next) {
+    	push @grps, { groupid => $doc->{groupid}, name => $doc->{name}, created => $doc->{created}, updated => $doc->{updated} } ;
+	}
+
+	return \@grps;
+}
+
 sub get_group
 {
-	my ($self,$c,$gid) = @_;
+	my ($self, $c, $gid, $owner) = @_;
 	
-	my $groups = get_groups_col();
+	my $groups = $self->_get_groups_col($c);
 
-	my $g = $groups->find_one({"groupid" => $gid});	
+	my $g = $groups->find_one({"groupid" => $gid, "owner" => $owner});	
 
 	my @members = ();
 	for my $m (@{$g->{members}}){
-		push (@members, { member_id => $m, group_member => $self->get_group_member_name($c, $m) });
+		push (@members, { username => $m, name => $self->_get_group_member_name($c, $m) });
 	}
 
-    my $count = @members;
-	return \@members,$count;	
+	$g->{members} = \@members;
+
+	return $g;	
 }
 
-sub get_group_member_name
+sub _get_group_member_name
 {
-	my($self,$c,$username) = @_;
-
-	die("Internal error: undefined username") unless(defined($username));
-
-	$username = lc($username);
+	my($self, $c, $username) = @_;
         
-    return $self->get_mame($c,$username);       
-}
-
-sub add_group_member
-{
-  	my ($self, $c, $gid, $uid)= @_;
-	
-	my $groups = get_groups_col();
-
-  	# check if not already there
-  	my $g = $groups->find_one({"groupid" => $gid});	
-
-  	my @members = ();
-	for my $m (@{$g->{members}}){
-		return if $m eq $uid;
-	}
-
-	$groups->update({"groupid" => $gid}, {'$push' => {'members' => $uid}, '$set' => {"updated" => time}});
-
-	return;
+    return $self->get_name($c, $username);       
 }
  
 sub create_group
 {
-	my ($self, $c, $groupname, $username)= @_;
+	my ($self, $c, $groupname, $owner)= @_;
 
-  	die ("Internal error: undefined groupname") unless (defined ($groupname));
-  	die ("Internal error: undefined username") unless (defined ($username));
-
-  	my $groups = get_groups_col();
+  	my $groups = $self->_get_groups_col($c);
 
 	my $ug = Data::UUID->new;
 	my $bgid = $ug->create();
@@ -456,7 +414,7 @@ sub create_group
   	my @members = ();
   	$groups->insert({
     	"groupid" => $gid,
-    	"owner" => $username,
+    	"owner" => $owner,
     	"name" => $groupname,
     	"members" => \@members,
     	"created" => time,
@@ -466,26 +424,45 @@ sub create_group
   	return $gid; 
 }
 
-sub remove_group_member
-{
-	my ($self,$c,$gid,$uid)=@_;
-	die("Internal error: undefined glid")unless(defined($gid));
-	die("Internal error: undefined uid")unless(defined($uid));
-
-	my $groups = get_groups_col();	
-	$groups->update({"groupid" => $gid}, {'$pull' => {'members' => $uid}, '$set' => {"updated" => time} });
-
-	return;      
-}
-
 sub delete_group
 {
-	my ($self, $c, $gid) = @_;
+	my ($self, $c, $gid, $owner) = @_;
 
-	my $groups = get_groups_col();
-  	my $g = $groups->remove({"groupid" => $gid});	
+	my $groups = $self->_get_groups_col($c);
+  	my $g = $groups->remove({ "groupid" => $gid, "owner" => $owner });	
 
   	return;
 }
 
+
+sub remove_group_member
+{
+	my ($self, $c, $gid, $uid, $owner)=@_;
+
+	my $groups = $self->_get_groups_col($c);	
+	$groups->update({"groupid" => $gid, "owner" => $owner}, {'$pull' => {'members' => $uid}, '$set' => {"updated" => time} });
+
+	return;      
+}
+
+sub add_group_member
+{
+  	my ($self, $c, $gid, $uid, $owner)= @_;
+	
+	my $groups = $self->_get_groups_col($c);
+
+  	# check if not already there
+  	my $g = $groups->find_one({"groupid" => $gid, "owner" => $owner});	
+
+  	my @members = ();
+	for my $m (@{$g->{members}}){
+		return if $m eq $uid;
+	}
+
+	$groups->update({"groupid" => $gid, "owner" => $owner}, {'$push' => {'members' => $uid}, '$set' => {"updated" => time}});
+
+	return;
+}
+
 1;
+__END__

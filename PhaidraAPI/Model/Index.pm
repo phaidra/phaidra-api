@@ -468,7 +468,7 @@ sub _get {
     }
 
   }
-
+$c->app->log->warn("XXXXXXXXXXXXXXXXXXXXXXXX uwm");
   if(exists($datastreams{'UWMETADATA'})){
 
     my $r_add_uwm = $self->_add_uwm_index($c, $pid, $datastreams{'UWMETADATA'}->find('foxml\:xmlContent')->first, \%index);

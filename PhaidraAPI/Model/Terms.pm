@@ -140,18 +140,18 @@ sub get_study_plans {
     {
     	$c->app->log->debug("[cache miss] $cachekey");
 
-    	$res = $c->app->directory->get_study_plans($c, $lang);
+    	my $dirres = $c->app->directory->get_study_plans($c, $lang);
     	
-    	if(exists($res->{alerts})){
-			if($res->{status} != 200){
+    	if(exists($dirres->{alerts})){
+			if($dirres->{status} != 200){
 				# there are only alerts
-				return { alerts => $res->{alerts}, status => $res->{status} };
+				return { alerts => $dirres->{alerts}, status => $dirres->{status} };
 			}
 		}else{
-			$res->{status} = 200;
+			$dirres->{status} = 200;
 		}
 
-    	$c->app->chi->set($cachekey, $res, '1 day');
+    	$c->app->chi->set($cachekey, $dirres, '1 day');
 
     }else{
       $c->app->log->debug("[cache hit] $cachekey");           

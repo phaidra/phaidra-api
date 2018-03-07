@@ -61,6 +61,7 @@ sub startup {
   	$self->log(Mojo::Log->new(path => $config->{log_path}, level => $config->{log_level}));
 
 	my $directory_impl = $config->{directory_class};
+  $self->app->log->debug("Loading directory implementation $directory_impl");
 	my $e = load_class $directory_impl;
     my $directory = $directory_impl->new($self, $config);
 
