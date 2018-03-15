@@ -10,6 +10,7 @@ sub stats {
     my $self = shift; 
        
     my $pid = $self->stash('pid');
+    my $siteid = $self->param('siteid');
 
     unless(defined($pid)){
         $self->render(json => { alerts => [{ type => 'info', msg => 'Undefined pid' }]}, status => 400);
@@ -18,55 +19,54 @@ sub stats {
 
     my $key = $self->stash('stats_param_key');
 
-    my $cachekey = 'stats_'.$pid;
+    my $fr = undef;
+    if(exists($self->app->config->{frontends})){
+        for my $f (@{$self->app->config->{frontends}}){
+            if(defined($f->{frontend_id}) && $f->{frontend_id} eq 'phaidra_catalyst'){
+                $fr = $f;                    
+            }
+        }
+    }
+
+    unless(defined($fr)){
+        # return 200, this is just ok
+        $self->render(json => { alerts => [{ type => 'info', msg => 'Frontend is not configured' }]}, status => 200);
+        return;
+    }
+    unless($fr->{frontend_id} eq 'phaidra_catalyst'){
+        # return 200, this is just ok
+        $self->render(json => { alerts => [{ type => 'info', msg => 'Frontend ['.$fr->{frontend_id}.'] is not supported' }]}, status => 200);
+        return;
+    }
+    unless(defined($fr->{stats})){
+        # return 200, this is just ok
+        $self->render(json => { alerts => [{ type => 'info', msg => 'Statistics source is not configured' }]}, status => 200);
+        return;
+    }        
+    # only piwik now
+    unless($fr->{stats}->{type} eq 'piwik'){
+        # return 200, this is just ok            
+        $self->render(json => { alerts => [{ type => 'info', msg => 'Statistics source ['.$fr->{stats}->{type}.'] is not supported.' }]}, status => 200);
+        return;
+    }
+    unless($siteid){
+        unless(defined($fr->{stats}->{siteid})){
+            $self->render(json => { alerts => [{ type => 'info', msg => 'Piwik siteid is not configured' }]}, status => 500);
+            return;
+        }
+        $siteid = $fr->{stats}->{siteid};
+    }
+
+    my $cachekey = 'stats_'.$siteid.'_'.$pid;
     my $cacheval = $self->app->chi->get($cachekey);
 
     unless($cacheval){
 
         $self->app->log->debug("[cache miss] $cachekey");
 
-        my $fr = undef;
-        my $siteid = undef;
-        if(exists($self->app->config->{frontends})){
-            for my $f (@{$self->app->config->{frontends}}){
-                if(defined($f->{frontend_id}) && $f->{frontend_id} eq 'phaidra_catalyst'){
-                    $fr = $f;                    
-                }
-            }
-        }
-
-        unless(defined($fr)){
-            # return 200, this is just ok
-            $self->render(json => { alerts => [{ type => 'info', msg => 'Frontend is not configured' }]}, status => 200);
-            return;
-        }
-        unless($fr->{frontend_id} eq 'phaidra_catalyst'){
-            # return 200, this is just ok
-            $self->render(json => { alerts => [{ type => 'info', msg => 'Frontend ['.$fr->{frontend_id}.'] is not supported' }]}, status => 200);
-            return;
-        }
-        unless(defined($fr->{stats})){
-            # return 200, this is just ok
-            $self->render(json => { alerts => [{ type => 'info', msg => 'Statistics source is not configured' }]}, status => 200);
-            return;
-        }        
-        # only piwik now
-        unless($fr->{stats}->{type} eq 'piwik'){
-            # return 200, this is just ok            
-            $self->render(json => { alerts => [{ type => 'info', msg => 'Statistics source ['.$fr->{stats}->{type}.'] is not supported.' }]}, status => 200);
-            return;
-        }
-        unless(defined($fr->{stats}->{siteid})){
-            $self->render(json => { alerts => [{ type => 'info', msg => 'Piwik siteid is not configured' }]}, status => 500);
-            return;
-        }
-        $siteid = $fr->{stats}->{siteid};
-
         my $pidnum = $pid;
         $pidnum =~ s/://g;
 
-        # get
-        
         # can't do downloads, piwik's custom vars do not work reliably
         my $downloads = 0; #$self->app->db_stats_phaidra_catalyst->selectrow_array("select count(*) from piwik_log_link_visit_action as a where a.idsite=$siteid and a.custom_var_v2 = \"$pid\" and a.custom_var_k2 = \"Download\"") or $self->app->log->error("Error querying piwik database for downloads:".$self->app->db_stats_phaidra_catalyst->errstr);
 
