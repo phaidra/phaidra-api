@@ -85,18 +85,16 @@ sub create_simple {
     return;
   }
 
-        if(ref $metadata eq 'Mojo::Upload'){
+  if(ref $metadata eq 'Mojo::Upload'){
 	  $self->app->log->debug("Metadata sent as file param");
 	  $metadata = $metadata->asset->slurp;
-          $metadata = decode_json($metadata);
+    $metadata = decode_json($metadata);
 	}else{  
 	  # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
 	  $metadata = decode_json(b($metadata)->encode('UTF-8'));
 	}
 	my $mimetype = $self->param('mimetype');
 	my $upload = $self->req->upload('file');
-
-  	#$self->app->log->debug($self->app->dumper($upload->asset));
 
 	my $object_model = PhaidraAPI::Model::Object->new;
     my $r = $object_model->create_simple($self, $self->stash('cmodel'), $metadata, $mimetype, $upload, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
