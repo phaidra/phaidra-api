@@ -333,6 +333,7 @@ sub startup {
   $r->route('stats/:pid')                         ->via('get')    ->to('stats#stats');
   $r->route('stats/:pid/downloads')               ->via('get')    ->to('stats#stats', stats_param_key => 'downloads');
   $r->route('stats/:pid/detail_page')             ->via('get')    ->to('stats#stats', stats_param_key => 'detail_page');
+  $r->route('stats/:pid/chart')                   ->via('get')    ->to('stats#chart');
 
   $r->route('directory/user/:username/data')      ->via('get')    ->to('directory#get_user_data');
   $r->route('directory/user/:username/name')      ->via('get')    ->to('directory#get_user_name');
