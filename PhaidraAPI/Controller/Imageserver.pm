@@ -14,9 +14,10 @@ use PhaidraAPI::Model::Authorization;
 
 sub process {
 
-  my $self = shift;  
+  my $self = shift;
 
   my $pid = $self->stash('pid');
+  my $ds = $self->param('ds');
 
   my $authz_model = PhaidraAPI::Model::Authorization->new;
   my $res = $authz_model->check_rights($self, $pid, 'rw');
@@ -25,14 +26,18 @@ sub process {
     return;
 	}
 
-  my $hash = hmac_sha1_hex($pid, $self->app->config->{imageserver}->{hash_secret});
-
-  $self->paf_mongo->db->collection('jobs')->insert({pid => $pid, agent => "pige", status => "new", idhash => $hash, created => time });      
+  my $hash;
+  if(defined($ds)){
+    $hash = hmac_sha1_hex($pid."_".$ds, $self->app->config->{imageserver}->{hash_secret});
+    $self->paf_mongo->db->collection('jobs')->insert({pid => $pid, ds => $ds, agent => "pige", status => "new", idhash => $hash, created => time });  
+  }else{
+    $hash = hmac_sha1_hex($pid, $self->app->config->{imageserver}->{hash_secret});
+    $self->paf_mongo->db->collection('jobs')->insert({pid => $pid, agent => "pige", status => "new", idhash => $hash, created => time });   
+  }
 
   my $res = $self->paf_mongo->db->collection('jobs')->find({pid => $pid})->sort({ "created" => -1})->next;
 
   $self->render(json => $res, status => 200);
-
 }
 
 sub process_pids {
@@ -166,8 +171,9 @@ sub get {
   }
 
   # get pid
-  $p =~ m/([a-z]+:[0-9]+)\.tif/;
+  $p =~ m/([a-z]+:[0-9]+)_?([A-Z]+)?\.tif/;
   my $pid = $1;
+  my $ds = $2;
 
   # check rights        
   my $cachekey = 'img_rights_'.$self->stash->{basic_auth_credentials}->{username}."_$pid";
@@ -188,7 +194,12 @@ sub get {
   }
 
   # infer hash
-  my $hash = hmac_sha1_hex($pid, $self->app->config->{imageserver}->{hash_secret});    
+  my $hash;
+  if(defined($ds)){
+    $hash = hmac_sha1_hex($pid."_".$ds, $self->app->config->{imageserver}->{hash_secret});
+  }else{
+    $hash = hmac_sha1_hex($pid, $self->app->config->{imageserver}->{hash_secret});
+  }
   my $root = $self->app->config->{imageserver}->{image_server_root};
   my $first = substr($hash, 0, 1);
   my $second = substr($hash, 1, 1);
@@ -197,18 +208,24 @@ sub get {
   # add leading slash if missing
   $p =~ s/^\/*/\//;
   # replace pid with hash
-  $p =~ s/[a-z]+:[0-9]+\.tif/$imgpath/;
+  $p =~ s/([a-z]+:[0-9]+)(_[A-Z]+)?\.tif/$imgpath/;
 
   # we have to put the imagepath param first, imageserver needs this order
   my $new_params = Mojo::Parameters->new;
   $new_params->append($p_name => $p);
-  for my $name (@{$self->req->params->names}){
+
+  # have to go through pairs because ->params->names changes the order and the order is
+  # significant for FIF
+  # "Note that the FIF command must always be the first parameter and the JTL or CVT command must always be the last."
+  # (from http://iipimage.sourceforge.net/documentation/protocol/)
+  for (my $i = 0; $i < @{$self->req->params->pairs}; $i += 2) {
+    my ($name, $value) = @{$self->req->params->pairs}[$i, $i + 1];
     next if $name eq $p_name;
     $new_params->append( $name => $self->req->params->every_param($name));
   }
 
   my $xurl = $url->to_string."?".$self->param_to_string($new_params->pairs);
-  #$self->app->log->debug("Calling:".$xurl);
+
   $self->render_later;    
   $self->ua->get( $xurl => sub { my ($ua, $tx) = @_; $self->tx->res($tx->res); $self->rendered; } );
 
