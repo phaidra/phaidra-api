@@ -1,8 +1,9 @@
 {
     "users": {
-    	"madmax": {    	
-    		"firstname": "Max",
-    		"lastname": "Mad"
+    	"test": {    	
+    		"firstname": "Test",
+			"lastname": "User",
+			"email": "test@example.com"
     	}   	        
 	}
 }

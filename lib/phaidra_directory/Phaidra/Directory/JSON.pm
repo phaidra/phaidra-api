@@ -36,10 +36,16 @@ sub authenticate(){
 		
 	my $res = { alerts => [], status => 500 };
 	
-	# dummy
-	$res->{status} = 200;	
-	$c->stash({phaidra_auth_result => $res});
-	return $username;
+	if(($username eq $c->config->{fedoratestuser}) && ($password eq $c->config->{fedoratestpass})){
+		$res->{status} = 200;	
+		$c->stash({phaidra_auth_result => $res});
+		return $username;
+	}else{
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Authentication failed' };	
+		$res->{status} = 401;	
+		$c->stash({phaidra_auth_result => $res});
+		return undef;
+	}
 }
 
 # usage in controller: $self->app->directory->get_name($self, 'madmax');
@@ -56,7 +62,7 @@ sub get_email {
 	my $c = shift;
 	my $username = shift;
 
-	$c->app->log->error("This method is not implemented");
+	return $directory->{users}->{$username}->{email};
 }
 
 # getFaculties
@@ -166,7 +172,8 @@ sub get_user_data {
 	my $username = shift;
 	
 	# $fname,$lname,\@inums,\@fakcodes;
-	$c->app->log->error("This method is not implemented");
+	my (@inums, @fakcodes);
+	return $directory->{users}->{$username}->{firstname}, $directory->{users}->{$username}->{lastname}, \@inums, \@fakcodes;
 }
 
 sub is_superuser {
