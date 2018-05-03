@@ -341,6 +341,8 @@ sub create {
 
 	my $self = shift;
 
+	my $res = { alerts => [], status => 200 };
+
 	my $metadata = $self->param('metadata');
 	unless(defined($metadata)){
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
@@ -360,15 +362,17 @@ sub create {
 		return;
 	}
 	$metadata = $metadata->{metadata};
+	my $members;
 	unless(defined($metadata->{members})){
-		$self->render(json => { alerts => [{ type => 'danger', msg => 'No members sent' }]} , status => 400) ;
-		return;
+		push @{$res->{alerts}}, { type => 'warning', msg => 'No members sent' };
+	}else{
+		$members = $metadata->{members};
 	}
-	my $members = $metadata->{members};
-
 
 	my $coll_model = PhaidraAPI::Model::Collection->new;
 	my $r = $coll_model->create($self, $metadata, $members, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+
+	push @{$r->{alerts}}, $res->{alerts} if scalar @{$res->{alerts}} > 0;
 
 	$self->render(json => $r, status => $r->{status});
 }

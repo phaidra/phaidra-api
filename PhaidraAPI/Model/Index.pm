@@ -48,6 +48,37 @@ our %uwm_metadataqualitycheck = (
   "http://phaidra.univie.ac.at/XML/metadata/extended/V1.0/voc_40/1557087" => "todo"
 );
 
+our %educational_learningresourcetype = (
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_11/1700" => "problem_statement",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_11/1695" => "slide",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_11/1692" => "figure",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_11/1690" => "questionnaire",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_11/1689" => "simulation",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_11/1701" => "self_assessment",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_11/1693" => "graph",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_11/1699" => "experiment",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_11/1698" => "exam",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_11/1697" => "narrative_text",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_11/1694" => "index",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_11/1696" => "table",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_11/1691" => "diagram",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_11/1702" => "lecture",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_11/1688" => "exercise"
+);
+
+our %educational_enduserrole = (
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_14/1713" => "teacher",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_14/1715" => "learner",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_14/1716" => "manager"
+);
+
+our %educational_context = (
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_15/1719" => "training",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_15/1720" => "other",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_15/1717" => "school",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational/voc_15/1718" => "higher_education"
+);
+
 our %uwm_2_mods_roles = (
 
   # unmapped
@@ -125,7 +156,8 @@ our %uwm_2_mods_roles = (
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557108" => "com",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557106" => "sng",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557102" => "act",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557099" => "adp"  
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557099" => "adp",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562795" => "trl"
 
 );
 
@@ -488,6 +520,7 @@ sub _get {
       }
     }else{
       my ($dc_p, $dc_oai) = $dc_model->map_uwmetadata_2_dc_hash($c, $pid, $index{cmodel}, $datastreams{'UWMETADATA'}->find('foxml\:xmlContent')->first, $r0->{metadata_tree}, $uw_model, 1);
+      #$c->app->log->debug("XXXXXXXXXXXXXXXXX ".$c->app->dumper($dc_p));
       $self->_add_dc_index($c, $dc_p, \%index);
     }
   }
@@ -693,7 +726,9 @@ sub _add_dc_index {
   while (my ($xmlname, $values) = each %{$dc}) {
     for my $v (@{$values}){
       if($v->{value} ne ''){
+#      $c->app->log->debug("XXXXXXXXXX value".$v->{value});
         my $val = b($v->{value})->decode('UTF-8');
+#        $c->app->log->debug("XXXXXXXXXX value".$val);
         if(exists($v->{lang})){
           push @{$index->{'dc_'.$xmlname}}, $val;
           push @{$index->{'dc_'.$xmlname."_".$PhaidraAPI::Model::Languages::iso639map{$v->{lang}}}}, $val;     
@@ -883,9 +918,15 @@ sub _add_uwm_index {
     $index->{"bib_mqc"} = $uwm_metadataqualitycheck{$metadataqualitycheck->{ui_value}};
   }
 
+  # lifecycle -> metadataqualitycheck
+  my $metadataqualitycheck = $self->_find_first_uwm_node_rec($c, "http://phaidra.univie.ac.at/XML/metadata/extended/V1.0", "metadataqualitycheck", $uwm);
+  if($metadataqualitycheck){
+    $index->{"bib_mqc"} = $uwm_metadataqualitycheck{$metadataqualitycheck->{ui_value}};
+  }
+
   # roles
   my ($roles, $contributions) = $self->_get_uwm_roles($c, $uwm);
-#  $c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($contributions));
+  # $c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($contributions));
   $index->{"uwm_roles_json"} = b(encode_json($contributions))->decode('UTF-8');
   for my $r (@{$roles}){
     push @{$index->{"bib_roles_pers_".$r->{role}}}, $r->{name} if $r->{name} ne '';   
@@ -917,7 +958,12 @@ sub _add_uwm_index {
         }
       }
     }
-  }  
+  }
+
+  my $edu = $self->_get_uwm_educational($c, $uwm);
+  for my $e (@{$edu}){
+    push @{$index->{'educational_'.$e->{xmlname}}}, $e->{ui_value} if $e->{ui_value} ne '';
+  }
 
   # "GPS"
   #<ns9:gps>13°3&apos;6&apos;&apos;E|47°47&apos;45&apos;&apos;N</ns9:gps>
@@ -948,6 +994,38 @@ sub _add_uwm_index {
   }
 
   return $res;
+}
+
+sub _get_uwm_educational {
+  my ($self, $c, $uwm) = @_;
+
+  my @edu;
+  for my $n (@{$uwm}){
+    if(($n->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0') && ($n->{xmlname} eq 'educational')){
+      if(defined($n->{children})){
+        for my $n1 (@{$n->{children}}){
+          if(($n1->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0') && ($n1->{xmlname} eq 'educationals')){
+            if(defined($n1->{children})){
+              for my $n2 (@{$n1->{children}}){
+                if(($n2->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational') && ($n2->{xmlname} eq 'learningresourcetype')){
+                  push @edu, { xmlname => $n2->{xmlname}, ui_value => $educational_learningresourcetype{$n2->{ui_value}} };
+                }
+                if(($n2->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational') && ($n2->{xmlname} eq 'enduserrole')){
+                  push @edu, { xmlname => $n2->{xmlname}, ui_value => $educational_enduserrole{$n2->{ui_value}} };
+                }
+                if(($n2->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational') && ($n2->{xmlname} eq 'context')){
+                  push @edu, { xmlname => $n2->{xmlname}, ui_value => $educational_context{$n2->{ui_value}} };
+                }
+              }
+            }
+          }
+        }
+      }
+      last;
+    }
+  }
+
+  return \@edu;
 }
 
 sub _get_uwm_roles {

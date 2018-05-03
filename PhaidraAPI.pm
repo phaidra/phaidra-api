@@ -61,6 +61,7 @@ sub startup {
   	$self->log(Mojo::Log->new(path => $config->{log_path}, level => $config->{log_level}));
 
 	my $directory_impl = $config->{directory_class};
+  $self->app->log->debug("Loading directory implementation $directory_impl");
 	my $e = load_class $directory_impl;
     my $directory = $directory_impl->new($self, $config);
 
@@ -323,6 +324,7 @@ sub startup {
   $r->route('object/:pid/oai_dc')                 ->via('get')    ->to('dc#get', dsid => 'DC_OAI');
   $r->route('object/:pid/index')                  ->via('get')    ->to('index#get');
   $r->route('object/:pid/datacite')               ->via('get')    ->to('datacite#get');
+  $r->route('object/:pid/state')                  ->via('get')    ->to('object#get_state');
 
   $r->route('object/:pid/id')                     ->via('get')    ->to('search#id');
 
@@ -331,6 +333,7 @@ sub startup {
   $r->route('stats/:pid')                         ->via('get')    ->to('stats#stats');
   $r->route('stats/:pid/downloads')               ->via('get')    ->to('stats#stats', stats_param_key => 'downloads');
   $r->route('stats/:pid/detail_page')             ->via('get')    ->to('stats#stats', stats_param_key => 'detail_page');
+  $r->route('stats/:pid/chart')                   ->via('get')    ->to('stats#chart');
 
   $r->route('directory/user/:username/data')      ->via('get')    ->to('directory#get_user_data');
   $r->route('directory/user/:username/name')      ->via('get')    ->to('directory#get_user_name');
@@ -354,8 +357,8 @@ sub startup {
   $check_auth->route('group/:gid')                                      ->via('get')      ->to('groups#get_group');
 
   $apiauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
-  $apiauth_optional->route('authz/check/:pid/:op')                      ->via('get')      ->to('authentication#check_rights');  
-  $check_admin_auth->route('imageserver/:pid/status')                   ->via('get')      ->to('imageserver#status');    
+  $apiauth_optional->route('authz/check/:pid/:op')                      ->via('get')      ->to('authorization#check_rights');  
+  $apiauth->route('imageserver/:pid/status')                            ->via('get')      ->to('imageserver#status');    
   $apiauth_optional->route('imageserver')                               ->via('get')      ->to('imageserver#get');
 
   $apiauth_optional->route('object/:pid/octets')                        ->via('get')      ->to('octets#get');
@@ -364,14 +367,14 @@ sub startup {
 
   unless($self->app->config->{readonly}){
 
-    $check_admin_auth->route('imageserver/process')                     ->via('post')     ->to('imageserver#process_pids');
-    $check_admin_auth->route('imageserver/:pid/process')                ->via('post')     ->to('imageserver#process');
-
     $check_admin_auth->route('index')                                   ->via('post')     ->to('index#update');
     $check_admin_auth->route('dc')                                      ->via('post')     ->to('dc#update');
     
     $check_admin_auth->route('object/:pid/index')                       ->via('post')     ->to('index#update');
     $check_admin_auth->route('object/:pid/dc')                          ->via('post')     ->to('dc#update');
+
+    $check_admin_auth->route('imageserver/process')                     ->via('post')     ->to('imageserver#process_pids');
+    $apiauth->route('imageserver/:pid/process')                         ->via('post')     ->to('imageserver#process');
 
     $apiauth->route('object/:pid/modify')                               ->via('post')     ->to('object#modify');
     $apiauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');

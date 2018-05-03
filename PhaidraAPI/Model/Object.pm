@@ -222,9 +222,12 @@ sub create_simple {
    	my %params;
     $params{controlGroup} = 'M';
     $params{dsLabel} = $name;
-    unless(defined($mimetype)){
+    if(defined($mimetype)){
+		$c->app->log->info("Provided mimetype $mimetype");
+	}else{
     	$mimetype = $self->get_mimetype($c, $upload->asset);
 		unshift @{$res->{alerts}}, { type => 'info', msg => "Undefined mimetype, using magic: $mimetype" };
+		$c->app->log->info("Undefined mimetype, using magic: $mimetype");
 	}
 	$params{mimeType} = $mimetype;
 

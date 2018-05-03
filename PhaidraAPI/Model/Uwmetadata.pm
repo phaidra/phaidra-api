@@ -798,7 +798,6 @@ sub resolve_if_id {
 				}
 			}
 		}
-
 		return $labels;
 
 	}elsif($datatype eq 'ClassificationSource'){

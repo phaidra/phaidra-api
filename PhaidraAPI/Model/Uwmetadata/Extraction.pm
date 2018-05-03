@@ -5,6 +5,8 @@ use warnings;
 use v5.10;
 use utf8;
 use Mojo::Util qw(html_unescape);
+use Mojo::JSON qw(encode_json decode_json);
+use Mojo::ByteStream qw(b);
 use base qw/Mojo::Base/;
 use PhaidraAPI::Model::Terms;
 
@@ -91,7 +93,7 @@ sub _get_uwm_classifications {
 
     my $labels = $terms_model->_get_taxon_labels($c, $cid, $tid);
     for my $lang (keys %{$labels->{labels}}){
-      push @classifications, { value => $cls_labels->{$lang}.", ".$labels->{labels}->{$lang}, lang => $lang };
+      push @classifications, { value => b($cls_labels->{$lang})->encode('UTF-8').", ".b($labels->{labels}->{$lang})->encode('UTF-8'), lang => $lang };
     }
 
   }
@@ -490,6 +492,18 @@ sub _get_publishers {
 
   return \@res;
 }
+
+
+sub _get_releaseyear
+{
+  my ($self, $c, $dom, $doc_uwns, $type) = @_;
+
+  my @res;
+  my $releaseyear = $dom->find($doc_uwns->{'digitalbook'}.'\:releaseyear')->first;
+  push (@res, { value => $releaseyear->text } ) if (defined($releaseyear));
+  \@res;
+}
+
 
 sub _get_upload_date
 {
