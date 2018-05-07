@@ -633,7 +633,7 @@ sub _get {
   }
   
   # inventory
-  if(exists($c->{paf_mongo})){
+  if(exists($c->app->config->{paf_mongodb})){
     my $inv_coll = $c->paf_mongo->db->collection('foxml.ds');
     if($inv_coll){
       my $ds_doc = $inv_coll->find({pid => $pid})->sort({ "updated_at" => -1})->next;
