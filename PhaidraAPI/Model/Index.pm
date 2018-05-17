@@ -670,6 +670,7 @@ sub _get {
 =cut
 info:fedora/fedora-system:def/model#hasModel
 info:fedora/fedora-system:def/relations-external#hasCollectionMember
+http://purl.org/dc/terms/references
 http://phaidra.org/XML/V1.0/relations#isBackSideOf
 http://phaidra.univie.ac.at/XML/V1.0/relations#hasSuccessor
 http://phaidra.org/XML/V1.0/relations#isAlternativeFormatOf
@@ -683,6 +684,12 @@ sub _index_relsext {
   my $cmodel = $xml->find('hasModel')->first->attr('rdf:resource');
   $cmodel =~ s/^info:fedora\/cmodel:(.*)$/$1/;
   $index->{cmodel} = $cmodel;
+  
+  for my $e ($xml->find('references')->each){
+    my $o = $e->attr('rdf:resource');
+    $o =~ s/^info:fedora\/(.*)$/$1/;
+    push @{$index->{references}}, $o;
+  }
 
   for my $e ($xml->find('isBackSideOf')->each){
     my $o = $e->attr('rdf:resource');
