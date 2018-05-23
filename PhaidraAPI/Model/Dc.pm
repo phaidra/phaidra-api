@@ -400,7 +400,7 @@ sub map_uwmetadata_2_dc_hash {
   # get provenience versions
 
 
-  push @$identifiers, { value => "http://".$c->app->config->{phaidra}->{baseurl}."/".$pid };
+  push @$identifiers, { value => "https://".$c->app->config->{phaidra}->{baseurl}."/".$pid };
 
   my @subjects;
   for my $k (@{$keywords}){
