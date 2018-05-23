@@ -293,7 +293,9 @@ sub startup {
   # lucene query can be long -> post
   $r->route('search/lucene')                      ->via('post')   ->to('search#search_lucene');
 
-  $r->route('utils/get_all_pids')                 ->via('get')    ->to('utils#get_all_pids');  
+  $r->route('utils/get_all_pids')                 ->via('get')    ->to('utils#get_all_pids');
+
+  $r->route('vocabulary')                         ->via('get')    ->to('vocabulary#get_vocabulary');
 
 	$r->route('terms/label')                   		  ->via('get')    ->to('terms#label');
 	$r->route('terms/children')                	    ->via('get')    ->to('terms#children');

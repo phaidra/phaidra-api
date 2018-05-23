@@ -46,6 +46,8 @@
 
     "languages_file":"/var/www/phaidra-api/public/languages/languages.json",
 
+    "vocabulary_folder":"/var/www/phaidra-api/public/vocabulary",
+
     "dcaffiliationcodes": 1,
 
     "terms": {
