@@ -93,7 +93,7 @@ sub _get_uwm_classifications {
 
     my $labels = $terms_model->_get_taxon_labels($c, $cid, $tid);
     for my $lang (keys %{$labels->{labels}}){
-      push @classifications, { value => b($cls_labels->{$lang})->encode('UTF-8').", ".b($labels->{labels}->{$lang})->encode('UTF-8'), lang => $lang };
+      push @classifications, { value => $cls_labels->{$lang}.", ".$labels->{labels}->{$lang}, lang => $lang };
     }
 
   }
