@@ -189,7 +189,11 @@ sub update {
       $updateurl->userinfo($c->app->config->{solr}->{username}.":".$c->app->config->{solr}->{password});
       $updateurl->host($c->app->config->{solr}->{host});
       $updateurl->port($c->app->config->{solr}->{port});
-      $updateurl->path("/solr/".$c->app->config->{solr}->{core}."/update");
+      if($c->app->config->{solr}->{path}){
+        $updateurl->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/update");
+      }else{
+        $updateurl->path("/solr/".$c->app->config->{solr}->{core}."/update");
+      }
       $updateurl->query(commit => 'true');
 
       my $ua = Mojo::UserAgent->new;
@@ -210,7 +214,7 @@ sub update {
             $c->app->log->debug("[$pid] solr document updated");
           }else {
             my ($err, $code) = $post->error;
-            unshift @{$res->{alerts}}, { type => 'danger', msg => "[$pid] Error updating solr: $err" };
+            unshift @{$res->{alerts}}, { type => 'danger', msg => "[$pid] Error updating solr: ".$c->app->dumper($err) };
             $res->{status} =  $code ? $code : 500;
           }
           
@@ -224,7 +228,7 @@ sub update {
             $c->app->log->debug("[$pid] solr document deleted");
           }else {
             my ($err, $code) = $post->error;
-            unshift @{$res->{alerts}}, { type => 'danger', msg => "[$pid] Error deleting document from solr: $err" };
+            unshift @{$res->{alerts}}, { type => 'danger', msg => "[$pid] Error deleting document from solr: ".$c->app->dumper($err) };
             $res->{status} =  $code ? $code : 500;
           }
         }
@@ -242,7 +246,11 @@ sub update {
         $urlget->scheme($c->app->config->{solr}->{scheme});
         $urlget->host($c->app->config->{solr}->{host});
         $urlget->port($c->app->config->{solr}->{port});
-        $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
+        if($c->app->config->{solr}->{path}){
+          $urlget->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/select");
+        }else{
+          $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
+        }
 
         $urlget->query(q => "ispartof:\"$pid\"", fl => "pid", rows => "0", wt => "json");
 
