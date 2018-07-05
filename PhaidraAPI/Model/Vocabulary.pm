@@ -52,12 +52,9 @@ sub _get_file_vocabulary {
 	 	my $cacheval = $c->app->chi->get($cachekey);
 
 	  my $miss = 1;
-    #$c->app->log->debug($c->app->dumper($cacheval));
 	  if($cacheval){
-	  	if($cacheval->{vocabulary}){
 	  		$miss = 0;
 	  		#$c->app->log->debug("[cache hit] $cachekey");
-	  	}
 	  }
 
 	  if($miss){
@@ -81,8 +78,8 @@ sub _get_file_vocabulary {
 	  		# so instead of using the structure created we will get the one just saved from cache.
 	    	$cacheval = $c->app->chi->get($cachekey);
 	    	#$c->app->log->debug($c->app->dumper($cacheval));
-	    }
-      $res->{vocabulary} = $cacheval;
+	  }
+    $res->{vocabulary} = $cacheval;
 	}
 
 	return $res;

@@ -303,6 +303,8 @@ sub startup {
 	$r->route('terms/taxonpath')                    ->via('get')    ->to('terms#taxonpath');
 	$r->route('terms/parent')                       ->via('get')    ->to('terms#parent');
 
+  $r->route('resolve')                            ->via('get')    ->to('resolve#resolve');
+
 	# CORS
 	$r->any('*')                                    ->via('options')->to('authentication#cors_preflight');
 
