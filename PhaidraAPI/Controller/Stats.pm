@@ -11,8 +11,7 @@ sub stats {
        
     my $pid = $self->stash('pid');
     my $siteid = $self->param('siteid');
-die('ddddddd');
-return;
+
     unless(defined($pid)){
         $self->render(json => { alerts => [{ type => 'info', msg => 'Undefined pid' }]}, status => 400);
         return;
