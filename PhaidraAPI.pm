@@ -186,6 +186,9 @@ sub startup {
     if($config->{authentication}->{upstream}->{principalheader}){
       $allow_headers .= ', '.$config->{authentication}->{upstream}->{principalheader};
     }
+    if($config->{authentication}->{upstream}->{affiliationheader}){
+      $allow_headers .= ', '.$config->{authentication}->{upstream}->{affiliationheader};
+    }
 
 		$self->res->headers->add('Access-Control-Allow-Headers' => $allow_headers);
     # comes from prototype's Ajax.Updater
