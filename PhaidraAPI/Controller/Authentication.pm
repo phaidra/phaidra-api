@@ -40,6 +40,11 @@ sub extract_credentials {
 				$self->app->log->debug("upstream credentials OK");
 				$self->stash->{basic_auth_credentials} = { username => $self->app->config->{authentication}->{upstream}->{fedorausername}, password => $self->app->config->{authentication}->{upstream}->{fedorapassword} };
 				$self->stash->{remote_user} = $remoteuser;
+				my $remoteaffiliation = $self->req->headers->header($self->app->config->{authentication}->{upstream}->{affiliationheader});
+				if($remoteaffiliation){
+					$self->stash->{remote_affiliation} = $remoteaffiliation;
+					$self->app->log->debug("remote affiliation: ".$remoteaffiliation);
+				}
 				$upstream_auth_success = 1;
 			}else{
 				# the request contains the principal header with a remote user definition but it has wrong upstream auth credentials

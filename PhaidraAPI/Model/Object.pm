@@ -72,6 +72,9 @@ sub modify {
   if($c->stash->{remote_user}){
     $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
   }
+  if($c->stash->{remote_affiliation}){
+    $headers{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation};
+  }
 
   	my $put = $ua->put($url => \%headers);
   	if (my $r = $put->success) {
@@ -243,6 +246,9 @@ sub create_simple {
   if($c->stash->{remote_user}){
     $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
   }
+  if($c->stash->{remote_affiliation}){
+    $headers{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation};
+  }
   $headers{'Content-Type'} = $mimetype;
 
 	my $post = $ua->post($url => \%headers => form => { file => { file => $upload->asset }} );
@@ -406,6 +412,9 @@ sub get_dissemination {
   if($c->stash->{remote_user}){
     $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
   }
+  if($c->stash->{remote_affiliation}){
+    $headers{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation};
+  }
 
 	my $get = Mojo::UserAgent->new->get($url => \%headers);
 
@@ -443,7 +452,9 @@ sub get_foxml {
   if($c->stash->{remote_user}){
     $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
   }
-
+  if($c->stash->{remote_affiliation}){
+    $headers{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation};
+  }
 	my $get = Mojo::UserAgent->new->get($url => \%headers);
 
   	if (my $r = $get->success) {
@@ -488,6 +499,9 @@ sub get_datastream {
 	my %headers;
 	if($c->stash->{remote_user}){
   	  $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
+  }
+  if($c->stash->{remote_affiliation}){
+    $headers{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation};
   }
 
   my $get = Mojo::UserAgent->new->get($url => \%headers);
@@ -606,6 +620,9 @@ sub add_datastream {
   if($c->stash->{remote_user}){
     $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
   }
+  if($c->stash->{remote_affiliation}){
+    $headers{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation};
+  }
 	
 	my $post;
 	if($dscontent){
@@ -677,6 +694,9 @@ sub modify_datastream {
 	my %headers;
   if($c->stash->{remote_user}){
     $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
+  }
+  if($c->stash->{remote_affiliation}){
+    $headers{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation};
   }
 
 	my $put;
@@ -806,6 +826,9 @@ sub create_empty {
 	my %headers;
   if($c->stash->{remote_user}){
     $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
+  }
+  if($c->stash->{remote_affiliation}){
+    $headers{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation};
   }
   $headers{'Content-Type'} = 'text/xml';
 

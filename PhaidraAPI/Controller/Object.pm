@@ -266,6 +266,9 @@ sub add_octets {
   if($self->stash->{remote_user}){
     $headers{$self->app->config->{authentication}->{upstream}->{principalheader}} = $self->stash->{remote_user};
   }
+  if($self->stash->{remote_affiliation}){
+    $headers{$self->app->config->{authentication}->{upstream}->{affiliationheader}} = $self->stash->{remote_affiliation};
+  }
   $headers{'Content-Type'} = $self->param('mimetype');
 
   my $post = $ua->post($url => \%headers => form => { file => { file => $upload->asset }} );
