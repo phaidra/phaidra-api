@@ -406,6 +406,7 @@ sub startup {
     $apiauth->route('video/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Video');
     $apiauth->route('audio/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Audio');
     $apiauth->route('unknown/create')                                   ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Asset');
+    $apiauth->route('container/create')                                 ->via('post')     ->to('object#create_container');
 
     $apiauth->route('collection/create')                                ->via('post')     ->to('collection#create');
     $apiauth->route('collection/:pid/members/remove')                   ->via('post')     ->to('collection#remove_collection_members');
