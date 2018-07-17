@@ -157,7 +157,8 @@ our %uwm_2_mods_roles = (
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557106" => "sng",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557102" => "act",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557099" => "adp",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562795" => "trl"
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562795" => "trl",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561102" => "adr"
 
 );
 
