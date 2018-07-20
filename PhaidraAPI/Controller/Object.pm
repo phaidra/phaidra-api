@@ -114,24 +114,72 @@ sub create_simple {
     my $r = $object_model->create_simple($self, $self->stash('cmodel'), $metadata, $mimetype, $upload, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
    	if($r->{status} ne 200){
    		$res->{status} = $r->{status};
-       foreach my $a (@{$r->{alerts}}){
-          unshift @{$res->{alerts}}, $a;
-       }
+      foreach my $a (@{$r->{alerts}}){
+        unshift @{$res->{alerts}}, $a;
+      }
 
-		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error creating '.$self->stash('cmodel').' object'};
+		  unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error creating '.$self->stash('cmodel').' object'};
    		$self->render(json => $res, status => $res->{status});
    		return;
    	}
 
    	foreach my $a (@{$r->{alerts}}){
-        unshift @{$res->{alerts}}, $a;
-     }
+      unshift @{$res->{alerts}}, $a;
+    }
 	$res->{status} = $r->{status};
 	$res->{pid} = $r->{pid};
 
 	$self->render(json => $res, status => $res->{status});
 }
 
+sub create_container {
+
+	my $self = shift;
+
+	my $res = { alerts => [], status => 200 };
+
+	if($self->req->is_limit_exceeded){
+        $self->app->log->debug("Size limit exceeded. Current max_message_size:".$self->req->max_message_size);
+    	$self->render(json => { alerts => [{ type => 'danger', msg => 'File is too big' }]}, status => 400);
+		return;
+    }
+
+	my $metadata = $self->param('metadata');
+  unless($metadata){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent.' }]}, status => 400);
+    return;
+  }
+
+  if(ref $metadata eq 'Mojo::Upload'){
+	  $self->app->log->debug("Metadata sent as file param");
+	  $metadata = $metadata->asset->slurp;
+    $metadata = decode_json($metadata);
+	}else{  
+	  # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
+	  $metadata = decode_json(b($metadata)->encode('UTF-8'));
+	}
+	my $mimetype = $self->param('mimetype');
+
+	my $object_model = PhaidraAPI::Model::Object->new;
+  my $r = $object_model->create_container($self, $metadata, $mimetype, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  if($r->{status} ne 200){
+    $res->{status} = $r->{status};
+    foreach my $a (@{$r->{alerts}}){
+      unshift @{$res->{alerts}}, $a;
+    }
+    unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error creating '.$self->stash('cmodel').' object'};
+    $self->render(json => $res, status => $res->{status});
+    return;
+  }
+
+  foreach my $a (@{$r->{alerts}}){
+    unshift @{$res->{alerts}}, $a;
+  }
+	$res->{status} = $r->{status};
+	$res->{pid} = $r->{pid};
+
+	$self->render(json => $res, status => $res->{status});
+}
 
 sub add_relationship {
 
@@ -265,9 +313,6 @@ sub add_octets {
   my %headers;
   if($self->stash->{remote_user}){
     $headers{$self->app->config->{authentication}->{upstream}->{principalheader}} = $self->stash->{remote_user};
-  }
-  if($self->stash->{remote_affiliation}){
-    $headers{$self->app->config->{authentication}->{upstream}->{affiliationheader}} = $self->stash->{remote_affiliation};
   }
   $headers{'Content-Type'} = $self->param('mimetype');
 

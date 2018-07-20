@@ -31,11 +31,11 @@ sub _get_jsonld_titles {
 
   my @dctitles;
 
-  my $titles = $jsonld{'dce.title'};
+  my $titles = $jsonld->{'dce:title'};
 
   for my $t (@{$titles}) {
-    my $mt = $t{'bf:mainTitle'};
-    push @dctitles, { value => $mt{'@value'}, lang => $mt{'@language'} }
+    my $mt = $t->{'bf:mainTitle'};
+    push @dctitles, { value => $mt->{'@value'}, lang => $mt->{'@language'} }
   }
 
   return \@dctitles;
@@ -47,10 +47,10 @@ sub _get_jsonld_descriptions {
 
   my @dcdescriptions;
 
-  my $descriptions = $jsonld{'bf:note'};
+  my $descriptions = $jsonld->{'bf:note'};
 
   for my $d (@{$descriptions}) {
-    push @dcdescriptions, { value => $d{'@value'}, lang => $d{'@language'} }
+    push @dcdescriptions, { value => $d->{'@value'}, lang => $d->{'@language'} }
   }
 
   return \@dcdescriptions;

@@ -25,7 +25,8 @@ our %indexed_datastreams = (
   "MODS" => 1,
   "ANNOTATIONS" => 1,
   "GEO" => 1,
-  "RELS-EXT" => 1
+  "RELS-EXT" => 1,
+  "JSON-LD" => 1
 );
 
 our %cmodel_2_resourcetype = (
@@ -595,8 +596,35 @@ sub _get {
           push @{$res->{alerts}}, $a;
         }
       }else{
-        my $mods_model = PhaidraAPI::Model::Mods->new;
         my ($dc_p, $dc_oai) = $dc_model->map_mods_2_dc_hash($c, $pid, $index{cmodel}, $datastreams{'MODS'}->find('foxml\:xmlContent')->first, $mods_model, 1);
+        $self->_add_dc_index($c, $dc_p, \%index);
+      }
+    }
+
+  }
+
+  if(exists($datastreams{'JSON-LD'})){
+    my $jsonld_model = PhaidraAPI::Model::JsonLd->new;  
+    my $r_jsonld = $jsonld_model->get_object_jsonld_parsed($c, $pid, $c->app->config->{phaidra}->{intcallusername}, $c->app->config->{phaidra}->{intcallpassword});
+    $c->app->log->debug("XXXXXXXXX found JSON-LD: ".$c->app->dumper($r_jsonld));
+    if($r_jsonld->{status} ne 200){        
+      push @{$res->{alerts}}, { type => 'danger', msg => "Error getting JSON-LD for $pid" };
+      for $a (@{$r_jsonld->{alerts}}){
+        push @{$res->{alerts}}, $a;
+      }           
+    }else{
+
+      my $jsonld = $r_jsonld->{'JSON-LD'};
+
+      my $r_add_jsonld = $self->_add_jsonld_index($c, $pid, $jsonld, \%index);
+      if($r_add_jsonld->{status} ne 200){
+        push @{$res->{alerts}}, { type => 'danger', msg => "Error adding JSON-LD fields for $pid" };
+        for $a (@{$r_add_jsonld->{alerts}}){
+          push @{$res->{alerts}}, $a;
+        }
+      }else{
+        my ($dc_p, $dc_oai) = $dc_model->map_jsonld_2_dc_hash($c, $pid, $index{cmodel}, $jsonld, $jsonld_model, 1);
+        $c->app->log->debug("found JSON-LD: ".$c->app->dumper($dc_p));
         $self->_add_dc_index($c, $dc_p, \%index);
       }
     }
@@ -747,10 +775,14 @@ sub _add_dc_index {
 #        $c->app->log->debug("XXXXXXXXXX value".$val);
         if(exists($v->{lang})){
           push @{$index->{'dc_'.$xmlname}}, $val;
-          push @{$index->{'dc_'.$xmlname."_".$PhaidraAPI::Model::Languages::iso639map{$v->{lang}}}}, $val;     
+          my $lang = $v->{lang};
+          if(length($v->{lang}) eq 2){
+            $lang = $PhaidraAPI::Model::Languages::iso639map{$v->{lang}};
+          }
+          push @{$index->{'dc_'.$xmlname."_".$lang}}, $val;     
           if($xmlname eq 'title'){
             $index->{sort_dc_title} = $val;
-            $index->{'sort_' . $PhaidraAPI::Model::Languages::iso639map{$v->{lang}} . '_dc_title'} = $val;
+            $index->{'sort_' . $lang . '_dc_title'} = $val;
           }
         }else{
           push @{$index->{'dc_'.$xmlname}}, $val;
@@ -895,6 +927,34 @@ sub _add_mods_index {
           push @{$index->{"bib_edition"}}, $n1->{ui_value} if $n1->{ui_value} ne '';
         }
       }
+    }
+  }
+
+  return $res;
+}
+
+sub _add_jsonld_index {
+  my ($self, $c, $pid, $jsonld, $index) = @_;
+
+  my $res = { alerts => [], status => 200 };
+
+$c->app->log->debug("XXXXXXXXXXXXXXX ".$c->app->dumper($jsonld));
+  for my $pred (keys %{$jsonld}){
+    $c->app->log->debug("XXXXXXXXXXXXXXX pred $pred");
+    if($pred =~ m/role:(\w+)/g){
+      my $role = $1;
+      my $name;
+      for my $contr (@{$jsonld->{$pred}}){
+        if($contr->{'@type'} eq 'schema:Person'){
+          $name = $contr->{'schema:givenName'}." ".$contr->{'schema:familyName'};
+        }elsif($contr->{'@type'} eq 'schema:Organisation'){
+          $name = $contr->{'schema:name'};
+        }else{
+          $c->app->log->error("Unknown contributor type in jsonld for pid $pid");
+          push @{$res->{alerts}}, { type => 'danger', msg => "Unknown contributor type in jsonld for pid $pid"};
+        }
+      }
+      push @{$index->{"bib_roles_pers_$role"}}, $name unless $name eq ' ';
     }
   }
 

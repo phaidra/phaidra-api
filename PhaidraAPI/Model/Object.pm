@@ -12,6 +12,7 @@ use PhaidraAPI::Model::Rights;
 use PhaidraAPI::Model::Geo;
 use PhaidraAPI::Model::Uwmetadata;
 use PhaidraAPI::Model::Mods;
+use PhaidraAPI::Model::JsonLd;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Hooks;
 use IO::Scalar;
@@ -22,11 +23,35 @@ my %datastream_versionable = (
 	'COLLECTIONORDER' => 'false',
 	'UWMETADATA' => 'true',
 	'MODS' => 'true',
+	'JSON-LD' => 'true',
 	'RIGHTS' => 'true',
 	'GEO' => 'true',
 	'DC' => 'false',
 	'DC_P' => 'false',
 	'DC_OAI' => 'false'
+);
+
+my %mime_to_cmodel = (
+	'application/pdf' => 'cmodel:PDFDocument',
+	'application/x-pdf' => 'cmodel:PDFDocument',
+
+	'image/jpeg' => 'cmodel:Picture',
+	'image/gif' => 'cmodel:Picture',
+	'image/tiff' => 'cmodel:Picture',
+	'image/png' => 'cmodel:Picture',
+
+	'audio/x-wav' => 'cmodel:Audio',
+	'audio/wav' => 'cmodel:Audio',
+	'audio/mpeg' => 'cmodel:Audio',
+	'audio/flac' => 'cmodel:Audio',
+	'audio/ogg' => 'cmodel:Audio',
+
+	'audio/mpeg' => 'cmodel:Video',
+	'audio/avi' => 'cmodel:Video',
+	'audio/x-msvideo' => 'cmodel:Video',
+	'audio/mp4' => 'cmodel:Video',
+	'audio/quicktime' => 'cmodel:Video',
+	'audio/x-matroska' => 'cmodel:Video'
 );
 
 sub delete {
@@ -71,9 +96,6 @@ sub modify {
 	my %headers;
   if($c->stash->{remote_user}){
     $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
-  if($c->stash->{remote_affiliation}){
-    $headers{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation};
   }
 
   	my $put = $ua->put($url => \%headers);
@@ -246,9 +268,6 @@ sub create_simple {
   if($c->stash->{remote_user}){
     $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
   }
-  if($c->stash->{remote_affiliation}){
-    $headers{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation};
-  }
   $headers{'Content-Type'} = $mimetype;
 
 	my $post = $ua->post($url => \%headers => form => { file => { file => $upload->asset }} );
@@ -283,6 +302,119 @@ sub create_simple {
    	}else{
 	$c->app->log->info("Object successfully created pid[$pid] filename[$name] size[$size]");
       }
+
+
+   	return $res;
+}
+
+sub create_container {
+
+	my $self = shift;
+    my $c = shift;
+	my $metadata = shift;
+	my $mimetype = shift;
+    my $username = shift;
+    my $password = shift;
+
+	my $res = { alerts => [], status => 200 };
+
+	unless(defined($metadata)){
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'No metadata provided'};
+		$res->{status} = 400;
+		return $res;
+	}
+
+	$c->app->log->debug("Metadata: ".$c->app->dumper($metadata));
+
+	my @childpids;
+	for my $k (keys %{$metadata->{metadata}->{'json-ld'}}){
+		$c->app->log->debug("Found key: $k");
+		if ($k ne 'container') {		
+			my $childupload = $c->req->upload($k);
+			my $size = $childupload->size;
+  			my $name = $childupload->filename;
+			$c->app->log->debug("Found file: $name [$size B]");
+			my $childmetadata = $metadata->{metadata}->{'json-ld'}->{$k};
+			my $childmimetype;
+			my $childcmodel;
+			$c->app->log->debug("dce:format:".$c->app->dumper($childmetadata->{'dce:format'}));
+			for my $mt (@{$childmetadata->{'dce:format'}}) {
+				if ($mt =~ m/(\w)+\/(\w)+/g){
+					$childmimetype = $mt;
+					$childcmodel = $mime_to_cmodel{$childmimetype};
+					unless($childcmodel){
+						$res->{status} = 500;
+						unshift @{$res->{alerts}}, { type => 'danger', msg => 'Unsupported mime type'};
+						return $res;
+					}
+
+					my $child_metadata = { metadata => { 'json-ld' => $childmetadata } };
+					$c->app->log->debug("Creating child with metadata:".$c->app->dumper($child_metadata));
+					my $r = $self->create_simple($c, $childcmodel, $child_metadata, $childmimetype, $childupload, $username, $password);
+					if($r->{status} ne 200){
+						$res->{status} = 500;
+						unshift @{$res->{alerts}}, @{$r->{alerts}};
+						unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error creating child object'};
+						return $res;
+					}
+
+					push @childpids, $r->{pid};
+				}
+			}
+		}
+	}
+	
+	my $container_metadata = { 'json-ld' => $metadata->{metadata}->{'json-ld'}->{container} };
+	$c->app->log->debug("Creating container with metadata:".$c->app->dumper($container_metadata));
+	# create parent object
+    my $r = $self->create($c, 'cmodel:Container', $username, $password);
+   	if($r->{status} ne 200){
+   		$res->{status} = 500;
+		unshift @{$res->{alerts}}, @{$r->{alerts}};
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error creating object'};
+   		return $res;
+   	}
+
+	my $pid = $r->{pid};
+	$res->{pid} = $pid;
+
+    # save metadata	
+    $r = $self->save_metadata($c, $pid, $container_metadata, $username, $password, 1);
+    if($r->{status} ne 200){
+        $res->{status} = $r->{status};
+		foreach my $a (@{$r->{alerts}}){
+        	unshift @{$res->{alerts}}, $a;
+		}
+        unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving metadata'};
+        return $res;
+    }
+
+	my @relationships;
+	for my $chpid (@childpids) {
+		push @relationships, { predicate => "http://pcdm.org/models#hasMember", object => "info:fedora/".$chpid };
+	}
+
+	$r = $self->add_relationships($c, $pid, \@relationships, $username, $password, 1);
+  	foreach my $a (@{$r->{alerts}}){
+   		push @{$res->{alerts}}, $a;
+   	}
+    $res->{status} = $r->{status};
+    if($r->{status} ne 200){
+    	return $res;
+    }
+
+	# activate
+    $r = $self->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
+    if($r->{status} ne 200){
+   		$res->{status} = $r->{status};
+		foreach my $a (@{$r->{alerts}}){
+			unshift @{$res->{alerts}}, $a;
+		}
+		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error activating object'};
+   		return $res;
+   	}else{
+		$c->app->log->info("Object successfully created pid[$pid]");
+    }
 
 
    	return $res;
@@ -365,6 +497,19 @@ sub save_metadata {
 			}
 			$found = 1;
 
+		}elsif($f eq "json-ld"){
+
+			$c->app->log->debug("Saving JSON-LD for $pid");
+			my $jsonld = $metadata->{'json-ld'};
+			my $jsonld_model = PhaidraAPI::Model::JsonLd->new;
+			my $r = $jsonld_model->save_to_object($c, $pid, $jsonld, $username, $password);
+			if($r->{status} ne 200){
+				$res->{status} = 500;
+				unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving json-ld'};
+			}
+			$found = 1;
+			$found_bib = 1;
+
 		}elsif($f eq "members"){
 
             # noop - this was handled by coll model   
@@ -412,9 +557,6 @@ sub get_dissemination {
   if($c->stash->{remote_user}){
     $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
   }
-  if($c->stash->{remote_affiliation}){
-    $headers{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation};
-  }
 
 	my $get = Mojo::UserAgent->new->get($url => \%headers);
 
@@ -452,9 +594,7 @@ sub get_foxml {
   if($c->stash->{remote_user}){
     $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
   }
-  if($c->stash->{remote_affiliation}){
-    $headers{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation};
-  }
+
 	my $get = Mojo::UserAgent->new->get($url => \%headers);
 
   	if (my $r = $get->success) {
@@ -499,9 +639,6 @@ sub get_datastream {
 	my %headers;
 	if($c->stash->{remote_user}){
   	  $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
-  if($c->stash->{remote_affiliation}){
-    $headers{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation};
   }
 
   my $get = Mojo::UserAgent->new->get($url => \%headers);
@@ -620,9 +757,6 @@ sub add_datastream {
   if($c->stash->{remote_user}){
     $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
   }
-  if($c->stash->{remote_affiliation}){
-    $headers{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation};
-  }
 	
 	my $post;
 	if($dscontent){
@@ -694,9 +828,6 @@ sub modify_datastream {
 	my %headers;
   if($c->stash->{remote_user}){
     $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
-  if($c->stash->{remote_affiliation}){
-    $headers{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation};
   }
 
 	my $put;
@@ -826,9 +957,6 @@ sub create_empty {
 	my %headers;
   if($c->stash->{remote_user}){
     $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
-  if($c->stash->{remote_affiliation}){
-    $headers{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation};
   }
   $headers{'Content-Type'} = 'text/xml';
 

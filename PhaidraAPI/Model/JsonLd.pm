@@ -19,6 +19,21 @@ sub get_object_jsonld {
   return $object_model->get_datastream($c, $pid, 'JSON-LD', $username, $password);
 }
 
+sub get_object_jsonld_parsed {
+
+  my ($self, $c, $pid, $username, $password) = @_;
+
+  my $res = { alerts => [], status => 200 };
+
+  my $r = $self->get_object_jsonld($c, $pid, $username, $password);
+  if($r->{status} ne 200){
+    return $r;
+  }
+
+  $res->{'JSON-LD'} = decode_json(b($r->{'JSON-LD'})->encode('UTF-8'));
+  return $res;  
+}
+
 sub save_to_object(){
 
   my $self = shift;
