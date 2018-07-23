@@ -34,8 +34,11 @@ sub _get_jsonld_titles {
   my $titles = $jsonld->{'dce:title'};
 
   for my $t (@{$titles}) {
-    my $mt = $t->{'bf:mainTitle'};
-    push @dctitles, { value => $mt->{'@value'}, lang => $mt->{'@language'} }
+    my $ti = $t->{'bf:mainTitle'};
+    if(exists($t->{'bf:subtitle'}) && ($t->{'bf:subtitle'} ne '')){
+      $ti->{'@value'} = $ti->{'@value'} . " : " . $t->{'bf:subtitle'}->{'@value'};
+    }
+    push @dctitles, { value => $ti->{'@value'}, lang => $ti->{'@language'} }
   }
 
   return \@dctitles;
