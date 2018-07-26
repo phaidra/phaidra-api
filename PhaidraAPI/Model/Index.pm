@@ -938,17 +938,17 @@ sub _add_jsonld_index {
 
   my $res = { alerts => [], status => 200 };
 
-$c->app->log->debug("XXXXXXXXXXXXXXX ".$c->app->dumper($jsonld));
+  my @roles;
   for my $pred (keys %{$jsonld}){
-    $c->app->log->debug("XXXXXXXXXXXXXXX pred $pred");
     if($pred =~ m/role:(\w+)/g){
       my $role = $1;
+      push @roles, { $pred => $jsonld->{$pred} };
       my $name;
       for my $contr (@{$jsonld->{$pred}}){
         if($contr->{'@type'} eq 'schema:Person'){
-          $name = $contr->{'schema:givenName'}." ".$contr->{'schema:familyName'};
+          $name = $contr->{'schema:givenName'}->{'@value'}." ".$contr->{'schema:familyName'}->{'@value'};
         }elsif($contr->{'@type'} eq 'schema:Organisation'){
-          $name = $contr->{'schema:name'};
+          $name = $contr->{'schema:name'}->{'@value'};
         }else{
           $c->app->log->error("Unknown contributor type in jsonld for pid $pid");
           push @{$res->{alerts}}, { type => 'danger', msg => "Unknown contributor type in jsonld for pid $pid"};
@@ -957,6 +957,8 @@ $c->app->log->debug("XXXXXXXXXXXXXXX ".$c->app->dumper($jsonld));
       push @{$index->{"bib_roles_pers_$role"}}, $name unless $name eq ' ';
     }
   }
+
+  $index->{"roles_json"} = b(encode_json(\@roles))->decode('UTF-8');
 
   return $res;
 }

@@ -170,7 +170,7 @@ sub map_mods_2_dc_hash {
   my $classifications = $ext->_get_mods_classifications($c, $dom);
   push @{$dc_p{subject}}, @$classifications;
   $dc_p{identifier} = $ext->_get_mods_element_values($c, $dom, 'mods > identifier');
-  push @{$dc_p{identifier}}, { value => "http://".$c->app->config->{phaidra}->{baseurl}."/".$pid };
+  push @{$dc_p{identifier}}, { value => "https://".$c->app->config->{phaidra}->{baseurl}."/".$pid };
   unless($indexing){
     my $relids = $self->_get_relsext_identifiers($c, $pid);
     for my $relid (@$relids){
@@ -235,57 +235,43 @@ sub map_jsonld_2_dc_hash {
 
   #$c->app->log->debug("XXXXXXXXXXX mods xml:".$xml);
 
-  # keep using 'mods' as the first node in selectors to avoid running into relatedItem
   my %dc_p;
+  
   $dc_p{title} = $ext->_get_jsonld_titles($c, $jsonld);
+  
   $dc_p{description} = $ext->_get_jsonld_descriptions($c, $jsonld);
-=d dsd  
-  $dc_p{subject} = $ext->_get_mods_subjects($c, $dom);
-  my $classifications = $ext->_get_mods_classifications($c, $dom);
-  push @{$dc_p{subject}}, @$classifications;
-  $dc_p{identifier} = $ext->_get_mods_element_values($c, $dom, 'mods > identifier');
-  push @{$dc_p{identifier}}, { value => "http://".$c->app->config->{phaidra}->{baseurl}."/".$pid };
+  
+  my ($creators, $contributors) = $ext->_get_jsonld_roles($c, $jsonld);
+  $dc_p{creator} = $creators;
+  $dc_p{contributor} = $contributors;
+  
+  $dc_p{subject} = $ext->_get_jsonld_subjects($c, $jsonld);
+  
+  $dc_p{identifier} = $ext->_get_jsonld_identifiers($c, $jsonld);
+  push @{$dc_p{identifier}}, { value => "https://".$c->app->config->{phaidra}->{baseurl}."/".$pid };
   unless($indexing){
     my $relids = $self->_get_relsext_identifiers($c, $pid);
     for my $relid (@$relids){
       push @{$dc_p{identifier}}, $relid;
     }
   }
-  $dc_p{relation} = $ext->_get_mods_relations($c, $dom);
-  my $editions = $ext->_get_mods_element_values($c, $dom, 'mods > originInfo > edition');
-  push @{$dc_p{relation}}, @$editions;
-  $dc_p{language} = $ext->_get_mods_element_values($c, $dom, 'mods > language > languageTerm');
-  $dc_p{creator} = $ext->_get_mods_creators($c, $dom, 'p');
-  $dc_p{contributor} = $ext->_get_mods_contributors($c, $dom, 'p');
-  $dc_p{date} = $ext->_get_mods_element_values($c, $dom, 'mods > originInfo > dateIssued[keyDate="yes"]');
-  $dc_p{description} = $ext->_get_mods_element_values($c, $dom, 'mods > note');
-  # maps specific
-  my $scales = $ext->_get_mods_element_values($c, $dom, 'mods > subject > cartographics > scale');
-  my @scales_arr = map { { value => "1:".$_->{value} } } @$scales;
-  push @{$dc_p{description}}, @scales_arr;
 
-  my $extents = $ext->_get_mods_element_values($c, $dom, 'mods > physicalDescription > extent');
-  push @{$dc_p{description}}, @$extents;
-
-  $dc_p{publisher} = $ext->_get_mods_element_values($c, $dom, 'mods > originInfo > publisher');
-
-  # place of publishing should not be dc:publisher
-  #my $publisher_places = $self->_get_mods_element_values($c, $dom, 'mods > originInfo > place > placeTerm');
-  #push @{$dc_p{publisher}}, @$publisher_places;
-
-  $dc_p{rights} = $ext->_get_mods_element_values($c, $dom, 'mods > accessCondition[type="use and reproduction"]');
+  $dc_p{language} = $ext->_get_jsonld_languages($c, $jsonld);
+  
+  $dc_p{date} = $ext->_get_jsonld_langvalues($c, $jsonld, 'schema:temporalCoverage');
+  
+  $dc_p{rights} = $ext->_get_jsonld_values($c, $jsonld, 'edm:rights');
+  my $rights_sentences = $ext->_get_jsonld_langvalues($c, $jsonld, 'dce:rights');
+  for my $rs (@$rights_sentences){
+    push @{$dc_p{rights}}, $rs;
+  }
 
   unless($indexing){
     my $filesize = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
     push @{$dc_p{format}} => { value => "$filesize bytes" };
   }
 
-  # FIXME GEO datastream to DCMI BOX
-=cut
-
   my %dc_oai = %dc_p;
-  #$dc_oai{creator} = $ext->_get_mods_creators($c, $dom, 'oai');
-  #$dc_oai{contributor} = $ext->_get_mods_contributors($c, $dom, 'oai');
 
   return (\%dc_p, \%dc_oai);
 }

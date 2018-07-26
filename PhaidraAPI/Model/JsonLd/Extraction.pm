@@ -25,6 +25,17 @@ our %jsonld_creator_roles =
   'egr' => 1
 );
 
+our %jsonld_identifiers =
+(
+  'schema:url' => 'url',
+  'identifiers:urn' => 'urn',
+  'identifiers:hdl' => 'hdl',
+  'identifiers:doi' => 'doi',
+  'identifiers:isbn' => 'isbn',
+  'identifiers:issn' => 'issn',
+  'identifiers:local' => 'local'
+);
+
 sub _get_jsonld_titles {
 
   my ($self, $c, $jsonld) = @_;
@@ -33,12 +44,17 @@ sub _get_jsonld_titles {
 
   my $titles = $jsonld->{'dce:title'};
 
-  for my $t (@{$titles}) {
-    my $ti = $t->{'bf:mainTitle'};
-    if(exists($t->{'bf:subtitle'}) && ($t->{'bf:subtitle'} ne '')){
-      $ti->{'@value'} = $ti->{'@value'} . " : " . $t->{'bf:subtitle'}->{'@value'};
+  for my $o (@{$titles}) {
+    my $new = {
+      value => $o->{'bf:mainTitle'}->{'@value'}
+    };
+    if(exists($o->{'bf:subtitle'}) && exists($o->{'bf:subtitle'}->{'@value'}) && ($o->{'bf:subtitle'}->{'@value'} ne '')){
+      $new->{value} = $new->{value} . " : " . $o->{'bf:subtitle'}->{'@value'};
     }
-    push @dctitles, { value => $ti->{'@value'}, lang => $ti->{'@language'} }
+    if(exists($o->{'bf:mainTitle'}->{'@language'}) && ($o->{'bf:mainTitle'}->{'@language'} ne '')){
+      $new->{lang} = $o->{'bf:mainTitle'}->{'@language'};
+    }
+    push @dctitles, $new;
   }
 
   return \@dctitles;
@@ -50,13 +66,131 @@ sub _get_jsonld_descriptions {
 
   my @dcdescriptions;
 
-  my $descriptions = $jsonld->{'bf:note'};
+  my $bfnotes = $jsonld->{'bf:note'};
 
-  for my $d (@{$descriptions}) {
-    push @dcdescriptions, { value => $d->{'@value'}, lang => $d->{'@language'} }
+  for my $o (@{$bfnotes}) {
+    my $new = {
+      value => $o->{'rdfs:label'}->{'@value'}
+    };
+    if(exists($o->{'@language'}) && ($o->{'@language'} ne '')){
+      $new->{lang} = $o->{'@language'};
+    }
+    push @dcdescriptions, $new;
   }
 
   return \@dcdescriptions;
+}
+
+sub _get_jsonld_subjects {
+
+  my ($self, $c, $jsonld) = @_;
+
+  my @dcsubjects;
+  my $subs = $jsonld->{'dcterms:subject'};
+
+  for my $o (@{$subs}) {
+    my $new = {
+      value => $o->{'skos:prefLabel'}->{'@value'}
+    };
+    if(exists($o->{'@language'}) && ($o->{'@language'} ne '')){
+      $new->{lang} = $o->{'@language'};
+    }
+    push @dcsubjects, $new;
+  }
+
+  return \@dcsubjects;
+}
+
+sub _get_jsonld_identifiers {
+
+  my ($self, $c, $jsonld) = @_;
+
+  my @ids;
+
+  for my $id_predicate (keys %jsonld_identifiers){
+    if(exists($jsonld->{$id_predicate}) && $jsonld->{$id_predicate} ne ''){
+      for my $id (@{$jsonld->{$id_predicate}}){
+        push @ids, { value => $jsonld_identifiers{$id_predicate}.":".$id };
+      }
+    }
+  }
+
+  return \@ids;
+}
+
+sub _get_jsonld_languages {
+
+  my ($self, $c, $jsonld) = @_;
+
+  my @langs;
+
+  my $languages = $jsonld->{'dcterms:language'};
+
+  for my $lang (@{$languages}){
+    if($lang =~ m/http:\/\/id.loc.gov\/vocabulary\/iso639-2\/(\w+)/g){
+      push @langs, { value => $1 };
+    }
+  }
+
+  return \@langs;
+}
+
+sub _get_jsonld_roles {
+
+  my ($self, $c, $jsonld) = @_;
+  
+  my @creators; 
+  my @contributors;
+  for my $pred (keys %{$jsonld}){
+    if($pred =~ m/role:(\w+)/g){
+      my $role = $1;
+      my $name;
+      for my $contr (@{$jsonld->{$pred}}){
+        if($contr->{'@type'} eq 'schema:Person'){
+          $name = $contr->{'schema:givenName'}->{'@value'}." ".$contr->{'schema:familyName'}->{'@value'};
+        }elsif($contr->{'@type'} eq 'schema:Organisation'){
+          $name = $contr->{'schema:name'}->{'@value'};
+        }else{
+          $c->app->log->error("_get_jsonld_roles: Unknown contributor type in jsonld");
+        }
+      }
+      if($jsonld_creator_roles{$role}){
+        push @creators, $name;
+      }else{
+        push @contributors, $name;
+      }
+    }
+  }
+
+  return (\@creators, \@contributors);
+}
+
+sub _get_jsonld_langvalues {
+
+  my ($self, $c, $jsonld, $predicate) = @_;
+
+  my @arr;
+  for my $l (@{$jsonld->{$predicate}}){
+    my $new = {
+      value => $l->{'@value'}
+    };
+    if(exists($l->{'@language'}) && ($l->{'@language'} ne '')){
+      $new->{lang} = $l->{'@language'};
+    }
+    push @arr, $new;
+  }
+  return \@arr;
+}
+
+sub _get_jsonld_values {
+
+  my ($self, $c, $jsonld, $predicate) = @_;
+
+  my @arr;
+  for my $l (@{$jsonld->{$predicate}}){
+    push @arr, { value => $l };
+  }
+  return \@arr;
 }
 
 1;
