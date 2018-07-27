@@ -155,9 +155,9 @@ sub _get_jsonld_roles {
         }
       }
       if($jsonld_creator_roles{$role}){
-        push @creators, $name;
+        push @creators, { value => $name };
       }else{
-        push @contributors, $name;
+        push @contributors, { value => $name };
       }
     }
   }

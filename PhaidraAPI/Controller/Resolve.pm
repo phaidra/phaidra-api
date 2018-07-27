@@ -67,7 +67,7 @@ sub _resolve_getty {
 	my $url = Mojo::URL->new($uri);
 	my $get = $self->ua->max_redirects(5)->get($url, => {'Accept' => 'application/ld+json'});
 	if (my $getres = $get->success) {
-		for my $h (@{$getres->json}) {	
+		for my $h (@{$getres->json}) {
       if($h->{'@id'} eq $uri){
         for my $k (keys %{$h}){
           if($k eq 'http://www.w3.org/2004/02/skos/core#prefLabel'){
