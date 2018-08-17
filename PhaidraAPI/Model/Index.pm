@@ -1129,6 +1129,9 @@ sub _get_uwm_roles {
             $c->app->log->error("Failed to map uwm role ".$n->{ui_value}." to a role code.");
           }
         }
+        if($n->{xmlname} eq "date"){
+          $contribution_json{date} = $n->{ui_value} if $n->{ui_value} ne '';
+        }
       }
       for my $n (@{$ch->{attributes}}){
         if($n->{xmlname} eq 'data_order'){
@@ -1145,12 +1148,14 @@ sub _get_uwm_roles {
           my %entity_json;
 
           next if $l1->{xmlname} eq "role";
+          next if $l1->{xmlname} eq "date";
 
           if($l1->{xmlname} eq "entity"){      
             my $firstname;      
             my $lastname;
             my $institution;
             for my $l2 (@{$l1->{children}}){
+
               next if $l2->{xmlname} eq "type";
 
               $entity_json{$l2->{xmlname}} = $l2->{ui_value};
