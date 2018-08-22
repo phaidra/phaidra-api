@@ -158,10 +158,9 @@ sub create_container {
 	  # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
 	  $metadata = decode_json(b($metadata)->encode('UTF-8'));
 	}
-	my $mimetype = $self->param('mimetype');
 
 	my $object_model = PhaidraAPI::Model::Object->new;
-  my $r = $object_model->create_container($self, $metadata, $mimetype, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  my $r = $object_model->create_container($self, $metadata, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
   if($r->{status} ne 200){
     $res->{status} = $r->{status};
     foreach my $a (@{$r->{alerts}}){

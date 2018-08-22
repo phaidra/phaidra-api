@@ -606,7 +606,7 @@ sub _get {
   if(exists($datastreams{'JSON-LD'})){
     my $jsonld_model = PhaidraAPI::Model::JsonLd->new;  
     my $r_jsonld = $jsonld_model->get_object_jsonld_parsed($c, $pid, $c->app->config->{phaidra}->{intcallusername}, $c->app->config->{phaidra}->{intcallpassword});
-    $c->app->log->debug("XXXXXXXXX found JSON-LD: ".$c->app->dumper($r_jsonld));
+    #$c->app->log->debug("XXXXXXXXX found JSON-LD: ".$c->app->dumper($r_jsonld));
     if($r_jsonld->{status} ne 200){        
       push @{$res->{alerts}}, { type => 'danger', msg => "Error getting JSON-LD for $pid" };
       for $a (@{$r_jsonld->{alerts}}){
@@ -624,7 +624,7 @@ sub _get {
         }
       }else{
         my ($dc_p, $dc_oai) = $dc_model->map_jsonld_2_dc_hash($c, $pid, $index{cmodel}, $jsonld, $jsonld_model, 1);
-        $c->app->log->debug("found JSON-LD: ".$c->app->dumper($dc_p));
+        # $c->app->log->debug("found JSON-LD: ".$c->app->dumper($dc_p));
         $self->_add_dc_index($c, $dc_p, \%index);
       }
     }

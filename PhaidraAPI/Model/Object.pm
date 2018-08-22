@@ -221,6 +221,9 @@ sub create_simple {
 
 	my $res = { alerts => [], status => 200 };
 
+	$c->app->log->debug("req Upload: ".$c->app->dumper($c->req->upload));
+	$c->app->log->debug("upload: ".$c->app->dumper($upload));
+
   	my $size = $upload->size;
   	my $name = $upload->filename;
 
@@ -270,6 +273,8 @@ sub create_simple {
   }
   $headers{'Content-Type'} = $mimetype;
 
+  $c->app->log->debug("XXXXXXXXXXXXXX asset: ".$c->app->dumper($upload->asset));
+
 	my $post = $ua->post($url => \%headers => form => { file => { file => $upload->asset }} );
 
   	unless($r = $post->success) {
@@ -310,11 +315,10 @@ sub create_simple {
 sub create_container {
 
 	my $self = shift;
-    my $c = shift;
+  my $c = shift;
 	my $metadata = shift;
-	my $mimetype = shift;
-    my $username = shift;
-    my $password = shift;
+  my $username = shift;
+  my $password = shift;
 
 	my $res = { alerts => [], status => 200 };
 
@@ -324,32 +328,26 @@ sub create_container {
 		return $res;
 	}
 
-	$c->app->log->debug("Metadata: ".$c->app->dumper($metadata));
-
 	my @childpids;
+	#$c->app->log->debug("Metadata: ".$c->app->dumper($metadata));
+
 	for my $k (keys %{$metadata->{metadata}->{'json-ld'}}){
-		$c->app->log->debug("Found key: $k");
+		$c->app->log->debug("Found key: [$k]");
 		if ($k ne 'container') {		
 			my $childupload = $c->req->upload($k);
 			my $size = $childupload->size;
-  			my $name = $childupload->filename;
+  		my $name = $childupload->filename;
 			$c->app->log->debug("Found file: $name [$size B]");
 			my $childmetadata = $metadata->{metadata}->{'json-ld'}->{$k};
 			my $childmimetype;
 			my $childcmodel;
-			$c->app->log->debug("dce:format:".$c->app->dumper($childmetadata->{'dce:format'}));
+			#$c->app->log->debug("dce:format:".$c->app->dumper($childmetadata->{'dce:format'}));
 			for my $mt (@{$childmetadata->{'dce:format'}}) {
-				if ($mt =~ m/(\w)+\/(\w)+/g){
-					$childmimetype = $mt;
-					$childcmodel = $mime_to_cmodel{$childmimetype};
-					unless($childcmodel){
-						$res->{status} = 500;
-						unshift @{$res->{alerts}}, { type => 'danger', msg => 'Unsupported mime type'};
-						return $res;
-					}
-
+				if ($mime_to_cmodel{$mt}){
+			    $childmimetype = $mt;
+			    $childcmodel = $mime_to_cmodel{$mt};
 					my $child_metadata = { metadata => { 'json-ld' => $childmetadata } };
-					$c->app->log->debug("Creating child with metadata:".$c->app->dumper($child_metadata));
+					#$c->app->log->debug("Creating child with metadata:".$c->app->dumper($child_metadata));
 					my $r = $self->create_simple($c, $childcmodel, $child_metadata, $childmimetype, $childupload, $username, $password);
 					if($r->{status} ne 200){
 						$res->{status} = 500;
@@ -357,13 +355,12 @@ sub create_container {
 						unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error creating child object'};
 						return $res;
 					}
-
 					push @childpids, $r->{pid};
 				}
 			}
 		}
 	}
-	
+
 	my $container_metadata = { 'json-ld' => $metadata->{metadata}->{'json-ld'}->{container} };
 	$c->app->log->debug("Creating container with metadata:".$c->app->dumper($container_metadata));
 	# create parent object
