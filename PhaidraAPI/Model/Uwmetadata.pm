@@ -20,6 +20,7 @@ use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Terms;
 use PhaidraAPI::Model::Util;
 use PhaidraAPI::Model::Licenses;
+use PhaidraAPI::Model::Uwmetadata::Tree;
 
 our %input_types_map = (
 	"LangString" => "input_text",
@@ -48,6 +49,12 @@ sub metadata_tree {
     my ($self, $c, $nocache) = @_;
 
     my $res = { alerts => [], status => 200 };
+
+	if($c->app->config->{local_uwmetadata_tree} eq 'PhaidraAPI::Model::Uwmetadata::Tree'){
+		$c->app->log->debug("Reading uwmetadata tree from ".$c->app->config->{local_uwmetadata_tree}." class");
+		$res->{metadata_tree} = $PhaidraAPI::Model::Uwmetadata::Tree::tree{tree};
+		return $res;
+	}
 
 	if($nocache){
 		$c->app->log->debug("Reading uwmetadata tree from db (nocache request)");
@@ -512,6 +519,7 @@ sub get_datatype_hash {
     	$c->app->log->debug("[cache miss] $cachekey");
      
     	my $tree_res = $self->metadata_tree($c);
+		
     	my %h;
 		$self->_create_datatype_hash($c, $tree_res->{metadata_tree}, \%h);
 		$datatype_hash = \%h;	

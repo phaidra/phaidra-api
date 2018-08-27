@@ -960,6 +960,10 @@ sub _add_jsonld_index {
 
   $index->{"roles_json"} = b(encode_json(\@roles))->decode('UTF-8');
 
+  if(exists($jsonld->{'bf:note'})){
+    $index->{"descriptions_json"} = b(encode_json($jsonld->{'bf:note'}))->decode('UTF-8');
+  }
+
   return $res;
 }
 

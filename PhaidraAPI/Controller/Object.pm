@@ -139,10 +139,10 @@ sub create_container {
 	my $res = { alerts => [], status => 200 };
 
 	if($self->req->is_limit_exceeded){
-        $self->app->log->debug("Size limit exceeded. Current max_message_size:".$self->req->max_message_size);
-    	$self->render(json => { alerts => [{ type => 'danger', msg => 'File is too big' }]}, status => 400);
+    $self->app->log->debug("Size limit exceeded. Current max_message_size:".$self->req->max_message_size);
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'File is too big' }]}, status => 400);
 		return;
-    }
+  }
 
 	my $metadata = $self->param('metadata');
   unless($metadata){

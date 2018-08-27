@@ -30,7 +30,7 @@ sub get_object_jsonld_parsed {
     return $r;
   }
 
-  $res->{'JSON-LD'} = decode_json(b($r->{'JSON-LD'})->encode('UTF-8'));
+  $res->{'JSON-LD'} = decode_json($r->{'JSON-LD'});
   return $res;  
 }
 

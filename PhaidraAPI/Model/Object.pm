@@ -273,8 +273,6 @@ sub create_simple {
   }
   $headers{'Content-Type'} = $mimetype;
 
-  $c->app->log->debug("XXXXXXXXXXXXXX asset: ".$c->app->dumper($upload->asset));
-
 	my $post = $ua->post($url => \%headers => form => { file => { file => $upload->asset }} );
 
   	unless($r = $post->success) {
