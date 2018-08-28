@@ -568,7 +568,8 @@ sub get_cmodel {
 			next if(@{$t}[2] =~ m/fedora-system/g);
 
 			@{$t}[2] =~ m/<(info:fedora\/)(\w+):(\w+)>/g;
-			if(defined($3) && $3 ne ''){
+$c->app->log->debug("XXXXXXXXXXXXXXXXXXX cmodel [$1] [$2] [$3]");
+			if($2 eq 'cmodel' && defined($3) && ($3 ne '')){
 				$cmodel = $3;
 			}
 		}

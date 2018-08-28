@@ -434,11 +434,13 @@ sub _get {
 
   my %index;
 
+  $c->app->log->debug("indexing $pid: getting foxml");
   my $r_oxml = $object_model->get_foxml($c, $pid);
-
+  $c->app->log->debug("indexing $pid: parsing foxml");
   my $dom = Mojo::DOM->new();
   $dom->xml(1);
   $dom->parse($r_oxml->{foxml});
+  $c->app->log->debug("indexing $pid: foxml parsed!");
 
   for my $e ($dom->find('foxml\:objectProperties')->each){
     for my $e1 ($e->find('foxml\:property')->each){
@@ -522,7 +524,9 @@ sub _get {
     }
         
     my $uw_model = PhaidraAPI::Model::Uwmetadata->new;
+
     my $r0 = $uw_model->metadata_tree($c);
+
     if($r0->{status} ne 200){
       push @{$res->{alerts}}, { type => 'danger', msg => "Error getting UWMETADATA tree for $pid" };
       for $a (@{$r_add_uwm->{alerts}}){
