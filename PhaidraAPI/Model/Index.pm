@@ -959,7 +959,6 @@ sub _add_jsonld_index {
         }
       }
       push @{$index->{"bib_roles_pers_$role"}}, $name unless ($name eq '' || $name eq ' ');
-      $c->app->log->debug("XXXXXXXXXXX role :".$c->app->dumper($index->{"bib_roles_pers_$role"}));
     }
   }
 
