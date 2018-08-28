@@ -17,6 +17,24 @@ use PhaidraAPI::Model::JsonLd::Extraction;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Languages;
 
+# our %dc_elements = (
+#   'contributor' => 1,
+#   'coverage' => 1,
+#   'creator' => 1,
+#   'date' => 1,
+#   'description' => 1,
+#   'format' => 1,
+#   'identifier' => 1,
+#   'language' => 1,
+#   'publisher' => 1,
+#   'relation' => 1,
+#   'rights' => 1,
+#   'source' => 1,
+#   'subject' => 1,
+#   'title' => 1,
+#   'type' => 1
+# );
+
 sub xml_2_json {
     my ($self, $c, $xml, $output_label) = @_;
 
@@ -240,7 +258,7 @@ sub map_jsonld_2_dc_hash {
   $dc_p{title} = $ext->_get_jsonld_titles($c, $jsonld);
   
   $dc_p{description} = $ext->_get_jsonld_descriptions($c, $jsonld);
-  
+
   my ($creators, $contributors) = $ext->_get_jsonld_roles($c, $jsonld);
   $dc_p{creator} = $creators;
   $dc_p{contributor} = $contributors;

@@ -11,21 +11,15 @@ use base qw/Mojo::Base/;
 use XML::LibXML;
 use PhaidraAPI::Model::Object;
 
-sub get_object_jsonld {
-
-  my ($self, $c, $pid, $username, $password) = @_;
-
-  my $object_model = PhaidraAPI::Model::Object->new;
-  return $object_model->get_datastream($c, $pid, 'JSON-LD', $username, $password);
-}
-
 sub get_object_jsonld_parsed {
 
   my ($self, $c, $pid, $username, $password) = @_;
 
   my $res = { alerts => [], status => 200 };
 
-  my $r = $self->get_object_jsonld($c, $pid, $username, $password);
+  my $object_model = PhaidraAPI::Model::Object->new;
+  my $r =  $object_model->get_datastream($c, $pid, 'JSON-LD', $username, $password);
+
   if($r->{status} ne 200){
     return $r;
   }
@@ -57,7 +51,7 @@ sub save_to_object(){
 
   my $object_model = PhaidraAPI::Model::Object->new;
   my $json = b(encode_json($metadata))->decode('UTF-8');
-  return $object_model->add_or_modify_datastream($c, $pid, "JSON-LD", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $json, "M", $username, $password);
+  return $object_model->add_or_modify_datastream($c, $pid, "JSON-LD", "application/json", undef, $c->app->config->{phaidra}->{defaultlabel}, $json, "M", $username, $password);
 }
 
 sub validate() {

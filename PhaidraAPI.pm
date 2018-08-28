@@ -323,13 +323,15 @@ sub startup {
   # (instead of defining a API-A disseminator for each of them)
   $r->route('object/:pid/metadata')               ->via('get')    ->to('object#get_metadata');
   $r->route('object/:pid/uwmetadata')             ->via('get')    ->to('uwmetadata#get');
-  $r->route('object/:pid/mods')                   ->via('get')    ->to('mods#get');  
+  $r->route('object/:pid/mods')                   ->via('get')    ->to('mods#get');
+  $r->route('object/:pid/jsonld')                 ->via('get')    ->to('json_ld#get');
   $r->route('object/:pid/geo')                    ->via('get')    ->to('geo#get');
   $r->route('object/:pid/annotations')            ->via('get')    ->to('annotations#get');
   $r->route('object/:pid/techinfo')               ->via('get')    ->to('techinfo#get');
   $r->route('object/:pid/dc')                     ->via('get')    ->to('dc#get', dsid => 'DC_P');
-  $r->route('object/:pid/oai_dc')                 ->via('get')    ->to('dc#get', dsid => 'DC_OAI');
+  $r->route('object/:pid/oai_dc')                 ->via('get')    ->to('dc#get', dsid => 'DC_OAI');  
   $r->route('object/:pid/index')                  ->via('get')    ->to('index#get');
+  $r->route('object/:pid/index/dc')               ->via('get')    ->to('index#get_dc');
   $r->route('object/:pid/datacite')               ->via('get')    ->to('datacite#get');
   $r->route('object/:pid/state')                  ->via('get')    ->to('object#get_state');
 
@@ -387,6 +389,7 @@ sub startup {
     $apiauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');
     $apiauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');
     $apiauth->route('object/:pid/mods')                                 ->via('post')     ->to('mods#post');
+    $apiauth->route('object/:pid/jsonld')                               ->via('post')     ->to('jsonLd#post');
     $apiauth->route('object/:pid/geo')                                  ->via('post')     ->to('geo#post');
     $apiauth->route('object/:pid/annotations')                          ->via('post')     ->to('annotations#post');
     $apiauth->route('object/:pid/rights')                               ->via('post')     ->to('rights#post');

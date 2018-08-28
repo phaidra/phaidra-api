@@ -775,7 +775,7 @@ sub _add_dc_index {
     for my $v (@{$values}){
       if($v->{value} ne ''){
 #      $c->app->log->debug("XXXXXXXXXX value".$v->{value});
-        my $val = b($v->{value})->decode('UTF-8');
+        my $val = $v->{value};
 #        $c->app->log->debug("XXXXXXXXXX value".$val);
         if(exists($v->{lang})){
           push @{$index->{'dc_'.$xmlname}}, $val;
@@ -958,7 +958,8 @@ sub _add_jsonld_index {
           push @{$res->{alerts}}, { type => 'danger', msg => "Unknown contributor type in jsonld for pid $pid"};
         }
       }
-      push @{$index->{"bib_roles_pers_$role"}}, $name unless $name eq ' ';
+      push @{$index->{"bib_roles_pers_$role"}}, $name unless ($name eq '' || $name eq ' ');
+      $c->app->log->debug("XXXXXXXXXXX role :".$c->app->dumper($index->{"bib_roles_pers_$role"}));
     }
   }
 

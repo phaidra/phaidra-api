@@ -10,6 +10,7 @@ use PhaidraAPI::Model::Index;
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Relationships;
 use PhaidraAPI::Model::Search;
+use PhaidraAPI::Model::Dc;
 
 sub get {
   my ($self) = @_;
@@ -22,6 +23,48 @@ sub get {
 
   $self->render(json => $r, status => $r->{status});
 }
+
+sub get_dc {
+  my ($self) = @_;
+
+  my $pid = $self->stash('pid');
+  my $ignorestatus = $self->param('ignorestatus');
+  
+  my $index_model = PhaidraAPI::Model::Index->new;
+  my $r = $index_model->get($self, $pid, $ignorestatus);
+
+  if($r->{status} ne 200){
+    $self->render(json => $r, status => $r->{status});
+  }
+
+  my $dc = '<oai_dc:dc xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd">';
+  my %have_lang_field;
+  
+  for my $field (keys %{$r->{index}}){
+    if($field =~ m/dc_(\w+)_(\w+)/){
+      $have_lang_field{$1} = 1
+    }
+  }
+  for my $field (keys %{$r->{index}}){
+    if($field =~ m/dc_(\w+)_(\w+)/){
+      for my $value (@{$r->{index}->{$field}}){
+        $dc .= "\n  <dc:$1 xml:lang=\"$2\">".$value."</dc:$1>"
+      }
+    }elsif($field =~ m/dc_(\w+)/){
+      # if there is eg dc_title_deu do not add dc_title too
+      unless($have_lang_field{$1}){
+        for my $value (@{$r->{index}->{$field}}){
+          $dc .= "\n  <dc:$1>".$value."</dc:$1>"
+        }
+      }
+    }    
+  }
+
+  $dc .= "\n</oai_dc:dc>";
+
+  $self->render(text => $dc, format => 'xml', status => 200);
+}
+
 
 sub update {
 
