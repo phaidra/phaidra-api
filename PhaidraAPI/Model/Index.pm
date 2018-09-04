@@ -1004,12 +1004,6 @@ sub _add_uwm_index {
     $index->{"bib_mqc"} = $uwm_metadataqualitycheck{$metadataqualitycheck->{ui_value}};
   }
 
-  # lifecycle -> metadataqualitycheck
-  my $metadataqualitycheck = $self->_find_first_uwm_node_rec($c, "http://phaidra.univie.ac.at/XML/metadata/extended/V1.0", "metadataqualitycheck", $uwm);
-  if($metadataqualitycheck){
-    $index->{"bib_mqc"} = $uwm_metadataqualitycheck{$metadataqualitycheck->{ui_value}};
-  }
-
   # roles
   my ($roles, $contributions) = $self->_get_uwm_roles($c, $uwm);
   # $c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($contributions));
