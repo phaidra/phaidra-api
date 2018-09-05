@@ -5,7 +5,7 @@ use warnings;
 use v5.10;
 use utf8;
 use Mojo::ByteStream qw(b);
-use Mojo::Util qw(xml_escape encode decode);
+use Mojo::Util qw(xml_escape html_unescape encode decode);
 use base qw/Mojo::Base/;
 use XML::LibXML;
 use Storable qw(dclone);
@@ -590,11 +590,11 @@ sub _create_dc_from_hash {
       
          $dc_xml .= '   <dc:' . $k;
          $dc_xml .= ' xml:lang="' . $PhaidraAPI::Model::Languages::iso639map{$n->{lang}} . '"'if (exists($n->{lang}));
-         $dc_xml .= '>' . xml_escape($n->{value}) . '</dc:' . $k . ">\n";
+         $dc_xml .= '>' . xml_escape(html_unescape($n->{value})) . '</dc:' . $k . ">\n";
       }else{
          next if ($n eq '');
          $dc_xml .= '   <dc:' . $k;
-         $dc_xml .= '>' . xml_escape($n) . '</dc:' . $k . ">\n";
+         $dc_xml .= '>' . xml_escape(html_unescape($n)) . '</dc:' . $k . ">\n";
       }
 
     }
