@@ -6,6 +6,7 @@ use v5.10;
 use base qw/Mojo::Base/;
 use Data::Dumper;
 use Mojo::Util qw(xml_escape encode decode);
+use Mojo::ByteStream qw(b);
 use lib "lib/phaidra_binding";
 use Phaidra::API;
 use PhaidraAPI::Model::Rights;
@@ -594,7 +595,7 @@ sub get_foxml {
 
   	if (my $r = $get->success) {
   		$res->{status} = 200;
-  		$res->{foxml} = $r->body;
+  		$res->{foxml} = b($r->body)->decode('UTF-8');
   	}else{
 	  unshift @{$res->{alerts}}, { type => 'danger', msg => $get->error->{message} };
 	  $res->{status} = $get->error->{code} ? $get->error->{code} : 500;
