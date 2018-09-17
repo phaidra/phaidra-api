@@ -289,8 +289,8 @@ sub startup {
 	$r->route('directory/get_study')                ->via('get')    ->to('directory#get_study');
 	$r->route('directory/get_study_name')           ->via('get')    ->to('directory#get_study_name');
 
-	$r->route('search/owner/:username')             ->via('get')    ->to('search#owner');
-	$r->route('search/collections/owner/:username') ->via('get')    ->to('search#collections_owner');
+	$r->route('search/owner/#username')             ->via('get')    ->to('search#owner');
+	$r->route('search/collections/owner/#username') ->via('get')    ->to('search#collections_owner');
 	$r->route('search/triples')                     ->via('get')    ->to('search#triples');  
 	$r->route('search')                             ->via('get')    ->to('search#search');  
   # lucene query can be long -> post
@@ -344,9 +344,9 @@ sub startup {
   $r->route('stats/:pid/detail_page')             ->via('get')    ->to('stats#stats', stats_param_key => 'detail_page');
   $r->route('stats/:pid/chart')                   ->via('get')    ->to('stats#chart');
 
-  $r->route('directory/user/:username/data')      ->via('get')    ->to('directory#get_user_data');
-  $r->route('directory/user/:username/name')      ->via('get')    ->to('directory#get_user_name');
-  $r->route('directory/user/:username/email')     ->via('get')    ->to('directory#get_user_email');
+  $r->route('directory/user/#username/data')      ->via('get')    ->to('directory#get_user_data');
+  $r->route('directory/user/#username/name')      ->via('get')    ->to('directory#get_user_name');
+  $r->route('directory/user/#username/email')     ->via('get')    ->to('directory#get_user_email');
 
   # this just extracts the credentials - authentication will be done by fedora
 	my $apiauth = $r->under('/')->to('authentication#extract_credentials', must_be_present => 1);
