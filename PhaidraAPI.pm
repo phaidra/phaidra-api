@@ -296,6 +296,8 @@ sub startup {
   # lucene query can be long -> post
   $r->route('search/lucene')                      ->via('post')   ->to('search#search_lucene');
 
+  $r->route('search/get_pids')                    ->via('post')   ->to('search#get_pids');
+
   $r->route('utils/get_all_pids')                 ->via('get')    ->to('utils#get_all_pids');
 
   $r->route('vocabulary')                         ->via('get')    ->to('vocabulary#get_vocabulary');
@@ -334,6 +336,7 @@ sub startup {
   $r->route('object/:pid/index/dc')               ->via('get')    ->to('index#get_dc');
   $r->route('object/:pid/datacite')               ->via('get')    ->to('datacite#get');
   $r->route('object/:pid/state')                  ->via('get')    ->to('object#get_state');
+  $r->route('object/:pid/cmodel')                 ->via('get')    ->to('object#get_cmodel');
 
   $r->route('object/:pid/id')                     ->via('get')    ->to('search#id');
 

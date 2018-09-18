@@ -63,6 +63,20 @@ sub get_state {
   $self->render(json => $r, status => $r->{status}) ;
 }
 
+sub get_cmodel {
+  my $self = shift;
+
+  unless(defined($self->stash('pid'))){
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
+		return;
+	}
+
+  my $search_model = PhaidraAPI::Model::Search->new;
+  my $r = $search_model->get_cmodel($self, $self->stash('pid'));
+
+  $self->render(json => $r, status => $r->{status}) ;
+}
+
 sub create {
     my $self = shift;
 

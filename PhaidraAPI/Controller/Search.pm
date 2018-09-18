@@ -237,6 +237,25 @@ sub search_lucene {
 		
 }
 
+sub get_pids {
+	my $self = shift;	
+
+	unless(defined($self->param('q'))){	
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined query' }]} , status => 400) ;		
+		return;
+	}
+
+	my $query = $self->param('q');
+
+	my $search_model = PhaidraAPI::Model::Search->new;			
+	my $sr = $search_model->get_pids($self, $query);
+	if($sr->{status} ne 200){
+		$self->render(json => $sr, status => $sr->{status});
+	}
+	
+	$self->render(json => { pids => $sr->{pids} }, status => $sr->{status});
+}
+
 sub my_objects {
 	my $self = shift;	
 	$self->stash->{'username'} = $self->stash->{basic_auth_credentials}->{username};

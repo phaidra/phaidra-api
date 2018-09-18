@@ -834,5 +834,63 @@ sub _get_dsinfo_xml {
   }
 }
 
+
+sub get_pids {
+  my ($self, $c, $query) = @_;
+
+  my @pids;
+  my $res = { alerts => [], status => 200 };
+
+  my $ua = Mojo::UserAgent->new;
+
+  my $urlget = Mojo::URL->new;
+  $urlget->scheme($c->app->config->{solr}->{scheme});
+  $urlget->host($c->app->config->{solr}->{host});
+  $urlget->port($c->app->config->{solr}->{port});
+  if($c->app->config->{solr}->{path}){
+    $urlget->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/select");
+  }else{
+    $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
+  }
+
+  # get numFound
+  $urlget->query(q => $query, fl => "pid", rows => "0", wt => "json");
+  my $get = $ua->get($urlget);
+  my $numFound;
+  if (my $r_num = $get->success) {
+    $numFound = $r_num->json->{response}->{numFound};
+    $c->app->log->debug("get_pids: found $numFound");
+  }else{
+    my ($err, $code) = $get->error;
+    $c->app->log->error("error getting count ".$c->app->dumper($err));
+    unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting count" };
+    unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+    $res->{status} =  $code ? $code : 500;
+    return $res;
+  }
+
+  # get results
+  $urlget->query(q => $query, fl => "pid", rows => $numFound, wt => "json"); 
+  $get = $ua->get($urlget);
+
+  if (my $r_mem = $get->success) {
+    for my $d (@{$r_mem->json->{response}->{docs}}){
+      push @pids, $d->{pid};
+    }
+  }else{
+    my ($err, $code) = $get->error;
+    $c->app->log->error($urlget);
+    $c->app->log->error("error getting results ".$c->app->dumper($err));
+    unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting results" };
+    unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+    $res->{status} =  $code ? $code : 500;
+    return $res;
+  }
+
+  $res->{pids} = \@pids;
+
+  return $res;
+}
+
 1;
 __END__
