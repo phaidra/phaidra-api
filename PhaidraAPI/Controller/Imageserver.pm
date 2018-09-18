@@ -18,6 +18,7 @@ sub process {
 
   my $pid = $self->stash('pid');
   my $ds = $self->param('ds');
+  my $skipexisting = $self->param('skipexisting');
 
   my $authz_model = PhaidraAPI::Model::Authorization->new;
   my $res = $authz_model->check_rights($self, $pid, 'rw');
@@ -25,6 +26,22 @@ sub process {
 		$self->render(json => $res->{json}, status => $res->{status});
     return;
 	}
+
+  if($skipexisting && ($skipexisting eq 1)){
+    if(defined($ds)){
+      my $res1 = $self->paf_mongo->db->collection('jobs')->find({pid => $pid, ds => $ds})->sort({ "created" => -1})->next;
+      if($res1->{pid}){
+        $self->render(json => { alerts => [{ type => 'info', msg => "Job for pid[$pid] and ds[$ds] already created" }], job => $res1}, status => 200);
+        return;
+      }
+    }else{
+      my $res1 = $self->paf_mongo->db->collection('jobs')->find({pid => $pid})->sort({ "created" => -1})->next;
+      if($res1->{pid}){
+        $self->render(json => { alerts => [{ type => 'info', msg => "Job for pid[$pid] already created" }], job => $res1}, status => 200);
+        return;
+      }
+    }
+  }
 
   my $hash;
   if(defined($ds)){
@@ -44,6 +61,7 @@ sub process_pids {
 
   my $self = shift;  
 
+  my $skipexisting = $self->param('skipexisting');
   my $pids = $self->param('pids');
   unless(defined($pids)){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No pids sent' }]} , status => 400) ;
@@ -60,6 +78,14 @@ sub process_pids {
 
   my @results;
   for my $pid (@{$pids->{pids}}){
+
+    if($skipexisting && ($skipexisting eq 1)){
+      my $res1 = $self->paf_mongo->db->collection('jobs')->find({pid => $pid})->sort({ "created" => -1})->next;
+      if($res1->{pid}){
+        $self->render(json => { alerts => [{ type => 'info', msg => "Job for pid[$pid] already created" }], job => $res1}, status => 200);
+        return;
+      }
+    }
 
     # create new job to process image
     my $hash = hmac_sha1_hex($pid, $self->app->config->{imageserver}->{hash_secret});    
