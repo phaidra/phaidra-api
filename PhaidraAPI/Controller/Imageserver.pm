@@ -81,10 +81,7 @@ sub process_pids {
 
     if($skipexisting && ($skipexisting eq 1)){
       my $res1 = $self->paf_mongo->db->collection('jobs')->find({pid => $pid})->sort({ "created" => -1})->next;
-      if($res1->{pid}){
-        $self->render(json => { alerts => [{ type => 'info', msg => "Job for pid[$pid] already created" }], job => $res1}, status => 200);
-        return;
-      }
+      next if $res1->{pid};
     }
 
     # create new job to process image
