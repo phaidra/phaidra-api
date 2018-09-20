@@ -774,11 +774,9 @@ sub _add_dc_index {
   while (my ($xmlname, $values) = each %{$dc}) {
     for my $v (@{$values}){
       if($v->{value} ne ''){
-#      $c->app->log->debug("XXXXXXXXXX value".$v->{value});
         my $val = $v->{value};
-#        $c->app->log->debug("XXXXXXXXXX value".$val);
+        # $c->app->log->debug("XXXXXXXXXX value ".$val);
         if(exists($v->{lang})){
-          push @{$index->{'dc_'.$xmlname}}, $val;
           my $lang = $v->{lang};
           if(length($v->{lang}) eq 2){
             $lang = $PhaidraAPI::Model::Languages::iso639map{$v->{lang}};
