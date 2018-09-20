@@ -770,13 +770,15 @@ sub _index_relsext {
 sub _add_dc_index {
 
   my ($self, $c, $dc, $index) = @_;
-
   while (my ($xmlname, $values) = each %{$dc}) {
     for my $v (@{$values}){
       if($v->{value} ne ''){
+
         my $val = $v->{value};
-        # $c->app->log->debug("XXXXXXXXXX value ".$val);
         if(exists($v->{lang})){
+          if (($xmlname eq 'title') || ($xmlname eq 'description')){
+            push @{$index->{'dc_'.$xmlname}}, $val
+          }
           my $lang = $v->{lang};
           if(length($v->{lang}) eq 2){
             $lang = $PhaidraAPI::Model::Languages::iso639map{$v->{lang}};
