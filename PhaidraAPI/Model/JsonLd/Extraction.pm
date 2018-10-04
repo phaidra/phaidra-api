@@ -186,9 +186,14 @@ sub _get_jsonld_values {
 
   my ($self, $c, $jsonld, $predicate) = @_;
 
+  my $p = $jsonld->{$predicate};
   my @arr;
-  for my $l (@{$jsonld->{$predicate}}){
-    push @arr, { value => $l };
+  if(ref($p) eq 'ARRAY'){
+    for my $l (@{$p}){
+      push @arr, { value => $l };
+    }
+  }else{
+    push @arr, { value => $p };
   }
   return \@arr;
 }

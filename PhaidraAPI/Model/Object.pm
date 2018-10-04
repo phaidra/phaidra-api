@@ -328,34 +328,36 @@ sub create_container {
 	}
 
 	my @childpids;
-	#$c->app->log->debug("Metadata: ".$c->app->dumper($metadata));
+	$c->app->log->debug("Metadata: ".$c->app->dumper($metadata));
 
 	for my $k (keys %{$metadata->{metadata}->{'json-ld'}}){
 		$c->app->log->debug("Found key: [$k]");
 		if ($k ne 'container') {		
 			my $childupload = $c->req->upload($k);
+      unless(defined($childupload)){
+        unshift @{$res->{alerts}}, { type => 'danger', msg => 'Missing container member file'};
+        $res->{status} = 400;
+        return $res;
+      }
 			my $size = $childupload->size;
   		my $name = $childupload->filename;
 			$c->app->log->debug("Found file: $name [$size B]");
 			my $childmetadata = $metadata->{metadata}->{'json-ld'}->{$k};
 			my $childmimetype;
 			my $childcmodel;
-			#$c->app->log->debug("dce:format:".$c->app->dumper($childmetadata->{'dce:format'}));
-			for my $mt (@{$childmetadata->{'dce:format'}}) {
-				if ($mime_to_cmodel{$mt}){
-			    $childmimetype = $mt;
-			    $childcmodel = $mime_to_cmodel{$mt};
-					my $child_metadata = { metadata => { 'json-ld' => $childmetadata } };
-					#$c->app->log->debug("Creating child with metadata:".$c->app->dumper($child_metadata));
-					my $r = $self->create_simple($c, $childcmodel, $child_metadata, $childmimetype, $childupload, $username, $password);
-					if($r->{status} ne 200){
-						$res->{status} = 500;
-						unshift @{$res->{alerts}}, @{$r->{alerts}};
-						unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error creating child object'};
-						return $res;
-					}
-					push @childpids, $r->{pid};
-				}
+      my $mt = $childmetadata->{'ebucore:hasMimeType'};
+      $c->app->log->debug("ebucore:hasMimeType[$mt] maps to cmodel[".$mime_to_cmodel{$mt}."]");
+      if ($mime_to_cmodel{$mt}){
+        my $child_metadata = { metadata => { 'json-ld' => $childmetadata } };
+        #$c->app->log->debug("Creating child with metadata:".$c->app->dumper($child_metadata));
+        my $r = $self->create_simple($c, $mime_to_cmodel{$mt}, $child_metadata, $mt, $childupload, $username, $password);
+        if($r->{status} ne 200){
+          $res->{status} = 500;
+          unshift @{$res->{alerts}}, @{$r->{alerts}};
+          unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error creating child object'};
+          return $res;
+        }
+        push @childpids, $r->{pid};
 			}
 		}
 	}
