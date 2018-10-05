@@ -388,8 +388,11 @@ sub get_metadata {
   my $res = { alerts => [], status => 200 };
 
   my $pid = $self->stash('pid');
+
+  # this is proforma here, at the moment this method is not called throught apiauth bridge so the credentials are not extracted at all
   my $username = $self->stash->{basic_auth_credentials}->{username};
   my $password = $self->stash->{basic_auth_credentials}->{password};
+  
   my $mode = $self->param('mode');
 
   unless(defined($mode)){
@@ -402,11 +405,25 @@ sub get_metadata {
     return $r;
   }
 
+  if($r->{dshash}->{'JSON-LD'}){   
+    my $jsonld_model = PhaidraAPI::Model::JsonLd->new;  
+    my $r_jsonld = $jsonld_model->get_object_jsonld_parsed($self, $pid, $username, $password);
+    if($r_jsonld->{status} ne 200){
+      for my $a (@{$r_jsonld->{alerts}}){
+        push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting JSON-LD' };
+        push @{$res->{alerts}}, $a;
+      }
+    }else{
+      $res->{metadata}->{'JSON-LD'} = $r_jsonld->{'JSON-LD'};
+    }
+  }
+
   if($r->{dshash}->{'MODS'}){   
     my $mods_model = PhaidraAPI::Model::Mods->new;
     my $r = $mods_model->get_object_mods_json($self, $pid, $mode, $username, $password);
     if($r->{status} ne 200){
       for my $a (@{$r->{alerts}}){
+        push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting MODS' };
         push @{$res->{alerts}}, $a;
       }
     }else{
@@ -419,6 +436,7 @@ sub get_metadata {
     my $r = $uwmetadata_model->get_object_metadata($self, $pid, $mode, $username, $password);
     if($r->{status} ne 200){
       for my $a (@{$r->{alerts}}){
+        push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting UWMETADATA' };
         push @{$res->{alerts}}, $a;
       }
     }else{
@@ -431,6 +449,7 @@ sub get_metadata {
     my $r = $geo_model->get_object_geo_json($self, $pid, $username, $password);
     if($r->{status} ne 200){
       for my $a (@{$r->{alerts}}){
+        push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting GEO' };
         push @{$res->{alerts}}, $a;
       }
     }else{
@@ -443,6 +462,7 @@ sub get_metadata {
     my $r = $rights_model->get_object_rights_json($self, $pid, $username, $password);
     if($r->{status} ne 200){
       for my $a (@{$r->{alerts}}){
+        push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting RIGHTS' };
         push @{$res->{alerts}}, $a;
       }
     }else{

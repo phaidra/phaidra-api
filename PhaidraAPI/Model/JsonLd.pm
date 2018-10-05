@@ -18,7 +18,8 @@ sub get_object_jsonld_parsed {
   my $res = { alerts => [], status => 200 };
 
   my $object_model = PhaidraAPI::Model::Object->new;
-  my $r =  $object_model->get_datastream($c, $pid, 'JSON-LD', $username, $password);
+  
+  my $r =  $object_model->get_datastream($c, $pid, 'JSON-LD', $username, $password, 1);
 
   if($r->{status} ne 200){
     return $r;

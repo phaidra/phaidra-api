@@ -265,7 +265,7 @@ sub map_jsonld_2_dc_hash {
   
   $dc_p{subject} = $ext->_get_jsonld_subjects($c, $jsonld);
   
-  $dc_p{identifier} = $ext->_get_jsonld_identifiers($c, $jsonld);
+  # $dc_p{identifier} = $ext->_get_jsonld_identifiers($c, $jsonld);
   push @{$dc_p{identifier}}, { value => "https://".$c->app->config->{phaidra}->{baseurl}."/".$pid };
   unless($indexing){
     my $relids = $self->_get_relsext_identifiers($c, $pid);

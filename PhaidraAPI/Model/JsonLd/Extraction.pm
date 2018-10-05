@@ -89,18 +89,37 @@ sub _get_jsonld_subjects {
   my $subs = $jsonld->{'dcterms:subject'};
 
   for my $o (@{$subs}) {
-    my $new = {
-      value => $o->{'skos:prefLabel'}->{'@value'}
-    };
-    if(exists($o->{'@language'}) && ($o->{'@language'} ne '')){
-      $new->{lang} = $o->{'@language'};
+
+    next if ($o->{'@type'} eq 'phaidra:Subject' || $o->{'@type'} eq 'phaidra:DigitizedObject');
+
+    for my $s (@{$o->{'skos:prefLabel'}}){
+      my $new = {
+        value => $s->{'@value'}
+      };
+      if(exists($s->{'@language'}) && ($s->{'@language'} ne '')){
+        $new->{lang} = $s->{'@language'};
+      }
+
+      push @dcsubjects, $new;
     }
-    push @dcsubjects, $new;
+    
+    for my $s (@{$o->{'rdfs:label'}}){
+      my $new = {
+        value => $s->{'@value'}
+      };
+      if(exists($s->{'@language'}) && ($s->{'@language'} ne '')){
+        $new->{lang} = $s->{'@language'};
+      }
+
+      push @dcsubjects, $new;
+    }
+    
   }
 
   return \@dcsubjects;
 }
 
+=head x
 sub _get_jsonld_identifiers {
 
   my ($self, $c, $jsonld) = @_;
@@ -117,6 +136,7 @@ sub _get_jsonld_identifiers {
 
   return \@ids;
 }
+=cut
 
 sub _get_jsonld_languages {
 
