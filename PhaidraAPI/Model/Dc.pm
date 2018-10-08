@@ -254,17 +254,43 @@ sub map_jsonld_2_dc_hash {
   #$c->app->log->debug("XXXXXXXXXXX mods xml:".$xml);
 
   my %dc_p;
-  
-  $dc_p{title} = $ext->_get_jsonld_titles($c, $jsonld);
-  
-  $dc_p{description} = $ext->_get_jsonld_descriptions($c, $jsonld);
 
+  $dc_p{title} = $ext->_get_jsonld_titles($c, $jsonld);
+  $dc_p{description} = $ext->_get_jsonld_descriptions($c, $jsonld);
   my ($creators, $contributors) = $ext->_get_jsonld_roles($c, $jsonld);
   $dc_p{creator} = $creators;
   $dc_p{contributor} = $contributors;
-  
   $dc_p{subject} = $ext->_get_jsonld_subjects($c, $jsonld);
   
+  if($jsonld->{'dcterms:subject'}){
+    for my $o (@{$jsonld->{'dcterms:subject'}}) {
+      if ($o->{'@type'} eq 'phaidra:Subject' || $o->{'@type'} eq 'phaidra:DigitizedObject') {
+        my $sub_titles = $ext->_get_jsonld_titles($c, $o);
+        for my $s_t (@{$sub_titles}){
+          push $dc_p{title}, $s_t;
+        }
+
+        my $sub_descriptions = $ext->_get_jsonld_descriptions($c, $o);
+        for my $s_d (@{$sub_descriptions}){
+          push $dc_p{description}, $s_d;
+        }
+
+        my ($sub_creators, $sub_contributors) = $ext->_get_jsonld_roles($c, $o);
+        for my $s_cr (@{$sub_creators}){
+          push $dc_p{creator}, $s_cr;
+        }
+        for my $s_co (@{$sub_contributors}){
+          push $dc_p{contributor}, $s_co;
+        }
+
+        my $sub_subjects = $ext->_get_jsonld_subjects($c, $o);
+        for my $s_s (@{$sub_subjects}){
+          push $dc_p{subject}, $s_s;
+        }
+      }
+    }
+  }
+
   # $dc_p{identifier} = $ext->_get_jsonld_identifiers($c, $jsonld);
   push @{$dc_p{identifier}}, { value => "https://".$c->app->config->{phaidra}->{baseurl}."/".$pid };
   unless($indexing){

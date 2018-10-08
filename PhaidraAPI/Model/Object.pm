@@ -882,7 +882,7 @@ sub add_or_modify_datastream {
 	}
 	# save
 	if($sr->{'exists'}){
-		my $r = $self->modify_datastream($c, $pid, $dsid, "text/xml", $location, $label, $dscontent, $username, $password);
+		my $r = $self->modify_datastream($c, $pid, $dsid, $mimetype, $location, $label, $dscontent, $username, $password);
 		push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
 		$res->{status} = $r->{status};
 		if($r->{status} ne 200){
@@ -890,8 +890,8 @@ sub add_or_modify_datastream {
 		}
 		$c->app->log->debug("Modifying $dsid for $pid successful.");
 	}else{
-		#$c->app->log->debug("$pid, $dsid, 'text/xml', undef, $label, $dscontent, X", $username, $password");
-		my $r = $self->add_datastream($c, $pid, $dsid, "text/xml", $location, $label, $dscontent, $controlgroup, $username, $password);
+		#$c->app->log->debug("$pid, $dsid, $mimetype, undef, $label, $dscontent, X", $username, $password");
+		my $r = $self->add_datastream($c, $pid, $dsid, $mimetype, $location, $label, $dscontent, $controlgroup, $username, $password);
 		push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
 		$res->{status} = $r->{status};
 		if($r->{status} ne 200){

@@ -88,6 +88,18 @@ sub _get_jsonld_subjects {
   my @dcsubjects;
   my $subs = $jsonld->{'dcterms:subject'};
 
+  if($jsonld->{'opaque:ethnographic'}){
+    for my $s (@{$jsonld->{'opaque:ethnographic'}}){
+      push $subs, $s;
+    }
+  }
+
+  if($jsonld->{'dce:subject'}){
+    for my $s (@{$jsonld->{'dce:subject'}}){
+      push $subs, $s;
+    }
+  }
+
   for my $o (@{$subs}) {
 
     next if ($o->{'@type'} eq 'phaidra:Subject' || $o->{'@type'} eq 'phaidra:DigitizedObject');

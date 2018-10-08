@@ -943,6 +943,57 @@ sub _add_jsonld_index {
   my $res = { alerts => [], status => 200 };
 
   my @roles;
+
+  my @descriptions;
+  if($jsonld->{'bf:note'}){
+   for my $d (@{$jsonld->{'bf:note'}}){
+      push @descriptions, $d;
+    }
+  }
+
+  my $roles_res = $self->_add_jsonld_roles($c, $pid, $jsonld, $index);
+  for my $a (@{$roles_res->{alerts}}){
+    push @{$res->{alerts}}, $a;
+  }
+  for my $r (@{$roles_res->{roles}}){
+    push @roles, $r;
+  }
+
+  if($jsonld->{'dcterms:subject'}){
+    for my $o (@{$jsonld->{'dcterms:subject'}}) {
+      if ($o->{'@type'} eq 'phaidra:Subject' || $o->{'@type'} eq 'phaidra:DigitizedObject') {
+        
+        my $s_res = $self->_add_jsonld_roles($c, $pid, $o, $index);
+        for my $a (@{$s_res->{alerts}}){
+          push @{$res->{alerts}}, $a;
+        }
+        for my $s_r (@{$s_res->{roles}}){
+          push @roles, $s_r;
+        }
+        
+        if($o->{'bf:note'}){
+          for my $s_d (@{$o->{'bf:note'}}){
+            push @descriptions, $s_d;
+          }
+        }
+      }
+
+    }
+  }
+
+  $index->{"roles_json"} = b(encode_json(\@roles))->decode('UTF-8');
+
+  if(scalar @descriptions){
+    $index->{"descriptions_json"} = b(encode_json(\@descriptions))->decode('UTF-8');
+  }
+
+  return $res;
+}
+
+sub _add_jsonld_roles {
+  my ($self, $c, $pid, $jsonld, $index) = @_;
+  my $res = { alerts => [], status => 200 };
+  my @roles;
   for my $pred (keys %{$jsonld}){
     if($pred =~ m/role:(\w+)/g){
       my $role = $1;
@@ -961,13 +1012,7 @@ sub _add_jsonld_index {
       push @{$index->{"bib_roles_pers_$role"}}, $name unless ($name eq '' || $name eq ' ');
     }
   }
-
-  $index->{"roles_json"} = b(encode_json(\@roles))->decode('UTF-8');
-
-  if(exists($jsonld->{'bf:note'})){
-    $index->{"descriptions_json"} = b(encode_json($jsonld->{'bf:note'}))->decode('UTF-8');
-  }
-
+  $res->{roles} = \@roles;
   return $res;
 }
 
