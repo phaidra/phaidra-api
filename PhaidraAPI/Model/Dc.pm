@@ -267,25 +267,25 @@ sub map_jsonld_2_dc_hash {
       if ($o->{'@type'} eq 'phaidra:Subject' || $o->{'@type'} eq 'phaidra:DigitizedObject') {
         my $sub_titles = $ext->_get_jsonld_titles($c, $o);
         for my $s_t (@{$sub_titles}){
-          push $dc_p{title}, $s_t;
+          push @{$dc_p{title}}, $s_t;
         }
 
         my $sub_descriptions = $ext->_get_jsonld_descriptions($c, $o);
         for my $s_d (@{$sub_descriptions}){
-          push $dc_p{description}, $s_d;
+          push @{$dc_p{description}}, $s_d;
         }
 
         my ($sub_creators, $sub_contributors) = $ext->_get_jsonld_roles($c, $o);
         for my $s_cr (@{$sub_creators}){
-          push $dc_p{creator}, $s_cr;
+          push @{$dc_p{creator}}, $s_cr;
         }
         for my $s_co (@{$sub_contributors}){
-          push $dc_p{contributor}, $s_co;
+          push @{$dc_p{contributor}}, $s_co;
         }
 
         my $sub_subjects = $ext->_get_jsonld_subjects($c, $o);
         for my $s_s (@{$sub_subjects}){
-          push $dc_p{subject}, $s_s;
+          push @{$dc_p{subject}}, $s_s;
         }
       }
     }
