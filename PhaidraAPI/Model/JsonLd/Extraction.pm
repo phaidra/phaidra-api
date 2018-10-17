@@ -119,13 +119,13 @@ sub _get_jsonld_subjects {
 
   if($jsonld->{'opaque:ethnographic'}){
     for my $s (@{$jsonld->{'opaque:ethnographic'}}){
-      push $subs, $s;
+      push @{$subs}, $s;
     }
   }
 
   if($jsonld->{'dce:subject'}){
     for my $s (@{$jsonld->{'dce:subject'}}){
-      push $subs, $s;
+      push @{$subs}, $s;
     }
   }
 
