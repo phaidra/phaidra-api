@@ -81,6 +81,35 @@ sub _get_jsonld_descriptions {
   return \@dcdescriptions;
 }
 
+sub _get_jsonld_objectlabels {
+
+  my ($self, $c, $jsonld, $predicate) = @_;
+
+  my @labels;
+
+  my $objects = $jsonld->{$predicate};
+  if(ref($objects) ne 'ARRAY'){
+    $objects = [ $jsonld->{$predicate} ];
+  }
+  for my $o (@{$objects}) {
+    my $rdfslabels = $o->{'rdfs:label'};
+    if(ref($rdfslabels) ne 'ARRAY'){
+      $rdfslabels = [ $o->{'rdfs:label'} ];
+    }
+    for my $l (@{$rdfslabels}){
+      my $new = {
+        value => $l->{'@value'}
+      };
+      if(exists($l->{'@language'}) && ($l->{'@language'} ne '')){
+        $new->{lang} = $l->{'@language'};
+      }
+      push @labels, $new;
+    }
+  }
+
+  return \@labels;
+}
+
 sub _get_jsonld_subjects {
 
   my ($self, $c, $jsonld) = @_;
@@ -102,7 +131,7 @@ sub _get_jsonld_subjects {
 
   for my $o (@{$subs}) {
 
-    next if ($o->{'@type'} eq 'phaidra:Subject' || $o->{'@type'} eq 'phaidra:DigitizedObject');
+    next if ($o->{'@type'} eq 'phaidra:Subject');
 
     for my $s (@{$o->{'skos:prefLabel'}}){
       my $new = {

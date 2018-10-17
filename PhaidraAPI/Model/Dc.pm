@@ -255,16 +255,30 @@ sub map_jsonld_2_dc_hash {
 
   my %dc_p;
 
-  $dc_p{title} = $ext->_get_jsonld_titles($c, $jsonld);
-  $dc_p{description} = $ext->_get_jsonld_descriptions($c, $jsonld);
+  $dc_p{description} = [];
+  $dc_p{coverage} = [];
+  $dc_p{subject} = [];
+
+  $dc_p{title} = $ext->_get_jsonld_titles($c, $jsonld);  
+  
+  for my $d (@{$ext->_get_jsonld_descriptions($c, $jsonld)}){
+    push $dc_p{description}, $d;
+  }
+  for my $d (@{$ext->_get_jsonld_objectlabels($c, $jsonld, 'dcterms:provenance')}){
+    push $dc_p{description}, $d;
+  }
+  
   my ($creators, $contributors) = $ext->_get_jsonld_roles($c, $jsonld);
   $dc_p{creator} = $creators;
   $dc_p{contributor} = $contributors;
-  $dc_p{subject} = $ext->_get_jsonld_subjects($c, $jsonld);
   
+  for my $s (@{$ext->_get_jsonld_subjects($c, $jsonld)}){
+    push $dc_p{subject}, $s;
+  }
+
   if($jsonld->{'dcterms:subject'}){
     for my $o (@{$jsonld->{'dcterms:subject'}}) {
-      if ($o->{'@type'} eq 'phaidra:Subject' || $o->{'@type'} eq 'phaidra:DigitizedObject') {
+      if ($o->{'@type'} eq 'phaidra:Subject') {
         my $sub_titles = $ext->_get_jsonld_titles($c, $o);
         for my $s_t (@{$sub_titles}){
           push $dc_p{title}, $s_t;
@@ -273,6 +287,11 @@ sub map_jsonld_2_dc_hash {
         my $sub_descriptions = $ext->_get_jsonld_descriptions($c, $o);
         for my $s_d (@{$sub_descriptions}){
           push $dc_p{description}, $s_d;
+        }
+
+        my $sub_provenance = $ext->_get_jsonld_objectlabels($c, $o, 'dcterms:provenance');
+        for my $s_p (@{$sub_provenance}){
+          push $dc_p{description}, $s_p;
         }
 
         my ($sub_creators, $sub_contributors) = $ext->_get_jsonld_roles($c, $o);
@@ -287,8 +306,50 @@ sub map_jsonld_2_dc_hash {
         for my $s_s (@{$sub_subjects}){
           push $dc_p{subject}, $s_s;
         }
+
+        my $s_tcs = $ext->_get_jsonld_langvalues($c, $o, 'schema:temporalCoverage');
+        for my $s_tc (@{$s_tcs}){
+          push $dc_p{coverage}, $s_tc;
+        }
       }
     }
+  }
+
+  if($jsonld->{'phaidra:digitizedObject'}){
+    my $do = $jsonld->{'phaidra:digitizedObject'};
+    my $do_titles = $ext->_get_jsonld_titles($c, $do);
+    for my $do_t (@{$do_titles}){
+      push $dc_p{title}, $do_t;
+    }
+
+    my $do_descriptions = $ext->_get_jsonld_descriptions($c, $do);
+    for my $do_d (@{$do_descriptions}){
+      push $dc_p{description}, $do_d;
+    }
+
+    my $do_provenance = $ext->_get_jsonld_objectlabels($c, $do, 'dcterms:provenance');
+    for my $do_p (@{$do_provenance}){
+      push $dc_p{description}, $do_p;
+    }
+
+    my ($do_creators, $do_contributors) = $ext->_get_jsonld_roles($c, $do);
+    for my $do_cr (@{$do_creators}){
+      push $dc_p{creator}, $do_cr;
+    }
+    for my $do_co (@{$do_contributors}){
+      push $dc_p{contributor}, $do_co;
+    }
+
+    my $do_subjects = $ext->_get_jsonld_subjects($c, $do);
+    for my $do_s (@{$do_subjects}){
+      push $dc_p{subject}, $do_s;
+    }
+
+    my $do_tcs = $ext->_get_jsonld_langvalues($c, $do, 'schema:temporalCoverage');
+    for my $do_tc (@{$do_tcs}){
+      push $dc_p{coverage}, $do_tc;
+    }
+
   }
 
   # $dc_p{identifier} = $ext->_get_jsonld_identifiers($c, $jsonld);
@@ -302,7 +363,10 @@ sub map_jsonld_2_dc_hash {
 
   $dc_p{language} = $ext->_get_jsonld_languages($c, $jsonld);
   
-  $dc_p{date} = $ext->_get_jsonld_langvalues($c, $jsonld, 'schema:temporalCoverage');
+  my $tcs = $ext->_get_jsonld_langvalues($c, $jsonld, 'schema:temporalCoverage');
+  for my $tc (@{$tcs}){
+    push $dc_p{coverage}, $tc;
+  }
   
   $dc_p{rights} = $ext->_get_jsonld_values($c, $jsonld, 'edm:rights');
   my $rights_sentences = $ext->_get_jsonld_langvalues($c, $jsonld, 'dce:rights');
@@ -314,7 +378,7 @@ sub map_jsonld_2_dc_hash {
     my $filesize = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
     push @{$dc_p{format}} => { value => "$filesize bytes" };
   }
-
+  #$c->app->log->debug("XXXXXXXXXXXXXX dc_p:".$c->app->dumper(\%dc_p));
   my %dc_oai = %dc_p;
 
   return (\%dc_p, \%dc_oai);

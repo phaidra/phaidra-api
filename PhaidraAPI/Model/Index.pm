@@ -182,9 +182,13 @@ sub update {
       #$c->app->log->debug("XXXXXXX indexing took ".tv_interval($t0));
       $res = $r;
 
-      my $members = $r->{index}->{haspart} if exists $r->{index}->{haspart};
+      my $collectionMembers = $r->{index}->{haspart} if exists $r->{index}->{haspart};
       # don't save this
       delete $r->{index}->{haspart};
+
+      my $members = $r->{index}->{hasmember} if exists $r->{index}->{hasmember};
+      # don't save this
+      delete $r->{index}->{hasmember};
 
       my $updateurl = Mojo::URL->new;
       $updateurl->scheme($c->app->config->{solr}->{scheme});
@@ -238,97 +242,24 @@ sub update {
         $res->{status} = 200;
       }
 
-      if($r->{index}->{cmodel} eq 'Collection' && defined($members)){
-
-        $c->app->log->debug("[$pid] this collection should have ".(scalar @{$members})." members");
-        #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($members));
-
-        # get current members
-        my $urlget = Mojo::URL->new;
-        $urlget->scheme($c->app->config->{solr}->{scheme});
-        $urlget->host($c->app->config->{solr}->{host});
-        $urlget->port($c->app->config->{solr}->{port});
-        if($c->app->config->{solr}->{path}){
-          $urlget->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/select");
-        }else{
-          $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
-        }
-
-        $urlget->query(q => "ispartof:\"$pid\"", fl => "pid", rows => "0", wt => "json");
-
-        my $get = $ua->get($urlget);
-        my $numFound;
-        if (my $r_num = $get->success) {
-          $numFound = $r_num->json->{response}->{numFound};
-        }else{
-          my ($err, $code) = $get->error;
-          $c->app->log->error("[$pid] error getting collection members count ".$c->app->dumper($err));
-          unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting collection members count" };
-          unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-          $res->{status} =  $code ? $code : 500;
-          return $res;
-        }
-
-        $urlget->query(q => "ispartof:\"$pid\"", fl => "pid", rows => $numFound, wt => "json"); 
-
-        $get = $ua->get($urlget);
-  
-        my @curr_members;
-        if (my $r_mem = $get->success) {
-          for my $c_m (@{$r_mem->json->{response}->{docs}}){
-            push @curr_members, $c_m->{pid};
-          }
-        }else{
-          my ($err, $code) = $get->error;
-          $c->app->log->error($urlget);
-          $c->app->log->error("[$pid] error getting collection members ".$c->app->dumper($err));
-          unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting collection members" };
-          unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-          $res->{status} =  $code ? $code : 500;
-          return $res;
-        }       
-
-        $c->app->log->debug("[$pid] this collection currently has ".(scalar @curr_members)." members");
-        #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper(\@curr_members));
-
-        my @add_to;
-        my @remove_from;
-
-        for my $m (@{$members}){
-          unless( $m ~~ @curr_members ) {
-            push  @add_to, $m;
-          }
-        } 
-        $c->app->log->debug("[$pid] found ".(scalar @add_to)." members to add");
-        #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper(\@add_to));
-        for my $m (@curr_members){
-          unless( $m ~~ @{$members} ) {
-            push  @remove_from, $m;
+      if($r->{index}->{cmodel} eq 'Collection' && defined($collectionMembers)){
+        my $umr = $self->_update_members($c, $pid, $updateurl, $collectionMembers, 'ispartof');
+        if($umr->{status} ne 200){
+          $res->{status} = $umr->{status};
+          for my $a (@{$umr->{alerts}}){
+            push @{$res->{alerts}}, $a;
           }
         }
-        $c->app->log->debug("[$pid] found ".(scalar @remove_from)." members to remove");
-        #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper(\@remove_from));
+      }
 
-        if(scalar @add_to > 0){
-          my $r_add = $self->_update_ispartof($c, $pid, \@add_to, $updateurl, 'add');
-          if($r_add->{status} ne 200){
-            for my $a (@{$r_add->{alerts}}){
-              push @{$res->{alerts}}, $a;
-              $res->{status} = $r->{status};
-            }
+      if($r->{index}->{cmodel} eq 'Container' && defined($members)){
+        my $umr = $self->_update_members($c, $pid, $updateurl, $members, 'ismemberof');
+        if($umr->{status} ne 200){
+          $res->{status} = $umr->{status};
+          for my $a (@{$umr->{alerts}}){
+            push @{$res->{alerts}}, $a;
           }
         }
-
-        if(scalar @remove_from > 0){
-          my $r_remove = $self->_update_ispartof($c, $pid, \@remove_from, $updateurl, 'remove');
-          if($r_remove->{status} ne 200){
-            for my $a (@{$r_remove->{alerts}}){
-              push @{$res->{alerts}}, $a;
-              $res->{status} = $r->{status};
-            }
-          }
-        }
-        
       }
 
     }else{
@@ -342,22 +273,122 @@ sub update {
   return $res;
 }
 
-sub _update_ispartof {
+sub _update_members {
 
-  my ($self, $c, $pid, $members, $updateurl, $action) = @_;
+  my ($self, $c, $pid, $updateurl, $members, $relation) = @_;
+
+  my $res = { status => 200 }; 
+
+  $c->app->log->debug("[$pid] this object should have ".(scalar @{$members})." $relation relations");
+  #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($members));
+
+  # get current members
+  my $urlget = Mojo::URL->new;
+  $urlget->scheme($c->app->config->{solr}->{scheme});
+  $urlget->host($c->app->config->{solr}->{host});
+  $urlget->port($c->app->config->{solr}->{port});
+  if($c->app->config->{solr}->{path}){
+    $urlget->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/select");
+  }else{
+    $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
+  }
+
+  $urlget->query(q => "$relation:\"$pid\"", fl => "pid", rows => "0", wt => "json");
+
+  my $ua = Mojo::UserAgent->new;
+
+  my $get = $ua->get($urlget);
+  my $numFound;
+  if (my $r_num = $get->success) {
+    $numFound = $r_num->json->{response}->{numFound};
+  }else{
+    my ($err, $code) = $get->error;
+    $c->app->log->error("[$pid] error getting object $relation relations count ".$c->app->dumper($err));
+    unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting object $relation relations count" };
+    unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+    $res->{status} =  $code ? $code : 500;
+    return $res;
+  }
+
+  $urlget->query(q => "$relation:\"$pid\"", fl => "pid", rows => $numFound, wt => "json"); 
+
+  $get = $ua->get($urlget);
+
+  my @curr_members;
+  if (my $r_mem = $get->success) {
+    for my $c_m (@{$r_mem->json->{response}->{docs}}){
+      push @curr_members, $c_m->{pid};
+    }
+  }else{
+    my ($err, $code) = $get->error;
+    $c->app->log->error($urlget);
+    $c->app->log->error("[$pid] error getting object $relation relations ".$c->app->dumper($err));
+    unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting object $relation relations" };
+    unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+    $res->{status} =  $code ? $code : 500;
+    return $res;
+  }       
+
+  $c->app->log->debug("[$pid] this object currently has ".(scalar @curr_members)." $relation relations");
+  #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper(\@curr_members));
+
+  my @add_to;
+  my @remove_from;
+
+  for my $m (@{$members}){
+    unless( $m ~~ @curr_members ) {
+      push  @add_to, $m;
+    }
+  } 
+  $c->app->log->debug("[$pid] found ".(scalar @add_to)." $relation relations to add");
+  #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper(\@add_to));
+  for my $m (@curr_members){
+    unless( $m ~~ @{$members} ) {
+      push  @remove_from, $m;
+    }
+  }
+  $c->app->log->debug("[$pid] found ".(scalar @remove_from)." $relation relations to remove");
+  #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper(\@remove_from));
+
+  if(scalar @add_to > 0){
+    my $r_add = $self->_update_relation($c, $pid, $relation, \@add_to, $updateurl, 'add');
+    if($r_add->{status} ne 200){
+      $res->{status} = $r_add->{status};
+      for my $a (@{$r_add->{alerts}}){
+        push @{$res->{alerts}}, $a;
+      }
+    }
+  }
+
+  if(scalar @remove_from > 0){
+    my $r_remove = $self->_update_relation($c, $pid, $relation, \@remove_from, $updateurl, 'remove');
+    if($r_remove->{status} ne 200){
+      $res->{status} = $r_remove->{status};
+      for my $a (@{$r_remove->{alerts}}){
+        push @{$res->{alerts}}, $a;
+      }
+    }
+  }
+
+  return $res;
+}
+
+sub _update_relation {
+
+  my ($self, $c, $pid, $relation, $members, $updateurl, $action) = @_;
 
   my $res = { status => 200 };
 
   #$c->app->log->debug("[$pid] updating ".(scalar @{$members})." members");
 
   if(scalar @{$members} <= 500){
-    return $self->_update_ispartof_post($c, $pid, $members, $updateurl, $action);
+    return $self->_update_relation_post($c, $pid, $relation, $members, $updateurl, $action);
   }else{
     my @batch;
     for my $m (@{$members}){
       push @batch, $m;
       if(scalar @batch >= 500){
-        my $r = $self->_update_ispartof_post($c, $pid, \@batch, $updateurl, $action);
+        my $r = $self->_update_relation_post($c, $pid, $relation, \@batch, $updateurl, $action);
         if($r->{status} ne 200){
           for my $a (@{$r->{alerts}}){
             push @{$res->{alerts}}, $a;
@@ -367,7 +398,7 @@ sub _update_ispartof {
         @batch = ();
       }
     }
-    my $r = $self->_update_ispartof_post($c, $pid, \@batch, $updateurl, $action);
+    my $r = $self->_update_relation_post($c, $pid, $relation, \@batch, $updateurl, $action);
       if($r->{status} ne 200){
         for my $a (@{$r->{alerts}}){
           push @{$res->{alerts}}, $a;
@@ -379,9 +410,9 @@ sub _update_ispartof {
   return $res;
 }
 
-sub _update_ispartof_post {
+sub _update_relation_post {
 
-  my ($self, $c, $pid, $members, $updateurl, $action) = @_;
+  my ($self, $c, $pid, $relation, $members, $updateurl, $action) = @_;
 
   my $res = { status => 200 };
 
@@ -389,7 +420,7 @@ sub _update_ispartof_post {
   for my $m (@{$members}){
     push @update, {
       pid => $m,
-      ispartof => { $action => $pid }
+      $relation => { $action => $pid }
     };
   }
 
@@ -764,6 +795,14 @@ sub _index_relsext {
     push @{$index->{haspart}}, $o;
   }
 
+  # we save this now as hasmember but this is later removed
+  # instead the array is used to create ismember in members
+  for my $e ($xml->find('hasMember')->each){
+    my $o = $e->attr('rdf:resource');
+    $o =~ s/^info:fedora\/(.*)$/$1/;
+    push @{$index->{hasmember}}, $o;
+  }
+
   return $res;
 }
 
@@ -815,6 +854,18 @@ sub _add_reverse_relations {
     my $subject = @$triple[0];
     if($subject =~ m/^<info:fedora\/(.*)>$/){
       push @{$index->{ispartof}}, $1;        
+    }    
+  }
+
+  my $r_trip = $search_model->triples($c, "* <http://pcdm.org/models#hasMember> <info:fedora/$pid>", 0);
+  if($r_trip->{status} ne 200){
+    return $r_trip;
+  }
+   
+  for my $triple (@{$r_trip->{result}}){
+    my $subject = @$triple[0];
+    if($subject =~ m/^<info:fedora\/(.*)>$/){
+      push @{$index->{ismemberof}}, $1;        
     }    
   }
 
