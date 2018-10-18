@@ -355,6 +355,11 @@ sub add_or_modify_datastream {
 		return;
 	}
 
+  unless(defined($self->param('mimetype'))){
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined mimetype' }]} , status => 400) ;
+		return;
+	}
+
 	my $mimetype = $self->param('mimetype');
 	my $location = $self->param('location');
 	my $label = undef;
