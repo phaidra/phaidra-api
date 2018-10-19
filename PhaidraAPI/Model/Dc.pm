@@ -262,10 +262,10 @@ sub map_jsonld_2_dc_hash {
   $dc_p{title} = $ext->_get_jsonld_titles($c, $jsonld);  
   
   for my $d (@{$ext->_get_jsonld_descriptions($c, $jsonld)}){
-    push $dc_p{description}, $d;
+    push @{$dc_p{description}}, $d;
   }
   for my $d (@{$ext->_get_jsonld_objectlabels($c, $jsonld, 'dcterms:provenance')}){
-    push $dc_p{description}, $d;
+    push @{$dc_p{description}}, $d;
   }
   
   my ($creators, $contributors) = $ext->_get_jsonld_roles($c, $jsonld);
@@ -273,7 +273,7 @@ sub map_jsonld_2_dc_hash {
   $dc_p{contributor} = $contributors;
   
   for my $s (@{$ext->_get_jsonld_subjects($c, $jsonld)}){
-    push $dc_p{subject}, $s;
+    push @{$dc_p{subject}}, $s;
   }
 
   if($jsonld->{'dcterms:subject'}){
@@ -291,7 +291,7 @@ sub map_jsonld_2_dc_hash {
 
         my $sub_provenance = $ext->_get_jsonld_objectlabels($c, $o, 'dcterms:provenance');
         for my $s_p (@{$sub_provenance}){
-          push $dc_p{description}, $s_p;
+          push @{$dc_p{description}}, $s_p;
         }
 
         my ($sub_creators, $sub_contributors) = $ext->_get_jsonld_roles($c, $o);
@@ -309,7 +309,7 @@ sub map_jsonld_2_dc_hash {
 
         my $s_tcs = $ext->_get_jsonld_langvalues($c, $o, 'schema:temporalCoverage');
         for my $s_tc (@{$s_tcs}){
-          push $dc_p{coverage}, $s_tc;
+          push @{$dc_p{coverage}}, $s_tc;
         }
       }
     }
@@ -319,35 +319,35 @@ sub map_jsonld_2_dc_hash {
     my $do = $jsonld->{'phaidra:digitizedObject'};
     my $do_titles = $ext->_get_jsonld_titles($c, $do);
     for my $do_t (@{$do_titles}){
-      push $dc_p{title}, $do_t;
+      push @{$dc_p{title}}, $do_t;
     }
 
     my $do_descriptions = $ext->_get_jsonld_descriptions($c, $do);
     for my $do_d (@{$do_descriptions}){
-      push $dc_p{description}, $do_d;
+      push @{$dc_p{description}}, $do_d;
     }
 
     my $do_provenance = $ext->_get_jsonld_objectlabels($c, $do, 'dcterms:provenance');
     for my $do_p (@{$do_provenance}){
-      push $dc_p{description}, $do_p;
+      push @{$dc_p{description}}, $do_p;
     }
 
     my ($do_creators, $do_contributors) = $ext->_get_jsonld_roles($c, $do);
     for my $do_cr (@{$do_creators}){
-      push $dc_p{creator}, $do_cr;
+      push @{$dc_p{creator}}, $do_cr;
     }
     for my $do_co (@{$do_contributors}){
-      push $dc_p{contributor}, $do_co;
+      push @{$dc_p{contributor}}, $do_co;
     }
 
     my $do_subjects = $ext->_get_jsonld_subjects($c, $do);
     for my $do_s (@{$do_subjects}){
-      push $dc_p{subject}, $do_s;
+      push @{$dc_p{subject}}, $do_s;
     }
 
     my $do_tcs = $ext->_get_jsonld_langvalues($c, $do, 'schema:temporalCoverage');
     for my $do_tc (@{$do_tcs}){
-      push $dc_p{coverage}, $do_tc;
+      push @{$dc_p{coverage}}, $do_tc;
     }
 
   }
@@ -365,7 +365,7 @@ sub map_jsonld_2_dc_hash {
   
   my $tcs = $ext->_get_jsonld_langvalues($c, $jsonld, 'schema:temporalCoverage');
   for my $tc (@{$tcs}){
-    push $dc_p{coverage}, $tc;
+    push @{$dc_p{coverage}}, $tc;
   }
   
   $dc_p{rights} = $ext->_get_jsonld_values($c, $jsonld, 'edm:rights');
