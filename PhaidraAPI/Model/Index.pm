@@ -1027,8 +1027,24 @@ sub _add_jsonld_index {
             push @descriptions, $s_d;
           }
         }
+
+        if($o->{'opaque:ethnographic'}){
+          for my $o1 (@{$o->{'opaque:ethnographic'}}) {
+            for my $l (@{$o1->{'rdfs:label'}}) {
+              $index->{"opaque_ethnographic"} = $l->{'@value'};
+            }
+          }
+        }
       }
 
+    }
+  }
+
+  if($jsonld->{'opaque:ethnographic'}){
+    for my $o (@{$jsonld->{'opaque:ethnographic'}}) {
+      for my $l (@{$o->{'rdfs:label'}}) {
+        $index->{"opaque_ethnographic"} = $l->{'@value'};
+      }
     }
   }
 
@@ -1093,6 +1109,8 @@ sub _add_uwm_index {
       }
     }
   }
+
+  # TODO: AC number - from ids and from aleph-url
 
   # lifecycle -> metadataqualitycheck
   my $metadataqualitycheck = $self->_find_first_uwm_node_rec($c, "http://phaidra.univie.ac.at/XML/metadata/extended/V1.0", "metadataqualitycheck", $uwm);
