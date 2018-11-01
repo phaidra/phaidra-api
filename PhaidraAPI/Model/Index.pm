@@ -756,6 +756,11 @@ sub _index_relsext {
   my $cmodel = $xml->find('hasModel')->first->attr('rdf:resource');
   $cmodel =~ s/^info:fedora\/cmodel:(.*)$/$1/;
   $index->{cmodel} = $cmodel;
+
+  for my $e ($xml->find('identifier')->each){
+    my $o = $e->attr('rdf:resource');
+    push @{$index->{dc_identifier}}, $o;
+  }
   
   for my $e ($xml->find('references')->each){
     my $o = $e->attr('rdf:resource');
