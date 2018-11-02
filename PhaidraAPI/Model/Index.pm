@@ -997,7 +997,7 @@ sub _add_jsonld_index {
   my ($self, $c, $pid, $jsonld, $index) = @_;
 
   my $res = { alerts => [], status => 200 };
-
+$c->app->log->debug($c->app->dumper($jsonld));
   my @roles;
 
   my @descriptions;
@@ -1015,40 +1015,18 @@ sub _add_jsonld_index {
     push @roles, $r;
   }
 
-  if($jsonld->{'dcterms:subject'}){
-    for my $o (@{$jsonld->{'dcterms:subject'}}) {
-      if ($o->{'@type'} eq 'phaidra:Subject' || $o->{'@type'} eq 'phaidra:DigitizedObject') {
-        
-        my $s_res = $self->_add_jsonld_roles($c, $pid, $o, $index);
-        for my $a (@{$s_res->{alerts}}){
-          push @{$res->{alerts}}, $a;
-        }
-        for my $s_r (@{$s_res->{roles}}){
-          push @roles, $s_r;
-        }
-        
-        if($o->{'bf:note'}){
-          for my $s_d (@{$o->{'bf:note'}}){
-            push @descriptions, $s_d;
-          }
-        }
-
-        if($o->{'opaque:ethnographic'}){
-          for my $o1 (@{$o->{'opaque:ethnographic'}}) {
-            for my $l (@{$o1->{'rdfs:label'}}) {
-              $index->{"opaque_ethnographic"} = $l->{'@value'};
-            }
-          }
-        }
-      }
-
-    }
-  }
-
   if($jsonld->{'opaque:ethnographic'}){
     for my $o (@{$jsonld->{'opaque:ethnographic'}}) {
       for my $l (@{$o->{'rdfs:label'}}) {
-        $index->{"opaque_ethnographic"} = $l->{'@value'};
+        push @{$index->{"opaque_ethnographic"}}, $l->{'@value'};
+      }
+    }
+  }
+
+  if($jsonld->{'vra:hasInscription'}){
+    for my $o (@{$jsonld->{'vra:hasInscription'}}) {
+      for my $l (@{$o->{'rdfs:label'}}) {
+        push @{$index->{"vra_inscription"}}, $l->{'@value'};
       }
     }
   }
@@ -1057,6 +1035,24 @@ sub _add_jsonld_index {
 
   if(scalar @descriptions){
     $index->{"descriptions_json"} = b(encode_json(\@descriptions))->decode('UTF-8');
+  }
+
+  if($jsonld->{'dcterms:subject'}){
+    for my $o (@{$jsonld->{'dcterms:subject'}}) {
+      if ($o->{'@type'} eq 'phaidra:Subject') {
+        my $rr = $self->_add_jsonld_index($c, $pid, $o, $index);
+        for my $a (@{$rr->{alerts}}){
+          push @{$res->{alerts}}, $a;
+        }
+      }
+    }
+  }
+
+  if($jsonld->{'phaidra:digitizedObject'}){
+    my $rr = $self->_add_jsonld_index($c, $pid, $jsonld->{'phaidra:digitizedObject'}, $index);
+    for my $a (@{$rr->{alerts}}){
+      push @{$res->{alerts}}, $a;
+    }
   }
 
   return $res;
@@ -1115,8 +1111,6 @@ sub _add_uwm_index {
     }
   }
 
-  # TODO: AC number - from ids and from aleph-url
-
   # lifecycle -> metadataqualitycheck
   my $metadataqualitycheck = $self->_find_first_uwm_node_rec($c, "http://phaidra.univie.ac.at/XML/metadata/extended/V1.0", "metadataqualitycheck", $uwm);
   if($metadataqualitycheck){
@@ -1154,6 +1148,12 @@ sub _add_uwm_index {
         }
         if($dbf->{xmlname} eq 'releaseyear'){
           push @{$index->{"bib_published"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+        }
+        if($dbf->{xmlname} eq 'alephurl'){
+          $dbf->{ui_value} =~ m/(AC\d+)/;
+          if($1){
+            push @{$index->{"dc_identifier"}}, $1;
+          }
         }
       }
     }
