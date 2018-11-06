@@ -94,10 +94,10 @@ our %uwm_2_mods_roles = (
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1552167" => "adviser",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557124" => "degreegrantor",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557146" => "uploader",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562629" => "calligrapher",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561147" => "conservator",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562631" => "editorofcompilation",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562629" => "calligrapher",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562630" => "transcriber",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562631" => "editorofcompilation",
 
   # data supplier -> data contributor
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/55" => "dtc",
