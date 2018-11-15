@@ -24,7 +24,7 @@ sub get_object_jsonld_parsed {
   if($r->{status} ne 200){
     return $r;
   }
-
+  #my $content = encode 'UTF-8', $r->{'JSON-LD'};
   $res->{'JSON-LD'} = decode_json($r->{'JSON-LD'});
   return $res;  
 }
@@ -51,7 +51,7 @@ sub save_to_object(){
   }
 
   my $object_model = PhaidraAPI::Model::Object->new;
-  my $json = b(encode_json($metadata))->decode('UTF-8');
+  my $json = encode_json($metadata);
   return $object_model->add_or_modify_datastream($c, $pid, "JSON-LD", "application/json", undef, $c->app->config->{phaidra}->{defaultlabel}, $json, "M", $username, $password);
 }
 
