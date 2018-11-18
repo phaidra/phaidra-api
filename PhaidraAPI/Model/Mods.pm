@@ -219,16 +219,17 @@ sub json_2_xml_rec(){
     }
 
     if (defined($child->{attributes}) && (scalar @{$child->{attributes}} > 0)){
-      my @attrs;
+      my %attrs;
       for my $a (@{$child->{attributes}}){
-        if(defined($a->{value}) && $a->{value} ne ''){
+        if(defined($a->{ui_value}) && $a->{ui_value} ne ''){
           if($a->{xmlname} eq 'lang'){
-            push @attrs, ['http://www.w3.org/XML/1998/namespace', 'lang'] => $a->{value};
+            $attrs{['http://www.w3.org/XML/1998/namespace', 'lang']} = $a->{ui_value};
           }else{
-            push @attrs, $a->{xmlname} => $a->{value};
+            $attrs{$a->{xmlname}} = $a->{ui_value};
           }
         }
       }
+      $writer->startTag([$modsns, $child->{xmlname}], %attrs);
     }else{
       $writer->startTag([$modsns, $child->{xmlname}]);
     }
