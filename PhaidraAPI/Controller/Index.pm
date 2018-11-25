@@ -42,16 +42,16 @@ sub get_dc {
   my %have_lang_field;
   
   for my $field (keys %{$r->{index}}){
-    if($field =~ m/dc_(\w+)_(\w+)/){
+    if($field =~ m/^dc_(\w+)_(\w+)/){
       $have_lang_field{$1} = 1
     }
   }
   for my $field (keys %{$r->{index}}){
-    if($field =~ m/dc_(\w+)_(\w+)/){
+    if($field =~ m/^dc_(\w+)_(\w+)/){
       for my $value (@{$r->{index}->{$field}}){
         $dc .= "\n  <dc:$1 xml:lang=\"$2\">". xml_escape(html_unescape($value)) ."</dc:$1>"
       }
-    }elsif($field =~ m/dc_(\w+)/){
+    }elsif($field =~ m/^dc_(\w+)/){
       # if there is eg dc_title_deu do not add dc_title too, except for authors and contributors (where institutions have language but names do not)
       next if ($have_lang_field{$1}) && ($field ne 'dc_creator') && ($field ne 'dc_contributor');
       
