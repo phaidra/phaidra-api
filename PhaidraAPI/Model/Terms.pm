@@ -76,6 +76,8 @@ sub _get_taxon_labels {
 	  } 
 	  $taxon->{nonpreferred} = \@nonpreferred;
 
+	  $c->app->chi->set($cachekey, $taxon, '1 day');
+
 	}else{
       $c->app->log->debug("[cache hit] $cachekey");           
     }	
