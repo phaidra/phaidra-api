@@ -209,11 +209,8 @@ sub get_metadata_tree {
 			field_order => (defined($field_order) ? $field_order : 9999), # as defined in metadata format, value must be defined because we are going to sort by this
 			data_order => '', # as defined in object's metadata (for objects which have 'ordered = 1')
 			help_id => 'helpmeta_'.$mid, # used ot get the help tooltip content via ajax
-			value => '', # what's expected in uwmetadata
 			value_lang => '', # language of the value if any
 			ui_value => '', # what's expected on the form (eg ns/id for vocabularies)
-			loaded_value => '', # the initial uwmetadata value which was loaded from the object
-			loaded_value_lang => '', # the initial language for the value, if any
 			loaded => 0, # 1 if this element was filled with a value loaded from object's metadata
 			#field_id => 'field_'.$i,
 			input_type => '', # which html control to use, we will specify this later
@@ -264,11 +261,7 @@ sub get_metadata_tree {
 			case "Language" { $format{$mid}->{input_type} = "language_select" }
 
 			case "Boolean"	{
-				if($format{$mid}->{mandatory}){
-					$format{$mid}->{input_type} = "select_yesno";
-				}else{
-					$format{$mid}->{input_type} = "input_checkbox";
-				}
+				$format{$mid}->{input_type} = "select_yesno";
 			}
 
 			case "Node"	{ $format{$mid}->{input_type} = "node" }
@@ -862,17 +855,14 @@ sub fix_taxonpath_nodes {
 						if($taxpath_child->{ui_value} ne ''){
 							$cls_id = $taxpath_child->{ui_value};
 							my $source_val = $PhaidraAPI::Model::Terms::classification_ns."/cls_$cls_id";
-							$taxpath_child->{value} = $source_val;
-			    			$taxpath_child->{loaded_value} = $source_val;
-			    			$taxpath_child->{ui_value} = $source_val;
-
-			    			my $r = $terms_model->label($c, $source_val);
-			    			if($r->{status} eq 200){
-			    				#$c->app->log->debug($c->app->dumper($r));
-			    				$taxpath_child->{value_labels} = $r->{labels};
-			    			}else{
-			    				$c->app->log->error("Could not get terms for $source_val: ".$c->app->dumper($r))
-			    			}
+              $taxpath_child->{ui_value} = $source_val;
+              my $r = $terms_model->label($c, $source_val);
+              if($r->{status} eq 200){
+                #$c->app->log->debug($c->app->dumper($r));
+                $taxpath_child->{value_labels} = $r->{labels};
+              }else{
+                $c->app->log->error("Could not get terms for $source_val: ".$c->app->dumper($r))
+              }
 						}
 					}
 				}
@@ -883,17 +873,15 @@ sub fix_taxonpath_nodes {
 						if($taxpath_child->{ui_value} ne ''){
 							my $tax_id = $taxpath_child->{ui_value};
 							my $tax_val = $PhaidraAPI::Model::Terms::classification_ns."/cls_$cls_id/$tax_id";
-							$taxpath_child->{value} = $tax_val;
-			    			$taxpath_child->{loaded_value} = $tax_val;
-			    			$taxpath_child->{ui_value} = $tax_val;
+              $taxpath_child->{ui_value} = $tax_val;
 
-			    			my $r = $terms_model->label($c, $tax_val);
-			    			if($r->{status} eq 200){
-			    				#$c->app->log->debug($c->app->dumper($r));
-			    				$taxpath_child->{value_labels} = $r->{labels};
-			    			}else{
-			    				$c->app->log->error("Could not get terms for $tax_val: ".$c->app->dumper($r))
-			    			}
+              my $r = $terms_model->label($c, $tax_val);
+              if($r->{status} eq 200){
+                #$c->app->log->debug($c->app->dumper($r));
+                $taxpath_child->{value_labels} = $r->{labels};
+              }else{
+                $c->app->log->error("Could not get terms for $tax_val: ".$c->app->dumper($r))
+              }
 						}
 					}
 				}
@@ -943,7 +931,7 @@ sub get_org_units_terms {
 
 		foreach my $u (@$org_units){
 			$vocabulary{'terms'}->{$u->{value}}->{uri} = $value_namespace.$u->{value};
-			$vocabulary{'terms'}->{$u->{value}}->{$lang} = $u->{name};
+			$vocabulary{'terms'}->{$u->{value}}->{labels}->{$lang} = $u->{name};
 		}
 	}
 	my @termarray;
@@ -972,7 +960,7 @@ sub get_study_terms {
 
 		foreach my $s (@$study){
 			$vocabulary{'terms'}->{$s->{value}}->{uri} = $values_namespace.$s->{value};
-			$vocabulary{'terms'}->{$s->{value}}->{$lang} = $s->{name};
+			$vocabulary{'terms'}->{$s->{value}}->{labels}->{$lang} = $s->{name};
 		}
 	}
 
@@ -1040,9 +1028,6 @@ sub fill_object_metadata {
 
 	    			foreach my $voc (@{$node->{vocabularies}}){
 		    			my $node_value = $e->text;
-
-		    			$node->{value} = $voc->{namespace}.$node_value;
-		    			$node->{loaded_value} = $voc->{namespace}.$node_value;
 		    			$node->{ui_value} = $voc->{namespace}.$node_value;
 	    			}
 
@@ -1127,8 +1112,6 @@ sub fill_object_metadata {
 	    		}else{
             if($node->{input_type} ne 'node'){
               my $v = html_unescape b($e->content)->decode('UTF-8');
-              #$node->{value} = $v;
-              $node->{loaded_value} = $v;
               $node->{ui_value} = $v;
             }
 	    		}
@@ -1138,7 +1121,6 @@ sub fill_object_metadata {
         if(defined($e->attr)){
             if($e->attr->{language}){
               $node->{value_lang} = $e->attr->{language};
-              $node->{loaded_value_lang} = $e->attr->{language};
             }
             if(defined($e->attr->{seq}) && $node->{ordered}){
               $node->{data_order} = $e->attr->{seq};
@@ -1261,7 +1243,7 @@ sub set_identifier() {
 
 	foreach my $n (@{$metadata}){
 		if($n->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0' && $n->{xmlname} eq 'identifier'){
-			$n->{value} = $pid;
+			$n->{ui_value} = $pid;
 			last;
 		}else{
 			my $children_size = defined($n->{children}) ? scalar (@{$n->{children}}) : 0;
@@ -1692,12 +1674,6 @@ sub json_2_uwmetadata_rec(){
 			$self->json_2_uwmetadata_rec($c, $child, $child->{children}, $writer);
 		}else{
 
-			# copy the 'ui_value' to 'value' (or transform, if needed)
-
-	  		if(!defined($child->{value}) || $child->{value} eq ''){
-	  			$child->{value} = $child->{ui_value};
-	  		}
-
 			# hack, until vocabulary server
 			if(
 				$child->{datatype} eq 'Vocabulary' ||
@@ -1709,27 +1685,27 @@ sub json_2_uwmetadata_rec(){
 			){
 
 				# eg http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_21/6
-				if($child->{value} =~ m/($child->{xmlns})\/voc_(\w+)\/(\w+)/){
+				if($child->{ui_value} =~ m/($child->{xmlns})\/voc_(\w+)\/(\w+)/){
 					$writer->characters($3);
 				}
 
 			}elsif($child->{datatype} eq 'ClassificationSource'){
 
 				# eg http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/cls_7
-				if($child->{value} =~ m/($child->{xmlns})\/cls_(\d+)/){
+				if($child->{ui_value} =~ m/($child->{xmlns})\/cls_(\d+)/){
 					$writer->characters($2);
 				}
 
 			}elsif($child->{datatype} eq 'Taxon'){
 
 				# http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/cls_7/169426
-				if($child->{value} =~ m/($child->{xmlns})\/cls_(\d+)\/(\w+)/){
+				if($child->{ui_value} =~ m/($child->{xmlns})\/cls_(\d+)\/(\w+)/){
 					$writer->characters($3);
 				}
 
 			}else{
 				if($child->{datatype} eq 'Boolean'){
-					my $val = $child->{value};
+					my $val = $child->{ui_value};
 					if($val eq '1'){
 						$val = 'yes';
 					}
@@ -1738,8 +1714,8 @@ sub json_2_uwmetadata_rec(){
 					}
 					$writer->characters($val);
 				}else{
-					if($child->{value}){
-						$writer->characters($child->{value});
+					if($child->{ui_value}){
+						$writer->characters($child->{ui_value});
 					}
 				}
 			}
@@ -1834,7 +1810,7 @@ sub children_not_empty_rec {
 
 	my $ret = 0;
 	for my $child (@{$children}){		
-		if($child->{ui_value} ne '' || $child->{value} ne ''){
+		if($child->{ui_value} ne ''){
 			$ret = 1;
 			last;
 		}else{

@@ -27,13 +27,13 @@ our %tree = ( tree => [
           "sr" => "identifikator"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 1,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "identifier",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -55,13 +55,13 @@ our %tree = ( tree => [
           "sr" => "naslov"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 1,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => undef,
         "xmlname" => "title",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -83,13 +83,13 @@ our %tree = ( tree => [
           "sr" => "podnaslov"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => undef,
         "xmlname" => "subtitle",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/extended/V1.0"
@@ -111,13 +111,13 @@ our %tree = ( tree => [
           "sr" => "uporedni naslov"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => undef,
         "xmlname" => "alt_title",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/extended/V1.0"
@@ -139,13 +139,13 @@ our %tree = ( tree => [
           "sr" => "jezik"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 1,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "language",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -167,13 +167,13 @@ our %tree = ( tree => [
           "sr" => "opis ili dodatni podaci"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 1,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => undef,
         "xmlname" => "description",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -195,13 +195,13 @@ our %tree = ( tree => [
           "sr" => "klju?ne re?i"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => undef,
         "xmlname" => "keyword",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -223,13 +223,13 @@ our %tree = ( tree => [
           "sr" => "obseg"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => undef,
         "xmlname" => "coverage",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -243,7 +243,7 @@ our %tree = ( tree => [
         "help_id" => "helpmeta_138",
         "hidden" => 1,
         "input_regex" => "",
-        "input_type" => "input_checkbox",
+        "input_type" => "select_yesno",
         "labels" => {
           "de" => "Institutional Repository",
           "en" => "Institutional Repository",
@@ -251,13 +251,13 @@ our %tree = ( tree => [
           "sr" => "institucionalni repozitorij"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "irdata",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/extended/V1.0"
@@ -282,13 +282,13 @@ our %tree = ( tree => [
               "sr" => "izvor"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "vocabularies" => [
               {
@@ -422,13 +422,13 @@ our %tree = ( tree => [
               "sr" => "identifikator"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "xmlname" => "identifier",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/extended/V1.0"
@@ -449,13 +449,13 @@ our %tree = ( tree => [
           "sr" => "identifikatori"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "identifiers",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/extended/V1.0"
@@ -476,13 +476,13 @@ our %tree = ( tree => [
       "sr" => "op\x{9a}te"
     },
     "loaded" => 0,
-    "loaded_ui_value" => "",
-    "loaded_value" => "",
-    "loaded_value_lang" => "",
+    
+    
+    
     "mandatory" => 1,
     "ordered" => 0,
     "ui_value" => "",
-    "value" => "",
+    
     "value_lang" => "",
     "xmlname" => "general",
     "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -507,13 +507,13 @@ our %tree = ( tree => [
           "sr" => "datum u?itavanja u Phaidru"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 1,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "upload_date",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -535,13 +535,13 @@ our %tree = ( tree => [
           "sr" => "verzija"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => undef,
         "xmlname" => "version",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -563,13 +563,13 @@ our %tree = ( tree => [
           "sr" => "status"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 1,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "vocabularies" => [
           {
@@ -618,7 +618,7 @@ our %tree = ( tree => [
         "help_id" => "helpmeta_137",
         "hidden" => 0,
         "input_regex" => "",
-        "input_type" => "input_checkbox",
+        "input_type" => "select_yesno",
         "labels" => {
           "de" => "Peer Reviewed",
           "en" => "Peer Reviewed",
@@ -626,13 +626,13 @@ our %tree = ( tree => [
           "sr" => "recenziran"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "peer_reviewed",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/extended/V1.0"
@@ -657,13 +657,13 @@ our %tree = ( tree => [
               "sr" => "uloga"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 1,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "vocabularies" => [
               {
@@ -1289,13 +1289,13 @@ our %tree = ( tree => [
               "sr" => "razli?ita uloga"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "xmlname" => "ext_role",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -1320,13 +1320,13 @@ our %tree = ( tree => [
                   "sr" => " ime"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "firstname",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"
@@ -1348,13 +1348,13 @@ our %tree = ( tree => [
                   "sr" => "prezime"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "lastname",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"
@@ -1376,13 +1376,13 @@ our %tree = ( tree => [
                   "sr" => "institucija"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "institution",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"
@@ -1404,13 +1404,13 @@ our %tree = ( tree => [
                   "sr" => "naslov"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "title1",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"
@@ -1432,13 +1432,13 @@ our %tree = ( tree => [
                   "sr" => "naslov"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "title2",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"
@@ -1460,13 +1460,13 @@ our %tree = ( tree => [
                   "sr" => "vrsta"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "type",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"
@@ -1488,13 +1488,13 @@ our %tree = ( tree => [
                   "sr" => "ID studenta"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "student_id",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"
@@ -1516,13 +1516,13 @@ our %tree = ( tree => [
                   "sr" => "ORCID"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "orcid",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"
@@ -1544,13 +1544,13 @@ our %tree = ( tree => [
                   "sr" => "VIAF"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "viaf",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"
@@ -1572,13 +1572,13 @@ our %tree = ( tree => [
                   "sr" => "WDQ"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "wdq",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"
@@ -1600,13 +1600,13 @@ our %tree = ( tree => [
                   "sr" => "GND"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "gnd",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"
@@ -1628,13 +1628,13 @@ our %tree = ( tree => [
                   "sr" => "LCNAF"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "lcnaf",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"
@@ -1656,13 +1656,13 @@ our %tree = ( tree => [
                   "sr" => "ISNI"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "isni",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"
@@ -1683,13 +1683,13 @@ our %tree = ( tree => [
               "sr" => "entitet / li?ni podaci"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 1,
             "ordered" => 1,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "xmlname" => "entity",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -1711,13 +1711,13 @@ our %tree = ( tree => [
               "sr" => "datum"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "xmlname" => "date",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -1738,13 +1738,13 @@ our %tree = ( tree => [
           "sr" => "doprineti"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 1,
         "ordered" => 1,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "contribute",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -1766,13 +1766,13 @@ our %tree = ( tree => [
           "sr" => "OpenAIRE Version Type"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "vocabularies" => [
           {
@@ -1847,13 +1847,13 @@ our %tree = ( tree => [
           "sr" => "Metadata quality check"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "vocabularies" => [
           {
@@ -1909,13 +1909,13 @@ our %tree = ( tree => [
       "sr" => "\x{9e}ivotni ciklus"
     },
     "loaded" => 0,
-    "loaded_ui_value" => "",
-    "loaded_value" => "",
-    "loaded_value_lang" => "",
+    
+    
+    
     "mandatory" => 1,
     "ordered" => 0,
     "ui_value" => "",
-    "value" => "",
+    
     "value_lang" => "",
     "xmlname" => "lifecycle",
     "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -1940,13 +1940,13 @@ our %tree = ( tree => [
           "sr" => "format"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "format",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -1968,13 +1968,13 @@ our %tree = ( tree => [
           "sr" => "veli?ina"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "size",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -1996,13 +1996,13 @@ our %tree = ( tree => [
           "sr" => "trajni link"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "location",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -2030,13 +2030,13 @@ our %tree = ( tree => [
                   "sr" => "vrsta"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "vocabularies" => [
                   {
@@ -2084,13 +2084,13 @@ our %tree = ( tree => [
                   "sr" => "naziv"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "vocabularies" => [
                   {
@@ -2156,13 +2156,13 @@ our %tree = ( tree => [
                   "sr" => "minimalna verzija"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "minversion",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/requirement"
@@ -2184,13 +2184,13 @@ our %tree = ( tree => [
                   "sr" => "maksimalna verzija"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "maxversion",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/requirement"
@@ -2211,13 +2211,13 @@ our %tree = ( tree => [
               "sr" => "logi?ki ili"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "xmlname" => "orcomposite",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -2238,13 +2238,13 @@ our %tree = ( tree => [
           "sr" => "zahtevi"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "requirement",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -2266,13 +2266,13 @@ our %tree = ( tree => [
           "sr" => "vodi? za instalaciju"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => undef,
         "xmlname" => "installremarks",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -2294,13 +2294,13 @@ our %tree = ( tree => [
           "sr" => "uslovi za kori\x{9a}?enje objekta"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => undef,
         "xmlname" => "otherrequirements",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -2322,13 +2322,13 @@ our %tree = ( tree => [
           "sr" => "trajanje"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "duration",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -2349,13 +2349,13 @@ our %tree = ( tree => [
       "sr" => "tehni?ki podaci"
     },
     "loaded" => 0,
-    "loaded_ui_value" => "",
-    "loaded_value" => "",
-    "loaded_value_lang" => "",
+    
+    
+    
     "mandatory" => 0,
     "ordered" => 0,
     "ui_value" => "",
-    "value" => "",
+    
     "value_lang" => "",
     "xmlname" => "technical",
     "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -2383,13 +2383,13 @@ our %tree = ( tree => [
               "sr" => "vrsta nastavnog i obrazovnog izvora"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 1,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "vocabularies" => [
               {
@@ -2554,13 +2554,13 @@ our %tree = ( tree => [
               "sr" => "vrsta interaktivnosti"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "vocabularies" => [
               {
@@ -2617,13 +2617,13 @@ our %tree = ( tree => [
               "sr" => "nivo interaktivnosti"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "vocabularies" => [
               {
@@ -2698,13 +2698,13 @@ our %tree = ( tree => [
               "sr" => "nameravana uloga krajnjeg korisnika"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "vocabularies" => [
               {
@@ -2761,13 +2761,13 @@ our %tree = ( tree => [
               "sr" => "didakti?ni kontekst kori\x{9a}?enja"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "vocabularies" => [
               {
@@ -2833,13 +2833,13 @@ our %tree = ( tree => [
               "sr" => "uobi?ajeni raspon godina"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => undef,
             "xmlname" => "agerange",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational"
@@ -2861,13 +2861,13 @@ our %tree = ( tree => [
               "sr" => "nivo te\x{9e}ine"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "vocabularies" => [
               {
@@ -2942,13 +2942,13 @@ our %tree = ( tree => [
               "sr" => "uobi?ajeno vreme u?enja"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "xmlname" => "learningtime",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational"
@@ -2970,13 +2970,13 @@ our %tree = ( tree => [
               "sr" => "opis"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => undef,
             "xmlname" => "description",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational"
@@ -2998,13 +2998,13 @@ our %tree = ( tree => [
               "sr" => "jezik"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "xmlname" => "language",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational"
@@ -3025,13 +3025,13 @@ our %tree = ( tree => [
           "sr" => "obrazovni podaci"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "educationals",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -3052,13 +3052,13 @@ our %tree = ( tree => [
       "sr" => "obrazovni podaci"
     },
     "loaded" => 0,
-    "loaded_ui_value" => "",
-    "loaded_value" => "",
-    "loaded_value_lang" => "",
+    
+    
+    
     "mandatory" => 0,
     "ordered" => 0,
     "ui_value" => "",
-    "value" => "",
+    
     "value_lang" => "",
     "xmlname" => "educational",
     "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -3083,13 +3083,13 @@ our %tree = ( tree => [
           "sr" => "tro\x{9a}kovi"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 1,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "cost",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -3111,13 +3111,13 @@ our %tree = ( tree => [
           "sr" => "kopirajt i druga ograni?enja"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 1,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "copyright",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -3139,13 +3139,13 @@ our %tree = ( tree => [
           "sr" => "izabrana licenca"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 1,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "vocabularies" => [
           {
@@ -3466,13 +3466,13 @@ our %tree = ( tree => [
           "sr" => "opis ili dodatni podaci"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => undef,
         "xmlname" => "description",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -3494,13 +3494,13 @@ our %tree = ( tree => [
           "sr" => "OpenAIRE Access Rights"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "vocabularies" => [
           {
@@ -3566,13 +3566,13 @@ our %tree = ( tree => [
           "sr" => "OpenAIRE Embargo End"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "infoeurepoembargo",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/extended/V1.0"
@@ -3593,13 +3593,13 @@ our %tree = ( tree => [
       "sr" => "prava i licence"
     },
     "loaded" => 0,
-    "loaded_ui_value" => "",
-    "loaded_value" => "",
-    "loaded_value_lang" => "",
+    
+    
+    
     "mandatory" => 1,
     "ordered" => 0,
     "ui_value" => "",
-    "value" => "",
+    
     "value_lang" => "",
     "xmlname" => "rights",
     "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -3630,13 +3630,13 @@ our %tree = ( tree => [
                   "sr" => " ime"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "firstname",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"
@@ -3658,13 +3658,13 @@ our %tree = ( tree => [
                   "sr" => "prezime"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "lastname",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"
@@ -3686,13 +3686,13 @@ our %tree = ( tree => [
                   "sr" => "institucija"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "institution",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"
@@ -3714,13 +3714,13 @@ our %tree = ( tree => [
                   "sr" => "naslov"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "title1",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"
@@ -3742,13 +3742,13 @@ our %tree = ( tree => [
                   "sr" => "naslov"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "title2",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"
@@ -3770,13 +3770,13 @@ our %tree = ( tree => [
                   "sr" => "vrsta"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "type",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/entity"
@@ -3797,13 +3797,13 @@ our %tree = ( tree => [
               "sr" => "entitet / li?ni podaci"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "xmlname" => "entity",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/annotation"
@@ -3825,13 +3825,13 @@ our %tree = ( tree => [
               "sr" => "datum"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "xmlname" => "date",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/annotation"
@@ -3853,13 +3853,13 @@ our %tree = ( tree => [
               "sr" => "opis ili dodatni podaci"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => undef,
             "xmlname" => "description",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/annotation"
@@ -3880,13 +3880,13 @@ our %tree = ( tree => [
           "sr" => "napomene"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "annotations",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/annotation"
@@ -3907,13 +3907,13 @@ our %tree = ( tree => [
       "sr" => "napomene"
     },
     "loaded" => 0,
-    "loaded_ui_value" => "",
-    "loaded_value" => "",
-    "loaded_value_lang" => "",
+    
+    
+    
     "mandatory" => 0,
     "ordered" => 0,
     "ui_value" => "",
-    "value" => "",
+    
     "value_lang" => "",
     "xmlname" => "annotation",
     "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -3938,13 +3938,13 @@ our %tree = ( tree => [
           "sr" => "cilj"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "vocabularies" => [
           {
@@ -3986,13 +3986,13 @@ our %tree = ( tree => [
               "sr" => "Izvor"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "xmlname" => "source",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification"
@@ -4014,13 +4014,13 @@ our %tree = ( tree => [
               "sr" => "putanja"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 1,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "xmlname" => "taxon",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification"
@@ -4041,13 +4041,13 @@ our %tree = ( tree => [
           "sr" => "Klasifikacije ( klase, podklase)"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "taxonpath",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification"
@@ -4069,13 +4069,13 @@ our %tree = ( tree => [
           "sr" => "opis ili dodatni podaci"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => undef,
         "xmlname" => "description",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification"
@@ -4097,13 +4097,13 @@ our %tree = ( tree => [
           "sr" => "klju?ne re?i"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 1,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => undef,
         "xmlname" => "keyword",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification"
@@ -4124,13 +4124,13 @@ our %tree = ( tree => [
       "sr" => "Klasifikacija"
     },
     "loaded" => 0,
-    "loaded_ui_value" => "",
-    "loaded_value" => "",
-    "loaded_value_lang" => "",
+    
+    
+    
     "mandatory" => 1,
     "ordered" => 0,
     "ui_value" => "",
-    "value" => "",
+    
     "value_lang" => "",
     "xmlname" => "classification",
     "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -4155,13 +4155,13 @@ our %tree = ( tree => [
           "sr" => "vrsta akademskog rada"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "vocabularies" => [
           {
@@ -4390,13 +4390,13 @@ our %tree = ( tree => [
           "sr" => "datum potvr?ivanja"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "approbation_period",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization"
@@ -4421,13 +4421,13 @@ our %tree = ( tree => [
               "sr" => "fakultet"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "vocabularies" => [
               {
@@ -4603,13 +4603,13 @@ our %tree = ( tree => [
               "sr" => "institut"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "vocabularies" => [
               {
@@ -4636,13 +4636,13 @@ our %tree = ( tree => [
           "sr" => "ustanova"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "orgassignment",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization"
@@ -4667,13 +4667,13 @@ our %tree = ( tree => [
               "sr" => "smer studijskog programa"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "vocabularies" => [
               {
@@ -5026,13 +5026,13 @@ our %tree = ( tree => [
               "sr" => " ID studija"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 1,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "vocabularies" => [
               {
@@ -5059,13 +5059,13 @@ our %tree = ( tree => [
           "sr" => "studije"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "curriculum",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization"
@@ -5086,13 +5086,13 @@ our %tree = ( tree => [
           "it" => "ulteriore assegnazione"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "further_allocation",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization"
@@ -5113,13 +5113,13 @@ our %tree = ( tree => [
       "sr" => "ustanove"
     },
     "loaded" => 0,
-    "loaded_ui_value" => "",
-    "loaded_value" => "",
-    "loaded_value_lang" => "",
+    
+    
+    
     "mandatory" => 0,
     "ordered" => 0,
     "ui_value" => "",
-    "value" => "",
+    
     "value_lang" => "",
     "xmlname" => "organization",
     "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0"
@@ -5144,13 +5144,13 @@ our %tree = ( tree => [
           "sr" => "zapis"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => undef,
         "xmlname" => "inscription",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0"
@@ -5175,13 +5175,13 @@ our %tree = ( tree => [
               "sr" => "Izvor"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "vocabularies" => [
               {
@@ -5256,13 +5256,13 @@ our %tree = ( tree => [
               "sr" => "jedinica mere"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "vocabularies" => [
               {
@@ -5363,13 +5363,13 @@ our %tree = ( tree => [
               "sr" => "du\x{9e}ina"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "xmlname" => "length",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0"
@@ -5391,13 +5391,13 @@ our %tree = ( tree => [
               "sr" => "\x{9a}irina"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "xmlname" => "width",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0"
@@ -5419,13 +5419,13 @@ our %tree = ( tree => [
               "sr" => "visina"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "xmlname" => "height",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0"
@@ -5447,13 +5447,13 @@ our %tree = ( tree => [
               "sr" => "obim"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "xmlname" => "diameter",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0"
@@ -5474,13 +5474,13 @@ our %tree = ( tree => [
           "sr" => "dimenzije"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 1,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "dimensions",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0"
@@ -5505,13 +5505,13 @@ our %tree = ( tree => [
               "sr" => "referenca"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "vocabularies" => [
               {
@@ -5755,13 +5755,13 @@ our %tree = ( tree => [
               "sr" => "broj"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "xmlname" => "number",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0"
@@ -5782,13 +5782,13 @@ our %tree = ( tree => [
           "sr" => "referentni broj"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "reference_number",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0"
@@ -5810,13 +5810,13 @@ our %tree = ( tree => [
           "sr" => "pe?at"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "vocabularies" => [
           {
@@ -6035,13 +6035,13 @@ our %tree = ( tree => [
           "sr" => "bele\x{9a}ka"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => undef,
         "xmlname" => "note",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0"
@@ -6063,13 +6063,13 @@ our %tree = ( tree => [
           "sr" => "geografske koordinate"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "gps",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0"
@@ -6090,13 +6090,13 @@ our %tree = ( tree => [
       "sr" => "detalji o objektu"
     },
     "loaded" => 0,
-    "loaded_ui_value" => "",
-    "loaded_value" => "",
-    "loaded_value_lang" => "",
+    
+    
+    
     "mandatory" => 0,
     "ordered" => 0,
     "ui_value" => "",
-    "value" => "",
+    
     "value_lang" => "",
     "xmlname" => "histkult",
     "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0"
@@ -6124,13 +6124,13 @@ our %tree = ( tree => [
               "sr" => "digitalni ili drugi izvor"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "vocabularies" => [
               {
@@ -6205,13 +6205,13 @@ our %tree = ( tree => [
               "sr" => "detalji o izvoru"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => undef,
             "xmlname" => "comment",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0"
@@ -6233,13 +6233,13 @@ our %tree = ( tree => [
               "sr" => "uloga"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "vocabularies" => [
               {
@@ -6868,13 +6868,13 @@ our %tree = ( tree => [
                   "sr" => " ime"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "firstname",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0/entity"
@@ -6896,13 +6896,13 @@ our %tree = ( tree => [
                   "sr" => "prezime"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "lastname",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0/entity"
@@ -6924,13 +6924,13 @@ our %tree = ( tree => [
                   "sr" => "naslov"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "title1",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0/entity"
@@ -6952,13 +6952,13 @@ our %tree = ( tree => [
                   "sr" => "naslov"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "title2",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0/entity"
@@ -6980,13 +6980,13 @@ our %tree = ( tree => [
                   "sr" => "vrsta"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "type",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0/entity"
@@ -7008,13 +7008,13 @@ our %tree = ( tree => [
                   "sr" => "institucija"
                 },
                 "loaded" => 0,
-                "loaded_ui_value" => "",
-                "loaded_value" => "",
-                "loaded_value_lang" => "",
+                
+                
+                
                 "mandatory" => 0,
                 "ordered" => 0,
                 "ui_value" => "",
-                "value" => "",
+                
                 "value_lang" => "",
                 "xmlname" => "institution",
                 "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0/entity"
@@ -7035,13 +7035,13 @@ our %tree = ( tree => [
               "sr" => "li?ni ili institucionalni podaci"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 1,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "xmlname" => "entity",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0"
@@ -7063,13 +7063,13 @@ our %tree = ( tree => [
               "sr" => "datum od"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "xmlname" => "date_from",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0"
@@ -7091,13 +7091,13 @@ our %tree = ( tree => [
               "sr" => "datum do"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => "",
             "xmlname" => "date_to",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0"
@@ -7119,13 +7119,13 @@ our %tree = ( tree => [
               "sr" => "vremenska pokrivenost"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => undef,
             "xmlname" => "chronological",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0"
@@ -7147,13 +7147,13 @@ our %tree = ( tree => [
               "sr" => "mesto"
             },
             "loaded" => 0,
-            "loaded_ui_value" => "",
-            "loaded_value" => "",
-            "loaded_value_lang" => "",
+            
+            
+            
             "mandatory" => 0,
             "ordered" => 0,
             "ui_value" => "",
-            "value" => "",
+            
             "value_lang" => undef,
             "xmlname" => "location",
             "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0"
@@ -7174,13 +7174,13 @@ our %tree = ( tree => [
           "sr" => "detalji o izvoru"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "contribute",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0"
@@ -7201,13 +7201,13 @@ our %tree = ( tree => [
       "sr" => "poreklo"
     },
     "loaded" => 0,
-    "loaded_ui_value" => "",
-    "loaded_value" => "",
-    "loaded_value_lang" => "",
+    
+    
+    
     "mandatory" => 0,
     "ordered" => 0,
     "ui_value" => "",
-    "value" => "",
+    
     "value_lang" => "",
     "xmlname" => "provenience",
     "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0"
@@ -7232,13 +7232,13 @@ our %tree = ( tree => [
           "sr" => "ime publikacije"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => undef,
         "xmlname" => "name_magazine",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0"
@@ -7260,13 +7260,13 @@ our %tree = ( tree => [
           "sr" => "stranice ili volumen"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "pagination",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0"
@@ -7288,13 +7288,13 @@ our %tree = ( tree => [
           "sr" => "naslov serije"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "reihentitel",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0"
@@ -7316,13 +7316,13 @@ our %tree = ( tree => [
           "sr" => "volumen"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "volume",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0"
@@ -7344,13 +7344,13 @@ our %tree = ( tree => [
           "sr" => "broj"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "booklet",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0"
@@ -7372,13 +7372,13 @@ our %tree = ( tree => [
           "sr" => "od stranice"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "from_page",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0"
@@ -7400,13 +7400,13 @@ our %tree = ( tree => [
           "sr" => "do stranice"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "to_page",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0"
@@ -7428,13 +7428,13 @@ our %tree = ( tree => [
           "sr" => "ime kolekcije/monografije"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => undef,
         "xmlname" => "name_collection",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0"
@@ -7456,13 +7456,13 @@ our %tree = ( tree => [
           "sr" => "adresa izdava?a"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "publisherlocation",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0"
@@ -7484,13 +7484,13 @@ our %tree = ( tree => [
           "sr" => "izdava?"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "publisher",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0"
@@ -7512,13 +7512,13 @@ our %tree = ( tree => [
           "sr" => "datum izdavanja"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "releaseyear",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0"
@@ -7540,13 +7540,13 @@ our %tree = ( tree => [
           "sr" => "izdanje/ broj \x{9a}tampe"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "edition",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0"
@@ -7568,13 +7568,13 @@ our %tree = ( tree => [
           "sr" => "datumi publikovanja"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => undef,
         "xmlname" => "release_notes",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0"
@@ -7596,13 +7596,13 @@ our %tree = ( tree => [
           "sr" => "medij"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "vocabularies" => [
           {
@@ -7659,13 +7659,13 @@ our %tree = ( tree => [
           "sr" => "Aleph - URL"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "alephurl",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0"
@@ -7686,13 +7686,13 @@ our %tree = ( tree => [
       "sr" => "podaci o knjizi"
     },
     "loaded" => 0,
-    "loaded_ui_value" => "",
-    "loaded_value" => "",
-    "loaded_value_lang" => "",
+    
+    
+    
     "mandatory" => 0,
     "ordered" => 0,
     "ui_value" => "",
-    "value" => "",
+    
     "value_lang" => "",
     "xmlname" => "digitalbook",
     "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0"
@@ -7709,7 +7709,7 @@ our %tree = ( tree => [
         "help_id" => "helpmeta_141",
         "hidden" => 0,
         "input_regex" => "^Y|N\$",
-        "input_type" => "input_checkbox",
+        "input_type" => "select_yesno",
         "labels" => {
           "de" => "Einverst\x{e4}ndniserkl\x{e4}rung",
           "en" => "Consent form",
@@ -7717,13 +7717,13 @@ our %tree = ( tree => [
           "sr" => "izjava saglasnosti"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "consent_form",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/etheses/V1.0"
@@ -7737,7 +7737,7 @@ our %tree = ( tree => [
         "help_id" => "helpmeta_142",
         "hidden" => 0,
         "input_regex" => "^Y|N\$",
-        "input_type" => "input_checkbox",
+        "input_type" => "select_yesno",
         "labels" => {
           "de" => "Titelblatt",
           "en" => "Title page",
@@ -7745,13 +7745,13 @@ our %tree = ( tree => [
           "sr" => "naslovna strana"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "title_page",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/etheses/V1.0"
@@ -7765,7 +7765,7 @@ our %tree = ( tree => [
         "help_id" => "helpmeta_143",
         "hidden" => 0,
         "input_regex" => "^Y|N\$",
-        "input_type" => "input_checkbox",
+        "input_type" => "select_yesno",
         "labels" => {
           "de" => "Titelblatt ident",
           "en" => "Title page identical",
@@ -7773,13 +7773,13 @@ our %tree = ( tree => [
           "sr" => "identi?no naslovnoj strani"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "title_page_identical",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/etheses/V1.0"
@@ -7793,7 +7793,7 @@ our %tree = ( tree => [
         "help_id" => "helpmeta_144",
         "hidden" => 0,
         "input_regex" => "^Y|N\$",
-        "input_type" => "input_checkbox",
+        "input_type" => "select_yesno",
         "labels" => {
           "de" => "PDF ident",
           "en" => "PDF identical",
@@ -7801,13 +7801,13 @@ our %tree = ( tree => [
           "sr" => "PDF identi?no"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "pdf_identical",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/etheses/V1.0"
@@ -7821,7 +7821,7 @@ our %tree = ( tree => [
         "help_id" => "helpmeta_145",
         "hidden" => 0,
         "input_regex" => "^Y|N\$",
-        "input_type" => "input_checkbox",
+        "input_type" => "select_yesno",
         "labels" => {
           "de" => "Abstract anzeigen",
           "en" => "Show abstract",
@@ -7829,13 +7829,13 @@ our %tree = ( tree => [
           "sr" => "poka\x{9e}i apstrakt"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => "",
         "xmlname" => "show_abstract",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/etheses/V1.0"
@@ -7857,13 +7857,13 @@ our %tree = ( tree => [
           "sr" => "bele\x{9a}ka 1"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => undef,
         "xmlname" => "note_1",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/etheses/V1.0"
@@ -7885,13 +7885,13 @@ our %tree = ( tree => [
           "sr" => "bele\x{9a}ka 2"
         },
         "loaded" => 0,
-        "loaded_ui_value" => "",
-        "loaded_value" => "",
-        "loaded_value_lang" => "",
+        
+        
+        
         "mandatory" => 0,
         "ordered" => 0,
         "ui_value" => "",
-        "value" => "",
+        
         "value_lang" => undef,
         "xmlname" => "note_2",
         "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/etheses/V1.0"
@@ -7912,13 +7912,13 @@ our %tree = ( tree => [
       "sr" => "E - teze"
     },
     "loaded" => 0,
-    "loaded_ui_value" => "",
-    "loaded_value" => "",
-    "loaded_value_lang" => "",
+    
+    
+    
     "mandatory" => 0,
     "ordered" => 0,
     "ui_value" => "",
-    "value" => "",
+    
     "value_lang" => "",
     "xmlname" => "etheses",
     "xmlns" => "http://phaidra.univie.ac.at/XML/metadata/etheses/V1.0"
