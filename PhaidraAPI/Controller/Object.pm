@@ -474,7 +474,7 @@ sub get_metadata {
       $res->{metadata}->{rights} = $r->{rights};
     }
   }
-
+  
   $self->render(json => $res , status => $res->{status});
 }
 

@@ -212,7 +212,6 @@ sub get_metadata_tree {
 			value => '', # what's expected in uwmetadata
 			value_lang => '', # language of the value if any
 			ui_value => '', # what's expected on the form (eg ns/id for vocabularies)
-			loaded_ui_value => '', # the initial value which was loaded from the object, ev transformed for frontend use
 			loaded_value => '', # the initial uwmetadata value which was loaded from the object
 			loaded_value_lang => '', # the initial language for the value, if any
 			loaded => 0, # 1 if this element was filled with a value loaded from object's metadata
@@ -607,8 +606,8 @@ sub uwmetadata_2_json {
 		return $tree_res;
 	}
 
-	my $metadata_tree = $tree_res->{metadata_tree};
-
+  # clone! otherwise it fills the class
+	my $metadata_tree = dclone($tree_res->{metadata_tree});
 	# this is a hash where the key is 'ns/id' and value is a default representation of a node
 	# -> we use this when adding nodes (eg a second title) to get a new empty node
 	my %metadata_nodes_hash;
@@ -616,8 +615,8 @@ sub uwmetadata_2_json {
 	$self->create_md_nodes_hash($c, $metadata_tree_copy, \%metadata_nodes_hash);
 
 	my $dom = Mojo::DOM->new();
-    $dom->xml(1);
-    $dom->parse($uwmetadata);
+  $dom->xml(1);
+  $dom->parse($uwmetadata);
 
 	my $nsattr = $dom->find('uwmetadata')->first->attr;
 	my $nsmap  = $nsattr;
@@ -626,7 +625,7 @@ sub uwmetadata_2_json {
 		my $newkey = $key;
 		$newkey =~ s/xmlns://g;
 		$nsmap->{$newkey} = delete $nsmap->{$key};
-    }
+  }
 
 	$self->fill_object_metadata($c, $dom, $metadata_tree, undef, $nsmap, \%metadata_nodes_hash);
 
@@ -866,8 +865,6 @@ sub fix_taxonpath_nodes {
 							$taxpath_child->{value} = $source_val;
 			    			$taxpath_child->{loaded_value} = $source_val;
 			    			$taxpath_child->{ui_value} = $source_val;
-			    			$taxpath_child->{loaded_ui_value} = $source_val;
-
 
 			    			my $r = $terms_model->label($c, $source_val);
 			    			if($r->{status} eq 200){
@@ -889,7 +886,6 @@ sub fix_taxonpath_nodes {
 							$taxpath_child->{value} = $tax_val;
 			    			$taxpath_child->{loaded_value} = $tax_val;
 			    			$taxpath_child->{ui_value} = $tax_val;
-			    			$taxpath_child->{loaded_ui_value} = $tax_val;
 
 			    			my $r = $terms_model->label($c, $tax_val);
 			    			if($r->{status} eq 200){
@@ -921,13 +917,12 @@ sub get_object_metadata {
   my $uwmetadata = $res->{UWMETADATA};
 
   if($mode eq 'full'){
-	#$res = $self->uwmetadata_2_json($c, $res->{content});
-	$res = $self->uwmetadata_2_json($c, $uwmetadata);
-	return { uwmetadata => $res->{uwmetadata}, alerts => $res->{alerts}, status => $res->{status} };
+    #$res = $self->uwmetadata_2_json($c, $res->{content});
+    $res = $self->uwmetadata_2_json($c, $uwmetadata);
+    return { uwmetadata => $res->{uwmetadata}, alerts => $res->{alerts}, status => $res->{status} };
   }else{
-
   	$res = $self->uwmetadata_2_json_basic($c, $uwmetadata, $mode);
-	return { uwmetadata => $res->{uwmetadata}, alerts => $res->{alerts}, status => $res->{status} };
+	  return { uwmetadata => $res->{uwmetadata}, alerts => $res->{alerts}, status => $res->{status} };
   }
 
 }
@@ -1049,7 +1044,6 @@ sub fill_object_metadata {
 		    			$node->{value} = $voc->{namespace}.$node_value;
 		    			$node->{loaded_value} = $voc->{namespace}.$node_value;
 		    			$node->{ui_value} = $voc->{namespace}.$node_value;
-		    			$node->{loaded_ui_value} = $voc->{namespace}.$node_value;
 	    			}
 
 	    			if($node->{xmlname} eq 'department'){
@@ -1080,7 +1074,7 @@ sub fill_object_metadata {
 		    				my $spl = undef;
 		    				my $current_seq = undef;
 		    				my $ids_all;
- 							my $last_kennzahl = 0;
+ 						  	my $last_kennzahl = 0;
 			    			for my $child ($e->parent->children->each) {
 
 			    				if($e->parent->children->reverse->first->tree eq $e->tree){
@@ -1131,25 +1125,26 @@ sub fill_object_metadata {
 	    			}
 
 	    		}else{
-	    			my $v = html_unescape b($e->content)->decode('UTF-8');
-	    			#$node->{value} = $v;
-				    $node->{loaded_value} = $v;
-				    $node->{ui_value} = $v;
-				    $node->{loaded_ui_value} = $v;
+            if($node->{input_type} ne 'node'){
+              my $v = html_unescape b($e->content)->decode('UTF-8');
+              #$node->{value} = $v;
+              $node->{loaded_value} = $v;
+              $node->{ui_value} = $v;
+            }
 	    		}
 
-			}
+			  }
 
-			if(defined($e->attr)){
-			   	if($e->attr->{language}){
-			    	$node->{value_lang} = $e->attr->{language};
-			    	$node->{loaded_value_lang} = $e->attr->{language};
-			   	}
-			   	if(defined($e->attr->{seq}) && $node->{ordered}){
-			   		$node->{data_order} = $e->attr->{seq};
-			   		@{$metadata_tree_parent->{children}} = sort { sort_ordered($a) <=> sort_ordered($b) } @{$metadata_tree_parent->{children}};
-			  	}
-			}
+        if(defined($e->attr)){
+            if($e->attr->{language}){
+              $node->{value_lang} = $e->attr->{language};
+              $node->{loaded_value_lang} = $e->attr->{language};
+            }
+            if(defined($e->attr->{seq}) && $node->{ordered}){
+              $node->{data_order} = $e->attr->{seq};
+              @{$metadata_tree_parent->{children}} = sort { sort_ordered($a) <=> sort_ordered($b) } @{$metadata_tree_parent->{children}};
+            }
+        }
 	    }
 	    if($e->children->size > 0){
 	    	$self->fill_object_metadata($c, $e, $metadata_tree, $node, $nsmap, $metadata_nodes_hash, $tidy);
