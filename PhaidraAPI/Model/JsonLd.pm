@@ -25,6 +25,7 @@ sub get_object_jsonld_parsed {
     return $r;
   }
   #my $content = encode 'UTF-8', $r->{'JSON-LD'};
+#$c->app->log->debug("XXXXXXXXXXXXXXX :".$c->app->dumper($r->{'JSON-LD'}));
   $res->{'JSON-LD'} = decode_json($r->{'JSON-LD'});
   return $res;  
 }

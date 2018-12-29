@@ -1004,7 +1004,7 @@ sub _add_jsonld_index {
   my ($self, $c, $pid, $jsonld, $index) = @_;
 
   my $res = { alerts => [], status => 200 };
-$c->app->log->debug($c->app->dumper($jsonld));
+
   my @roles;
 
   my @descriptions;
@@ -1076,9 +1076,9 @@ sub _add_jsonld_roles {
       my $name;
       for my $contr (@{$jsonld->{$pred}}){
         if($contr->{'@type'} eq 'schema:Person'){
-          $name = $contr->{'schema:givenName'}->{'@value'}." ".$contr->{'schema:familyName'}->{'@value'};
+          $name = $contr->{'schema:givenName'}[0]->{'@value'}." ".$contr->{'schema:familyName'}[0]->{'@value'};
         }elsif($contr->{'@type'} eq 'schema:Organisation'){
-          $name = $contr->{'schema:name'}->{'@value'};
+          $name = $contr->{'schema:name'}[0]->{'@value'};
         }else{
           $c->app->log->error("Unknown contributor type in jsonld for pid $pid");
           push @{$res->{alerts}}, { type => 'danger', msg => "Unknown contributor type in jsonld for pid $pid"};
