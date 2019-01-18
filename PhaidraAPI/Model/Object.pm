@@ -345,7 +345,11 @@ sub create_container {
 			my $childmetadata = $metadata->{metadata}->{'json-ld'}->{$k};
 			my $childmimetype;
 			my $childcmodel;
-      my $mt = $childmetadata->{'ebucore:hasMimeType'};
+      my $mta = $childmetadata->{'ebucore:hasMimeType'};
+	  my $mt;
+	  for my $mtam (@{$childmetadata->{'ebucore:hasMimeType'}}){
+		  $mt = $mtam;
+	  }
       $c->app->log->debug("ebucore:hasMimeType[$mt] maps to cmodel[".$mime_to_cmodel{$mt}."]");
       if ($mime_to_cmodel{$mt}){
         my $child_metadata = { metadata => { 'json-ld' => $childmetadata } };
