@@ -728,9 +728,12 @@ sub _get {
   if($index{"bib_ir"} eq "yes"){
     $resourcetype = "journalarticle";
   }  
+  if($index{"owner"} eq "ubmapsp2"){
+    $resourcetype = "map";
+  }
   if(exists($index{"dc_subject"})){
     for my $s (@{$index{"dc_subject"}}){
-      if ($s eq "Altkarte"){
+      if ($s eq "Altkarte" || $s eq "Karte" || $s eq "Themakarte"){
         $resourcetype = "map";
       }
     }  
