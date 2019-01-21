@@ -360,7 +360,7 @@ sub _get_types {
 }
 
 sub _get_entities {
-  my ($self, $c, $contributions, $doc_uwns, $ns, $type) = @_;
+  my ($self, $c, $dom, $contributions, $doc_uwns, $ns) = @_;
 
   my $entity_ns = $doc_uwns->{'entity'};
   if($ns eq 'provenience'){
@@ -369,6 +369,7 @@ sub _get_entities {
 
   my @res;
   for my $ctr (@{$contributions}){
+    my @entities;
     for my $e ($ctr->find($doc_uwns->{$ns}.'\:entity')->sort(sub{ $a->attr('seq') cmp $b->attr('seq') })->each){
       
       my $firstname = $e->find($entity_ns.'\:firstname')->first;
@@ -380,19 +381,6 @@ sub _get_entities {
         $lastname = $lastname->content;
       } 
 
-      if($firstname && $lastname){
-        if($type eq 'oai'){
-          # APA bibliographic style
-          my $initials = ucfirst(substr($firstname, 0, 1));
-          push @res, { value => "$lastname, $initials ($firstname)", firstname => $firstname, lastname => $lastname};
-        }else{
-          push @res, { value => "$lastname, $firstname", firstname => $firstname, lastname => $lastname};
-        }
-      }else{
-        push @res, { value => $firstname, firstname => $firstname } if(defined($firstname) && $firstname ne '');
-        push @res, { value => $lastname, lastname => $lastname} if(defined($lastname) && $lastname ne '');
-      }
-
       my $institution = $e->find($entity_ns.'\:institution')->first;
       if(defined($institution)){
         $institution = $institution->content;
@@ -400,20 +388,51 @@ sub _get_entities {
 
       if(defined($institution) &&  $institution ne ''){
         if ($c->app->config->{dcaffiliationcodes} && $institution =~ m/(\d)+/){
-          if ($c->app->config->{directory}->{org_units_languages})
-          {
-            foreach my $lang (@{$c->app->config->{directory}->{org_units_languages}})
-            {
-              if(my $inststr = $self->_get_affiliation_cached($c, $institution, $lang)){
-                push @res, { value => $inststr, lang => $lang };
-              }
-            }
+          if(my $inststr = $self->_get_affiliation_cached($c, $institution, 'en')){
+            $institution = $inststr;
           }
         }
-        else
-        {
-          push @res, { value => $institution} if ($institution ne '');
-        }
+      }
+
+      my $val;
+      $val .= $lastname if $lastname;
+      $val .= ', ' if $val;
+      $val .= $firstname if $firstname;
+      $val .= " ($institution)" if $institution;
+
+      push @entities, { value => $val, firstname => $firstname, lastname => $lastname, institution => $institution};
+    }
+
+    my $entities_lenght = scalar @entities;
+    my $irdata = 0;
+    my $vals = $self->_get_uwm_element_values($c, $dom, $doc_uwns->{'extended'}.'\:irdata');
+    for my $v (@$vals)
+    {
+      $irdata = 1 if $v->{value} eq 'yes';
+    }
+    # if this is an object from institutional repository 
+    # and there are only two entities in the contribution
+    # where the first has a name but no insitution
+    # and the second has an institution but not a name
+    # then the second institution-entity is the affiliation of the first entity
+    if(
+      ($entities_lenght == 2) && 
+      $irdata &&
+      ($entities[0]->{lastname} || $entities[0]->{firstname}) && !($entities[0]->{institution}) &&
+      !($entities[1]->{lastname}) && !($entities[1]->{firstname}) && $entities[1]->{institution}
+      ){
+        my $firstname = $entities[0]->{firstname};
+        my $lastname = $entities[0]->{lastname};
+        my $institution = $entities[1]->{institution};
+        my $val;
+        $val .= $lastname if $lastname;
+        $val .= ', ' if $val;
+        $val .= $firstname if $firstname;
+        $val .= " ($institution)" if $institution;
+        push @res, { value => $val, firstname => $firstname, lastname => $lastname, institution => $institution};
+    }else{
+      for my $e (@entities) {
+        push @res, $e;
       }
     }
   }
@@ -458,7 +477,7 @@ sub _get_contributors {
       }
     }
 
-    push @res, $self->_get_entities($c, \@conts, $doc_uwns,  $ns, $type);
+    push @res, $self->_get_entities($c, $dom, \@conts, $doc_uwns,  $ns, $type);
   }
 
   return \@res;
@@ -481,7 +500,7 @@ sub _get_publishers {
       }
     }
 
-    push @res, $self->_get_entities($c, \@publishers, $doc_uwns, $ns, $type);
+    push @res, $self->_get_entities($c, $dom, \@publishers, $doc_uwns, $ns, $type);
 
     # check publisher in digitalbook only once, not for 'provenience' namespace
     if($ns eq 'lom'){
@@ -554,7 +573,7 @@ sub _get_creators {
       @creators = @{$creators{editor}};
     }
 
-    push @res, $self->_get_entities($c, \@creators, $doc_uwns, $ns, $type);
+    push @res, $self->_get_entities($c, $dom, \@creators, $doc_uwns, $ns, $type);
 
   }
   return \@res;

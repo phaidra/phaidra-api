@@ -503,8 +503,7 @@ sub map_uwmetadata_2_dc_hash {
   my $languages = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:language');
   my $keywords = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:keyword');
   my $classifications = $ext->_get_uwm_classifications($c, $dom, \%doc_uwns);
-  my $creators_p = $ext->_get_creators($c, $dom, \%doc_uwns, 'p');
-  my $creators_oai = $ext->_get_creators($c, $dom, \%doc_uwns, 'oai');
+  my $creators = $ext->_get_creators($c, $dom, \%doc_uwns);
   my $dates = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'digitalbook'}.'\:releaseyear');
   unless(defined($dates)){
     $dates = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:upload_date');
@@ -512,7 +511,7 @@ sub map_uwmetadata_2_dc_hash {
   $dates = [] unless (defined ($dates));
   my $embargodates = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'extended'}.'\:infoeurepoembargo');
   for my $em (@{$embargodates}){
-    push @$dates, $em;
+    push @$dates, { value => 'info:eu-repo/date/embargoEnd/'.$em->{value}};
   }
   my $contributedates = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'}.'\:date');
   for my $cd (@{$contributedates}){
@@ -533,11 +532,9 @@ sub map_uwmetadata_2_dc_hash {
 
   my $srcs = $ext->_get_sources($c, $dom, \%doc_uwns, $tree, $metadata_model);
 
-  my $publishers_p = $ext->_get_publishers($c, $dom, \%doc_uwns, 'p');
-  my $publishers_oai = $ext->_get_publishers($c, $dom, \%doc_uwns, 'oai');
+  my $publishers = $ext->_get_publishers($c, $dom, \%doc_uwns);
 
-  my $contributors_p = $ext->_get_contributors($c, $dom, \%doc_uwns, 'p');
-  my $contributors_oai = $ext->_get_contributors($c, $dom, \%doc_uwns, 'oai');
+  my $contributors = $ext->_get_contributors($c, $dom, \%doc_uwns);
 
   my $relations = $ext->_get_uwm_relations($c, $dom, \%doc_uwns);
 
@@ -579,12 +576,12 @@ sub map_uwmetadata_2_dc_hash {
   $dc_p{description} = $descriptions if(defined($descriptions));
   $dc_p{subject} = \@subjects if(@subjects);
   $dc_p{language} = \@langs if(@langs);
-  $dc_p{creator} = $creators_p if(defined($creators_p));
+  $dc_p{creator} = $creators if(defined($creators));
   $dc_p{date} = $dates if(defined($dates));
   $dc_p{type} = $types_p;
   $dc_p{source} = $srcs;  
-  $dc_p{publisher} = $publishers_p if(defined($publishers_p));
-  $dc_p{contributor} = $contributors_p if(defined($contributors_p));
+  $dc_p{publisher} = $publishers if(defined($publishers));
+  $dc_p{contributor} = $contributors if(defined($contributors));
   $dc_p{relation} = $relations;
   $dc_p{coverage} = $coverages;
   # copy this, not just assign reference
@@ -604,7 +601,6 @@ sub map_uwmetadata_2_dc_hash {
 
   # see https://guidelines.openaire.eu/wiki/OpenAIRE_Guidelines:_For_Literature_repositories
   my $dc_oai = dclone \%dc_p;
-  $dc_oai->{creator} = $creators_oai if(defined($creators_oai));
   $dc_oai->{type} = $types_oai;  
   if(($cmodel ne 'Resource') && ($cmodel ne 'Collection')){
     $dc_oai->{rights} = ();
@@ -618,8 +614,6 @@ sub map_uwmetadata_2_dc_hash {
       push @{$dc_oai->{type}}, $v;
     }
   }
-  $dc_oai->{publisher} = $publishers_oai if(defined($publishers_oai));
-  $dc_oai->{contributor} = $contributors_oai if(defined($contributors_oai));
 
   return (\%dc_p, $dc_oai);
 }

@@ -190,12 +190,8 @@ sub signin {
     $self->app->log->info("User $username successfully authenticated");
     
 	# init session, save credentials
-	my $session = $self->stash('mojox-session');
-	$session->load;
-	unless($session->sid){		
-		$session->create;		
-	}	
 	$self->save_cred($username, $password);
+	my $session = $self->stash('mojox-session');
 
 	# sent token cookie	
 	my $cookie = Mojo::Cookie::Response->new;

@@ -46,13 +46,13 @@ sub _get_jsonld_titles {
 
   for my $o (@{$titles}) {
     my $new = {
-      value => $o->{'bf:mainTitle'}->{'@value'}
+      value => $o->{'bf:mainTitle'}[0]->{'@value'}
     };
-    if(exists($o->{'bf:subtitle'}) && exists($o->{'bf:subtitle'}->{'@value'}) && ($o->{'bf:subtitle'}->{'@value'} ne '')){
-      $new->{value} = $new->{value} . " : " . $o->{'bf:subtitle'}->{'@value'};
+    if(exists($o->{'bf:subtitle'}) && exists($o->{'bf:subtitle'}[0]->{'@value'}) && ($o->{'bf:subtitle'}[0]->{'@value'} ne '')){
+      $new->{value} = $new->{value} . " : " . $o->{'bf:subtitle'}[0]->{'@value'};
     }
-    if(exists($o->{'bf:mainTitle'}->{'@language'}) && ($o->{'bf:mainTitle'}->{'@language'} ne '')){
-      $new->{lang} = $o->{'bf:mainTitle'}->{'@language'};
+    if(exists($o->{'bf:mainTitle'}[0]->{'@language'}) && ($o->{'bf:mainTitle'}[0]->{'@language'} ne '')){
+      $new->{lang} = $o->{'bf:mainTitle'}[0]->{'@language'};
     }
     push @dctitles, $new;
   }
@@ -70,7 +70,7 @@ sub _get_jsonld_descriptions {
 
   for my $o (@{$bfnotes}) {
     my $new = {
-      value => $o->{'rdfs:label'}->{'@value'}
+      value => $o->{'rdfs:label'}[0]->{'@value'}
     };
     if(exists($o->{'@language'}) && ($o->{'@language'} ne '')){
       $new->{lang} = $o->{'@language'};
@@ -208,9 +208,9 @@ sub _get_jsonld_roles {
       my $name;
       for my $contr (@{$jsonld->{$pred}}){
         if($contr->{'@type'} eq 'schema:Person'){
-          $name = $contr->{'schema:givenName'}->{'@value'}." ".$contr->{'schema:familyName'}->{'@value'};
+          $name = $contr->{'schema:givenName'}[0]->{'@value'}." ".$contr->{'schema:familyName'}[0]->{'@value'};
         }elsif($contr->{'@type'} eq 'schema:Organisation'){
-          $name = $contr->{'schema:name'}->{'@value'};
+          $name = $contr->{'schema:name'}[0]->{'@value'};
         }else{
           $c->app->log->error("_get_jsonld_roles: Unknown contributor type in jsonld");
         }
