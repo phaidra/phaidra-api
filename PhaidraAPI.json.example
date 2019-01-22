@@ -17,6 +17,8 @@
 	"enc_key":"changeme",
 
 	"session_expiration":"7200",
+	
+	"session_ip_match": 1,
 
     "inactivity_timeout":"7200",
 
