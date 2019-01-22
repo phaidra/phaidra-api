@@ -143,7 +143,7 @@ sub startup {
 	    		  'log' => $self->log
 	    		),
           expires_delta => $config->{session_expiration},
-	    	  ip_match      => 1
+	    	  ip_match      => $config->{session_ip_match}
         }
     );
 
