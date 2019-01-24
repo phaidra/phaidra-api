@@ -6,6 +6,82 @@ use v5.10;
 use base 'Mojolicious::Controller';
 use PhaidraAPI::Model::Search;
 
+sub get_video_key {
+      my $self = shift;
+      my $pid = shift;
+  	  my $map_record;
+
+      my $res = { alerts => [], status => 200 };
+
+      if(exists($self->app->config->{paf_mongodb})){
+        my $video_coll = $self->paf_mongo->db->collection('video.map');
+        if($video_coll){
+          $map_record = $video_coll->find({pid => $pid})->sort({ "_updated" => -1})->next;
+        }
+      }
+      my $video_key;
+	    my $errormsg;
+	    if (defined ($map_record) && !exists ($map_record->{error})) {
+				if ($map_record->{state} eq 'Active') {
+				  if ($map_record->{acc_code} eq 'public') {
+				    if (exists ($map_record->{video0_status})) {
+						  if ($map_record->{video0_status} eq 'ok') {
+				        if (exists ($map_record->{job_action})) {
+							    if ($map_record->{job_action} eq 'erledigt') {
+							      $res->{video_key} = $map_record->{key};
+								  } elsif ($map_record->{job_action} eq 'erstellt') {
+                    $errormsg = 'currently processed:'. $map_record->{job_id};
+                    $res->{status} = 503;
+						      } else { 
+                    $errormsg = 'not yet available: '. $map_record->{job_action};
+                    $res->{status} = 503;
+                  }
+					      } else {
+							    $res->{video_key} = $map_record->{key};
+				        }
+						  } elsif ($map_record->{video0_status} eq 'tbq') {
+							  $errormsg = 'tbq';
+                $res->{status} = 503;
+							} else {
+				        $errormsg = 'video not ok: '. $map_record->{video0_status};
+                $res->{status} = 500;
+						  }
+					  }
+				  } else {
+            $errormsg = 'restricted';
+            $res->{status} = 403;
+          }
+			  } else { 
+          $errormsg = 'Inactive';
+          $res->{status} = 400;
+        }
+	    } else {
+        $errormsg = 'unavaliable';
+        $res->{status} = 404;
+      }
+      if ($errormsg) {
+        push @{$res->{alerts}}, { type => 'danger', msg => $errormsg };
+      }
+      
+			return $res;
+}
+
+sub streamingplayer {
+  my $self = shift;
+  my $pid = $self->stash('pid');
+  if($self->config->{streaming}){
+    my $r = $self->get_video_key($pid);
+    $self->stash( video_key => $r->{video_key} );
+    $self->stash( errormsg => $r->{errormsq} );
+    $self->stash( server => $self->config->{streaming}->{server} );
+    $self->stash( server_rtmp => $self->config->{streaming}->{server_rtmp} );
+    $self->stash( server_cd => $self->config->{streaming}->{server_cd} );
+    $self->stash( basepath => $self->config->{streaming}->{basepath} );
+  }else{
+    $self->render(text => "stremaing not configured", status => 503);
+  }
+}
+
 sub get_all_pids {
 
   my $self = shift;  

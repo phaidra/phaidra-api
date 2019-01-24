@@ -1,0 +1,8 @@
+<video id="phaidra_vievid_w640" class="video-js vjs-default-skin vjs-big-play-centered vjs-fluid" controls preload="none" width="640" poster="<%= $server %>/<%= $basepath %>/<%= $video_key %>.jpeg">
+  <source src="<%= $server_rtmp %>/<%= $basepath %>/<%= $video_key %>_hi.mp4" type="rtmp/mp4" />
+  <source src="<%= $server_cd %>/<%= $basepath %>/<%= $video_key %>_hi.mp4/playlist.m3u8" type="application/x-mpegURL" />
+    <p class="vjs-no-js">To view this video please enable JavaScript, and consider upgrading to a web browser that <a href="http://videojs.com/html5-video-support/" target="_blank">supports HTML5 video</a></p>
+</video>
+<script>
+  var video = videojs('phaidra_vievid_w640', {autoplay: false, plugins:{persistvolume:{namespace: 'univie-zid-stream'},thumbnails:{width:105,height:60,vtt:"<%= $server %>/<%= $basepath %>/<%= $video_key %>.vtt"}}});
+</script>

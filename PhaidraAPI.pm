@@ -369,7 +369,10 @@ sub startup {
   $check_auth->route('group/:gid')                                      ->via('get')      ->to('groups#get_group');
 
   $apiauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
-  $apiauth_optional->route('authz/check/:pid/:op')                      ->via('get')      ->to('authorization#check_rights');  
+  $apiauth_optional->route('authz/check/:pid/:op')                      ->via('get')      ->to('authorization#check_rights'); 
+
+  $apiauth_optional->route('streaming/:pid')                            ->via('get')      ->to('utils#streamingplayer');
+
   $apiauth->route('imageserver/:pid/status')                            ->via('get')      ->to('imageserver#status');    
   $apiauth_optional->route('imageserver')                               ->via('get')      ->to('imageserver#get');
 
