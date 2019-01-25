@@ -71,12 +71,16 @@ sub streamingplayer {
   my $pid = $self->stash('pid');
   if($self->config->{streaming}){
     my $r = $self->get_video_key($pid);
-    $self->stash( video_key => $r->{video_key} );
-    $self->stash( errormsg => $r->{errormsq} );
-    $self->stash( server => $self->config->{streaming}->{server} );
-    $self->stash( server_rtmp => $self->config->{streaming}->{server_rtmp} );
-    $self->stash( server_cd => $self->config->{streaming}->{server_cd} );
-    $self->stash( basepath => $self->config->{streaming}->{basepath} );
+    if ($r->{status} eq 200) {
+      $self->stash( video_key => $r->{video_key} );
+      $self->stash( errormsg => $r->{errormsq} );
+      $self->stash( server => $self->config->{streaming}->{server} );
+      $self->stash( server_rtmp => $self->config->{streaming}->{server_rtmp} );
+      $self->stash( server_cd => $self->config->{streaming}->{server_cd} );
+      $self->stash( basepath => $self->config->{streaming}->{basepath} );
+    } else {
+      $self->render(text => $self->app->dumper($r), status => $r->{status});
+    }
   }else{
     $self->render(text => "stremaing not configured", status => 503);
   }
