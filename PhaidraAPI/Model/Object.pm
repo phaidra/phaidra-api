@@ -102,19 +102,18 @@ sub modify {
   	my $put = $ua->put($url => \%headers);
   	if (my $r = $put->success) {
   		unshift @{$res->{alerts}}, { type => 'success', msg => $r->body };
+		my $hooks_model = PhaidraAPI::Model::Hooks->new;
+		my $hr = $hooks_model->modify_object_hooks($c, $pid, $username, $password);
+		push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
+		$res->{status} = $hr->{status};
+		if($hr->{status} ne 200){
+			return $res;
+		}
   	}
 	else {
 	  my ($err, $code) = $put->error;
 	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
 	  $res->{status} =  $code ? $code : 500;
-	}
-
-	my $hooks_model = PhaidraAPI::Model::Hooks->new;
-	my $hr = $hooks_model->modify_object_hooks($c, $pid, $username, $password);
-	push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
-	$res->{status} = $hr->{status};
-	if($hr->{status} ne 200){
-		return $res;
 	}
 
   	return $res;
@@ -391,6 +390,8 @@ sub create_container {
         return $res;
     }
 
+	#$c->app->log->info("XXX Metadata saved, adding relationships");
+
 	my @relationships;
 	for my $chpid (@childpids) {
 		push @relationships, { predicate => "http://pcdm.org/models#hasMember", object => "info:fedora/".$chpid };
@@ -402,12 +403,16 @@ sub create_container {
    	}
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
+		$c->app->log->error("Error adding relationships[".$c->app->dumper(\@relationships)."] pid[$pid] res[".$c->app->dumper($res)."]");
     	return $res;
     }
+
+	#$c->app->log->info("XXX Rels added, modifying");
 
 	# activate
     $r = $self->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
     if($r->{status} ne 200){
+		$c->app->log->error("Error activating pid[$pid]");
    		$res->{status} = $r->{status};
 		foreach my $a (@{$r->{alerts}}){
 			unshift @{$res->{alerts}}, $a;

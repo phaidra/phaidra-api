@@ -360,11 +360,18 @@ sub _get_types {
 }
 
 sub _get_entities {
-  my ($self, $c, $dom, $contributions, $doc_uwns, $ns) = @_;
+  my ($self, $c, $dom, $contributions, $doc_uwns, $ns, $roletype) = @_;
 
   my $entity_ns = $doc_uwns->{'entity'};
   if($ns eq 'provenience'){
     $entity_ns = $doc_uwns->{'provenience_entity'};
+  }
+
+  my $irdata = 0;
+  my $vals = $self->_get_uwm_element_values($c, $dom, $doc_uwns->{'extended'}.'\:irdata');
+  for my $v (@$vals)
+  {
+    $irdata = 1 if $v->{value} eq 'yes';
   }
 
   my @res;
@@ -398,23 +405,21 @@ sub _get_entities {
       $val .= $lastname if $lastname;
       $val .= ', ' if $val;
       $val .= $firstname if $firstname;
-      $val .= " ($institution)" if $institution;
+      if (($roletype eq 'publishers') && $irdata) {
+        $val .= $institution if $institution;
+      }else{
+        $val .= " ($institution)" if $institution;
+      }
 
       push @entities, { value => $val, firstname => $firstname, lastname => $lastname, institution => $institution};
     }
 
-    my $entities_lenght = scalar @entities;
-    my $irdata = 0;
-    my $vals = $self->_get_uwm_element_values($c, $dom, $doc_uwns->{'extended'}.'\:irdata');
-    for my $v (@$vals)
-    {
-      $irdata = 1 if $v->{value} eq 'yes';
-    }
     # if this is an object from institutional repository 
     # and there are only two entities in the contribution
     # where the first has a name but no insitution
     # and the second has an institution but not a name
     # then the second institution-entity is the affiliation of the first entity
+    my $entities_lenght = scalar @entities;
     if(
       ($entities_lenght == 2) && 
       $irdata &&
@@ -443,7 +448,7 @@ sub _get_entities {
 
 sub _get_contributors {
 
-  my ($self, $c, $dom, $doc_uwns, $type) = @_;
+  my ($self, $c, $dom, $doc_uwns) = @_;
 
   my @res;  
   for my $ns (('lom','provenience')){
@@ -477,7 +482,7 @@ sub _get_contributors {
       }
     }
 
-    push @res, $self->_get_entities($c, $dom, \@conts, $doc_uwns,  $ns, $type);
+    push @res, $self->_get_entities($c, $dom, \@conts, $doc_uwns,  $ns, 'contributors');
   }
 
   return \@res;
@@ -485,7 +490,7 @@ sub _get_contributors {
 
 sub _get_publishers {
 
-  my ($self, $c, $dom, $doc_uwns, $type) = @_;
+  my ($self, $c, $dom, $doc_uwns) = @_;
 
   my @res;
   for my $ns (('lom','provenience')){
@@ -500,7 +505,7 @@ sub _get_publishers {
       }
     }
 
-    push @res, $self->_get_entities($c, $dom, \@publishers, $doc_uwns, $ns, $type);
+    push @res, $self->_get_entities($c, $dom, \@publishers, $doc_uwns, $ns, 'publishers');
 
     # check publisher in digitalbook only once, not for 'provenience' namespace
     if($ns eq 'lom'){
@@ -515,7 +520,7 @@ sub _get_publishers {
 
 sub _get_releaseyear
 {
-  my ($self, $c, $dom, $doc_uwns, $type) = @_;
+  my ($self, $c, $dom, $doc_uwns) = @_;
 
   my @res;
   my $releaseyear = $dom->find($doc_uwns->{'digitalbook'}.'\:releaseyear')->first;
@@ -542,7 +547,7 @@ sub _get_upload_date
 
 sub _get_creators {
 
-  my ($self, $c, $dom, $doc_uwns, $type) = @_;
+  my ($self, $c, $dom, $doc_uwns) = @_;
 
   my @res;
   for my $ns (('lom','provenience')){
@@ -573,7 +578,7 @@ sub _get_creators {
       @creators = @{$creators{editor}};
     }
 
-    push @res, $self->_get_entities($c, $dom, \@creators, $doc_uwns, $ns, $type);
+    push @res, $self->_get_entities($c, $dom, \@creators, $doc_uwns, $ns, 'creators');
 
   }
   return \@res;
