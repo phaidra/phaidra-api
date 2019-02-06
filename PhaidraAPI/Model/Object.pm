@@ -221,8 +221,8 @@ sub create_simple {
 
 	my $res = { alerts => [], status => 200 };
 
-	$c->app->log->debug("req Upload: ".$c->app->dumper($c->req->upload));
-	$c->app->log->debug("upload: ".$c->app->dumper($upload));
+	# $c->app->log->debug("req Upload: ".$c->app->dumper($c->req->upload));
+	# $c->app->log->debug("upload: ".$c->app->dumper($upload));
 
   	my $size = $upload->size;
   	my $name = $upload->filename;
