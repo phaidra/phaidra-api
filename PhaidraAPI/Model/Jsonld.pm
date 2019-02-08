@@ -1,4 +1,4 @@
-package PhaidraAPI::Model::JsonLd;
+package PhaidraAPI::Model::Jsonld;
 
 use strict;
 use warnings;
