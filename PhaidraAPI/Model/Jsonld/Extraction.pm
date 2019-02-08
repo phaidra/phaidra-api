@@ -1,4 +1,4 @@
-package PhaidraAPI::Model::JsonLd::Extraction;
+package PhaidraAPI::Model::Jsonld::Extraction;
 
 use strict;
 use warnings;

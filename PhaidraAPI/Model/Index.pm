@@ -646,7 +646,7 @@ sub _get {
   }
 
   if(exists($datastreams{'JSON-LD'})){
-    my $jsonld_model = PhaidraAPI::Model::JsonLd->new;  
+    my $jsonld_model = PhaidraAPI::Model::Jsonld->new;  
     my $r_jsonld = $jsonld_model->get_object_jsonld_parsed($c, $pid, $c->app->config->{phaidra}->{intcallusername}, $c->app->config->{phaidra}->{intcallpassword});
     #$c->app->log->debug("XXXXXXXXX found JSON-LD: ".$c->app->dumper($r_jsonld));
     if($r_jsonld->{status} ne 200){        

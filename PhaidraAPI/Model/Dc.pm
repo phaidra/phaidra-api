@@ -13,7 +13,7 @@ use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Uwmetadata;
 use PhaidraAPI::Model::Uwmetadata::Extraction;
 use PhaidraAPI::Model::Mods::Extraction;
-use PhaidraAPI::Model::JsonLd::Extraction;
+use PhaidraAPI::Model::Jsonld::Extraction;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Languages;
 
@@ -249,7 +249,7 @@ sub map_mods_2_dc {
 sub map_jsonld_2_dc_hash {
   my ($self, $c, $pid, $cmodel, $jsonld, $metadata_model, $indexing) = @_;
 
-  my $ext = PhaidraAPI::Model::JsonLd::Extraction->new;
+  my $ext = PhaidraAPI::Model::Jsonld::Extraction->new;
 
   #$c->app->log->debug("XXXXXXXXXXX mods xml:".$xml);
 

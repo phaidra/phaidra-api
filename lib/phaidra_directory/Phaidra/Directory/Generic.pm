@@ -434,7 +434,6 @@ sub delete_group
   	return;
 }
 
-
 sub remove_group_member
 {
 	my ($self, $c, $gid, $uid, $owner)=@_;

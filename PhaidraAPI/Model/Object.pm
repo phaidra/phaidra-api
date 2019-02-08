@@ -13,7 +13,7 @@ use PhaidraAPI::Model::Rights;
 use PhaidraAPI::Model::Geo;
 use PhaidraAPI::Model::Uwmetadata;
 use PhaidraAPI::Model::Mods;
-use PhaidraAPI::Model::JsonLd;
+use PhaidraAPI::Model::Jsonld;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Hooks;
 use IO::Scalar;
@@ -508,7 +508,7 @@ sub save_metadata {
 
 			$c->app->log->debug("Saving JSON-LD for $pid");
 			my $jsonld = $metadata->{'json-ld'};
-			my $jsonld_model = PhaidraAPI::Model::JsonLd->new;
+			my $jsonld_model = PhaidraAPI::Model::Jsonld->new;
 			my $r = $jsonld_model->save_to_object($c, $pid, $jsonld, $username, $password);
 			if($r->{status} ne 200){
 				$res->{status} = 500;

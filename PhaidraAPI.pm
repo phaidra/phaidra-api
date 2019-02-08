@@ -352,81 +352,87 @@ sub startup {
   $r->route('directory/user/#username/email')     ->via('get')    ->to('directory#get_user_email');
 
   # this just extracts the credentials - authentication will be done by fedora
-	my $apiauth = $r->under('/')->to('authentication#extract_credentials', must_be_present => 1);
+	my $proxyauth = $r->under('/')->to('authentication#extract_credentials', must_be_present => 1);
   my $apiauth_optional = $r->under('/')->to('authentication#extract_credentials', must_be_present => 0);  
 
   # we authenticate the user, because we are not going to call fedora
-  my $check_auth = $apiauth->under('/')->to('authentication#authenticate');
+  my $check_auth = $proxyauth->under('/')->to('authentication#authenticate');
 
   # check the user sends phaidra admin credentials
-  my $check_admin_auth = $apiauth->under('/')->to('authentication#authenticate_admin');
+  my $check_admin_auth = $proxyauth->under('/')->to('authentication#authenticate_admin');
 
 	if($self->app->config->{allow_userdata_queries}){
-    $check_auth->route('directory/user/search')                         ->via('get')      ->to('directory#search_user');
+    $check_auth->route('directory/user/search')                           ->via('get')      ->to('directory#search_user');
   }
 
-  $check_auth->route('groups')                                          ->via('get')      ->to('groups#get_users_groups');
-  $check_auth->route('group/:gid')                                      ->via('get')      ->to('groups#get_group');
+  $check_auth->route('groups')                                            ->via('get')      ->to('groups#get_users_groups');
+  $check_auth->route('group/:gid')                                        ->via('get')      ->to('groups#get_group');
 
-  $apiauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
-  $apiauth_optional->route('authz/check/:pid/:op')                      ->via('get')      ->to('authorization#check_rights'); 
+  $check_auth->route('jsonld/templates')                                  ->via('get')      ->to('jsonld#get_users_templates');
+  $check_auth->route('jsonld/template/:tid')                              ->via('get')      ->to('jsonld#get_template');
 
-  $apiauth_optional->route('streaming/:pid')                            ->via('get')      ->to('utils#streamingplayer');
+  $proxyauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
+  $apiauth_optional->route('authz/check/:pid/:op')                        ->via('get')      ->to('authorization#check_rights'); 
 
-  $apiauth->route('imageserver/:pid/status')                            ->via('get')      ->to('imageserver#status');    
-  $apiauth_optional->route('imageserver')                               ->via('get')      ->to('imageserver#get');
+  $apiauth_optional->route('streaming/:pid')                              ->via('get')      ->to('utils#streamingplayer');
 
-  $apiauth_optional->route('object/:pid/octets')                        ->via('get')      ->to('octets#get');
-  $apiauth_optional->route('object/:pid/diss/:bdef/:method')            ->via('get')      ->to('object#diss');
-  $apiauth->route('object/:pid/rights')                                 ->via('get')      ->to('rights#get');
+  $proxyauth->route('imageserver/:pid/status')                            ->via('get')      ->to('imageserver#status');    
+  $apiauth_optional->route('imageserver')                                 ->via('get')      ->to('imageserver#get');
+
+  $apiauth_optional->route('object/:pid/octets')                          ->via('get')      ->to('octets#get');
+  $apiauth_optional->route('object/:pid/diss/:bdef/:method')              ->via('get')      ->to('object#diss');
+  $proxyauth->route('object/:pid/rights')                                 ->via('get')      ->to('rights#get');
 
   unless($self->app->config->{readonly}){
 
-    $check_admin_auth->route('index')                                   ->via('post')     ->to('index#update');
-    $check_admin_auth->route('dc')                                      ->via('post')     ->to('dc#update');
+    $check_admin_auth->route('index')                                     ->via('post')     ->to('index#update');
+    $check_admin_auth->route('dc')                                        ->via('post')     ->to('dc#update');
     
-    $check_admin_auth->route('object/:pid/index')                       ->via('post')     ->to('index#update');
-    $check_admin_auth->route('object/:pid/dc')                          ->via('post')     ->to('dc#update');
+    $check_admin_auth->route('object/:pid/index')                         ->via('post')     ->to('index#update');
+    $check_admin_auth->route('object/:pid/dc')                            ->via('post')     ->to('dc#update');
 
-    $check_admin_auth->route('imageserver/process')                     ->via('post')     ->to('imageserver#process_pids');
-    $apiauth->route('imageserver/:pid/process')                         ->via('post')     ->to('imageserver#process');
+    $check_admin_auth->route('imageserver/process')                       ->via('post')     ->to('imageserver#process_pids');
+    $proxyauth->route('imageserver/:pid/process')                         ->via('post')     ->to('imageserver#process');
 
-    $apiauth->route('object/:pid/modify')                               ->via('post')     ->to('object#modify');
-    $apiauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');
-    $apiauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');
-    $apiauth->route('object/:pid/mods')                                 ->via('post')     ->to('mods#post');
-    $apiauth->route('object/:pid/jsonld')                               ->via('post')     ->to('jsonLd#post');
-    $apiauth->route('object/:pid/geo')                                  ->via('post')     ->to('geo#post');
-    $apiauth->route('object/:pid/annotations')                          ->via('post')     ->to('annotations#post');
-    $apiauth->route('object/:pid/rights')                               ->via('post')     ->to('rights#post');
-    $apiauth->route('object/:pid/metadata')                             ->via('post')     ->to('object#metadata');
-    $apiauth->route('object/create')                                    ->via('post')     ->to('object#create_empty');
-    $apiauth->route('object/create/:cmodel')                            ->via('post')     ->to('object#create');
-    $apiauth->route('object/:pid/relationship/add')                     ->via('post')     ->to('object#add_relationship');
-    $apiauth->route('object/:pid/relationship/remove')                  ->via('post')     ->to('object#purge_relationship');
+    $proxyauth->route('object/:pid/modify')                               ->via('post')     ->to('object#modify');
+    $proxyauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');
+    $proxyauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');
+    $proxyauth->route('object/:pid/mods')                                 ->via('post')     ->to('mods#post');
+    $proxyauth->route('object/:pid/jsonld')                               ->via('post')     ->to('jsonld#post');
+    $proxyauth->route('object/:pid/geo')                                  ->via('post')     ->to('geo#post');
+    $proxyauth->route('object/:pid/annotations')                          ->via('post')     ->to('annotations#post');
+    $proxyauth->route('object/:pid/rights')                               ->via('post')     ->to('rights#post');
+    $proxyauth->route('object/:pid/metadata')                             ->via('post')     ->to('object#metadata');
+    $proxyauth->route('object/create')                                    ->via('post')     ->to('object#create_empty');
+    $proxyauth->route('object/create/:cmodel')                            ->via('post')     ->to('object#create');
+    $proxyauth->route('object/:pid/relationship/add')                     ->via('post')     ->to('object#add_relationship');
+    $proxyauth->route('object/:pid/relationship/remove')                  ->via('post')     ->to('object#purge_relationship');
 
-    $apiauth->route('object/:pid/id/add')                               ->via('post')     ->to('object#add_or_remove_identifier', operation => 'add');
-    $apiauth->route('object/:pid/id/remove')                            ->via('post')     ->to('object#add_or_remove_identifier', operation => 'remove');    
+    $proxyauth->route('object/:pid/id/add')                               ->via('post')     ->to('object#add_or_remove_identifier', operation => 'add');
+    $proxyauth->route('object/:pid/id/remove')                            ->via('post')     ->to('object#add_or_remove_identifier', operation => 'remove');    
 
-    $apiauth->route('object/:pid/datastream/:dsid')                     ->via('post')     ->to('object#add_or_modify_datastream');
-    $apiauth->route('object/:pid/data')                                 ->via('post')     ->to('object#add_octets');
-    $apiauth->route('picture/create')                                   ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Picture');
-    $apiauth->route('document/create')                                  ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:PDFDocument');
-    $apiauth->route('video/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Video');
-    $apiauth->route('audio/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Audio');
-    $apiauth->route('unknown/create')                                   ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Asset');
-    $apiauth->route('container/create')                                 ->via('post')     ->to('object#create_container');
+    $proxyauth->route('object/:pid/datastream/:dsid')                     ->via('post')     ->to('object#add_or_modify_datastream');
+    $proxyauth->route('object/:pid/data')                                 ->via('post')     ->to('object#add_octets');
+    $proxyauth->route('picture/create')                                   ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Picture');
+    $proxyauth->route('document/create')                                  ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:PDFDocument');
+    $proxyauth->route('video/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Video');
+    $proxyauth->route('audio/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Audio');
+    $proxyauth->route('unknown/create')                                   ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Asset');
+    $proxyauth->route('container/create')                                 ->via('post')     ->to('object#create_container');
 
-    $apiauth->route('collection/create')                                ->via('post')     ->to('collection#create');
-    $apiauth->route('collection/:pid/members/remove')                   ->via('post')     ->to('collection#remove_collection_members');
-    $apiauth->route('collection/:pid/members/add')                      ->via('post')     ->to('collection#add_collection_members');
-    $apiauth->route('collection/:pid/members/order')                    ->via('post')     ->to('collection#order_collection_members');
-    $apiauth->route('collection/:pid/members/:itempid/order/:position') ->via('post')     ->to('collection#order_collection_member');
+    $proxyauth->route('collection/create')                                ->via('post')     ->to('collection#create');
+    $proxyauth->route('collection/:pid/members/remove')                   ->via('post')     ->to('collection#remove_collection_members');
+    $proxyauth->route('collection/:pid/members/add')                      ->via('post')     ->to('collection#add_collection_members');
+    $proxyauth->route('collection/:pid/members/order')                    ->via('post')     ->to('collection#order_collection_members');
+    $proxyauth->route('collection/:pid/members/:itempid/order/:position') ->via('post')     ->to('collection#order_collection_member');
 
-    $check_auth->route('group/add')                                     ->via('post')     ->to('groups#add_group');
-    $check_auth->route('group/:gid/remove')                             ->via('post')     ->to('groups#remove_group');
-    $check_auth->route('group/:gid/members/add')                        ->via('post')     ->to('groups#add_members');
-    $check_auth->route('group/:gid/members/remove')                     ->via('post')     ->to('groups#remove_members');
+    $check_auth->route('group/add')                                       ->via('post')     ->to('groups#add_group');
+    $check_auth->route('group/:gid/remove')                               ->via('post')     ->to('groups#remove_group');
+    $check_auth->route('group/:gid/members/add')                          ->via('post')     ->to('groups#add_members');
+    $check_auth->route('group/:gid/members/remove')                       ->via('post')     ->to('groups#remove_members');
+
+    $check_auth->route('jsonld/template/add')                             ->via('post')     ->to('jsonld#add_template');
+    $check_auth->route('jsonld/template/:tid/remove')                     ->via('post')     ->to('jsonld#remove_template');
   }
 
 	return $self;

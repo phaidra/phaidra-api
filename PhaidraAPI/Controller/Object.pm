@@ -411,7 +411,7 @@ sub get_metadata {
   }
 
   if($r->{dshash}->{'JSON-LD'}){   
-    my $jsonld_model = PhaidraAPI::Model::JsonLd->new;  
+    my $jsonld_model = PhaidraAPI::Model::Jsonld->new;  
     my $r_jsonld = $jsonld_model->get_object_jsonld_parsed($self, $pid, $username, $password);
     if($r_jsonld->{status} ne 200){
       for my $a (@{$r_jsonld->{alerts}}){
