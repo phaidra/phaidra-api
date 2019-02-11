@@ -120,7 +120,7 @@ sub get_template {
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined template id' }]} , status => 400) ;
 		return;
 	}
-
+$self->app->log->debug($self->stash('tid')." ".$self->stash->{basic_auth_credentials}->{username});
   my $tres = $self->mango->db->collection('jsonldtemplates')->find({tid => $self->stash('tid'), owner => $self->stash->{basic_auth_credentials}->{username}})->next;
 
   $res->{template} = $tres;
