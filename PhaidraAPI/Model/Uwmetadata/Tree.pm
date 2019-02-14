@@ -757,7 +757,7 @@ our %tree = ( tree => [
                   {
                     "labels" => {
                       "de" => "BetreuerIn",
-                      "en" => "Adviser",
+                      "en" => "Advisor",
                       "it" => "Consigliere",
                       "sr" => "savetnik"
                     },
@@ -6333,7 +6333,7 @@ our %tree = ( tree => [
                   {
                     "labels" => {
                       "de" => "BetreuerIn",
-                      "en" => "Adviser",
+                      "en" => "Advisor",
                       "it" => "Consigliere",
                       "sr" => "savetnik"
                     },
