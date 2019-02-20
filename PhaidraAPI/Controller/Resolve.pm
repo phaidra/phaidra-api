@@ -49,12 +49,51 @@ sub _resolve {
 
 	if($uri =~ /vocab.getty.edu/g){
 		return $self->_resolve_getty($uri);
+	}elsif ($uri =~ /d-nb.info\/gnd/g){
+		return $self->_resolve_gnd($uri);
 	}else{
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Unknown resolver' };
 		$res->{status} = 500;
 		return $res;
 	}
 
+}
+
+sub _resolve_gnd {
+
+	my $self = shift;
+	my $uri = shift;
+
+	my $res = { alerts => [], status => 200 };
+
+	my $url = Mojo::URL->new($uri);
+	my $get = $self->ua->max_redirects(5)->get($url, => {'Accept' => 'application/ld+json'});
+	if (my $getres = $get->success) {
+		for my $h (@{$getres->json}) {
+      if($h->{'@id'} eq $uri){
+        for my $k (keys %{$h}){
+					if($k eq 'http://d-nb.info/standards/elementset/gnd#preferredNameForTheSubjectHeading'){
+            for my $vn (@{$h->{$k}}){
+              push @{$res->{'skos:prefLabel'}}, $vn;
+            }
+          }
+          if($k eq 'http://d-nb.info/standards/elementset/gnd#variantNameForTheSubjectHeading'){
+            for my $vn (@{$h->{$k}}){
+              push @{$res->{'rdfs:label'}}, $vn;
+            }
+          }
+        }
+      }
+    }
+	}else{
+		my ($err, $code) = $get->error;
+		$self->app->log->error("[$uri] error resolving uri ".$self->app->dumper($err));
+		unshift @{$res->{alerts}}, { type => 'danger', msg => $self->app->dumper($err) };
+		$res->{status} =  $code ? $code : 500;
+		return $res;
+	}
+
+	return $res;
 }
 
 sub _resolve_getty {
