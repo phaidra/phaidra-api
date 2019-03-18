@@ -5,6 +5,7 @@ use warnings;
 use v5.10;
 use utf8;
 use Mojo::ByteStream qw(b);
+use JSON;
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::Util qw(encode decode);
 use base qw/Mojo::Base/;
@@ -52,7 +53,8 @@ sub save_to_object(){
   }
 
   my $object_model = PhaidraAPI::Model::Object->new;
-  my $json = encode_json($metadata);
+  my $coder = JSON->new->utf8->pretty;
+  my $json = $coder->encode($metadata);
   return $object_model->add_or_modify_datastream($c, $pid, "JSON-LD", "application/json", undef, $c->app->config->{phaidra}->{defaultlabel}, $json, "M", $username, $password);
 }
 
