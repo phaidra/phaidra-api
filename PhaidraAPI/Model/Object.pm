@@ -485,7 +485,10 @@ sub save_metadata {
 			#my $r = $self->add_datastream($c, $pid, "RIGHTS", "text/xml", undef, "Phaidra Permissions", $xml, "X", $username, $password);
 			my $r = $rights_model->save_to_object($c, $pid, $rights, $username, $password);
 		    if($r->{status} ne 200){
-		        $res->{status} = 500;
+					$res->{status} = $r->{status};
+					for my $e (@{$r->{alerts}}) {
+						push @{$res->{alerts}}, $e; 
+					}
 			    unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving RGHTS datastream'};
 		    }
 			$found = 1;
@@ -499,7 +502,10 @@ sub save_metadata {
 			#my $r = $self->add_datastream($c, $pid, "GEO", "text/xml", undef, "Georeferencing", $xml, "X", $username, $password);
 			my $r = $geo_model->save_to_object($c, $pid, $geo, $username, $password);
 			if($r->{status} ne 200){
-				$res->{status} = 500;
+				$res->{status} = $r->{status};
+				for my $e (@{$r->{alerts}}) {
+					push @{$res->{alerts}}, $e; 
+				}
 				unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving geo'};
 			}
 			$found = 1;
@@ -511,7 +517,10 @@ sub save_metadata {
 			my $jsonld_model = PhaidraAPI::Model::Jsonld->new;
 			my $r = $jsonld_model->save_to_object($c, $pid, $jsonld, $username, $password);
 			if($r->{status} ne 200){
-				$res->{status} = 500;
+				$res->{status} = $r->{status};
+				for my $e (@{$r->{alerts}}) {
+					push @{$res->{alerts}}, $e; 
+				}
 				unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving json-ld'};
 			}
 			$found = 1;
@@ -770,20 +779,20 @@ sub add_datastream {
 	  if($mimetype eq 'text/xml'){
 	    $dscontent = encode 'UTF-8', $dscontent;
 	  }
-  	  $post = $ua->post($url => \%headers =>  $dscontent);
+  	  $post = $ua->post($url => \%headers =>  $dscontent)->result;
 	}else{
-	  $post = $ua->post($url => \%headers);
+	  $post = $ua->post($url => \%headers)->result;
 	}
-  if (my $r = $post->success) {
+  if ($post->is_success) {
   	#unshift @{$res->{alerts}}, { type => 'success', msg => $r->body };
   }
 	else {
-	  my ($err, $code) = $post->error;
-	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-	  $res->{status} =  $code ? $code : 500;
+		$c->app->log->error($post->code . ": " . $post->message);
+	  unshift @{$res->{alerts}}, { type => 'danger', msg => $post->message };
+	  $res->{status} =  $post->code ? $post->code : 500;
 	}
 
-  	return $res;
+  return $res;
 }
 
 sub modify_datastream {
@@ -842,17 +851,17 @@ sub modify_datastream {
 		if($mimetype eq 'text/xml'){
 		  $dscontent = encode 'UTF-8', $dscontent;
 		}
-  		$put = $ua->put($url => \%headers => $dscontent);
+  	$put = $ua->put($url => \%headers => $dscontent)->result;
 	}else{
-		$put = $ua->put($url => \%headers);
+		$put = $ua->put($url => \%headers)->result;
 	}
-  if (my $r = $put->success) {
+
+  if ($put->is_success) {
   	#unshift @{$res->{alerts}}, { type => 'success', msg => $r->body };
-  }
-	else {
-	  my ($err, $code) = $put->error;
-	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-	  $res->{status} =  $code ? $code : 500;
+  } else {
+	  $c->app->log->error($put->code . ": " . $put->message);
+	  unshift @{$res->{alerts}}, { type => 'danger', msg => $put->message };
+	  $res->{status} =  $put->code ? $put->code : 500;
 	}
 
   return $res;
@@ -889,19 +898,24 @@ sub add_or_modify_datastream {
 		$username = $c->app->{config}->{phaidra}->{adminusername};
 		$password = $c->app->{config}->{phaidra}->{adminpassword};
 	}
+	# $c->app->log->debug("XXXXXXXXXX ".$username." ".$password);
 	# save
 	if($sr->{'exists'}){
 		my $r = $self->modify_datastream($c, $pid, $dsid, $mimetype, $location, $label, $dscontent, $username, $password);
-		push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+		for my $e (@{$r->{alerts}}) {
+			push @{$res->{alerts}}, $e; 
+		}
 		$res->{status} = $r->{status};
 		if($r->{status} ne 200){
-			return $res;
+			return $res;	
 		}
 		$c->app->log->debug("Modifying $dsid for $pid successful.");
 	}else{
 		#$c->app->log->debug("$pid, $dsid, $mimetype, undef, $label, $dscontent, X", $username, $password");
 		my $r = $self->add_datastream($c, $pid, $dsid, $mimetype, $location, $label, $dscontent, $controlgroup, $username, $password);
-		push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+		for my $e (@{$r->{alerts}}) {
+			push @{$res->{alerts}}, $e; 
+		}
 		$res->{status} = $r->{status};
 		if($r->{status} ne 200){
 			return $res;
@@ -911,7 +925,9 @@ sub add_or_modify_datastream {
 
 	my $hooks_model = PhaidraAPI::Model::Hooks->new;
 	my $hr = $hooks_model->add_or_modify_datastream_hooks($c, $pid, $dsid, $dscontent, $username, $password);
-	push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
+	for my $e (@{$hr->{alerts}}) {
+		push @{$res->{alerts}}, $e; 
+	}
 	$res->{status} = $hr->{status};
 	if($hr->{status} ne 200){
 		return $res;
