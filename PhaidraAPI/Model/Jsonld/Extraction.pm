@@ -208,7 +208,11 @@ sub _get_jsonld_roles {
       my $name;
       for my $contr (@{$jsonld->{$pred}}){
         if($contr->{'@type'} eq 'schema:Person'){
-          $name = $contr->{'schema:givenName'}[0]->{'@value'}." ".$contr->{'schema:familyName'}[0]->{'@value'};
+          if($contr->{'schema:givenName'} || $contr->{'schema:familyName'}) {
+            $name = $contr->{'schema:givenName'}[0]->{'@value'}." ".$contr->{'schema:familyName'}[0]->{'@value'};
+          } else {
+            $name = $contr->{'schema:name'}[0]->{'@value'};
+          }
         }elsif($contr->{'@type'} eq 'schema:Organisation'){
           $name = $contr->{'schema:name'}[0]->{'@value'};
         }else{

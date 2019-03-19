@@ -1017,20 +1017,18 @@ sub _add_jsonld_index {
     }
   }
 
+  if($jsonld->{'dcterms:created'}){
+    for my $date (@{$jsonld->{'dcterms:created'}}) {
+      push @{$index->{"dcterms_created_year"}}, substr($date, 0, 4);
+    }
+  }
+
   my $roles_res = $self->_add_jsonld_roles($c, $pid, $jsonld, $index);
   for my $a (@{$roles_res->{alerts}}){
     push @{$res->{alerts}}, $a;
   }
   for my $r (@{$roles_res->{roles}}){
     push @roles, $r;
-  }
-
-  if($jsonld->{'opaque:ethnographic'}){
-    for my $o (@{$jsonld->{'opaque:ethnographic'}}) {
-      for my $l (@{$o->{'rdfs:label'}}) {
-        push @{$index->{"opaque_ethnographic"}}, $l->{'@value'};
-      }
-    }
   }
 
   if($jsonld->{'vra:hasInscription'}){
@@ -1058,13 +1056,6 @@ sub _add_jsonld_index {
     }
   }
 
-  if($jsonld->{'phaidra:digitizedObject'}){
-    my $rr = $self->_add_jsonld_index($c, $pid, $jsonld->{'phaidra:digitizedObject'}, $index);
-    for my $a (@{$rr->{alerts}}){
-      push @{$res->{alerts}}, $a;
-    }
-  }
-
   return $res;
 }
 
@@ -1079,7 +1070,11 @@ sub _add_jsonld_roles {
       my $name;
       for my $contr (@{$jsonld->{$pred}}){
         if($contr->{'@type'} eq 'schema:Person'){
-          $name = $contr->{'schema:givenName'}[0]->{'@value'}." ".$contr->{'schema:familyName'}[0]->{'@value'};
+          if($contr->{'schema:givenName'} || $contr->{'schema:familyName'}) {
+            $name = $contr->{'schema:givenName'}[0]->{'@value'}." ".$contr->{'schema:familyName'}[0]->{'@value'};
+          } else {
+            $name = $contr->{'schema:name'}[0]->{'@value'};
+          }
         }elsif($contr->{'@type'} eq 'schema:Organisation'){
           $name = $contr->{'schema:name'}[0]->{'@value'};
         }else{
