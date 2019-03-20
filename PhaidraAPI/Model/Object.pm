@@ -714,6 +714,7 @@ sub _proxy_tx {
   my ($c, $tx) = @_;
   if (my $res = $tx->success) {
     $c->tx->res($res);
+    $c->tx->res->headers->content_type($tx->res->headers->content_type .'; charset=utf-8');
     $c->rendered;
   }
   else {
