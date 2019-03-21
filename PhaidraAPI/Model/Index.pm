@@ -1039,7 +1039,7 @@ sub _add_jsonld_index {
 
   if($jsonld->{'vra:hasInscription'}){
     for my $o (@{$jsonld->{'vra:hasInscription'}}) {
-      for my $l (@{$o->{'rdfs:label'}}) {
+      for my $l (@{$o->{'skos:prefLabel'}}) {
         push @{$index->{"vra_inscription"}}, $l->{'@value'};
       }
     }
@@ -1059,6 +1059,34 @@ sub _add_jsonld_index {
           push @{$res->{alerts}}, $a;
         }
       }
+    }
+  }
+
+  if($jsonld->{'edm:hasType'}){
+    for my $o (@{$jsonld->{'edm:hasType'}}) {
+      for my $l (@{$o->{'skos:prefLabel'}}) {
+        push @{$index->{"edm_hastype"}}, $l->{'@value'};
+      }
+      for my $id (@{$o->{'skos:exactMatch'}}) {
+        push @{$index->{"edm_hastype_id"}}, $id;
+      }
+    }
+  }
+
+  if($jsonld->{'schema:genre'}){
+    for my $o (@{$jsonld->{'schema:genre'}}) {
+      for my $l (@{$o->{'skos:prefLabel'}}) {
+        push @{$index->{"schema_genre"}}, $l->{'@value'};
+      }
+      for my $id (@{$o->{'skos:exactMatch'}}) {
+        push @{$index->{"schema_genre_id"}}, $id;
+      }
+    }
+  }
+
+  if($jsonld->{'bf:physicalLocation'}){
+    for my $o (@{$jsonld->{'bf:physicalLocation'}}) {
+      push @{$index->{"bf_physicallocation"}}, $o->{'@value'};
     }
   }
 

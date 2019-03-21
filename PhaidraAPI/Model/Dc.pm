@@ -259,15 +259,14 @@ sub map_jsonld_2_dc_hash {
   $dc_p{coverage} = [];
   $dc_p{subject} = [];
 
+  $dc_p{type} = $ext->_get_jsonld_objectlabels($c, $jsonld, 'dcterms:type');
+
   $dc_p{title} = $ext->_get_jsonld_titles($c, $jsonld);  
   
   for my $d (@{$ext->_get_jsonld_descriptions($c, $jsonld)}){
     push @{$dc_p{description}}, $d;
   }
-  for my $d (@{$ext->_get_jsonld_objectlabels($c, $jsonld, 'dcterms:provenance')}){
-    push @{$dc_p{description}}, $d;
-  }
-  
+
   my ($creators, $contributors) = $ext->_get_jsonld_roles($c, $jsonld);
   $dc_p{creator} = $creators;
   $dc_p{contributor} = $contributors;
@@ -287,11 +286,6 @@ sub map_jsonld_2_dc_hash {
         my $sub_descriptions = $ext->_get_jsonld_descriptions($c, $o);
         for my $s_d (@{$sub_descriptions}){
           push @{$dc_p{description}}, $s_d;
-        }
-
-        my $sub_provenance = $ext->_get_jsonld_objectlabels($c, $o, 'dcterms:provenance');
-        for my $s_p (@{$sub_provenance}){
-          push @{$dc_p{description}}, $s_p;
         }
 
         my ($sub_creators, $sub_contributors) = $ext->_get_jsonld_roles($c, $o);
@@ -315,43 +309,6 @@ sub map_jsonld_2_dc_hash {
     }
   }
 
-  if($jsonld->{'phaidra:digitizedObject'}){
-    my $do = $jsonld->{'phaidra:digitizedObject'};
-    my $do_titles = $ext->_get_jsonld_titles($c, $do);
-    for my $do_t (@{$do_titles}){
-      push @{$dc_p{title}}, $do_t;
-    }
-
-    my $do_descriptions = $ext->_get_jsonld_descriptions($c, $do);
-    for my $do_d (@{$do_descriptions}){
-      push @{$dc_p{description}}, $do_d;
-    }
-
-    my $do_provenance = $ext->_get_jsonld_objectlabels($c, $do, 'dcterms:provenance');
-    for my $do_p (@{$do_provenance}){
-      push @{$dc_p{description}}, $do_p;
-    }
-
-    my ($do_creators, $do_contributors) = $ext->_get_jsonld_roles($c, $do);
-    for my $do_cr (@{$do_creators}){
-      push @{$dc_p{creator}}, $do_cr;
-    }
-    for my $do_co (@{$do_contributors}){
-      push @{$dc_p{contributor}}, $do_co;
-    }
-
-    my $do_subjects = $ext->_get_jsonld_subjects($c, $do);
-    for my $do_s (@{$do_subjects}){
-      push @{$dc_p{subject}}, $do_s;
-    }
-
-    my $do_tcs = $ext->_get_jsonld_langvalues($c, $do, 'schema:temporalCoverage');
-    for my $do_tc (@{$do_tcs}){
-      push @{$dc_p{coverage}}, $do_tc;
-    }
-
-  }
-
   # $dc_p{identifier} = $ext->_get_jsonld_identifiers($c, $jsonld);
   push @{$dc_p{identifier}}, { value => "https://".$c->app->config->{phaidra}->{baseurl}."/".$pid };
   unless($indexing){
@@ -361,7 +318,8 @@ sub map_jsonld_2_dc_hash {
     }
   }
 
-  $dc_p{language} = $ext->_get_jsonld_languages($c, $jsonld);
+  $dc_p{language} = $ext->_get_jsonld_values($c, $jsonld, 'dcterms:language');
+  $dc_p{date} = $ext->_get_jsonld_values($c, $jsonld, 'dcterms:created');
   
   my $tcs = $ext->_get_jsonld_langvalues($c, $jsonld, 'schema:temporalCoverage');
   for my $tc (@{$tcs}){

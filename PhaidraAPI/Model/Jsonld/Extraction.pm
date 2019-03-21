@@ -65,17 +65,17 @@ sub _get_jsonld_descriptions {
   my ($self, $c, $jsonld) = @_;
 
   my @dcdescriptions;
-
-  my $bfnotes = $jsonld->{'bf:note'};
-
-  for my $o (@{$bfnotes}) {
-    my $new = {
-      value => $o->{'rdfs:label'}[0]->{'@value'}
-    };
-    if(exists($o->{'@language'}) && ($o->{'@language'} ne '')){
-      $new->{lang} = $o->{'@language'};
+  #$c->app->log->debug("XXXXXXXXXXXX:\n".$c->app->dumper($jsonld->{'bf:note'}));
+  for my $o (@{$jsonld->{'bf:note'}}) {
+    for my $l (@{$o->{'skos:prefLabel'}}){
+      my $new = {
+        value => $l->{'@value'}
+      };
+      if(exists($l->{'@language'}) && ($l->{'@language'} ne '')){
+        $new->{lang} = $l->{'@language'};
+      }
+       push @dcdescriptions, $new;
     }
-    push @dcdescriptions, $new;
   }
 
   return \@dcdescriptions;
@@ -92,11 +92,11 @@ sub _get_jsonld_objectlabels {
     $objects = [ $jsonld->{$predicate} ];
   }
   for my $o (@{$objects}) {
-    my $rdfslabels = $o->{'rdfs:label'};
-    if(ref($rdfslabels) ne 'ARRAY'){
-      $rdfslabels = [ $o->{'rdfs:label'} ];
+    my $labels = $o->{'skos:prefLabel'};
+    if(ref($labels) ne 'ARRAY'){
+      $labels = [ $o->{'skos:prefLabel'} ];
     }
-    for my $l (@{$rdfslabels}){
+    for my $l (@{$labels}){
       my $new = {
         value => $l->{'@value'}
       };
@@ -116,12 +116,6 @@ sub _get_jsonld_subjects {
 
   my @dcsubjects;
   my $subs = $jsonld->{'dcterms:subject'};
-
-  if($jsonld->{'opaque:ethnographic'}){
-    for my $s (@{$jsonld->{'opaque:ethnographic'}}){
-      push @{$subs}, $s;
-    }
-  }
 
   if($jsonld->{'dce:subject'}){
     for my $s (@{$jsonld->{'dce:subject'}}){
@@ -158,42 +152,6 @@ sub _get_jsonld_subjects {
   }
 
   return \@dcsubjects;
-}
-
-=head x
-sub _get_jsonld_identifiers {
-
-  my ($self, $c, $jsonld) = @_;
-
-  my @ids;
-
-  for my $id_predicate (keys %jsonld_identifiers){
-    if(exists($jsonld->{$id_predicate}) && $jsonld->{$id_predicate} ne ''){
-      for my $id (@{$jsonld->{$id_predicate}}){
-        push @ids, { value => $jsonld_identifiers{$id_predicate}.":".$id };
-      }
-    }
-  }
-
-  return \@ids;
-}
-=cut
-
-sub _get_jsonld_languages {
-
-  my ($self, $c, $jsonld) = @_;
-
-  my @langs;
-
-  my $languages = $jsonld->{'dcterms:language'};
-
-  for my $lang (@{$languages}){
-    if($lang =~ m/http:\/\/id.loc.gov\/vocabulary\/iso639-2\/(\w+)/g){
-      push @langs, { value => $1 };
-    }
-  }
-
-  return \@langs;
 }
 
 sub _get_jsonld_roles {
