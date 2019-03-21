@@ -326,7 +326,7 @@ sub create_container {
 		return $res;
 	}
 
-	my @childpids;
+	my @children;
 	$c->app->log->debug("Metadata: ".$c->app->dumper($metadata));
 
 	for my $k (keys %{$metadata->{metadata}->{'json-ld'}}){
@@ -345,10 +345,10 @@ sub create_container {
 			my $childmimetype;
 			my $childcmodel;
       my $mta = $childmetadata->{'ebucore:hasMimeType'};
-	  my $mt;
-	  for my $mtam (@{$childmetadata->{'ebucore:hasMimeType'}}){
-		  $mt = $mtam;
-	  }
+			my $mt;
+			for my $mtam (@{$childmetadata->{'ebucore:hasMimeType'}}){
+				$mt = $mtam;
+			}
       $c->app->log->debug("ebucore:hasMimeType[$mt] maps to cmodel[".$mime_to_cmodel{$mt}."]");
       if ($mime_to_cmodel{$mt}){
         my $child_metadata = { metadata => { 'json-ld' => $childmetadata } };
@@ -360,7 +360,8 @@ sub create_container {
           unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error creating child object'};
           return $res;
         }
-        push @childpids, $r->{pid};
+				
+        push @children, { pid => $r->{pid}, memberkey => $k };
 			}
 		}
 	}
@@ -392,39 +393,82 @@ sub create_container {
 
 	#$c->app->log->info("XXX Metadata saved, adding relationships");
 
+	# add members
 	my @relationships;
-	for my $chpid (@childpids) {
-		push @relationships, { predicate => "http://pcdm.org/models#hasMember", object => "info:fedora/".$chpid };
+	for my $chpid (@children) {
+		push @relationships, { predicate => "http://pcdm.org/models#hasMember", object => "info:fedora/".$chpid->{pid} };
+	}
+	$r = $self->add_relationships($c, $pid, \@relationships, $username, $password, 1);
+	foreach my $a (@{$r->{alerts}}){
+		push @{$res->{alerts}}, $a;
+	}
+	$res->{status} = $r->{status};
+	if($r->{status} ne 200){
+	$c->app->log->error("Error adding relationships[".$c->app->dumper(\@relationships)."] pid[$pid] res[".$c->app->dumper($res)."]");
+		return $res;
 	}
 
-	$r = $self->add_relationships($c, $pid, \@relationships, $username, $password, 1);
-  	foreach my $a (@{$r->{alerts}}){
-   		push @{$res->{alerts}}, $a;
-   	}
-    $res->{status} = $r->{status};
-    if($r->{status} ne 200){
-		$c->app->log->error("Error adding relationships[".$c->app->dumper(\@relationships)."] pid[$pid] res[".$c->app->dumper($res)."]");
-    	return $res;
-    }
+	# add members rels
+	if(exists($metadata->{metadata}->{'relationships'})){
+		foreach my $rel (@{$metadata->{metadata}->{'relationships'}}){
+			if($rel->{'s'} eq "container"){
+				$rel->{'s'} = $pid;
+			}
+			if($rel->{'o'} eq "container"){
+				$rel->{'o'} = "info:fedora/".$pid;
+			}
+			
+			if($rel->{'s'} =~ m/member_/g){
+				for my $ch (@children) {
+					if($ch->{memberkey} eq $rel->{'s'}){
+						$rel->{'s'} = $ch->{pid};
+					}else{
+						$c->app->log->error("Undefined memberkey-pid mapping for [".$rel->{'s'}."] (member ingest failed?)");
+					}
+				}
+			}
+			
+			if($rel->{'o'} =~ m/member_/g){
+				for my $ch (@children) {
+					if($ch->{memberkey} eq $rel->{'o'}){
+						$rel->{'o'} = "info:fedora/".$ch->{pid};
+					}else{
+						$c->app->log->error("Undefined memberkey-pid mapping for [".$rel->{'o'}."] (member ingest failed?)");
+					}
+				}
+			}
+		}
+		for my $rel (@{$metadata->{metadata}->{'relationships'}}){
+			$r = $self->add_relationship($c, $rel->{'s'}, $rel->{'p'}, $rel->{'o'}, $username, $password, 1);
+			foreach my $a (@{$r->{alerts}}){
+				push @{$res->{alerts}}, $a;
+			}
+			$res->{status} = $r->{status};
+			if($r->{status} ne 200){
+			$c->app->log->error("Error adding relationship[".$c->app->dumper($rel)."] res[".$c->app->dumper($res)."]");
+				return $res;
+			}
+		}
+	}
 
 	#$c->app->log->info("XXX Rels added, modifying");
 
 	# activate
-    $r = $self->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
-    if($r->{status} ne 200){
-		$c->app->log->error("Error activating pid[$pid]");
-   		$res->{status} = $r->{status};
-		foreach my $a (@{$r->{alerts}}){
-			unshift @{$res->{alerts}}, $a;
-		}
-		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error activating object'};
-   		return $res;
-   	}else{
-		$c->app->log->info("Object successfully created pid[$pid]");
-    }
+	$r = $self->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
+	if($r->{status} ne 200){
+	$c->app->log->error("Error activating pid[$pid]");
+		$res->{status} = $r->{status};
+	foreach my $a (@{$r->{alerts}}){
+		unshift @{$res->{alerts}}, $a;
+	}
+	unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error activating object'};
+		return $res;
+	}else{
+	$c->app->log->info("Object successfully created pid[$pid]");
+	}
 
 
-   	return $res;
+	return $res;
 }
 
 sub save_metadata {
@@ -529,6 +573,10 @@ sub save_metadata {
 		}elsif($f eq "members"){
 
             # noop - this was handled by coll model   
+
+		}elsif($f eq "relationships"){
+
+            # noop - this is handled elswhere  
 
 		}else {
 			$c->app->log->error("Unknown or unsupported metadata format: $f");

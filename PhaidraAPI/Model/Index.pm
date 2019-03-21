@@ -784,6 +784,12 @@ sub _index_relsext {
     push @{$index->{isbacksideof}}, $o;
   }
 
+  for my $e ($xml->find('isThumbnailFor')->each){
+    my $o = $e->attr('rdf:resource');
+    $o =~ s/^info:fedora\/(.*)$/$1/;
+    push @{$index->{isthumbnailfor}}, $o;
+  }
+
   for my $e ($xml->find('hasSuccessor')->each){
     my $o = $e->attr('rdf:resource');
     $o =~ s/^info:fedora\/(.*)$/$1/;
