@@ -1025,7 +1025,8 @@ sub _add_jsonld_index {
 
   if($jsonld->{'dcterms:created'}){
     for my $date (@{$jsonld->{'dcterms:created'}}) {
-      push @{$index->{"dcterms_created_year"}}, substr($date, 0, 4);
+      push @{$index->{"dcterms_created_year"}}, int(substr($date, 0, 4));
+      $index->{"dcterms_created_year_sort"} = int(substr($date, 0, 4));
     }
   }
 
