@@ -528,7 +528,7 @@ sub metadata {
 
   }
 
-  $self->render(json => { alerts => $res->{alerts} } , status => $res->{status});
+  $self->render(json => $res, status => $res->{status});
 
 }
 
