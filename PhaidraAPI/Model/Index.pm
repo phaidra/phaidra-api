@@ -1030,6 +1030,13 @@ sub _add_jsonld_index {
     }
   }
 
+  if($jsonld->{'rdau:P60071'}){
+    for my $date (@{$jsonld->{'rdau:P60071'}}) {
+      push @{$index->{"rdau_P60071_year"}}, int(substr($date, 0, 4));
+      $index->{"rdau_P60071_year_sort"} = int(substr($date, 0, 4));
+    }
+  }
+
   my $roles_res = $self->_add_jsonld_roles($c, $pid, $jsonld, $index);
   for my $a (@{$roles_res->{alerts}}){
     push @{$res->{alerts}}, $a;
