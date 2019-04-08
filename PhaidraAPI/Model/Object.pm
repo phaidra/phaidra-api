@@ -47,12 +47,12 @@ my %mime_to_cmodel = (
 	'audio/flac' => 'cmodel:Audio',
 	'audio/ogg' => 'cmodel:Audio',
 
-	'audio/mpeg' => 'cmodel:Video',
-	'audio/avi' => 'cmodel:Video',
-	'audio/x-msvideo' => 'cmodel:Video',
-	'audio/mp4' => 'cmodel:Video',
-	'audio/quicktime' => 'cmodel:Video',
-	'audio/x-matroska' => 'cmodel:Video'
+	'video/mpeg' => 'cmodel:Video',
+	'video/avi' => 'cmodel:Video',
+	'video/x-msvideo' => 'cmodel:Video',
+	'video/mp4' => 'cmodel:Video',
+	'video/quicktime' => 'cmodel:Video',
+	'video/x-matroska' => 'cmodel:Video'
 );
 
 sub delete {
