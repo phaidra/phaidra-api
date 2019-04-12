@@ -345,18 +345,20 @@ sub create_container {
 				my $name = $childupload->filename;
 				$c->app->log->debug("Found file: $name [$size B]");
 				my $childmetadata = $metadata->{metadata}->{'json-ld'}->{$k};
-				my $childmimetype;
-				my $childcmodel;
-				my $mta = $childmetadata->{'ebucore:hasMimeType'};
 				my $mt;
 				for my $mtam (@{$childmetadata->{'ebucore:hasMimeType'}}){
 					$mt = $mtam;
 				}
-				$c->app->log->debug("ebucore:hasMimeType[$mt] maps to cmodel[".$mime_to_cmodel{$mt}."]");
+
+				my $childcmodel = $mime_to_cmodel{$mt};
+				unless($childcmodel){
+					$childcmodel = 'cmodel:Asset';
+				}
+				$c->app->log->debug("ebucore:hasMimeType[$mt] maps to cmodel[$childcmodel]");
 				if ($mime_to_cmodel{$mt}){
 					my $child_metadata = { metadata => { 'json-ld' => $childmetadata } };
 					#$c->app->log->debug("Creating child with metadata:".$c->app->dumper($child_metadata));
-					my $r = $self->create_simple($c, $mime_to_cmodel{$mt}, $child_metadata, $mt, $childupload, $username, $password);
+					my $r = $self->create_simple($c, $childcmodel, $child_metadata, $mt, $childupload, $username, $password);
 					if($r->{status} ne 200){
 						$res->{status} = 500;
 						unshift @{$res->{alerts}}, @{$r->{alerts}};
