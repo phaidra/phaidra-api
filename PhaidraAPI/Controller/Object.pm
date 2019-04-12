@@ -152,7 +152,14 @@ sub create_container {
 
 	my $res = { alerts => [], status => 200 };
 
-  $self->app->log->debug("parameters: ".$self->app->dumper($self->req->params->names));
+  $self->app->log->debug("=== params ===");
+  for my $pn (@{$self->req->params->names}){
+    $self->app->log->debug($pn);
+  }
+  for my $up (@{$self->req->uploads}){
+    $self->app->log->debug($up->{name}.": ".$up->{filename});
+  }
+  $self->app->log->debug("==============");
 
 	if($self->req->is_limit_exceeded){
     $self->app->log->debug("Size limit exceeded. Current max_message_size:".$self->req->max_message_size);

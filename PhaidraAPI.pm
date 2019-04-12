@@ -60,6 +60,12 @@ sub startup {
     # init log
   	$self->log(Mojo::Log->new(path => $config->{log_path}, level => $config->{log_level}));
 
+if($config->{tmpdir}){
+          $self->app->log->debug("Setting MOJO_TMPDIR: ".$config->{tmpdir});
+          $ENV{MOJO_TMPDIR} = $config->{tmpdir};
+        }
+
+
 	my $directory_impl = $config->{directory_class};
   $self->app->log->debug("Loading directory implementation $directory_impl");
 	my $e = load_class $directory_impl;
