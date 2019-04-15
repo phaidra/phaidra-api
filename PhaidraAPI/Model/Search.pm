@@ -871,10 +871,19 @@ sub get_pids {
 
   # get results
   $urlget->query(q => $query, fl => "pid", rows => $numFound, wt => "json"); 
+# $urlget->query(q => $query, fl => "pid,dc_identifier", rows => $numFound, wt => "json");
   $get = $ua->get($urlget);
 
   if (my $r_mem = $get->success) {
     for my $d (@{$r_mem->json->{response}->{docs}}){
+#			my $ac;
+#			for my $dcid (@{$d->{dc_identifier}}){
+#				if($dcid =~ /^AC/g){
+#					$ac = $dcid;
+#				}
+#			}
+#     push @pids, $d->{pid}.';'.$ac;
+
       push @pids, $d->{pid};
     }
   }else{
