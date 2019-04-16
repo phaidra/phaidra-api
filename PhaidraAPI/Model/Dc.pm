@@ -332,10 +332,13 @@ sub map_jsonld_2_dc_hash {
     push @{$dc_p{rights}}, $rs;
   }
 
+  $dc_p{format} = $ext->_get_jsonld_values($c, $jsonld, 'ebucore:hasMimeType');
   unless($indexing){
     my $filesize = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
     push @{$dc_p{format}} => { value => "$filesize bytes" };
   }
+
+  $dc_p{rights} = $ext->_get_jsonld_values($c, $jsonld, 'edm:rights');
   #$c->app->log->debug("XXXXXXXXXXXXXX dc_p:".$c->app->dumper(\%dc_p));
   my %dc_oai = %dc_p;
 
