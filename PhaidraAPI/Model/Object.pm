@@ -47,12 +47,12 @@ my %mime_to_cmodel = (
 	'audio/flac' => 'cmodel:Audio',
 	'audio/ogg' => 'cmodel:Audio',
 
-	'audio/mpeg' => 'cmodel:Video',
-	'audio/avi' => 'cmodel:Video',
-	'audio/x-msvideo' => 'cmodel:Video',
-	'audio/mp4' => 'cmodel:Video',
-	'audio/quicktime' => 'cmodel:Video',
-	'audio/x-matroska' => 'cmodel:Video'
+	'video/mpeg' => 'cmodel:Video',
+	'video/avi' => 'cmodel:Video',
+	'video/x-msvideo' => 'cmodel:Video',
+	'video/mp4' => 'cmodel:Video',
+	'video/quicktime' => 'cmodel:Video',
+	'video/x-matroska' => 'cmodel:Video'
 );
 
 sub delete {
@@ -329,53 +329,61 @@ sub create_container {
 	my @children;
 	$c->app->log->debug("Metadata: ".$c->app->dumper($metadata));
 
-	for my $k (keys %{$metadata->{metadata}->{'json-ld'}}){
-		$c->app->log->debug("Found key: [$k]");
-		if ($k ne 'container') {		
-			my $childupload = $c->req->upload($k);
-      unless(defined($childupload)){
-        unshift @{$res->{alerts}}, { type => 'danger', msg => 'Missing container member file'};
-        $res->{status} = 400;
-        return $res;
-      }
-			my $size = $childupload->size;
-  		my $name = $childupload->filename;
-			$c->app->log->debug("Found file: $name [$size B]");
-			my $childmetadata = $metadata->{metadata}->{'json-ld'}->{$k};
-			my $childmimetype;
-			my $childcmodel;
-      my $mta = $childmetadata->{'ebucore:hasMimeType'};
-			my $mt;
-			for my $mtam (@{$childmetadata->{'ebucore:hasMimeType'}}){
-				$mt = $mtam;
-			}
-      $c->app->log->debug("ebucore:hasMimeType[$mt] maps to cmodel[".$mime_to_cmodel{$mt}."]");
-      if ($mime_to_cmodel{$mt}){
-        my $child_metadata = { metadata => { 'json-ld' => $childmetadata } };
-        #$c->app->log->debug("Creating child with metadata:".$c->app->dumper($child_metadata));
-        my $r = $self->create_simple($c, $mime_to_cmodel{$mt}, $child_metadata, $mt, $childupload, $username, $password);
-        if($r->{status} ne 200){
-          $res->{status} = 500;
-          unshift @{$res->{alerts}}, @{$r->{alerts}};
-          unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error creating child object'};
-          return $res;
-        }
-				
-        push @children, { pid => $r->{pid}, memberkey => $k };
+	my $container_metadata;
+
+	if (exists($metadata->{metadata}->{'json-ld'}->{'container'})) {
+		for my $k (keys %{$metadata->{metadata}->{'json-ld'}}){
+			$c->app->log->debug("Found key: [$k]");
+			if ( ($k ne 'container') && ($k ne 'relationships') ) {		
+				my $childupload = $c->req->upload($k);
+				unless(defined($childupload)){
+					unshift @{$res->{alerts}}, { type => 'danger', msg => "Missing container member file [$k]"};
+					$res->{status} = 400;
+					return $res;
+				}
+				my $size = $childupload->size;
+				my $name = $childupload->filename;
+				$c->app->log->debug("Found file: $name [$size B]");
+				my $childmetadata = $metadata->{metadata}->{'json-ld'}->{$k};
+				my $mt;
+				for my $mtam (@{$childmetadata->{'ebucore:hasMimeType'}}){
+					$mt = $mtam;
+				}
+
+				my $childcmodel = $mime_to_cmodel{$mt};
+				unless($childcmodel){
+					$childcmodel = 'cmodel:Asset';
+				}
+				$c->app->log->debug("ebucore:hasMimeType[$mt] maps to cmodel[$childcmodel]");
+				if ($childcmodel){
+					my $child_metadata = { metadata => { 'json-ld' => $childmetadata } };
+					#$c->app->log->debug("Creating child with metadata:".$c->app->dumper($child_metadata));
+					my $r = $self->create_simple($c, $childcmodel, $child_metadata, $mt, $childupload, $username, $password);
+					if($r->{status} ne 200){
+						$res->{status} = 500;
+						unshift @{$res->{alerts}}, @{$r->{alerts}};
+						unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error creating child object'};
+						return $res;
+					}
+					
+					push @children, { pid => $r->{pid}, memberkey => $k };
+				}
 			}
 		}
+		$container_metadata = { 'json-ld' => $metadata->{metadata}->{'json-ld'}->{container} };
+	} else {
+		$container_metadata = $metadata->{metadata};
 	}
 
-	my $container_metadata = { 'json-ld' => $metadata->{metadata}->{'json-ld'}->{container} };
 	$c->app->log->debug("Creating container with metadata:".$c->app->dumper($container_metadata));
 	# create parent object
-    my $r = $self->create($c, 'cmodel:Container', $username, $password);
-   	if($r->{status} ne 200){
-   		$res->{status} = 500;
+	my $r = $self->create($c, 'cmodel:Container', $username, $password);
+	if($r->{status} ne 200){
+		$res->{status} = 500;
 		unshift @{$res->{alerts}}, @{$r->{alerts}};
 		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error creating object'};
-   		return $res;
-   	}
+		return $res;
+	}
 
 	my $pid = $r->{pid};
 	$res->{pid} = $pid;
@@ -394,19 +402,22 @@ sub create_container {
 	#$c->app->log->info("XXX Metadata saved, adding relationships");
 
 	# add members
-	my @relationships;
-	for my $chpid (@children) {
-		push @relationships, { predicate => "http://pcdm.org/models#hasMember", object => "info:fedora/".$chpid->{pid} };
-	}
-	$r = $self->add_relationships($c, $pid, \@relationships, $username, $password, 1);
-	foreach my $a (@{$r->{alerts}}){
-		push @{$res->{alerts}}, $a;
-	}
-	$res->{status} = $r->{status};
-	if($r->{status} ne 200){
-	$c->app->log->error("Error adding relationships[".$c->app->dumper(\@relationships)."] pid[$pid] res[".$c->app->dumper($res)."]");
-		return $res;
-	}
+  my $childrencount = scalar @children;
+  if($childrencount > 0){
+    my @relationships;
+    for my $chpid (@children) {
+      push @relationships, { predicate => "http://pcdm.org/models#hasMember", object => "info:fedora/".$chpid->{pid} };
+    }
+    $r = $self->add_relationships($c, $pid, \@relationships, $username, $password, 1);
+    foreach my $a (@{$r->{alerts}}){
+      push @{$res->{alerts}}, $a;
+    }
+    $res->{status} = $r->{status};
+    if($r->{status} ne 200){
+    $c->app->log->error("Error adding relationships[".$c->app->dumper(\@relationships)."] pid[$pid] res[".$c->app->dumper($res)."]");
+      return $res;
+    }
+  }
 
 	# add members rels
 	if(exists($metadata->{metadata}->{'relationships'})){

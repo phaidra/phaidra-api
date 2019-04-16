@@ -6,7 +6,7 @@ use v5.10;
 use utf8;
 use Time::HiRes qw/tv_interval gettimeofday/;
 use Mojo::ByteStream qw(b);
-use Mojo::Util qw(xml_escape encode decode);
+use Mojo::Util qw(xml_escape encode decode trim);
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::URL;
 use Mojo::UserAgent;
@@ -837,7 +837,7 @@ sub _add_dc_index {
         my $val = $v->{value};
         if(exists($v->{lang})){
           if (($xmlname eq 'title') || ($xmlname eq 'description')){
-            push @{$index->{'dc_'.$xmlname}}, $val
+            push @{$index->{'dc_'.$xmlname}}, $val;
           }
           my $lang = $v->{lang};
           if(length($v->{lang}) eq 2){
@@ -845,13 +845,13 @@ sub _add_dc_index {
           }
           push @{$index->{'dc_'.$xmlname."_".$lang}}, $val;     
           if($xmlname eq 'title'){
-            $index->{sort_dc_title} = $val;
-            $index->{'sort_' . $lang . '_dc_title'} = $val;
+            $index->{sort_dc_title} = trim $val;
+            $index->{'sort_' . $lang . '_dc_title'} = trim $val;
           }
         }else{
           push @{$index->{'dc_'.$xmlname}}, $val;
           if($xmlname eq 'title'){
-            $index->{sort_dc_title} = $val;
+            $index->{sort_dc_title} = trim $val;
           }
         }
       }
@@ -1025,7 +1025,15 @@ sub _add_jsonld_index {
 
   if($jsonld->{'dcterms:created'}){
     for my $date (@{$jsonld->{'dcterms:created'}}) {
-      push @{$index->{"dcterms_created_year"}}, substr($date, 0, 4);
+      push @{$index->{"dcterms_created_year"}}, int(substr($date, 0, 4));
+      $index->{"dcterms_created_year_sort"} = int(substr($date, 0, 4));
+    }
+  }
+
+  if($jsonld->{'rdau:P60071'}){
+    for my $date (@{$jsonld->{'rdau:P60071'}}) {
+      push @{$index->{"rdau_P60071_year"}}, int(substr($date, 0, 4));
+      $index->{"rdau_P60071_year_sort"} = int(substr($date, 0, 4));
     }
   }
 
