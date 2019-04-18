@@ -128,7 +128,7 @@ sub keepalive {
 		$self->render(json => { expires => $session->expires, sid => $session->sid, status => 200  } , status => 200 ) ;
 	} else {		
 		$self->res->headers->www_authenticate('Basic');
-		$self->render(json => { status => 401, alerts => [{ type => 'danger', msg => $errmsg }]} , status => 401) ;	
+		$self->render(json => { status => 401, alerts => [{ type => 'danger', msg => 'session invalid or expired' }]} , status => 401) ;	
 	}	
 }
 
