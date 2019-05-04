@@ -401,7 +401,7 @@ if($config->{tmpdir}){
     $proxyauth->route('imageserver/:pid/process')                         ->via('post')     ->to('imageserver#process');
 
     $proxyauth->route('object/:pid/modify')                               ->via('post')     ->to('object#modify');
-    $proxyauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');
+    $proxyauth->route('object/:pid/delete')                               ->via('post')     ->to('object#delete');
     $proxyauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');
     $proxyauth->route('object/:pid/mods')                                 ->via('post')     ->to('mods#post');
     $proxyauth->route('object/:pid/jsonld')                               ->via('post')     ->to('jsonld#post');

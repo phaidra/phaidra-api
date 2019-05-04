@@ -57,12 +57,43 @@ my %mime_to_cmodel = (
 
 sub delete {
 	my $self = shift;
-    my $c = shift;
-    my $pid = shift;
-    my $username = shift;
-    my $password = shift;
+  my $c = shift;
+  my $pid = shift;
+  my $username = shift;
+  my $password = shift;
 
-    return $self->modify($c, $pid, 'D', undef, undef, undef, undef, $username, $password);
+  my $res = { alerts => [], status => 200 };
+
+  $c->app->log->debug("[$pid] Changing object status to Deleted");
+  my $statusres = $self->modify($c, $pid, 'D', undef, undef, undef, undef, $username, $password);
+  if ($statusres->{status} != 200) {
+    return $statusres;
+  }
+  $c->app->log->debug("[$pid] Object status changed to Deleted");
+
+  $c->app->log->debug("[$pid] Purging object");
+	my $url = Mojo::URL->new;
+	$url->scheme('https');
+	$url->userinfo("$username:$password");
+	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
+	$url->path("/fedora/objects/$pid");
+
+	my $ua = Mojo::UserAgent->new;
+	my %headers;
+  if($c->stash->{remote_user}){
+    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
+  }
+
+  my $deleteres = $ua->delete($url => \%headers)->result;
+  if ($deleteres->code == 200) {
+    $c->app->log->debug("[$pid] Object successfully deleted");
+    return $res;
+  } else {
+	  unshift @{$res->{alerts}}, { type => 'danger', msg => $deleteres->message };
+	  $res->{status} = $deleteres->code;
+	}
+
+  return $res;
 }
 
 sub modify {

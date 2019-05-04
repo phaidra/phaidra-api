@@ -177,9 +177,38 @@ sub update {
 
   if( exists($c->app->config->{index_mongodb}) || exists($c->app->config->{solr})){
 
+    my $updateurl = Mojo::URL->new;
+    $updateurl->scheme($c->app->config->{solr}->{scheme});
+    $updateurl->userinfo($c->app->config->{solr}->{username}.":".$c->app->config->{solr}->{password});
+    $updateurl->host($c->app->config->{solr}->{host});
+    $updateurl->port($c->app->config->{solr}->{port});
+    if($c->app->config->{solr}->{path}){
+      $updateurl->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/update");
+    }else{
+      $updateurl->path("/solr/".$c->app->config->{solr}->{core}."/update");
+    }
+    $updateurl->query(commit => 'true');
+
+    my $ua = Mojo::UserAgent->new;
+
     my $cmodel_res = $search_model->get_cmodel($c, $pid);
     if($cmodel_res->{status} ne 200){
       return $cmodel_res;
+    }elsif($cmodel_res->{cmodel} eq ''){
+      # triplestore works but returns nothing for this object -> it was probably deleted -> remove from index
+      $c->app->log->debug("[$pid] no cmodel found, deleting from index");
+      if(exists($c->app->config->{solr})){
+          my $post = $ua->post($updateurl => json => { delete => $pid });
+          if (my $r = $post->success) {
+            $c->app->log->debug("[$pid] solr document deleted");
+          }else {
+            my ($err, $code) = $post->error;
+            unshift @{$res->{alerts}}, { type => 'danger', msg => "[$pid] Error deleting document from solr: ".$c->app->dumper($err) };
+            $res->{status} =  $code ? $code : 500;
+          }
+        }
+        $res->{status} = 200;
+        return $res;
     }
 
     if($cmodel_res->{cmodel} && $cmodel_res->{cmodel} ne 'Page'){
@@ -196,20 +225,6 @@ sub update {
       my $members = $r->{index}->{hasmember} if exists $r->{index}->{hasmember};
       # don't save this
       delete $r->{index}->{hasmember};
-
-      my $updateurl = Mojo::URL->new;
-      $updateurl->scheme($c->app->config->{solr}->{scheme});
-      $updateurl->userinfo($c->app->config->{solr}->{username}.":".$c->app->config->{solr}->{password});
-      $updateurl->host($c->app->config->{solr}->{host});
-      $updateurl->port($c->app->config->{solr}->{port});
-      if($c->app->config->{solr}->{path}){
-        $updateurl->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/update");
-      }else{
-        $updateurl->path("/solr/".$c->app->config->{solr}->{core}."/update");
-      }
-      $updateurl->query(commit => 'true');
-
-      my $ua = Mojo::UserAgent->new;
 
       if($r->{status} eq 200){
 
