@@ -64,6 +64,8 @@ sub delete {
 
   my $res = { alerts => [], status => 200 };
 
+  # TODO: remove all relationships first
+
   $c->app->log->debug("[$pid] Changing object status to Deleted");
   my $statusres = $self->modify($c, $pid, 'D', undef, undef, undef, undef, $username, $password);
   if ($statusres->{status} != 200) {
@@ -975,6 +977,17 @@ sub add_or_modify_datastream {
 
 	my $res = { alerts => [], status => 200 };
 
+  #$c->app->log->debug("XXXXXXXXXX pid: ".$pid);
+  #$c->app->log->debug("XXXXXXXXXX dsid: ".$dsid);
+  #$c->app->log->debug("XXXXXXXXXX mimetype: ".$mimetype);
+  #$c->app->log->debug("XXXXXXXXXX location: ".$location);
+  #$c->app->log->debug("XXXXXXXXXX label: ".$label);
+	#$c->app->log->debug("XXXXXXXXXX dscontent: ".$dscontent);
+  #$c->app->log->debug("XXXXXXXXXX controlgroup: ".$controlgroup);
+  #$c->app->log->debug("XXXXXXXXXX username: ".$username);
+  #$c->app->log->debug("XXXXXXXXXX password: ".$password);
+  #$c->app->log->debug("XXXXXXXXXX useadmin: ".$useadmin);
+
 	my $search_model = PhaidraAPI::Model::Search->new;
 	my $sr = $search_model->datastream_exists($c, $pid, $dsid);
 	if($sr->{status} ne 200){
@@ -983,13 +996,13 @@ sub add_or_modify_datastream {
 		return $res;
 	}
 
-	#$c->app->log->debug("XXXXXXXXXX ".$dscontent);
+  #$c->app->log->debug("XXXXXXXXXX exists: ".$sr->{'exists'});
 
 	if($useadmin){
 		$username = $c->app->{config}->{phaidra}->{adminusername};
 		$password = $c->app->{config}->{phaidra}->{adminpassword};
 	}
-	# $c->app->log->debug("XXXXXXXXXX ".$username." ".$password);
+
 	# save
 	if($sr->{'exists'}){
 		my $r = $self->modify_datastream($c, $pid, $dsid, $mimetype, $location, $label, $dscontent, $username, $password);
@@ -1002,7 +1015,6 @@ sub add_or_modify_datastream {
 		}
 		$c->app->log->debug("Modifying $dsid for $pid successful.");
 	}else{
-		#$c->app->log->debug("$pid, $dsid, $mimetype, undef, $label, $dscontent, X", $username, $password");
 		my $r = $self->add_datastream($c, $pid, $dsid, $mimetype, $location, $label, $dscontent, $controlgroup, $username, $password);
 		for my $e (@{$r->{alerts}}) {
 			push @{$res->{alerts}}, $e; 

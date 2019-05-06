@@ -8,6 +8,7 @@ use Mojo::JSON qw(encode_json decode_json);
 use Mojo::Util qw(encode decode);
 use Mojo::ByteStream qw(b);
 use PhaidraAPI::Model::Object;
+use PhaidraAPI::Model::Collection;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Rights;
 use PhaidraAPI::Model::Uwmetadata;
@@ -603,6 +604,5 @@ sub _proxy_tx {
     $c->render(status => 500, text => 'Failed to fetch data from Fedora: '.$c->app->dumper($tx->error));
   }
 }
-
 
 1;
