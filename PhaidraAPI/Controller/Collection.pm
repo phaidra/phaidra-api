@@ -62,11 +62,7 @@ sub add_collection_members {
 	}
 	my $object_model = PhaidraAPI::Model::Object->new;
 	my $r = $object_model->add_relationships($self, $pid, \@relationships, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
-	if(scalar @{$r->{alerts}} > 0){
-			foreach $a (@{$r->{alerts}}){
-					push @{$res->{alerts}}, $a;
-			}
-	}
+	push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
 
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
@@ -99,7 +95,7 @@ sub add_collection_members {
   		}
 
 		my $r = $object_model->order($self, $pid, $res->{members}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
-		push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+		push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
 	    $res->{status} = $r->{status};
 	    if($r->{status} ne 200){
 	    	$self->render(json => $res, status => $res->{status});
@@ -176,7 +172,7 @@ sub remove_collection_members {
 
 		my $membersorder_model = PhaidraAPI::Model::Membersorder->new;
 		my $r3 = $membersorder_model->save_to_object($self, $pid, $res->{members}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
-		push @{$res->{alerts}}, $r3->{alerts} if scalar @{$r3->{alerts}} > 0;
+		push @{$res->{alerts}}, @{$r3->{alerts}} if scalar @{$r3->{alerts}} > 0;
 	  $res->{status} = $r3->{status};
 	  if($r3->{status} ne 200){
 	    	$self->render(json => $res, status => $res->{status});

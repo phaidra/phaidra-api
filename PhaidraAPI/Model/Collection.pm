@@ -47,7 +47,7 @@ sub create {
 				push @relationships, { predicate => "info:fedora/fedora-system:def/relations-external#hasCollectionMember", object => "info:fedora/".$member->{pid} };
 		    }
 			my $r = $object_model->add_relationships($c, $pid, \@relationships, $username, $password);
-		  	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+		  	push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
 		    $res->{status} = $r->{status};
 		    if($r->{status} ne 200){
 		    	return $res;
@@ -64,7 +64,7 @@ sub create {
 		my $ordered_members_size = scalar @ordered_members;
 		if($ordered_members_size > 0){
 			my $r = $object_model->order($c, $pid, \@ordered_members, $username, $password);
-			push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+			push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
 		    $res->{status} = $r->{status};
 		    if($r->{status} ne 200){
 		    	return $res;
@@ -109,7 +109,7 @@ sub get_members {
   		$c->app->log->debug("[cache miss] $cachekey");
   		# get members
 		my $sr = $search_model->triples($c, "<info:fedora/$pid> <info:fedora/fedora-system:def/relations-external#hasCollectionMember> *");
-		push @{$res->{alerts}}, $sr->{alerts} if scalar @{$sr->{alerts}} > 0;
+		push @{$res->{alerts}}, @{$sr->{alerts}} if scalar @{$sr->{alerts}} > 0;
 		$res->{status} = $sr->{status};
 		if($sr->{status} ne 200){
 			return $sr;
@@ -135,7 +135,7 @@ sub get_members {
 				if($ores->{status} ne 200){
 					$c->app->log->error("Cannot get COLLECTIONORDER for pid: $pid and username: ".$c->stash->{basic_auth_credentials}->{username});
 				}else{
-					push @{$res->{alerts}}, $ores->{alerts} if scalar @{$ores->{alerts}} > 0;
+					push @{$res->{alerts}}, @{$ores->{alerts}} if scalar @{$ores->{alerts}} > 0;
 					$res->{status} = $ores->{status};
 
 					my $xml = Mojo::DOM->new();

@@ -82,9 +82,7 @@ sub save_to_object(){
 
   my $object_model = PhaidraAPI::Model::Object->new;
 	my $r = $object_model->add_or_modify_datastream($c, $pid, "COLLECTIONORDER", "text/xml", undef, undef, $xml, 'M', $username, $password);
-  for my $e (@{$r->{alerts}}) {
-	  push @{$res->{alerts}}, $e; 
-	}
+  push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
  
 	return $res;
 }

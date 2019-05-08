@@ -424,10 +424,8 @@ sub get_metadata {
     my $jsonld_model = PhaidraAPI::Model::Jsonld->new;  
     my $r_jsonld = $jsonld_model->get_object_jsonld_parsed($self, $pid, $username, $password);
     if($r_jsonld->{status} ne 200){
-      for my $a (@{$r_jsonld->{alerts}}){
-        push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting JSON-LD' };
-        push @{$res->{alerts}}, $a;
-      }
+      push @{$res->{alerts}}, @{$r_jsonld->{alerts}} if scalar @{$r_jsonld->{alerts}} > 0;
+      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting JSON-LD' };
     }else{
       $res->{metadata}->{'JSON-LD'} = $r_jsonld->{'JSON-LD'};
     }
@@ -437,10 +435,8 @@ sub get_metadata {
     my $mods_model = PhaidraAPI::Model::Mods->new;
     my $r = $mods_model->get_object_mods_json($self, $pid, $mode, $username, $password);
     if($r->{status} ne 200){
-      for my $a (@{$r->{alerts}}){
-        push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting MODS' };
-        push @{$res->{alerts}}, $a;
-      }
+      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting MODS' };
     }else{
       $res->{metadata}->{mods} = $r->{mods};
     }
@@ -450,10 +446,8 @@ sub get_metadata {
     my $uwmetadata_model = PhaidraAPI::Model::Uwmetadata->new;
     my $r = $uwmetadata_model->get_object_metadata($self, $pid, $mode, $username, $password);
     if($r->{status} ne 200){
-      for my $a (@{$r->{alerts}}){
-        push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting UWMETADATA' };
-        push @{$res->{alerts}}, $a;
-      }
+      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting UWMETADATA' };
     }else{
       $res->{metadata}->{uwmetadata} = $r->{uwmetadata};
     }
@@ -463,10 +457,8 @@ sub get_metadata {
     my $geo_model = PhaidraAPI::Model::Geo->new;
     my $r = $geo_model->get_object_geo_json($self, $pid, $username, $password);
     if($r->{status} ne 200){
-      for my $a (@{$r->{alerts}}){
-        push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting GEO' };
-        push @{$res->{alerts}}, $a;
-      }
+      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting GEO' };
     }else{
       $res->{metadata}->{geo} = $r->{geo};
     }
@@ -476,10 +468,8 @@ sub get_metadata {
     my $rights_model = PhaidraAPI::Model::Rights->new;
     my $r = $rights_model->get_object_rights_json($self, $pid, $username, $password);
     if($r->{status} ne 200){
-      for my $a (@{$r->{alerts}}){
-        push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting RIGHTS' };
-        push @{$res->{alerts}}, $a;
-      }
+      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting RIGHTS' };
     }else{
       $res->{metadata}->{rights} = $r->{rights};
     }

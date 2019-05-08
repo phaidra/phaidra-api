@@ -30,7 +30,7 @@ sub metadata_tree {
     my $path = Mojo::File->new($c->app->config->{local_mods_tree});
     my $bytes = $path->slurp;
 	    unless(defined($bytes)){
-	    	push @{$res->{alerts}}, "Error reading local_mods_tree, no content";
+	    	push @{$res->{alerts}}, { type => 'danger', msg => "Error reading local_mods_tree, no content" };
 	    	$res->{status} = 500;
 	    	return $res;
 	    }
@@ -63,7 +63,7 @@ sub metadata_tree {
         my $path = Mojo::File->new($c->app->config->{local_mods_tree});
         my $bytes = $path->slurp;
 		    unless(defined($bytes)){
-		    	push @{$res->{alerts}}, "Error reading local_mods_tree, no content";
+		    	push @{$res->{alerts}}, { type => 'danger', msg => "Error reading local_mods_tree, no content" };
 		    	$res->{status} = 500;
 	    		return $res;
 		    }

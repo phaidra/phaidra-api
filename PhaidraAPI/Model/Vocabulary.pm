@@ -36,7 +36,7 @@ sub _get_file_vocabulary {
     my $path = Mojo::File->new($file);
 	  my $bytes = $path->slurp;
 	  unless(defined($bytes)){
-	    push @{$res->{alerts}}, "Error reading vocabulary file [$file], no content";
+	    push @{$res->{alerts}}, { type => 'danger', msg => "Error reading vocabulary file [$file], no content" };
 	    $res->{status} = 500;
 	    return $res;
 	  }
@@ -64,7 +64,7 @@ sub _get_file_vocabulary {
       my $path = Mojo::File->new($file);
       my $bytes = $path->slurp;			
 		    unless(defined($bytes)){
-		    	push @{$res->{alerts}}, "Error reading vocabulary file [$file], no content";
+		    	push @{$res->{alerts}}, { type => 'danger', msg => "Error reading vocabulary file [$file], no content" };
 		    	$res->{status} = 500;
 	    		return $res;
 		    }

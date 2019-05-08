@@ -137,7 +137,7 @@ sub modify {
   		unshift @{$res->{alerts}}, { type => 'success', msg => $r->body };
 		my $hooks_model = PhaidraAPI::Model::Hooks->new;
 		my $hr = $hooks_model->modify_object_hooks($c, $pid, $username, $password);
-		push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
+		push @{$res->{alerts}}, @{$hr->{alerts}} if scalar @{$hr->{alerts}} > 0;
 		$res->{status} = $hr->{status};
 		if($hr->{status} ne 200){
 			return $res;
@@ -164,9 +164,7 @@ sub create {
     $c->app->log->debug("Creating empty object");
     # create empty object
     my $r = $self->create_empty($c, $username, $password);
-   	foreach my $a (@{$r->{alerts}}){
-   		push @{$res->{alerts}}, $a;
-   	}
+   	push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
 
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
@@ -184,10 +182,8 @@ sub create {
 
     # set cmodel and oai itemid
     $c->app->log->debug("Set cmodel ($contentmodel) and oaiitemid ($oaiid)");
-	$r = $self->add_relationships($c, $pid, \@relationships, $username, $password, 1);
-  	foreach my $a (@{$r->{alerts}}){
-   		push @{$res->{alerts}}, $a;
-   	}
+		$r = $self->add_relationships($c, $pid, \@relationships, $username, $password, 1);
+  	push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
     	return $res;
@@ -196,10 +192,8 @@ sub create {
   	# add thumbnail
   	my $thumburl = "http://".$c->app->config->{phaidra}->{baseurl}."/preview/$pid";
   	$c->app->log->debug("Adding thumbnail ($thumburl)");
-	$r = $self->add_datastream($c, $pid, "THUMBNAIL", "image/png", $thumburl, undef, undef, "E", $username, $password);
-  	foreach my $a (@{$r->{alerts}}){
-   		push @{$res->{alerts}}, $a;
-   	}
+		$r = $self->add_datastream($c, $pid, "THUMBNAIL", "image/png", $thumburl, undef, undef, "E", $username, $password);
+  	push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
     	return $res;
@@ -207,9 +201,7 @@ sub create {
 
   	# add stylesheet
   	$r = $self->add_datastream($c, $pid, "STYLESHEET", "text/xml", $c->app->config->{phaidra}->{fedorastylesheeturl}, undef, undef, "E", $username, $password);
-  	foreach my $a (@{$r->{alerts}}){
-   		push @{$res->{alerts}}, $a;
-   	}
+  	push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
     	return $res;
@@ -442,9 +434,7 @@ sub create_container {
       push @relationships, { predicate => "http://pcdm.org/models#hasMember", object => "info:fedora/".$chpid->{pid} };
     }
     $r = $self->add_relationships($c, $pid, \@relationships, $username, $password, 1);
-    foreach my $a (@{$r->{alerts}}){
-      push @{$res->{alerts}}, $a;
-    }
+    push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
     $c->app->log->error("Error adding relationships[".$c->app->dumper(\@relationships)."] pid[$pid] res[".$c->app->dumper($res)."]");
@@ -484,9 +474,7 @@ sub create_container {
 		}
 		for my $rel (@{$metadata->{metadata}->{'relationships'}}){
 			$r = $self->add_relationship($c, $rel->{'s'}, $rel->{'p'}, $rel->{'o'}, $username, $password, 1);
-			foreach my $a (@{$r->{alerts}}){
-				push @{$res->{alerts}}, $a;
-			}
+			push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
 			$res->{status} = $r->{status};
 			if($r->{status} ne 200){
 			$c->app->log->error("Error adding relationship[".$c->app->dumper($rel)."] res[".$c->app->dumper($res)."]");
@@ -574,9 +562,7 @@ sub save_metadata {
 			my $r = $rights_model->save_to_object($c, $pid, $rights, $username, $password);
 		    if($r->{status} ne 200){
 					$res->{status} = $r->{status};
-					for my $e (@{$r->{alerts}}) {
-						push @{$res->{alerts}}, $e; 
-					}
+					push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
 			    unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving RGHTS datastream'};
 		    }
 			$found = 1;
@@ -591,9 +577,7 @@ sub save_metadata {
 			my $r = $geo_model->save_to_object($c, $pid, $geo, $username, $password);
 			if($r->{status} ne 200){
 				$res->{status} = $r->{status};
-				for my $e (@{$r->{alerts}}) {
-					push @{$res->{alerts}}, $e; 
-				}
+				push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
 				unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving geo'};
 			}
 			$found = 1;
@@ -606,9 +590,7 @@ sub save_metadata {
 			my $r = $jsonld_model->save_to_object($c, $pid, $jsonld, $username, $password);
 			if($r->{status} ne 200){
 				$res->{status} = $r->{status};
-				for my $e (@{$r->{alerts}}) {
-					push @{$res->{alerts}}, $e; 
-				}
+				push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
 				unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving json-ld'};
 			}
 			$found = 1;
@@ -1006,9 +988,7 @@ sub add_or_modify_datastream {
 	# save
 	if($sr->{'exists'}){
 		my $r = $self->modify_datastream($c, $pid, $dsid, $mimetype, $location, $label, $dscontent, $username, $password);
-		for my $e (@{$r->{alerts}}) {
-			push @{$res->{alerts}}, $e; 
-		}
+		push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
 		$res->{status} = $r->{status};
 		if($r->{status} ne 200){
 			return $res;	
@@ -1016,9 +996,7 @@ sub add_or_modify_datastream {
 		$c->app->log->debug("Modifying $dsid for $pid successful.");
 	}else{
 		my $r = $self->add_datastream($c, $pid, $dsid, $mimetype, $location, $label, $dscontent, $controlgroup, $username, $password);
-		for my $e (@{$r->{alerts}}) {
-			push @{$res->{alerts}}, $e; 
-		}
+		push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
 		$res->{status} = $r->{status};
 		if($r->{status} ne 200){
 			return $res;
@@ -1028,9 +1006,7 @@ sub add_or_modify_datastream {
 
 	my $hooks_model = PhaidraAPI::Model::Hooks->new;
 	my $hr = $hooks_model->add_or_modify_datastream_hooks($c, $pid, $dsid, $dscontent, $username, $password);
-	for my $e (@{$hr->{alerts}}) {
-		push @{$res->{alerts}}, $e; 
-	}
+	push @{$res->{alerts}}, @{$hr->{alerts}} if scalar @{$hr->{alerts}} > 0;
 	$res->{status} = $hr->{status};
 	if($hr->{status} ne 200){
 		return $res;
@@ -1214,7 +1190,7 @@ sub add_relationship {
 	unless($skiphook){
 		my $hooks_model = PhaidraAPI::Model::Hooks->new;
 		my $hr = $hooks_model->add_or_modify_relationships_hooks($c, $pid, $username, $password);
-		push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
+		push @{$res->{alerts}}, @{$hr->{alerts}} if scalar @{$hr->{alerts}} > 0;
 		$res->{status} = $hr->{status};
 		if($hr->{status} ne 200){
 			return $res;
@@ -1247,7 +1223,7 @@ sub add_relationships {
     unless($skiphook){
 		my $hooks_model = PhaidraAPI::Model::Hooks->new;
 		my $hr = $hooks_model->add_or_modify_relationships_hooks($c, $pid, $username, $password);
-		push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
+		push @{$res->{alerts}}, @{$hr->{alerts}} if scalar @{$hr->{alerts}} > 0;
 		$res->{status} = $hr->{status};
 		if($hr->{status} ne 200){
 			return $res;
@@ -1316,7 +1292,7 @@ sub add_relationships {
 
 	my $hooks_model = PhaidraAPI::Model::Hooks->new;
 	my $hr = $hooks_model->add_or_modify_relationships_hooks($c, $pid, $username, $password);
-	push @{$res->{alerts}}, $hr->{alerts} if exists $hr->{alerts};
+	push @{$res->{alerts}}, @{$hr->{alerts}} if exists $hr->{alerts};
 	$res->{status} = $hr->{status};
 	if($hr->{status} ne 200){
 		return $res;
@@ -1437,7 +1413,7 @@ sub purge_relationship {
 	unless($skiphook){
 		my $hooks_model = PhaidraAPI::Model::Hooks->new;
 		my $hr = $hooks_model->add_or_modify_relationships_hooks($c, $pid, $username, $password);
-		push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
+		push @{$res->{alerts}}, @{$hr->{alerts}} if scalar @{$hr->{alerts}} > 0;
 		$res->{status} = $hr->{status};
 		if($hr->{status} ne 200){
 			return $res;
@@ -1470,7 +1446,7 @@ sub purge_relationships {
     
 	my $hooks_model = PhaidraAPI::Model::Hooks->new;
 	my $hr = $hooks_model->add_or_modify_relationships_hooks($c, $pid, $username, $password);
-	push @{$res->{alerts}}, $hr->{alerts} if scalar @{$hr->{alerts}} > 0;
+	push @{$res->{alerts}}, @{$hr->{alerts}} if scalar @{$hr->{alerts}} > 0;
 	$res->{status} = $hr->{status};
 	if($hr->{status} ne 200){
 		return $res;

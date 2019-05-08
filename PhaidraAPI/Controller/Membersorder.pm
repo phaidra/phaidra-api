@@ -135,7 +135,7 @@ sub post {
     # $self->app->log->debug("Saving ordered members: ".$self->app->dumper(\@ordered_members));
 		my $membersorder_model = PhaidraAPI::Model::Membersorder->new;
 		my $r = $membersorder_model->save_to_object($self, $pid, \@ordered_members, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
-		push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+		push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
       $self->render(json => $res, status => $res->{status});
@@ -177,7 +177,7 @@ sub order_object_member {
   # FIXME - support container
 	my $coll_model = PhaidraAPI::Model::Collection->new;
 	my $r = $coll_model->get_members($self, $pid);
-	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+	push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
 	$res->{status} = $r->{status};
 	if($r->{status} ne 200){
 	   	$self->render(json => $res, status => $res->{status});
@@ -210,7 +210,7 @@ sub order_object_member {
 
   my $membersorder_model = PhaidraAPI::Model::Membersorder->new;
 	$r = $membersorder_model->save_to_object($self, $pid, \@new_order, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
-	push @{$res->{alerts}}, $r->{alerts} if scalar @{$r->{alerts}} > 0;
+	push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
 	$res->{status} = $r->{status};
 	if($r->{status} ne 200){
 	   	$self->render(json => $res, status => $res->{status});
