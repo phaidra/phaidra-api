@@ -19,7 +19,7 @@ sub get {
   my $format = $self->param('format');
 
   unless(defined($pid)){
-    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }], status => 404 }, status => 404) ;
     return;
   }
 
@@ -35,9 +35,10 @@ sub get {
   if($res->{status} ne 200){
     if($res->{status} eq 404){
       my $dclab = $dsid eq 'DC_P' ? 'dc' : 'oai_dc';
-      $self->render(json => { alerts => $res->{alerts}, $dclab => {} }, status => $res->{status});
+      $self->render(json => { alerts => $res->{alerts}, $dclab => {}, status => $res->{status} }, status => $res->{status});
+      return;
     }
-    $self->render(json => { alerts => $res->{alerts} }, status => $res->{status});
+    $self->render(json =>  $res, status => $res->{status});
     return;
   }
 
@@ -53,11 +54,11 @@ sub get {
       }
       push @{$dc_index{$f->{xmlname}}}, $f->{ui_value};
     }    
-    $self->render(json => { metadata => { dc_index => \%dc_index } }, status => $res->{status});
+    $self->render(json => { metadata => { dc_index => \%dc_index }, status => $res->{status} }, status => $res->{status});
     return;
   }
 
-  $self->render(json => { metadata => $res }, status => $res->{status});
+  $self->render(json => { metadata => $res, status => $res->{status} }, status => $res->{status});
 }
 
 sub uwmetadata_2_dc_index {

@@ -676,6 +676,9 @@ sub _get {
 
   $c->app->log->debug("indexing $pid: getting foxml");
   my $r_oxml = $object_model->get_foxml($c, $pid);
+  if($r_oxml->{status} ne 200){
+    return $r_oxml;
+  }
   $c->app->log->debug("indexing $pid: parsing foxml");
   my $dom = Mojo::DOM->new();
   $dom->xml(1);
