@@ -64,16 +64,16 @@ sub delete {
 
   my $res = { alerts => [], status => 200 };
 
-  # TODO: remove all relationships first
+  # TODO: remove all relationships first!!!
 
-  $c->app->log->debug("[$pid] Changing object status to Deleted");
+  $c->app->log->debug("[$pid] Changing object status to Deleted...");
   my $statusres = $self->modify($c, $pid, 'D', undef, undef, undef, undef, $username, $password);
   if ($statusres->{status} != 200) {
     return $statusres;
   }
   $c->app->log->debug("[$pid] Object status changed to Deleted");
 
-  $c->app->log->debug("[$pid] Purging object");
+  $c->app->log->debug("[$pid] Purging object...");
 	my $url = Mojo::URL->new;
 	$url->scheme('https');
 	$url->userinfo("$username:$password");
@@ -88,7 +88,7 @@ sub delete {
 
   my $deleteres = $ua->delete($url => \%headers)->result;
   if ($deleteres->code == 200) {
-    $c->app->log->debug("[$pid] Object successfully deleted");
+    $c->app->log->debug("[$pid] Object successfully purged");
     return $res;
   } else {
 	  unshift @{$res->{alerts}}, { type => 'danger', msg => $deleteres->message };
@@ -100,24 +100,24 @@ sub delete {
 
 sub modify {
 	my $self = shift;
-    my $c = shift;
-    my $pid = shift;
-    my $state = shift;
-    my $label = shift;
-    my $ownerid = shift;
-    my $logmessage = shift;
-    my $lastmodifieddate = shift;
-    my $username = shift;
-    my $password = shift;
+  my $c = shift;
+  my $pid = shift;
+  my $state = shift;
+  my $label = shift;
+  my $ownerid = shift;
+  my $logmessage = shift;
+  my $lastmodifieddate = shift;
+  my $username = shift;
+  my $password = shift;
 
-    my %params;
-    $params{state} = $state if $state;
-    $params{label} = $label if $label;
-    $params{ownerId} = $ownerid if $ownerid;
-    $params{logMessage} = $logmessage if $logmessage;
-    $params{lastModifiedDate} = $lastmodifieddate if $lastmodifieddate;
+  my %params;
+  $params{state} = $state if $state;
+  $params{label} = $label if $label;
+  $params{ownerId} = $ownerid if $ownerid;
+  $params{logMessage} = $logmessage if $logmessage;
+  $params{lastModifiedDate} = $lastmodifieddate if $lastmodifieddate;
 
-    my $res = { alerts => [], status => 200 };
+  my $res = { alerts => [], status => 200 };
 
 	my $url = Mojo::URL->new;
 	$url->scheme('https');
@@ -132,24 +132,20 @@ sub modify {
     $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
   }
 
-  	my $put = $ua->put($url => \%headers);
-  	if (my $r = $put->success) {
-  		unshift @{$res->{alerts}}, { type => 'success', msg => $r->body };
-		my $hooks_model = PhaidraAPI::Model::Hooks->new;
-		my $hr = $hooks_model->modify_object_hooks($c, $pid, $username, $password);
-		push @{$res->{alerts}}, @{$hr->{alerts}} if scalar @{$hr->{alerts}} > 0;
-		$res->{status} = $hr->{status};
-		if($hr->{status} ne 200){
-			return $res;
-		}
-  	}
-	else {
+  my $put = $ua->put($url => \%headers);
+  if (my $r = $put->success) {
+    my $hooks_model = PhaidraAPI::Model::Hooks->new;
+    my $hr = $hooks_model->modify_object_hooks($c, $pid, $username, $password);
+    if($hr->{status} ne 200){
+      $c->app->log->error("Error indexing object $pid in modify_object_hooks: ".$c->app->dumper($hr));
+    }
+  } else {
 	  my ($err, $code) = $put->error;
 	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
 	  $res->{status} =  $code ? $code : 500;
 	}
 
-  	return $res;
+  return $res;
 }
 
 sub create {

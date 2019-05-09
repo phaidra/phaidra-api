@@ -139,6 +139,7 @@ sub post {
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
       $self->render(json => $res, status => $res->{status});
+			return;
     }
 	}
 

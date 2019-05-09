@@ -17,7 +17,7 @@ use PhaidraAPI::Model::Mods;
 use Time::HiRes qw/tv_interval gettimeofday/;
 
 sub delete {
-    my $self = shift;
+  my $self = shift;
 
 	unless(defined($self->stash('pid'))){
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
@@ -25,9 +25,9 @@ sub delete {
 	}
 
 	my $object_model = PhaidraAPI::Model::Object->new;
-    my $r = $object_model->delete($self, $self->stash('pid'), $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  my $r = $object_model->delete($self, $self->stash('pid'), $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 
-   	$self->render(json => $r, status => $r->{status}) ;
+  $self->render(json => $r, status => $r->{status}) ;
 }
 
 sub modify {
