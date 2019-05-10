@@ -20,6 +20,18 @@ use IO::Scalar;
 use File::MimeInfo;
 use File::Temp 'tempfile';
 
+# only those where a PID can be the object (in RDF sense)
+my %relationships_to_object = (
+  "info:fedora/fedora-system:def/model#hasModel" => 1,
+  "info:fedora/fedora-system:def/relations-external#hasCollectionMember" => 1,
+  "http://pcdm.org/models#hasMember" => 1,
+  "http://purl.org/dc/terms/references" => 1,
+  "http://phaidra.org/XML/V1.0/relations#isBackSideOf" => 1,
+  "http://phaidra.univie.ac.at/XML/V1.0/relations#hasSuccessor" => 1,
+  "http://phaidra.org/XML/V1.0/relations#isAlternativeFormatOf" => 1,
+  "http://phaidra.org/XML/V1.0/relations#isAlternativeVersionOf" => 1
+);
+
 my %datastream_versionable = (
 	'COLLECTIONORDER' => 'false',
 	'UWMETADATA' => 'true',
@@ -64,7 +76,41 @@ sub delete {
 
   my $res = { alerts => [], status => 200 };
 
-  # TODO: remove all relationships first!!!
+  # 1) remove all relationships TO this object (EXT-RELS) from the related objects (eg remove it as a member from a collection)
+  # - that will also trigger reindex on those objects
+  my @remove_rels_from;
+  my $search_model = PhaidraAPI::Model::Search->new;
+  my $r_trip = $search_model->triples($c, "* * <info:fedora/$pid>", 0);
+  if($r_trip->{status} ne 200){
+    return $r_trip;
+  }
+  for my $triple (@{$r_trip->{result}}){
+    my $subject = @$triple[0];
+    my $predicate = @$triple[1];
+    my $subjectpid;
+    my $relationship;
+    if($subject =~ m/^<info:fedora\/(.*)>$/){
+      $subjectpid = $1;
+    }
+    if($predicate =~ m/^<(.*)>$/){
+      $relationship = $1;
+    }
+    if($subjectpid && $relationship && defined($relationships_to_object{$relationship})){
+      push @remove_rels_from, { from => $subjectpid, relationship => $relationship }
+    }
+  }
+	for my $rel (@remove_rels_from){
+    my @removerelationships;
+		push @removerelationships, { predicate => $rel->{relationship}, object => "info:fedora/".$pid };
+    $c->app->log->info("[$pid] Removing relationship to [$pid] from [".$rel->{from}."]");
+    # use the array method purge_relationshipS, it triggers reindex
+	  my $r = $self->purge_relationships($c, $rel->{from}, \@removerelationships, $c->app->config->{phaidra}->{intcallusername}, $c->app->config->{phaidra}->{intcallpassword});
+	}
+
+  # 2) relationships from this object are saved in this object, so the delete will remove them
+  # - but these relationships are often indexed in the related objects, so we need to reindex them
+  #   (eg remove this collection from it's members index doc where it's saved like 'ispartof')
+  # TODO. Meanwhile, if you want to delete eg a container but not it's members, remove the members from that container first (otherwise these will be invisible in search).
 
   $c->app->log->debug("[$pid] Changing object status to Deleted...");
   my $statusres = $self->modify($c, $pid, 'D', undef, undef, undef, undef, $username, $password);
@@ -132,17 +178,16 @@ sub modify {
     $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
   }
 
-  my $put = $ua->put($url => \%headers);
-  if (my $r = $put->success) {
+  my $putres = $ua->put($url => \%headers)->result;
+  if ($putres->is_success) {
     my $hooks_model = PhaidraAPI::Model::Hooks->new;
     my $hr = $hooks_model->modify_object_hooks($c, $pid, $username, $password);
     if($hr->{status} ne 200){
       $c->app->log->error("Error indexing object $pid in modify_object_hooks: ".$c->app->dumper($hr));
     }
   } else {
-	  my ($err, $code) = $put->error;
-	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-	  $res->{status} =  $code ? $code : 500;
+	  unshift @{$res->{alerts}}, { type => 'danger', msg => $putres->message };
+	  $res->{status} =  $putres->{code} ? $putres->{code} : 500;
 	}
 
   return $res;
@@ -1355,27 +1400,25 @@ sub purge_relationship {
    
     if($c->app->config->{fedora}->{version} eq '3.8'){
 
-	my %params;
-    	$params{subject} = 'info:fedora/'.$pid;
-	    $params{predicate} = $predicate;
-	    $params{object} = $object;
+      my %params;
+      $params{subject} = 'info:fedora/'.$pid;
+      $params{predicate} = $predicate;
+      $params{object} = $object;
 
-		my $url = Mojo::URL->new;
-		$url->scheme('https');
-		$url->userinfo("$username:$password");
-		$url->host($c->app->config->{phaidra}->{fedorabaseurl});
-		$url->path("/fedora/objects/$pid/relationships");
-		$url->query(\%params);
+      my $url = Mojo::URL->new;
+      $url->scheme('https');
+      $url->userinfo("$username:$password");
+      $url->host($c->app->config->{phaidra}->{fedorabaseurl});
+      $url->path("/fedora/objects/$pid/relationships");
+      $url->query(\%params);
 
 	    my $ua = Mojo::UserAgent->new;
-	  	my $post = $ua->delete($url);
-	  	if (my $r = $post->success) {
-	  		unshift @{$res->{alerts}}, { type => 'success', msg => $r->body };
-	  	}else {
-		  my ($err, $code) = $post->error;
-		  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-		  $res->{status} =  $code ? $code : 500;
-		}
+	  	my $postres = $ua->delete($url)->result;
+	  	if ($postres->is_error) {
+	  		unshift @{$res->{alerts}}, { type => 'danger', msg => $postres->message };
+	      $res->{status} =  $postres->{code} ? $postres->{code} : 500;
+	  	}
+
     }else{
 
 	    $c->app->log->debug("Connecting to ".$c->app->config->{phaidra}->{fedorabaseurl}."...");
@@ -1435,18 +1478,18 @@ sub purge_relationships {
     for my $rel (@$relationships){
     	my $rr = $self->purge_relationship($c, $pid, $rel->{predicate}, $rel->{object}, $username, $password, 1);
     	if($rr->{status} ne 200){
-			$res = $rr;
+			  $res = $rr;
     		last;
     	}
     }
     
-	my $hooks_model = PhaidraAPI::Model::Hooks->new;
-	my $hr = $hooks_model->add_or_modify_relationships_hooks($c, $pid, $username, $password);
-	push @{$res->{alerts}}, @{$hr->{alerts}} if scalar @{$hr->{alerts}} > 0;
-	$res->{status} = $hr->{status};
-	if($hr->{status} ne 200){
-		return $res;
-	}
+    my $hooks_model = PhaidraAPI::Model::Hooks->new;
+    my $hr = $hooks_model->add_or_modify_relationships_hooks($c, $pid, $username, $password);
+    # only overwrite res if there was nothing interesting in it
+    if(($res->{status} == 200) && ($hr->{status} ne 200)){
+      push @{$res->{alerts}}, @{$hr->{alerts}} if scalar @{$hr->{alerts}} > 0;
+      $res->{status} = $hr->{status};
+    }
 
   	return $res;
 }

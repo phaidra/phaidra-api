@@ -270,7 +270,10 @@ sub update {
         $res->{status} = 200;
       }
 
-      if($r->{index}->{cmodel} eq 'Collection' && defined($collectionMembers)){
+      if($r->{index}->{cmodel} eq 'Collection'){
+        unless(defined($collectionMembers)){
+          @{$collectionMembers} = ();
+        }
         my $umr = $self->_update_members($c, $pid, $updateurl, $collectionMembers, 'ispartof');
         if($umr->{status} ne 200){
           $res->{status} = $umr->{status};
@@ -278,7 +281,10 @@ sub update {
         }
       }
 
-      if($r->{index}->{cmodel} eq 'Container' && defined($members)){
+      if($r->{index}->{cmodel} eq 'Container'){
+        unless(defined($members)){
+          @{$members} = ();
+        }
         my $umr = $self->_update_members($c, $pid, $updateurl, $members, 'ismemberof');
         if($umr->{status} ne 200){
           $res->{status} = $umr->{status};
@@ -286,8 +292,10 @@ sub update {
         }
       }
 
-      if(($r->{index}->{cmodel} eq 'Collection') || ($r->{index}->{cmodel} eq 'Container') && defined($membersorder)){
-        
+      if(($r->{index}->{cmodel} eq 'Collection') || ($r->{index}->{cmodel} eq 'Container')){
+        unless(defined($membersorder)){
+          @{$membersorder} = ();
+        }
         my $umr = $self->_update_membersorder($c, $pid, $updateurl, $membersorder);
         if($umr->{status} ne 200){
           $res->{status} = $umr->{status};
@@ -947,6 +955,7 @@ sub _get {
 =cut
 info:fedora/fedora-system:def/model#hasModel
 info:fedora/fedora-system:def/relations-external#hasCollectionMember
+http://pcdm.org/models#hasMember
 http://purl.org/dc/terms/references
 http://phaidra.org/XML/V1.0/relations#isBackSideOf
 http://phaidra.univie.ac.at/XML/V1.0/relations#hasSuccessor
