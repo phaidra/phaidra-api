@@ -18,7 +18,7 @@ sub get {
   }
 
   if($format ne 'txt'){
-    $self->render(json => { alerts => [{ type => 'danger', msg => "Only txt format is supported. Please send the request with the format=txt parameter." }], status => 404 } , status => 400);
+    $self->render(json => { alerts => [{ type => 'danger', msg => "Only txt format is supported. Please send the request with the format=txt parameter." }], status => 400 } , status => 400);
     return;
   }
 
