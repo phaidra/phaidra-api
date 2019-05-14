@@ -340,6 +340,7 @@ if($config->{tmpdir}){
   $r->route('object/:pid/members/order')          ->via('get')    ->to('membersorder#get');
   $r->route('object/:pid/annotations')            ->via('get')    ->to('annotations#get');
   $r->route('object/:pid/techinfo')               ->via('get')    ->to('techinfo#get');
+  $r->route('object/:pid/fulltext')               ->via('get')    ->to('fulltext#get');
   $r->route('object/:pid/dc')                     ->via('get')    ->to('dc#get', dsid => 'DC_P');
   $r->route('object/:pid/oai_dc')                 ->via('get')    ->to('dc#get', dsid => 'DC_OAI');  
   $r->route('object/:pid/index')                  ->via('get')    ->to('index#get');
