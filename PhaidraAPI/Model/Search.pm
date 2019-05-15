@@ -407,8 +407,7 @@ sub related {
 			$members{$o->{pid}} = $o;
 		}
 
-		my $search_model = PhaidraAPI::Model::Search->new;
-		my $ce = $search_model->datastream_exists($c, $pid, 'COLLECTIONORDER');
+		my $ce = $self->datastream_exists($c, $pid, 'COLLECTIONORDER');
 		if($ce->{status} ne 200){
 			$c->app->log->error("Cannot find out if COLLECTIONORDER exists for pid: $pid and username: ".$c->stash->{basic_auth_credentials}->{username});
 		}else{
