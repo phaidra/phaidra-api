@@ -19,6 +19,7 @@ use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Dc;
 use PhaidraAPI::Model::Relationships;
 use PhaidraAPI::Model::Annotations;
+use PhaidraAPI::Model::Membersorder;
 
 our %indexed_datastreams = (
   "UWMETADATA" => 1,
@@ -26,7 +27,8 @@ our %indexed_datastreams = (
   "ANNOTATIONS" => 1,
   "GEO" => 1,
   "RELS-EXT" => 1,
-  "JSON-LD" => 1
+  "JSON-LD" => 1,
+  "COLLECTIONORDER" => 1
 );
 
 our %cmodel_2_resourcetype = (
@@ -177,9 +179,38 @@ sub update {
 
   if( exists($c->app->config->{index_mongodb}) || exists($c->app->config->{solr})){
 
+    my $updateurl = Mojo::URL->new;
+    $updateurl->scheme($c->app->config->{solr}->{scheme});
+    $updateurl->userinfo($c->app->config->{solr}->{username}.":".$c->app->config->{solr}->{password});
+    $updateurl->host($c->app->config->{solr}->{host});
+    $updateurl->port($c->app->config->{solr}->{port});
+    if($c->app->config->{solr}->{path}){
+      $updateurl->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/update");
+    }else{
+      $updateurl->path("/solr/".$c->app->config->{solr}->{core}."/update");
+    }
+    $updateurl->query(commit => 'true');
+
+    my $ua = Mojo::UserAgent->new;
+
     my $cmodel_res = $search_model->get_cmodel($c, $pid);
     if($cmodel_res->{status} ne 200){
       return $cmodel_res;
+    }elsif($cmodel_res->{cmodel} eq ''){
+      # triplestore works but returns nothing for this object -> it was probably deleted -> remove from index
+      $c->app->log->debug("[$pid] no cmodel found, deleting from index");
+      if(exists($c->app->config->{solr})){
+          my $post = $ua->post($updateurl => json => { delete => $pid });
+          if (my $r = $post->success) {
+            $c->app->log->debug("[$pid] solr document deleted");
+          }else {
+            my ($err, $code) = $post->error;
+            unshift @{$res->{alerts}}, { type => 'danger', msg => "[$pid] Error deleting document from solr: ".$c->app->dumper($err) };
+            $res->{status} =  $code ? $code : 500;
+          }
+        }
+        $res->{status} = 200;
+        return $res;
     }
 
     if($cmodel_res->{cmodel} && $cmodel_res->{cmodel} ne 'Page'){
@@ -197,19 +228,9 @@ sub update {
       # don't save this
       delete $r->{index}->{hasmember};
 
-      my $updateurl = Mojo::URL->new;
-      $updateurl->scheme($c->app->config->{solr}->{scheme});
-      $updateurl->userinfo($c->app->config->{solr}->{username}.":".$c->app->config->{solr}->{password});
-      $updateurl->host($c->app->config->{solr}->{host});
-      $updateurl->port($c->app->config->{solr}->{port});
-      if($c->app->config->{solr}->{path}){
-        $updateurl->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/update");
-      }else{
-        $updateurl->path("/solr/".$c->app->config->{solr}->{core}."/update");
-      }
-      $updateurl->query(commit => 'true');
-
-      my $ua = Mojo::UserAgent->new;
+      my $membersorder = $r->{index}->{membersorder} if exists $r->{index}->{membersorder};
+      # don't save this
+      delete $r->{index}->{membersorder};
 
       if($r->{status} eq 200){
 
@@ -249,23 +270,36 @@ sub update {
         $res->{status} = 200;
       }
 
-      if($r->{index}->{cmodel} eq 'Collection' && defined($collectionMembers)){
+      if($r->{index}->{cmodel} eq 'Collection'){
+        unless(defined($collectionMembers)){
+          @{$collectionMembers} = ();
+        }
         my $umr = $self->_update_members($c, $pid, $updateurl, $collectionMembers, 'ispartof');
         if($umr->{status} ne 200){
           $res->{status} = $umr->{status};
-          for my $a (@{$umr->{alerts}}){
-            push @{$res->{alerts}}, $a;
-          }
+          push @{$res->{alerts}}, @{$umr->{alerts}} if scalar @{$umr->{alerts}} > 0;
         }
       }
 
-      if($r->{index}->{cmodel} eq 'Container' && defined($members)){
+      if($r->{index}->{cmodel} eq 'Container'){
+        unless(defined($members)){
+          @{$members} = ();
+        }
         my $umr = $self->_update_members($c, $pid, $updateurl, $members, 'ismemberof');
         if($umr->{status} ne 200){
           $res->{status} = $umr->{status};
-          for my $a (@{$umr->{alerts}}){
-            push @{$res->{alerts}}, $a;
-          }
+          push @{$res->{alerts}}, @{$umr->{alerts}} if scalar @{$umr->{alerts}} > 0;
+        }
+      }
+
+      if(($r->{index}->{cmodel} eq 'Collection') || ($r->{index}->{cmodel} eq 'Container')){
+        unless(defined($membersorder)){
+          @{$membersorder} = ();
+        }
+        my $umr = $self->_update_membersorder($c, $pid, $updateurl, $membersorder);
+        if($umr->{status} ne 200){
+          $res->{status} = $umr->{status};
+          push @{$res->{alerts}}, @{$umr->{alerts}} if scalar @{$umr->{alerts}} > 0;
         }
       }
 
@@ -275,6 +309,190 @@ sub update {
       unshift @{$res->{alerts}}, { type => 'info', msg => $msg };
     }
 
+  }
+
+  return $res;
+}
+
+sub _update_membersorder {
+  my ($self, $c, $pid, $updateurl, $membersorder) = @_;
+
+  my $pidunderscore = $pid;
+  $pidunderscore =~ s/:/_/;
+  my $field = 'pos_in_'.$pidunderscore;
+
+  my $res = { status => 200 };
+
+  # get current order
+  my $urlget = Mojo::URL->new;
+  $urlget->scheme($c->app->config->{solr}->{scheme});
+  $urlget->host($c->app->config->{solr}->{host});
+  $urlget->port($c->app->config->{solr}->{port});
+  if($c->app->config->{solr}->{path}){
+    $urlget->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/select");
+  }else{
+    $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
+  }
+
+  $urlget->query(q => "$field:*", fl => "pid,$field", rows => "0", wt => "json");
+
+  my $ua = Mojo::UserAgent->new;
+
+  my $get = $ua->get($urlget);
+  my $numFound;
+  if (my $r_num = $get->success) {
+    $numFound = $r_num->json->{response}->{numFound};
+  }else{
+    my ($err, $code) = $get->error;
+    $c->app->log->error("[$pid] error getting object $field relations count ".$c->app->dumper($err));
+    unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting object $field relations count" };
+    unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+    $res->{status} =  $code ? $code : 500;
+    return $res;
+  }
+
+  $urlget->query(q => "$field:*", fl => "pid,$field", rows => $numFound, wt => "json"); 
+
+  $get = $ua->get($urlget);
+
+  my @curr_membersorder;
+  if (my $r_mem = $get->success) {
+    for my $c_m (@{$r_mem->json->{response}->{docs}}){
+      push @curr_membersorder, { 'pid' => $c_m->{pid}, 'pos' => $c_m->{$field} };
+    }
+  }else{
+    my ($err, $code) = $get->error;
+    $c->app->log->error($urlget);
+    $c->app->log->error("[$pid] error getting object $field relations ".$c->app->dumper($err));
+    unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting object $field relations" };
+    unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+    $res->{status} =  $code ? $code : 500;
+    return $res;
+  }
+
+  $c->app->log->debug("[$pid] there are ".(scalar @curr_membersorder)." docs currently having $field relation");
+
+  my @add_to;
+  my @remove_from;
+  my @update;
+  for my $m (@{$membersorder}){
+    my $found = 0;
+    for my $mc (@curr_membersorder){
+      if ($m->{pid} eq $mc->{pid}) {
+        $found = 1;
+        if ($m->{pos} ne $mc->{pos}) {
+          push @update, { pid => $m->{pid}, value => $m->{pos} };
+        }
+      }
+    }
+    unless($found){
+      push  @add_to, { pid => $m->{pid}, value => $m->{pos} };
+    }
+  } 
+  $c->app->log->debug("[$pid] found ".(scalar @add_to)." $field relations to add");
+  $c->app->log->debug("[$pid] found ".(scalar @update)." $field relations to update");
+
+  for my $mc (@curr_membersorder){
+    my $found = 0;
+    for my $m (@{$membersorder}){
+      if ($m->{pid} eq $mc->{pid}) {
+        $found = 1;
+      }
+    }
+    unless($found){
+      push  @remove_from, { pid => $mc->{pid}, value => $mc->{pos} };
+    }
+  }
+  $c->app->log->debug("[$pid] found ".(scalar @remove_from)." $field relations to remove");
+
+  if(scalar @add_to > 0){
+    my $r_add = $self->_update_value($c, $pid, $field, \@add_to, $updateurl, 'add');
+    if($r_add->{status} ne 200){
+      $res->{status} = $r_add->{status};
+      push @{$res->{alerts}}, @{$r_add->{alerts}} if scalar @{$r_add->{alerts}} > 0;
+    }
+  }
+
+  if(scalar @update > 0){
+    my $r_update = $self->_update_value($c, $pid, $field, \@update, $updateurl, 'set');
+    if($r_update->{status} ne 200){
+      $res->{status} = $r_update->{status};
+      push @{$res->{alerts}}, @{$r_update->{alerts}} if scalar @{$r_update->{alerts}} > 0;
+    }
+  }
+
+  if(scalar @remove_from > 0){
+    my $r_remove = $self->_update_value($c, $pid, $field, \@remove_from, $updateurl, 'remove');
+    if($r_remove->{status} ne 200){
+      $res->{status} = $r_remove->{status};
+      push @{$res->{alerts}}, @{$r_remove->{alerts}} if scalar @{$r_remove->{alerts}} > 0;
+    }
+  }
+  return $res;
+}
+
+sub _update_value {
+
+  my ($self, $c, $pid, $field, $docsvalues, $updateurl, $action) = @_;
+
+  my $res = { status => 200 };
+
+  #$c->app->log->debug("[$pid] updating ".(scalar @{$members})." members");
+
+  if(scalar @{$docsvalues} <= 500){
+    return $self->_update_value_post($c, $pid, $field, $docsvalues, $updateurl, $action);
+  }else{
+    my @batch;
+    for my $m (@{$docsvalues}){
+      push @batch, $m;
+      if(scalar @batch >= 500){
+        my $r = $self->_update_value_post($c, $pid, $field, \@batch, $updateurl, $action);
+        if($r->{status} ne 200){
+          push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+          $res->{status} = $r->{status};
+        }
+        @batch = ();
+      }
+    }
+    my $r = $self->_update_value_post($c, $pid, $field, \@batch, $updateurl, $action);
+    if($r->{status} ne 200){
+      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+      $res->{status} = $r->{status};
+    }
+  }
+  
+  return $res;
+}
+
+sub _update_value_post {
+
+  my ($self, $c, $pid, $field, $docsvalues, $updateurl, $action) = @_;
+
+  my $res = { status => 200 };
+
+  my @update;
+  for my $dv (@{$docsvalues}){
+    push @update, {
+      pid => $dv->{pid},
+      $field => { $action => $dv->{value} }
+    };
+  }
+
+  my $ua = Mojo::UserAgent->new;
+
+  # versions makes sure the document exists already
+  # if it does not the field would be created as "ispartof.add" which is wrong
+  # plus the member might not exist for a reason, eg it's a Page, we don't want to add it
+  $updateurl->query(commit => 'true', versions => 'true', _version_ => 1);
+
+  my $post = $ua->post($updateurl => json => \@update);
+
+  if (my $r = $post->success) {
+    $c->app->log->debug("[$pid] updated ".(scalar @{$docsvalues})." documents");
+  }else{
+    my ($err, $code) = $post->error;
+    unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+    $res->{status} =  $code ? $code : 500;
   }
 
   return $res;
@@ -361,9 +579,7 @@ sub _update_members {
     my $r_add = $self->_update_relation($c, $pid, $relation, \@add_to, $updateurl, 'add');
     if($r_add->{status} ne 200){
       $res->{status} = $r_add->{status};
-      for my $a (@{$r_add->{alerts}}){
-        push @{$res->{alerts}}, $a;
-      }
+      push @{$res->{alerts}}, @{$r_add->{alerts}} if scalar @{$r_add->{alerts}} > 0;
     }
   }
 
@@ -371,9 +587,7 @@ sub _update_members {
     my $r_remove = $self->_update_relation($c, $pid, $relation, \@remove_from, $updateurl, 'remove');
     if($r_remove->{status} ne 200){
       $res->{status} = $r_remove->{status};
-      for my $a (@{$r_remove->{alerts}}){
-        push @{$res->{alerts}}, $a;
-      }
+      push @{$res->{alerts}}, @{$r_remove->{alerts}} if scalar @{$r_remove->{alerts}} > 0;
     }
   }
 
@@ -397,20 +611,16 @@ sub _update_relation {
       if(scalar @batch >= 500){
         my $r = $self->_update_relation_post($c, $pid, $relation, \@batch, $updateurl, $action);
         if($r->{status} ne 200){
-          for my $a (@{$r->{alerts}}){
-            push @{$res->{alerts}}, $a;
-            $res->{status} = $r->{status};
-          }
+          push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+          $res->{status} = $r->{status};
         }
         @batch = ();
       }
     }
     my $r = $self->_update_relation_post($c, $pid, $relation, \@batch, $updateurl, $action);
       if($r->{status} ne 200){
-        for my $a (@{$r->{alerts}}){
-          push @{$res->{alerts}}, $a;
-          $res->{status} = $r->{status};
-       }
+        push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+        $res->{status} = $r->{status};
     }
   }
   
@@ -474,6 +684,9 @@ sub _get {
 
   $c->app->log->debug("indexing $pid: getting foxml");
   my $r_oxml = $object_model->get_foxml($c, $pid);
+  if($r_oxml->{status} ne 200){
+    return $r_oxml;
+  }
   $c->app->log->debug("indexing $pid: parsing foxml");
   my $dom = Mojo::DOM->new();
   $dom->xml(1);
@@ -523,16 +736,18 @@ sub _get {
   my %datastreamids;
   for my $e ($dom->find('foxml\:datastream')->each){
 
-    $datastreamids{$e->attr('ID')} = 1;
+    my $dsid = $e->attr('ID');
 
-    if($indexed_datastreams{$e->attr('ID')}){
+    $datastreamids{$dsid} = 1;
+
+    if($indexed_datastreams{$dsid}){
       my $latestVersion = $e->find('foxml\:datastreamVersion')->first;
       for my $e1 ($e->find('foxml\:datastreamVersion')->each){
         if($e1->attr('CREATED') gt $latestVersion->attr('CREATED')){
           $latestVersion = $e1;
         }
       }
-      $datastreams{$e->attr('ID')} = $latestVersion;
+      $datastreams{$dsid} = $latestVersion;
     }
 
   }
@@ -544,9 +759,7 @@ sub _get {
     my $r_relsext = $self->_index_relsext($c, $datastreams{'RELS-EXT'}->find('foxml\:xmlContent')->first, \%index);
     if($r_relsext->{status} ne 200){
       push @{$res->{alerts}}, { type => 'danger', msg => "Error indexing RELS-EXT for $pid" };
-      for $a (@{$r_relsext->{alerts}}){
-        push @{$res->{alerts}}, $a;
-      }
+      push @{$res->{alerts}}, @{$r_relsext->{alerts}} if scalar @{$r_relsext->{alerts}} > 0;
     }
 
   }
@@ -556,9 +769,7 @@ sub _get {
     my $r_add_uwm = $self->_add_uwm_index($c, $pid, $datastreams{'UWMETADATA'}->find('foxml\:xmlContent')->first, \%index);
     if($r_add_uwm->{status} ne 200){
       push @{$res->{alerts}}, { type => 'danger', msg => "Error adding UWMETADATA fields for $pid" };
-      for $a (@{$r_add_uwm->{alerts}}){
-        push @{$res->{alerts}}, $a;
-      }
+      push @{$res->{alerts}}, @{$r_add_uwm->{alerts}} if scalar @{$r_add_uwm->{alerts}} > 0;
     }
         
     my $uw_model = PhaidraAPI::Model::Uwmetadata->new;
@@ -567,9 +778,7 @@ sub _get {
 
     if($r0->{status} ne 200){
       push @{$res->{alerts}}, { type => 'danger', msg => "Error getting UWMETADATA tree for $pid" };
-      for $a (@{$r_add_uwm->{alerts}}){
-        push @{$res->{alerts}}, $a;
-      }
+      push @{$res->{alerts}}, @{$r0->{alerts}} if scalar @{$r0->{alerts}} > 0;
     }else{
       my ($dc_p, $dc_oai) = $dc_model->map_uwmetadata_2_dc_hash($c, $pid, $index{cmodel}, $datastreams{'UWMETADATA'}->find('foxml\:xmlContent')->first, $r0->{metadata_tree}, $uw_model, 1);
       #$c->app->log->debug("XXXXXXXXXXXXXXXXX ".$c->app->dumper($dc_p));
@@ -584,9 +793,7 @@ sub _get {
     if($r_geo->{status} ne 200){      
      
       push @{$res->{alerts}}, { type => 'danger', msg => "Error adding GEO fields from $pid" };
-      for $a (@{$r_geo->{alerts}}){
-        push @{$res->{alerts}}, $a;
-      }
+      push @{$res->{alerts}}, @{$r_geo->{alerts}} if scalar @{$r_geo->{alerts}} > 0;
 
     }else{
 
@@ -627,16 +834,12 @@ sub _get {
     my $r_mods = $mods_model->xml_2_json($c, $datastreams{'MODS'}->find('foxml\:xmlContent')->first, 'basic');
     if($r_mods->{status} ne 200){        
       push @{$res->{alerts}}, { type => 'danger', msg => "Error converting MODS xml to json for $pid" };
-      for $a (@{$r_mods->{alerts}}){
-        push @{$res->{alerts}}, $a;
-      }           
+      push @{$res->{alerts}}, @{$r_mods->{alerts}} if scalar @{$r_mods->{alerts}} > 0;         
     }else{
       my $r_add_mods = $self->_add_mods_index($c, $pid, $r_mods->{mods}, \%index);
       if($r_add_mods->{status} ne 200){
         push @{$res->{alerts}}, { type => 'danger', msg => "Error adding MODS fields for $pid" };
-        for $a (@{$r_add_mods->{alerts}}){
-          push @{$res->{alerts}}, $a;
-        }
+        push @{$res->{alerts}}, @{$r_add_mods->{alerts}} if scalar @{$r_add_mods->{alerts}} > 0;   
       }else{
         my ($dc_p, $dc_oai) = $dc_model->map_mods_2_dc_hash($c, $pid, $index{cmodel}, $datastreams{'MODS'}->find('foxml\:xmlContent')->first, $mods_model, 1);
         $self->_add_dc_index($c, $dc_p, \%index);
@@ -651,9 +854,7 @@ sub _get {
     #$c->app->log->debug("XXXXXXXXX found JSON-LD: ".$c->app->dumper($r_jsonld));
     if($r_jsonld->{status} ne 200){        
       push @{$res->{alerts}}, { type => 'danger', msg => "Error getting JSON-LD for $pid" };
-      for $a (@{$r_jsonld->{alerts}}){
-        push @{$res->{alerts}}, $a;
-      }           
+      push @{$res->{alerts}}, @{$r_jsonld->{alerts}} if scalar @{$r_jsonld->{alerts}} > 0;          
     }else{
 
       my $jsonld = $r_jsonld->{'JSON-LD'};
@@ -661,9 +862,7 @@ sub _get {
       my $r_add_jsonld = $self->_add_jsonld_index($c, $pid, $jsonld, \%index);
       if($r_add_jsonld->{status} ne 200){
         push @{$res->{alerts}}, { type => 'danger', msg => "Error adding JSON-LD fields for $pid" };
-        for $a (@{$r_add_jsonld->{alerts}}){
-          push @{$res->{alerts}}, $a;
-        }
+        push @{$res->{alerts}}, @{$r_add_jsonld->{alerts}} if scalar @{$r_add_jsonld->{alerts}} > 0;  
       }else{
         my ($dc_p, $dc_oai) = $dc_model->map_jsonld_2_dc_hash($c, $pid, $index{cmodel}, $jsonld, $jsonld_model, 1);
         # $c->app->log->debug("found JSON-LD: ".$c->app->dumper($dc_p));
@@ -678,37 +877,41 @@ sub _get {
     my $ann_model = PhaidraAPI::Model::Annotations->new;
     my $r_ann = $ann_model->xml_2_json($c, $datastreams{'ANNOTATIONS'}->find('foxml\:xmlContent')->first);
     if($r_ann->{status} ne 200){      
-     
       push @{$res->{alerts}}, { type => 'danger', msg => "Error adding ANNOTATIONS from $pid" };
-      for $a (@{$r_ann->{alerts}}){
-        push @{$res->{alerts}}, $a;
-      }
-
+      push @{$res->{alerts}}, @{$r_ann->{alerts}} if scalar @{$r_ann->{alerts}} > 0;  
     }else{
-
       for my $id (keys %{$r_ann->{annotations}}){
-        
         my $title = $r_ann->{annotations}->{$id}->{title} if exists $r_ann->{annotations}->{$id}->{title};
         my $text = $r_ann->{annotations}->{$id}->{text} if exists $r_ann->{annotations}->{$id}->{text};
-        my $ann = ""; 
+        my $ann = "";
         $ann .= $title . ": " if defined $title;
         $ann .= $text;
         push @{$index{annotations}}, $ann;
-
       }
     }
 
     # for fast annotation access, add them as json as well
     $index{annotations_json} = b(encode_json($r_ann->{annotations}))->decode('UTF-8');
   }
+  
+  if(exists($datastreams{'COLLECTIONORDER'})){
+
+    my $membersorder_model = PhaidraAPI::Model::Membersorder->new;
+    my $r_mo = $membersorder_model->xml_2_json($c, $datastreams{'COLLECTIONORDER'}->find('foxml\:xmlContent')->first);
+    if($r_mo->{status} ne 200){      
+      push @{$res->{alerts}}, { type => 'danger', msg => "Error adding COLLECTIONORDER from $pid" };
+      push @{$res->{alerts}}, @{$r_mo->{alerts}} if scalar @{$r_mo->{alerts}} > 0; 
+    }else{
+      $index{membersorder} = $r_mo->{members};
+    }
+
+  }
 
   # relations
   my $r_add_rrels = $self->_add_reverse_relations($c, $pid, $search_model, \%index);
   if($r_add_rrels->{status} ne 200){
     push @{$res->{alerts}}, { type => 'danger', msg => "Error adding reverse relationships for $pid" };
-    for $a (@{$r_add_rrels->{alerts}}){
-      push @{$res->{alerts}}, $a;
-    }
+    push @{$res->{alerts}}, @{$r_add_rrels->{alerts}} if scalar @{$r_add_rrels->{alerts}} > 0;
   }
   
   # inventory
@@ -752,6 +955,7 @@ sub _get {
 =cut
 info:fedora/fedora-system:def/model#hasModel
 info:fedora/fedora-system:def/relations-external#hasCollectionMember
+http://pcdm.org/models#hasMember
 http://purl.org/dc/terms/references
 http://phaidra.org/XML/V1.0/relations#isBackSideOf
 http://phaidra.univie.ac.at/XML/V1.0/relations#hasSuccessor
@@ -1038,9 +1242,7 @@ sub _add_jsonld_index {
   }
 
   my $roles_res = $self->_add_jsonld_roles($c, $pid, $jsonld, $index);
-  for my $a (@{$roles_res->{alerts}}){
-    push @{$res->{alerts}}, $a;
-  }
+  push @{$res->{alerts}}, @{$roles_res->{alerts}} if scalar @{$roles_res->{alerts}} > 0;
   for my $r (@{$roles_res->{roles}}){
     push @roles, $r;
   }
@@ -1063,9 +1265,7 @@ sub _add_jsonld_index {
     for my $o (@{$jsonld->{'dcterms:subject'}}) {
       if ($o->{'@type'} eq 'phaidra:Subject') {
         my $rr = $self->_add_jsonld_index($c, $pid, $o, $index);
-        for my $a (@{$rr->{alerts}}){
-          push @{$res->{alerts}}, $a;
-        }
+        push @{$res->{alerts}}, @{$rr->{alerts}} if scalar @{$rr->{alerts}} > 0;
       }
     }
   }

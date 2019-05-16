@@ -39,9 +39,7 @@ sub add_or_modify_datastream_hooks {
       my $r = $index_model->update($c, $pid, $dc_model, $search_model, $rel_model, $object_model);
       if($r->{status} ne 200){
         $res->{status} = $r->{status};
-        for my $a (@{$r->{alerts}}){
-          push @{$res->{alerts}}, $a;
-        }
+        push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
       }
     }
   }
@@ -96,9 +94,7 @@ sub add_or_modify_relationships_hooks {
       my $r = $index_model->update($c, $pid, $dc_model, $search_model, $rel_model, $object_model);
       if($r->{status} ne 200){
         $res->{status} = $r->{status};
-        for my $a (@{$r->{alerts}}){
-          push @{$res->{alerts}}, $a;
-        }
+        push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
       }
     }
   }
@@ -122,9 +118,7 @@ sub modify_object_hooks {
       my $r = $index_model->update($c, $pid, $dc_model, $search_model, $rel_model, $object_model);
       if($r->{status} ne 200){
         $res->{status} = $r->{status};
-        for my $a (@{$r->{alerts}}){
-          push @{$res->{alerts}}, $a;
-        }
+        push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
       }
     }
   }

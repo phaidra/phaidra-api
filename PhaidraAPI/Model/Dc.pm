@@ -122,9 +122,7 @@ sub generate_dc_from_mods {
   my $cmodel;
   
   my $res_cmodel = $search_model->get_cmodel($c, $pid);
-  foreach my $a (@{$res_cmodel->{alerts}}){
-    push @{$res->{alerts}}, $a;
-  }
+  push @{$res->{alerts}}, @{$res_cmodel->{alerts}} if scalar @{$res_cmodel->{alerts}} > 0;
   if($res_cmodel->{status} ne 200){
     $res->{status} = $res_cmodel->{status};
   }else{
@@ -135,27 +133,21 @@ sub generate_dc_from_mods {
 
   # Phaidra DC
   my $r1 = $object_model->add_or_modify_datastream($c, $pid, "DC_P", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", $username, $password, 1);
-  foreach my $a (@{$r1->{alerts}}){
-    push @{$res->{alerts}}, $a;
-  }
+  push @{$res->{alerts}}, @{$r1->{alerts}} if scalar @{$r1->{alerts}} > 0;
   if($r1->{status} ne 200){
     $res->{status} = $r1->{status};
   }
 
   # OAI DC - unqualified
   my $r2 = $object_model->add_or_modify_datastream($c, $pid, "DC_OAI", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_oai, "X", $username, $password, 1);
-  foreach my $a (@{$r2->{alerts}}){
-    push @{$res->{alerts}}, $a;
-  }
+  push @{$res->{alerts}}, @{$r2->{alerts}} if scalar @{$r2->{alerts}} > 0;
   if($r2->{status} ne 200){
     $res->{status} = $r2->{status};
   }
 
   # we have to add this because we need that info in triplestore and old hooks won't update DC for MODS
   $r1 = $object_model->add_or_modify_datastream($c, $pid, "DC", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", $username, $password, 1);
-  foreach my $a (@{$r1->{alerts}}){
-    push @{$res->{alerts}}, $a;
-  }
+  push @{$res->{alerts}}, @{$r1->{alerts}} if scalar @{$r1->{alerts}} > 0;
   if($r1->{status} ne 200){
     $res->{status} = $r1->{status};
   }
@@ -358,9 +350,7 @@ sub generate_dc_from_uwmetadata {
   my $cmodel;
   
   my $res_cmodel = $search_model->get_cmodel($c, $pid);
-  foreach my $a (@{$res_cmodel->{alerts}}){
-    push @{$res->{alerts}}, $a;
-  }
+  push @{$res->{alerts}}, @{$res_cmodel->{alerts}} if scalar @{$res_cmodel->{alerts}} > 0;
   if($res_cmodel->{status} ne 200){
     $res->{status} = $res_cmodel->{status};
   }else{
@@ -376,18 +366,14 @@ sub generate_dc_from_uwmetadata {
 
   # Phaidra DC
   my $r1 = $object_model->add_or_modify_datastream($c, $pid, "DC_P", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", $username, $password, 1);
-  foreach my $a (@{$r1->{alerts}}){
-    push @{$res->{alerts}}, $a;
-  }
+  push @{$res->{alerts}}, @{$r1->{alerts}} if scalar @{$r1->{alerts}} > 0;
   if($r1->{status} ne 200){
     $res->{status} = $r1->{status};
   }
 
   # OAI DC - unqualified
   my $r2 = $object_model->add_or_modify_datastream($c, $pid, "DC_OAI", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_oai, "X", $username, $password, 1);
-  foreach my $a (@{$r2->{alerts}}){
-    push @{$res->{alerts}}, $a;
-  }
+  push @{$res->{alerts}}, @{$r2->{alerts}} if scalar @{$r2->{alerts}} > 0;
   if($r2->{status} ne 200){
     $res->{status} = $r2->{status};
   }
@@ -395,9 +381,7 @@ sub generate_dc_from_uwmetadata {
   # Fedora's DC - for backward compatibility with frontend which only updates DC (see Hooks)
 
   my $r3 = $object_model->add_or_modify_datastream($c, $pid, "DC", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", $username, $password, 1);
-  foreach my $a (@{$r3->{alerts}}){
-    push @{$res->{alerts}}, $a;
-  }
+  push @{$res->{alerts}}, @{$r3->{alerts}} if scalar @{$r3->{alerts}} > 0;
   if($r3->{status} ne 200){
     $res->{status} = $r3->{status};
   }

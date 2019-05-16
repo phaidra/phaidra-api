@@ -283,10 +283,13 @@ if($config->{tmpdir}){
   $r->route('geo/validate')                       ->via('post')   ->to('geo#validate');
   $r->route('geo/json2xml_validate')              ->via('post')   ->to('geo#json2xml_validate');
 
-  $r->route('annotations/json2xml')                ->via('post')   ->to('annotations#json2xml');
-  $r->route('annotations/xml2json')                ->via('post')   ->to('annotations#xml2json');
-  $r->route('annotations/validate')                ->via('post')   ->to('annotations#validate');
-  $r->route('annotations/json2xml_validate')       ->via('post')   ->to('annotations#json2xml_validate');
+  $r->route('members/order/json2xml')             ->via('post')   ->to('membersorder#json2xml');
+  $r->route('members/order/xml2json')             ->via('post')   ->to('membersorder#xml2json');
+
+  $r->route('annotations/json2xml')               ->via('post')   ->to('annotations#json2xml');
+  $r->route('annotations/xml2json')               ->via('post')   ->to('annotations#xml2json');
+  $r->route('annotations/validate')               ->via('post')   ->to('annotations#validate');
+  $r->route('annotations/json2xml_validate')      ->via('post')   ->to('annotations#json2xml_validate');
 
 	$r->route('help/tooltip')                       ->via('get')    ->to('help#tooltip');
 
@@ -334,6 +337,7 @@ if($config->{tmpdir}){
   $r->route('object/:pid/mods')                   ->via('get')    ->to('mods#get');
   $r->route('object/:pid/jsonld')                 ->via('get')    ->to('jsonld#get');
   $r->route('object/:pid/geo')                    ->via('get')    ->to('geo#get');
+  $r->route('object/:pid/members/order')          ->via('get')    ->to('membersorder#get');
   $r->route('object/:pid/annotations')            ->via('get')    ->to('annotations#get');
   $r->route('object/:pid/techinfo')               ->via('get')    ->to('techinfo#get');
   $r->route('object/:pid/dc')                     ->via('get')    ->to('dc#get', dsid => 'DC_P');
@@ -401,7 +405,7 @@ if($config->{tmpdir}){
     $proxyauth->route('imageserver/:pid/process')                         ->via('post')     ->to('imageserver#process');
 
     $proxyauth->route('object/:pid/modify')                               ->via('post')     ->to('object#modify');
-    $proxyauth->route('object/:pid')                                      ->via('delete')   ->to('object#delete');
+    $proxyauth->route('object/:pid/delete')                               ->via('post')     ->to('object#delete');
     $proxyauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');
     $proxyauth->route('object/:pid/mods')                                 ->via('post')     ->to('mods#post');
     $proxyauth->route('object/:pid/jsonld')                               ->via('post')     ->to('jsonld#post');
@@ -413,24 +417,26 @@ if($config->{tmpdir}){
     $proxyauth->route('object/create/:cmodel')                            ->via('post')     ->to('object#create');
     $proxyauth->route('object/:pid/relationship/add')                     ->via('post')     ->to('object#add_relationship');
     $proxyauth->route('object/:pid/relationship/remove')                  ->via('post')     ->to('object#purge_relationship');
-
     $proxyauth->route('object/:pid/id/add')                               ->via('post')     ->to('object#add_or_remove_identifier', operation => 'add');
-    $proxyauth->route('object/:pid/id/remove')                            ->via('post')     ->to('object#add_or_remove_identifier', operation => 'remove');    
-
+    $proxyauth->route('object/:pid/id/remove')                            ->via('post')     ->to('object#add_or_remove_identifier', operation => 'remove');
     $proxyauth->route('object/:pid/datastream/:dsid')                     ->via('post')     ->to('object#add_or_modify_datastream');
     $proxyauth->route('object/:pid/data')                                 ->via('post')     ->to('object#add_octets');
+ 
     $proxyauth->route('picture/create')                                   ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Picture');
     $proxyauth->route('document/create')                                  ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:PDFDocument');
     $proxyauth->route('video/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Video');
     $proxyauth->route('audio/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Audio');
     $proxyauth->route('unknown/create')                                   ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Asset');
+
     $proxyauth->route('container/create')                                 ->via('post')     ->to('object#create_container');
+    $proxyauth->route('container/:pid/members/order')                     ->via('post')     ->to('membersorder#post');
+    $proxyauth->route('container/:pid/members/:itempid/order/:position')  ->via('post')     ->to('membersorder#order_object_member');
 
     $proxyauth->route('collection/create')                                ->via('post')     ->to('collection#create');
     $proxyauth->route('collection/:pid/members/remove')                   ->via('post')     ->to('collection#remove_collection_members');
     $proxyauth->route('collection/:pid/members/add')                      ->via('post')     ->to('collection#add_collection_members');
-    $proxyauth->route('collection/:pid/members/order')                    ->via('post')     ->to('collection#order_collection_members');
-    $proxyauth->route('collection/:pid/members/:itempid/order/:position') ->via('post')     ->to('collection#order_collection_member');
+    $proxyauth->route('collection/:pid/members/order')                    ->via('post')     ->to('membersorder#post');
+    $proxyauth->route('collection/:pid/members/:itempid/order/:position') ->via('post')     ->to('membersorder#order_object_member');
 
     $check_auth->route('group/add')                                       ->via('post')     ->to('groups#add_group');
     $check_auth->route('group/:gid/remove')                               ->via('post')     ->to('groups#remove_group');

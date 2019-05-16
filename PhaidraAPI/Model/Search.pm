@@ -407,8 +407,7 @@ sub related {
 			$members{$o->{pid}} = $o;
 		}
 
-		my $search_model = PhaidraAPI::Model::Search->new;
-		my $ce = $search_model->datastream_exists($c, $pid, 'COLLECTIONORDER');
+		my $ce = $self->datastream_exists($c, $pid, 'COLLECTIONORDER');
 		if($ce->{status} ne 200){
 			$c->app->log->error("Cannot find out if COLLECTIONORDER exists for pid: $pid and username: ".$c->stash->{basic_auth_credentials}->{username});
 		}else{
@@ -499,7 +498,7 @@ sub get_state {
 	my $res = { alerts => [], status => 200 };
 
 	my $sr = $self->triples($c, "<info:fedora/$pid> <info:fedora/fedora-system:def/model#state> *");
-	push @{$res->{alerts}}, $sr->{alerts} if scalar @{$sr->{alerts}} > 0;
+	push @{$res->{alerts}}, @{$sr->{alerts}} if scalar @{$sr->{alerts}} > 0;
 	$res->{status} = $sr->{status};
 	if($sr->{status} ne 200){
 		return $res;
@@ -526,7 +525,7 @@ sub get_last_modified_date {
 	my $res = { alerts => [], status => 200 };
 
 	my $sr = $self->triples($c, "<info:fedora/$pid> <info:fedora/fedora-system:def/view#lastModifiedDate> *");
-	push @{$res->{alerts}}, $sr->{alerts} if scalar @{$sr->{alerts}} > 0;
+	push @{$res->{alerts}}, @{$sr->{alerts}} if scalar @{$sr->{alerts}} > 0;
 	$res->{status} = $sr->{status};
 	if($sr->{status} ne 200){
 		return $res;
@@ -591,7 +590,7 @@ sub datastreams_hash {
 	my $res = { alerts => [], status => 200 };
 
 	my $sr = $self->triples($c, "<info:fedora/$pid> <info:fedora/fedora-system:def/view#disseminates> *");
-	push @{$res->{alerts}}, $sr->{alerts} if scalar @{$sr->{alerts}} > 0;
+	push @{$res->{alerts}}, @{$sr->{alerts}} if scalar @{$sr->{alerts}} > 0;
 	$res->{status} = $sr->{status};
 	if($sr->{status} ne 200){
 		return $res;

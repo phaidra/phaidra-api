@@ -25,9 +25,7 @@ sub get {
   my $r_col = $self->_get_collection_relationships($c, $pid, $search_model);
   if($r_col->{status} ne 200){
     $res->{alerts} = [{ type => 'danger', msg => "Error getting collection relationships for $pid, skipping" }];
-    for $a (@{$r_col->{alerts}}){
-      push @{$res->{alerts}}, $a;
-    }
+    push @{$res->{alerts}}, @{$r_col->{alerts}} if scalar @{$r_col->{alerts}} > 0;
   }else{  
     if(scalar @{$r_col->{haspart}} > 0){
       $rels{haspart} = $r_col->{haspart};
@@ -41,9 +39,7 @@ sub get {
   my $r_bs = $search_model->triples($c, "<info:fedora/$pid> <http://phaidra.org/XML/V1.0/relations#isBackSideOf> *", 0);
   if($r_bs->{status} ne 200){
     $res->{alerts} = [{ type => 'danger', msg => "Error getting isBackSideOf relationships for $pid, skipping" }];
-    for $a (@{$r_bs->{alerts}}){
-      push @{$res->{alerts}}, $a;
-    }
+    push @{$res->{alerts}}, @{$r_bs->{alerts}} if scalar @{$r_bs->{alerts}} > 0;
   }else{  
   	for my $t (@{$r_bs->{result}}){
   	  my $object = @$t[2];
@@ -55,9 +51,7 @@ sub get {
   my $r_rbs = $search_model->triples($c, "* <http://phaidra.org/XML/V1.0/relations#isBackSideOf> <info:fedora/$pid>", 0);
   if($r_rbs->{status} ne 200){
     $res->{alerts} = [{ type => 'danger', msg => "Error getting reverse isBackSideOf relationships for $pid, skipping" }];
-    for $a (@{$r_rbs->{alerts}}){
-      push @{$res->{alerts}}, $a;
-    }
+    push @{$res->{alerts}}, @{$r_rbs->{alerts}} if scalar @{$r_rbs->{alerts}} > 0;
   }else{  
     for my $t (@{$r_rbs->{result}}){
       my $object = @$t[2];
@@ -70,9 +64,7 @@ sub get {
   my $r_lv = $search_model->triples($c, "<info:fedora/$pid> <http://phaidra.univie.ac.at/XML/V1.0/relations#hasSuccessor> *", 0);
   if($r_lv->{status} ne 200){
     $res->{alerts} = [{ type => 'danger', msg => "Error getting hasSuccessor relationships for $pid, skipping" }];
-    for $a (@{$r_lv->{alerts}}){
-      push @{$res->{alerts}}, $a;
-    }
+    push @{$res->{alerts}}, @{$r_lv->{alerts}} if scalar @{$r_lv->{alerts}} > 0;
   }else{  
   	for my $t (@{$r_lv->{result}}){
   	  my $object = @$t[2];
@@ -85,9 +77,7 @@ sub get {
   my $r_pv = $search_model->triples($c, "* <http://phaidra.univie.ac.at/XML/V1.0/relations#hasSuccessor> <info:fedora/$pid>", 0);
   if($r_pv->{status} ne 200){
     $res->{alerts} = [{ type => 'danger', msg => "Error getting reverse hasSuccessor relationships for $pid, skipping" }];
-    for $a (@{$r_pv->{alerts}}){
-      push @{$res->{alerts}}, $a;
-    }
+    push @{$res->{alerts}}, @{$r_pv->{alerts}} if scalar @{$r_pv->{alerts}} > 0;
   }else{  
   	for my $t (@{$r_pv->{result}}){
   	  my $subject = @$t[0];

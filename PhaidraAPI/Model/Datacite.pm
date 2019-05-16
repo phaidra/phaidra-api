@@ -49,9 +49,7 @@ sub get {
   
   my $cmodel;
   my $res_cmodel = $search_model->get_cmodel($c, $pid);
-  foreach my $a (@{$res_cmodel->{alerts}}){
-    push @{$res->{alerts}}, $a;
-  }
+  push @{$res->{alerts}}, @{$res_cmodel->{alerts}} if scalar @{$res_cmodel->{alerts}} > 0;
   if($res_cmodel->{status} ne 200){
     $res->{status} = $res_cmodel->{status};
   }else{
