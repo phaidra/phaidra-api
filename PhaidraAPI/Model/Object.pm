@@ -77,48 +77,54 @@ sub delete {
 
   my $res = { alerts => [], status => 200 };
 
-  # 1) remove all relationships TO this object (EXT-RELS) from the related objects (eg remove it as a member from a collection)
-  # - that will also trigger reindex on those objects
-  my @remove_rels_from;
-  my $search_model = PhaidraAPI::Model::Search->new;
-  my $r_trip = $search_model->triples($c, "* * <info:fedora/$pid>", 0);
-  if($r_trip->{status} ne 200){
-    return $r_trip;
-  }
-  for my $triple (@{$r_trip->{result}}){
-    my $subject = @$triple[0];
-    my $predicate = @$triple[1];
-    my $subjectpid;
-    my $relationship;
-    if($subject =~ m/^<info:fedora\/(.*)>$/){
-      $subjectpid = $1;
-    }
-    if($predicate =~ m/^<(.*)>$/){
-      $relationship = $1;
-    }
-    if($subjectpid && $relationship && defined($relationships_to_object{$relationship})){
-      push @remove_rels_from, { from => $subjectpid, relationship => $relationship }
-    }
-  }
-	for my $rel (@remove_rels_from){
-    my @removerelationships;
-		push @removerelationships, { predicate => $rel->{relationship}, object => "info:fedora/".$pid };
-    $c->app->log->info("[$pid] Removing relationship to [$pid] from [".$rel->{from}."]");
-    # use the array method purge_relationshipS, it triggers reindex
-	  my $r = $self->purge_relationships($c, $rel->{from}, \@removerelationships, $c->app->config->{phaidra}->{intcallusername}, $c->app->config->{phaidra}->{intcallpassword});
-	}
-
-  # 2) relationships from this object are saved in this object, so the delete will remove them
-  # - but these relationships are often indexed in the related objects, so we need to reindex them
-  #   (eg remove this collection from it's members index doc where it's saved like 'ispartof')
-  # TODO. Meanwhile, if you want to delete eg a container but not it's members, remove the members from that container first (otherwise these will be invisible in search).
-
+	my $haswriterights = 0;
   $c->app->log->debug("[$pid] Changing object status to Deleted...");
   my $statusres = $self->modify($c, $pid, 'D', undef, undef, undef, undef, $username, $password);
   if ($statusres->{status} != 200) {
     return $statusres;
-  }
+  } else {
+		$haswriterights = 1;
+	}
   $c->app->log->debug("[$pid] Object status changed to Deleted");
+
+  # remove relationships - only do this AFTER it's clear the user has rights to delete this object since we're using intcall to remove relationships from related objects
+	if($haswriterights){
+    # 1) remove all relationships TO this object (RELS-EXT) from the related objects (eg remove it as a member from a collection)
+    # - that will also trigger reindex on those objects
+    my @remove_rels_from;
+    my $search_model = PhaidraAPI::Model::Search->new;
+    my $r_trip = $search_model->triples($c, "* * <info:fedora/$pid>", 0);
+    if($r_trip->{status} ne 200){
+      return $r_trip;
+    }
+    for my $triple (@{$r_trip->{result}}){
+      my $subject = @$triple[0];
+      my $predicate = @$triple[1];
+      my $subjectpid;
+      my $relationship;
+      if($subject =~ m/^<info:fedora\/(.*)>$/){
+        $subjectpid = $1;
+      }
+      if($predicate =~ m/^<(.*)>$/){
+        $relationship = $1;
+      }
+      if($subjectpid && $relationship && defined($relationships_to_object{$relationship})){
+        push @remove_rels_from, { from => $subjectpid, relationship => $relationship }
+      }
+    }
+    for my $rel (@remove_rels_from){
+      my @removerelationships;
+      push @removerelationships, { predicate => $rel->{relationship}, object => "info:fedora/".$pid };
+      $c->app->log->info("[$pid] Removing relationship to [$pid] from [".$rel->{from}."]");
+      # use the array method purge_relationshipS, it triggers reindex
+      my $r = $self->purge_relationships($c, $rel->{from}, \@removerelationships, $username, $password);
+    }
+
+    # 2) relationships from this object are saved in this object, so the delete will remove them
+    # - but these relationships are often indexed in the related objects, so we need to reindex them
+    #   (eg remove this collection from it's members index doc where it's saved like 'ispartof')
+    # TODO. Meanwhile, if you want to delete eg a container but not it's members, remove the members from that container first (otherwise these will be invisible in search).
+	}
 
   $c->app->log->debug("[$pid] Purging object...");
 	my $url = Mojo::URL->new;
