@@ -392,6 +392,7 @@ if($config->{tmpdir}){
   $apiauth_optional->route('object/:pid/octets')                          ->via('get')      ->to('octets#get');
   $apiauth_optional->route('object/:pid/diss/:bdef/:method')              ->via('get')      ->to('object#diss');
   $proxyauth->route('object/:pid/rights')                                 ->via('get')      ->to('rights#get');
+  $apiauth_optional->route('object/:pid/fulltext')                        ->via('get')      ->to('fulltext#get');
 
   unless($self->app->config->{readonly}){
 
