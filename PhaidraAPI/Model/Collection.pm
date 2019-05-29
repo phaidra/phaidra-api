@@ -6,77 +6,78 @@ use v5.10;
 use base qw/Mojo::Base/;
 use PhaidraAPI::Model::Uwmetadata;
 use PhaidraAPI::Model::Object;
+use PhaidraAPI::Model::Membersorder;
 
 sub create {
 
-	my $self = shift;
-    my $c = shift;
-    my $metadata = shift;
-    my $members = shift;
-    my $username = shift;
-    my $password = shift;
-    #my $cb = shift;
+  my $self = shift;
+  my $c = shift;
+  my $metadata = shift;
+  my $members = shift;
+  my $username = shift;
+  my $password = shift;
+  #my $cb = shift;
 
-    my $res = { alerts => [], status => 200 };
+  my $res = { alerts => [], status => 200 };
 
-    # create object
-    my $pid;
-    my $object_model = PhaidraAPI::Model::Object->new;
-    my $res_create = $object_model->create($c, 'cmodel:Collection', $username, $password);
-    if($res_create->{status} ne 200){
-		return $res_create;
-	}
-	$pid = $res_create->{pid};
+  # create object
+  my $pid;
+  my $object_model = PhaidraAPI::Model::Object->new;
+  my $res_create = $object_model->create($c, 'cmodel:Collection', $username, $password);
+  if($res_create->{status} ne 200){
+    return $res_create;
+  }
+  $pid = $res_create->{pid};
 
-	my $res_md = $object_model->save_metadata($c, $pid, $metadata, $username, $password);
-	if($res_md->{status} ne 200){
-		return $res_md;
-	}
+  my $res_md = $object_model->save_metadata($c, $pid, $metadata, $username, $password);
+  if($res_md->{status} ne 200){
+    return $res_md;
+  }
 
-    $c->app->log->debug("Activating object");
-    # activate
-    my $res_act = $object_model->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
+  $c->app->log->debug("Activating object");
+  # activate
+  my $res_act = $object_model->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
 
-    $c->app->log->debug("Adding members");
-    # add members
-    if($members){
-	    my $members_size = scalar @{$members};
-	    if($members_size > 0){
-		    my @relationships;
-		    foreach my $member (@{$members}){
-				push @relationships, { predicate => "info:fedora/fedora-system:def/relations-external#hasCollectionMember", object => "info:fedora/".$member->{pid} };
-		    }
-			my $r = $object_model->add_relationships($c, $pid, \@relationships, $username, $password);
-		  	push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-		    $res->{status} = $r->{status};
-		    if($r->{status} ne 200){
-		    	return $res;
-		    }
-	    }
-
-	    # order members, if any positions are defined
-	    my @ordered_members;
-	    foreach my $member (@{$members}){
-	    	if(exists($member->{'pos'})){
-	    		push @ordered_members, $member;
-	    	}
-		}
-		my $ordered_members_size = scalar @ordered_members;
-		if($ordered_members_size > 0){
-			my $r = $object_model->order($c, $pid, \@ordered_members, $username, $password);
-			push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-		    $res->{status} = $r->{status};
-		    if($r->{status} ne 200){
-		    	return $res;
-		    }
-		}
+  $c->app->log->debug("Adding members");
+  # add members
+  if($members){
+    my $members_size = scalar @{$members};
+    if($members_size > 0){
+      my @relationships;
+      foreach my $member (@{$members}){
+      push @relationships, { predicate => "info:fedora/fedora-system:def/relations-external#hasCollectionMember", object => "info:fedora/".$member->{pid} };
+      }
+      my $r = $object_model->add_relationships($c, $pid, \@relationships, $username, $password);
+      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+      $res->{status} = $r->{status};
+      if($r->{status} ne 200){
+        return $res;
+      }
     }
-	$res->{pid} = $pid;
 
-	return $res;
-  	#return $self->$cb($res);
+    # order members, if any positions are defined
+    my @ordered_members;
+    foreach my $member (@{$members}){
+      if(exists($member->{'pos'})){
+        push @ordered_members, $member;
+      }
+    }
+    my $ordered_members_size = scalar @ordered_members;
+    if($ordered_members_size > 0){
+      my $membersorder_model = PhaidraAPI::Model::Membersorder->new;
+      $c->app->log->debug("Saving collectionorder: ".$c->app->dumper(\@ordered_members));
+      my $r = $membersorder_model->save_to_object($c, $pid, \@ordered_members, $username, $password);
+      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+      $res->{status} = $r->{status};
+      if($r->{status} ne 200){
+        return $res;
+      }
+    }
+  }
+  $res->{pid} = $pid;
+
+  return $res;
 }
-
 
 sub get_members {
 

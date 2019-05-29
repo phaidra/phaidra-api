@@ -9,6 +9,7 @@ use Mojo::Util qw(encode decode);
 use Mojo::ByteStream qw(b);
 use PhaidraAPI::Model::Collection;
 use PhaidraAPI::Model::Object;
+use PhaidraAPI::Model::Membersorder;
 
 sub add_collection_members {
 
@@ -94,7 +95,8 @@ sub add_collection_members {
   			}
   		}
 
-		my $r = $object_model->order($self, $pid, $res->{members}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+		my $membersorder_model = PhaidraAPI::Model::Membersorder->new;
+		my $r = $membersorder_model->save_to_object($self, $pid, $res->{members}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 		push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
 	    $res->{status} = $r->{status};
 	    if($r->{status} ne 200){
