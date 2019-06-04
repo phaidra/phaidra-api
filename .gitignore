@@ -3,3 +3,4 @@ hypnotoad.pid
 .buildpath
 PhaidraAPI.json
 lib/phaidra_directory/Phaidra/Directory/Univie.pm
+lib/phaidra_directory/Phaidra/Directory/univie.json

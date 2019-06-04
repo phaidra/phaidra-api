@@ -293,10 +293,14 @@ if($config->{tmpdir}){
 
 	$r->route('help/tooltip')                       ->via('get')    ->to('help#tooltip');
 
-	$r->route('directory/get_org_units')            ->via('get')    ->to('directory#get_org_units');
-  $r->route('directory/get_parent_org_unit_id')   ->via('get')    ->to('directory#get_parent_org_unit_id');
 	$r->route('directory/get_study')                ->via('get')    ->to('directory#get_study');
 	$r->route('directory/get_study_name')           ->via('get')    ->to('directory#get_study_name');
+  # old
+  $r->route('directory/get_org_units')            ->via('get')    ->to('directory#get_org_units');
+  $r->route('directory/get_parent_org_unit_id')   ->via('get')    ->to('directory#get_parent_org_unit_id');
+  # new
+  $r->route('directory/org_get_subunits')         ->via('get')    ->to('directory#org_get_subunits');
+  $r->route('directory/org_get_superunits')       ->via('get')    ->to('directory#org_get_superunits');
 
 	$r->route('search/owner/#username')             ->via('get')    ->to('search#owner');
 	$r->route('search/collections/owner/#username') ->via('get')    ->to('search#collections_owner');
