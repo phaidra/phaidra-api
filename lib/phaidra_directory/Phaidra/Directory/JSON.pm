@@ -14,9 +14,10 @@ sub _init {
   my $mojo = shift;
   my $config = shift;
   
+  my $dirjsonfilepath = 'lib/phaidra_directory/Phaidra/Directory/directory.json';
   my $json_text = do {
-  	open(my $json_fh, "<:encoding(UTF-8)", 'lib/phaidra_directory/Phaidra/Directory/directory.json')
-    or $mojo->log->error("Can't open \$filename\": $!\n");
+  	open(my $json_fh, "<:encoding(UTF-8)", $dirjsonfilepath)
+    or $mojo->log->error("Can't open file[".$dirjsonfilepath."]: $!\n");
    	local $/;
    	<$json_fh>
   };
