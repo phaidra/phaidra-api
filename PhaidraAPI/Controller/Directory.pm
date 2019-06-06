@@ -21,6 +21,12 @@ sub org_get_superunits {
 	my $res = $self->app->directory->org_get_superunits($self, $id);	
     $self->render(json => $res, status => $res->{status});
 }
+
+sub org_get_units {
+    my $self = shift;
+	my $res = $self->app->directory->org_get_units($self);	
+    $self->render(json => $res, status => $res->{status});
+}
 # [end] new methods
 
 sub get_org_units {

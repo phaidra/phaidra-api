@@ -301,6 +301,7 @@ if($config->{tmpdir}){
   # new
   $r->route('directory/org_get_subunits')         ->via('get')    ->to('directory#org_get_subunits');
   $r->route('directory/org_get_superunits')       ->via('get')    ->to('directory#org_get_superunits');
+  $r->route('directory/org_get_units')            ->via('get')    ->to('directory#org_get_units');
 
 	$r->route('search/owner/#username')             ->via('get')    ->to('search#owner');
 	$r->route('search/collections/owner/#username') ->via('get')    ->to('search#collections_owner');
