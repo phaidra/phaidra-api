@@ -51,24 +51,34 @@ $ENV{MOJO_HEARTBEAT_TIMEOUT} = 1209600;
 
 # This method will run once at server start
 sub startup {
-    my $self = shift;
-    my $config = $self->plugin( 'JSONConfig' => { file => 'PhaidraAPI.json' } );
+  my $self = shift;
+  my $config = $self->plugin( 'JSONConfig' => { file => 'PhaidraAPI.json' } );
 	$self->config($config);
 	$self->mode($config->{mode});
-    $self->secrets([$config->{secret}]);
+  $self->secrets([$config->{secret}]);
 
-    # init log
-  	$self->log(Mojo::Log->new(path => $config->{log_path}, level => $config->{log_level}));
+  # init log
+  $self->log(Mojo::Log->new(path => $config->{log_path}, level => $config->{log_level}));
 
-if($config->{tmpdir}){
-          $self->app->log->debug("Setting MOJO_TMPDIR: ".$config->{tmpdir});
-          $ENV{MOJO_TMPDIR} = $config->{tmpdir};
-        }
+  if($config->{tmpdir}){
+    $self->app->log->debug("Setting MOJO_TMPDIR: ".$config->{tmpdir});
+    $ENV{MOJO_TMPDIR} = $config->{tmpdir};
+  }
 
+  if($config->{ssl_ca_path}) {
+    $self->app->log->debug("Setting SSL_ca_path: ".$config->{ssl_ca_path});
+    IO::Socket::SSL::set_defaults(
+        SSL_ca_path => $config->{ssl_ca_path},
+    );
+  }
 
 	my $directory_impl = $config->{directory_class};
   $self->app->log->debug("Loading directory implementation $directory_impl");
 	my $e = load_class $directory_impl;
+  if(ref $e){
+    $self->app->log->error("Loading $directory_impl failed: $e") ;
+    next;
+  }
     my $directory = $directory_impl->new($self, $config);
 
     $self->helper( directory => sub { return $directory; } );

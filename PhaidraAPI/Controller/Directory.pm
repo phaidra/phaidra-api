@@ -4,7 +4,6 @@ use strict;
 use warnings;
 use v5.10;
 use PhaidraAPI::Model::Uwmetadata;
-
 use base 'Mojolicious::Controller';
 
 # [begin] new methods
