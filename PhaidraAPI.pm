@@ -77,7 +77,7 @@ sub startup {
 	my $e = load_class $directory_impl;
   if(ref $e){
     $self->app->log->error("Loading $directory_impl failed: $e") ;
-    next;
+ #   next;
   }
     my $directory = $directory_impl->new($self, $config);
 
