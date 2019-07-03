@@ -205,7 +205,7 @@ sub _get_mods_titles {
 
   my @tits; # yes, tits
   # each titleInfo will be a separate title
-  for my $e ($dom->find('titleInfo')->each){
+  for my $e ($dom->find('mods > titleInfo')->each){
     # there should be one title element, whatewer attribute is has
     # like tranlsated, parallel and what not
     # it will be simply added as a title in dc
