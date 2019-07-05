@@ -393,6 +393,8 @@ sub startup {
   $check_auth->route('groups')                                            ->via('get')      ->to('groups#get_users_groups');
   $check_auth->route('group/:gid')                                        ->via('get')      ->to('groups#get_group');
 
+  $proxyauth->route('object/:pid/jsonldprivate')                          ->via('get')      ->to('jsonldprivate#get');
+
   $check_auth->route('jsonld/templates')                                  ->via('get')      ->to('jsonld#get_users_templates');
   $check_auth->route('jsonld/template/:tid')                              ->via('get')      ->to('jsonld#get_template');
 
@@ -425,6 +427,7 @@ sub startup {
     $proxyauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');
     $proxyauth->route('object/:pid/mods')                                 ->via('post')     ->to('mods#post');
     $proxyauth->route('object/:pid/jsonld')                               ->via('post')     ->to('jsonld#post');
+    $proxyauth->route('object/:pid/jsonldprivate')                        ->via('post')     ->to('jsonldprivate#post');
     $proxyauth->route('object/:pid/geo')                                  ->via('post')     ->to('geo#post');
     $proxyauth->route('object/:pid/annotations')                          ->via('post')     ->to('annotations#post');
     $proxyauth->route('object/:pid/rights')                               ->via('post')     ->to('rights#post');

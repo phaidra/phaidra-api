@@ -59,13 +59,13 @@ sub post {
     return;
   }
 
-  unless(defined($metadata->{jsonld})){
+  unless(defined($metadata->{'json-ld'})){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No JSON-LD sent' }]} , status => 400) ;
     return;
   }
 
   my $jsonld_model = PhaidraAPI::Model::Jsonld->new;
-  my $res = $jsonld_model->save_to_object($self, $pid, $metadata->{jsonld}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  my $res = $jsonld_model->save_to_object($self, $pid, $metadata->{'json-ld'}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 
   my $t1 = tv_interval($t0);
   if($res->{status} eq 200){
