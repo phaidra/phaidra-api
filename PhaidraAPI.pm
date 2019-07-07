@@ -51,24 +51,34 @@ $ENV{MOJO_HEARTBEAT_TIMEOUT} = 1209600;
 
 # This method will run once at server start
 sub startup {
-    my $self = shift;
-    my $config = $self->plugin( 'JSONConfig' => { file => 'PhaidraAPI.json' } );
+  my $self = shift;
+  my $config = $self->plugin( 'JSONConfig' => { file => 'PhaidraAPI.json' } );
 	$self->config($config);
 	$self->mode($config->{mode});
-    $self->secrets([$config->{secret}]);
+  $self->secrets([$config->{secret}]);
 
-    # init log
-  	$self->log(Mojo::Log->new(path => $config->{log_path}, level => $config->{log_level}));
+  # init log
+  $self->log(Mojo::Log->new(path => $config->{log_path}, level => $config->{log_level}));
 
-if($config->{tmpdir}){
-          $self->app->log->debug("Setting MOJO_TMPDIR: ".$config->{tmpdir});
-          $ENV{MOJO_TMPDIR} = $config->{tmpdir};
-        }
+  if($config->{tmpdir}){
+    $self->app->log->debug("Setting MOJO_TMPDIR: ".$config->{tmpdir});
+    $ENV{MOJO_TMPDIR} = $config->{tmpdir};
+  }
 
+  if($config->{ssl_ca_path}) {
+    $self->app->log->debug("Setting SSL_ca_path: ".$config->{ssl_ca_path});
+    IO::Socket::SSL::set_defaults(
+        SSL_ca_path => $config->{ssl_ca_path},
+    );
+  }
 
 	my $directory_impl = $config->{directory_class};
   $self->app->log->debug("Loading directory implementation $directory_impl");
 	my $e = load_class $directory_impl;
+  if(ref $e){
+    $self->app->log->error("Loading $directory_impl failed: $e") ;
+ #   next;
+  }
     my $directory = $directory_impl->new($self, $config);
 
     $self->helper( directory => sub { return $directory; } );
@@ -301,6 +311,7 @@ if($config->{tmpdir}){
   # new
   $r->route('directory/org_get_subunits')         ->via('get')    ->to('directory#org_get_subunits');
   $r->route('directory/org_get_superunits')       ->via('get')    ->to('directory#org_get_superunits');
+  $r->route('directory/org_get_units')            ->via('get')    ->to('directory#org_get_units');
 
 	$r->route('search/owner/#username')             ->via('get')    ->to('search#owner');
 	$r->route('search/collections/owner/#username') ->via('get')    ->to('search#collections_owner');
@@ -382,6 +393,8 @@ if($config->{tmpdir}){
   $check_auth->route('groups')                                            ->via('get')      ->to('groups#get_users_groups');
   $check_auth->route('group/:gid')                                        ->via('get')      ->to('groups#get_group');
 
+  $proxyauth->route('object/:pid/jsonldprivate')                          ->via('get')      ->to('jsonldprivate#get');
+
   $check_auth->route('jsonld/templates')                                  ->via('get')      ->to('jsonld#get_users_templates');
   $check_auth->route('jsonld/template/:tid')                              ->via('get')      ->to('jsonld#get_template');
 
@@ -414,6 +427,7 @@ if($config->{tmpdir}){
     $proxyauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');
     $proxyauth->route('object/:pid/mods')                                 ->via('post')     ->to('mods#post');
     $proxyauth->route('object/:pid/jsonld')                               ->via('post')     ->to('jsonld#post');
+    $proxyauth->route('object/:pid/jsonldprivate')                        ->via('post')     ->to('jsonldprivate#post');
     $proxyauth->route('object/:pid/geo')                                  ->via('post')     ->to('geo#post');
     $proxyauth->route('object/:pid/annotations')                          ->via('post')     ->to('annotations#post');
     $proxyauth->route('object/:pid/rights')                               ->via('post')     ->to('rights#post');

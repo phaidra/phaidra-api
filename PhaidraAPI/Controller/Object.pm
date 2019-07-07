@@ -431,6 +431,17 @@ sub get_metadata {
     }
   }
 
+  if($r->{dshash}->{'JSON-LD-PRIVATE'}){   
+    my $jsonldprivate_model = PhaidraAPI::Model::Jsonldprivate->new;  
+    my $r_jsonldprivate = $jsonldprivate_model->get_object_jsonldprivate_parsed($self, $pid, $username, $password);
+    if($r_jsonldprivate->{status} ne 200){
+      push @{$res->{alerts}}, @{$r_jsonldprivate->{alerts}} if scalar @{$r_jsonldprivate->{alerts}} > 0;
+      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting JSON-LD-PRIVATE' };
+    }else{
+      $res->{metadata}->{'JSON-LD-PRIVATE'} = $r_jsonldprivate->{'JSON-LD-PRIVATE'};
+    }
+  }
+
   if($r->{dshash}->{'MODS'}){   
     my $mods_model = PhaidraAPI::Model::Mods->new;
     my $r = $mods_model->get_object_mods_json($self, $pid, $mode, $username, $password);

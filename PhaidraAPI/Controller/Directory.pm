@@ -4,7 +4,6 @@ use strict;
 use warnings;
 use v5.10;
 use PhaidraAPI::Model::Uwmetadata;
-
 use base 'Mojolicious::Controller';
 
 # [begin] new methods
@@ -19,6 +18,12 @@ sub org_get_superunits {
     my $self = shift;  	
 	my $id = $self->param('id');		
 	my $res = $self->app->directory->org_get_superunits($self, $id);	
+    $self->render(json => $res, status => $res->{status});
+}
+
+sub org_get_units {
+    my $self = shift;
+	my $res = $self->app->directory->org_get_units($self);	
     $self->render(json => $res, status => $res->{status});
 }
 # [end] new methods

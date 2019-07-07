@@ -765,6 +765,7 @@ sub get_foxml {
   		$res->{status} = 200;
   		$res->{foxml} = b($r->body)->decode('UTF-8');
   	}else{
+	  $c->app->log->error("Error getting foxml: ". $get->error->{message});
 	  unshift @{$res->{alerts}}, { type => 'danger', msg => $get->error->{message} };
 	  $res->{status} = $get->error->{code} ? $get->error->{code} : 500;
 	}
