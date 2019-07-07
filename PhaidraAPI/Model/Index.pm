@@ -100,6 +100,8 @@ our %uwm_2_mods_roles = (
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562629" => "calligrapher",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562630" => "transcriber",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562631" => "editorofcompilation",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562797" => "dramaticadvisor",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562798" => "coach",
 
   # data supplier -> data contributor
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/55" => "dtc",
