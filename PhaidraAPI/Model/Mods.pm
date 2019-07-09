@@ -102,7 +102,7 @@ sub xml_2_json {
     
     my %json;
     $self->xml_2_json_rec($c, \%json, $dom->children);
-
+    #$c->app->log->debug("XXXXXXXXXXXXXXXXXXXX ".$c->app->dumper(\%json));
     my $mods;
     foreach my $ch (@{$json{children}}){
       if($ch->{xmlname} eq 'mods'){
@@ -122,7 +122,7 @@ sub xml_2_json {
 
       foreach my $n (@{$mods}){
         if(defined($mode) && $mode eq 'basic'){
-		  $self->add_properties_rec($c, '', $n, \%mods_nodes_hash, 0);
+		      $self->add_properties_rec($c, '', $n, \%mods_nodes_hash, 0);
         }else{
           $self->add_properties_rec($c, '', $n, \%mods_nodes_hash, 1);
         }
@@ -130,7 +130,7 @@ sub xml_2_json {
 
       $res->{mods} = $mods;
     }
-
+    #$c->app->log->debug("XXXXXXXXXXXXXXXXXXXX ".$c->app->dumper($res));
     return $res;
 }
 
@@ -142,9 +142,17 @@ sub xml_2_json_rec {
 
         my $type = $e->tag;
 
-        $type =~ m/(\w+):(\w+)/;
-        my $ns = $1;
-        my $id = $2;
+        my $ns;
+        my $id;
+        my $node;
+
+        if ($type =~ m/(\w+):(\w+)/) {
+          $ns = $1;
+          $id = $2;
+        } else {
+          $id = $type;
+        }
+
         my $node;
         #$c->app->log->debug("XXXXX type [$type] ns [$ns] id [$id]");
         $node->{xmlname} = $id;
@@ -482,7 +490,7 @@ sub add_properties_rec {
     $child_path = ($path eq '' ? '' : $path.'_').$node->{xmlname};
   }
 
-  #$c->app->log->debug("XXXXXXXXX searching p [$path] chp [$child_path]");
+  # $c->app->log->debug("XXXXXXXXX searching p [$path] chp [$child_path]");
   my $ref_node = dclone($mods_nodes_hash->{$child_path});
 
   foreach my $k (keys %$ref_node){

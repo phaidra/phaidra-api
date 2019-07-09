@@ -1374,7 +1374,17 @@ sub _add_mods_index {
           if(exists($n1->{children})){
             for my $ch (@{$n1->{children}}){
               if($ch->{xmlname} eq 'roleTerm'){
-                $role = $ch->{ui_value} if $ch->{ui_value} ne '';
+                if(exists($ch->{attributes})){
+                  my $type;
+                  for my $a (@{$ch->{attributes}}){
+                    if ($a->{xmlname} eq 'type') {
+                      $type = $a->{ui_value}
+                    }
+                  }
+                  if ($type eq 'code') {
+                    $role = $ch->{ui_value} if $ch->{ui_value} ne '';
+                  }
+                }
               }
             }
           }
