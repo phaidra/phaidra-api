@@ -84,6 +84,11 @@ our %educational_context = (
 
 our %uwm_2_mods_roles = (
 
+  # author digital
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/46" => "aut",
+  # author analogue
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1552095" => "aut",
+
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561101" => "abr",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557102" => "act",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557099" => "adp",
@@ -101,12 +106,11 @@ our %uwm_2_mods_roles = (
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561110" => "adi",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/10867" => "art",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557115" => "ard",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/" => "assessor",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562799" => "assessor",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561111" => "asg",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561112" => "asn",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557128" => "att",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561113" => "auc",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/" => "aut",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561114" => "aqt",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561115" => "aft",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561116" => "aud",
@@ -131,7 +135,7 @@ our %uwm_2_mods_roles = (
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557112" => "chr",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557117" => "cng",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561135" => "cli",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/" => "coadvisor",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562800" => "coadvisor",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562798" => "coach",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561136" => "cor",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561137" => "col",
@@ -277,7 +281,7 @@ our %uwm_2_mods_roles = (
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561240" => "pth",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561241" => "pat",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/59" => "pedagogicexpert",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/" => "prf",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557130" => "prf",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561242" => "pma",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/10869" => "pht",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561243" => "ptf",
