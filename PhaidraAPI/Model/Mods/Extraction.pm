@@ -145,28 +145,126 @@ sub _get_mods_contributors {
   return \@contributors;
 }
 
+sub _get_relatedItem_citation {
+  my ($self, $c, $relatedItem) = @_;
+
+  # container, vol. #, no. #, place: publisher, day month year, pp. #-#
+  my $container;
+  my $volume;
+  my $volumecap;
+  my $issue;
+  my $issuecap;
+  my $place;
+  my $publisher;
+  my $date;
+  my $pages;
+  my $language;
+
+  my @citationparts;
+
+  for my $n ($relatedItem->find('titleInfo')->each){
+    $container = $n->find('title')->map('text')->join(" ");
+    my $subtit = $n->find('subTitle')->map('text')->join(" ");
+
+    if($subtit && $subtit ne ''){
+      $container .= ": $subtit";
+    }
+    push @citationparts, $container if $container =~ m/\w/;
+  }
+
+  for my $n ($relatedItem->find('part > detail[type="volume"]')->each){
+    $volume = $n->find('number')->map('text')->join(" ");
+    $volumecap = $n->find('caption')->map('text')->join(" ");
+    if ($volumecap) {
+      $volume = "$volumecap $volume";
+    }
+    push @citationparts, $volume if $volume =~ m/\w/;
+  }
+
+  for my $n ($relatedItem->find('part > detail[type="number"]')->each){
+    $issue = $n->find('number')->map('text')->join(" ");
+    $issuecap = $n->find('caption')->map('text')->join(" ");
+    if ($issuecap) {
+      $issue = "$issuecap $issue";
+    }
+    push @citationparts, $issue if $issue =~ m/\w/;
+  }
+
+  for my $n ($relatedItem->find('originInfo')->each){
+    $publisher = $n->find('publisher')->map('text')->join(" ");
+    $place = $n->find('place > placeTerm[type="text"]')->map('text')->join(" ");
+    if ($publisher =~ m/\w/) {
+      if ($place =~ m/\w/) {
+        push @citationparts, $place.": $publisher";
+      } else {
+        push @citationparts, $publisher;
+      }
+    }
+    
+    $date = $n->find('dateIssued')->map('text')->join(" ");
+    push @citationparts, $date if $date =~ m/\w/;
+  }
+
+  for my $n ($relatedItem->find('part')->each){
+    $pages = $n->find('extent')->map('text')->join(" ");
+    if ($pages =~ m/\w/) {
+      if ($pages =~ m/p/) {
+        push @citationparts, $pages;
+      } else {
+        push @citationparts, "pp. $pages";
+      }
+    }
+  }
+
+  for my $n ($relatedItem->find('language')->each){
+    $language = $n->find('languageTerm')->map('text')->join(" ");
+    push @citationparts, "($language)" if $language =~ m/\w/;
+  }
+
+  my $citation = join(', ', @citationparts);
+  if ($relatedItem->attr('displayLabel')) {
+    $citation = $relatedItem->attr('displayLabel')." ".$citation if $citation =~ m/\w/;
+  }
+  return $citation;
+
+}
+
 sub _get_mods_relations {
   my ($self, $c, $dom) = @_;
 
   my @relations;
 
   # find relateditem
-  for my $e ($dom->find('mods relatedItem')->each){
+  for my $e ($dom->find('mods > relatedItem')->each){
 
-    # identifier
-    for my $id ($e->find('identifier')->each){
-      push @relations, { value => $id->text };
-    }
+    if ($e->attr('type') eq 'host') {
 
-    #title
-    for my $titleInfo ($e->find('titleInfo')->each){
-      my $tit = $e->find('title')->map('text')->join(" ");
-      my $subtit = $e->find('subTitle')->map('text')->join(" ");
+      my $citation = $self->_get_relatedItem_citation($c, $e);
+      push @relations, { value => $citation };
 
-      if($subtit && $subtit ne ''){
-        $tit .= ": $subtit";
+    } elsif ($e->attr('type') eq 'otherVersion') {
+
+      my $citation = $self->_get_relatedItem_citation($c, $e);
+      push @relations, { value => $citation };
+
+    } else {
+
+      # identifier
+      for my $id ($e->find('identifier')->each){
+        push @relations, { value => $id->text };
       }
-      push @relations, { value => $tit };
+
+      #title
+      for my $titleInfo ($e->find('titleInfo')->each){
+        my $tit = $titleInfo->find('title')->map('text')->join(" ");
+        my $subtit = $titleInfo->find('subTitle')->map('text')->join(" ");
+
+        if($subtit && $subtit ne ''){
+          $tit .= ": $subtit";
+        }
+        push @relations, { value => $tit };
+      }
+
     }
   }
 
