@@ -902,7 +902,7 @@ sub get_object_metadata {
     return $res;
   }
 
-  my $uwmetadata = $res->{UWMETADATA};
+  my $uwmetadata = b($res->{UWMETADATA})->decode('UTF-8');
 
   if($mode eq 'full'){
     #$res = $self->uwmetadata_2_json($c, $res->{content});
