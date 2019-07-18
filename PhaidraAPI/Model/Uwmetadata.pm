@@ -1111,7 +1111,7 @@ sub fill_object_metadata {
 
 	    		}else{
             if($node->{input_type} ne 'node'){
-              my $v = html_unescape b($e->content)->decode('UTF-8');
+              my $v = html_unescape $e->content;
               $node->{ui_value} = $v;
             }
 	    		}
