@@ -1123,7 +1123,7 @@ sub _get {
     my $inv_coll = $c->paf_mongo->db->collection('foxml.ds');
     if($inv_coll){
       my $ds_doc = $inv_coll->find({pid => $pid})->sort({ "updated_at" => -1})->next;
-      $index{size} = $ds_doc->{fs_size};
+      $index{size} = $ds_doc->{ds_sizes}->{OCTETS};
     }
   }
 
