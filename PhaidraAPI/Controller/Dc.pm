@@ -172,9 +172,7 @@ sub update {
 
     if($@){
       $self->app->log->error("Error: $@");
-      unshift @{$res->{alerts}}, { type => 'danger', msg => $@ };
-      $res->{status} = 400;
-      $self->render(json => $res , status => $res->{status});
+      $self->render(json => { alerts => [{ type => 'danger', msg => $@ }]} , status => 400);
       return;
     }
 
