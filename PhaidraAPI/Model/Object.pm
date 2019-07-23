@@ -163,34 +163,9 @@ sub modify {
   my $lastmodifieddate = shift;
   my $username = shift;
   my $password = shift;
+  my $useadmin = shift;
 
   my $res = { alerts => [], status => 200 };
-
-  if ($ownerid) {
-    my $authorized = 0;
-    if (
-      ($username eq $c->app->config->{phaidra}->{intcallusername}) ||
-      ($username eq $c->app->config->{phaidra}->{adminusername})
-    ) {
-      $authorized = 1;
-    } else {
-      if ($c->app->config->{authorization}) {
-        if ($c->app->config->{authorization}->{canmodifyownerid}) {
-          for my $user (@{$c->app->config->{authorization}->{canmodifyownerid}}) {
-            if ($user eq $username) {
-              $authorized = 1;
-              last;
-            }
-          }
-        }
-      }
-    }
-    unless ($authorized) {
-      unshift @{$res->{alerts}}, { type => 'danger', msg => "$username is not authorized to change ownership" };
-      $res->{status} =  403;
-      return $res;
-    }
-  }
 
   my %params;
   $params{state} = $state if $state;
@@ -198,6 +173,11 @@ sub modify {
   $params{ownerId} = $ownerid if $ownerid;
   $params{logMessage} = $logmessage if $logmessage;
   $params{lastModifiedDate} = $lastmodifieddate if $lastmodifieddate;
+
+  if($useadmin){
+		$username = $c->app->{config}->{phaidra}->{adminusername};
+		$password = $c->app->{config}->{phaidra}->{adminpassword};
+	}
 
 	my $url = Mojo::URL->new;
 	$url->scheme('https');
@@ -738,7 +718,7 @@ sub save_metadata {
         }
       }
       if ($authorized) {
-        my $r = $self->modify($c, $pid, undef, undef, $metadata->{'ownerid'}, undef, undef, $username, $password);
+        my $r = $self->modify($c, $pid, undef, undef, $metadata->{'ownerid'}, undef, undef, $username, $password, 1);
         if($r->{status} ne 200) {
           $res->{status} = $r->{status};
           foreach my $a (@{$r->{alerts}}) {
