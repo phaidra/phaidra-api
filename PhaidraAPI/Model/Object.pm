@@ -14,6 +14,7 @@ use PhaidraAPI::Model::Geo;
 use PhaidraAPI::Model::Uwmetadata;
 use PhaidraAPI::Model::Mods;
 use PhaidraAPI::Model::Jsonld;
+use PhaidraAPI::Model::Jsonldprivate;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Hooks;
 use PhaidraAPI::Model::Membersorder;
@@ -163,14 +164,40 @@ sub modify {
   my $username = shift;
   my $password = shift;
 
+  my $res = { alerts => [], status => 200 };
+
+  if ($ownerid) {
+    my $authorized = 0;
+    if (
+      ($username eq $c->app->config->{phaidra}->{intcallusername}) ||
+      ($username eq $c->app->config->{phaidra}->{adminusername})
+    ) {
+      $authorized = 1;
+    } else {
+      if ($c->app->config->{authorization}) {
+        if ($c->app->config->{authorization}->{canmodifyownerid}) {
+          for my $user (@{$c->app->config->{authorization}->{canmodifyownerid}}) {
+            if ($user eq $username) {
+              $authorized = 1;
+              last;
+            }
+          }
+        }
+      }
+    }
+    unless ($authorized) {
+      unshift @{$res->{alerts}}, { type => 'danger', msg => "$username is not authorized to change ownership" };
+      $res->{status} =  403;
+      return $res;
+    }
+  }
+
   my %params;
   $params{state} = $state if $state;
   $params{label} = $label if $label;
   $params{ownerId} = $ownerid if $ownerid;
   $params{logMessage} = $logmessage if $logmessage;
   $params{lastModifiedDate} = $lastmodifieddate if $lastmodifieddate;
-
-  my $res = { alerts => [], status => 200 };
 
 	my $url = Mojo::URL->new;
 	$url->scheme('https');
@@ -667,18 +694,60 @@ sub save_metadata {
 			$found = 1;
 			$found_bib = 1;
 
-		} elsif ($f eq "members"){
+		} elsif ($f eq "json-ld-private"){
 
-            # noop - this was handled by coll model   
-    } elsif ($f eq "membersorder"){
+			$c->app->log->debug("Saving JSON-LD-PRIVATE for $pid");
+			my $jsonldprivate = $metadata->{'json-ld-private'};
+			my $jsonldprivate_model = PhaidraAPI::Model::Jsonldprivate->new;
+			my $r = $jsonldprivate_model->save_to_object($c, $pid, $jsonldprivate, $username, $password);
+			if ($r->{status} ne 200) {
+				$res->{status} = $r->{status};
+				push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+				unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving json-ld-private'};
+			}
+			$found = 1;
+			$found_bib = 1;
 
-            # noop - this is handled by create_container
-
-		} elsif ($f eq "relationships"){
-
-            # noop - this is handled elswhere  
-
-		} else {
+    } elsif ($f eq "members") {
+      $found = 1;
+      # noop - this was handled by coll model
+    } elsif ($f eq "membersorder") {
+      $found = 1;
+      # noop - this is handled by create_container
+    } elsif ($f eq "relationships") {
+      $found = 1;
+      # noop - this is handled elswhere
+    } elsif ($f eq "ownerid") {
+      $found = 1;
+      my $authorized = 0;
+      if (
+        ($username eq $c->app->config->{phaidra}->{intcallusername}) ||
+        ($username eq $c->app->config->{phaidra}->{adminusername})
+      ) {
+        $authorized = 1;
+      } else {
+        if ($c->app->config->{authorization}) {
+          if ($c->app->config->{authorization}->{canmodifyownerid}) {
+            for my $user (@{$c->app->config->{authorization}->{canmodifyownerid}}) {
+              if ($user eq $username) {
+                $authorized = 1;
+                last;
+              }
+            }
+          }
+        }
+      }
+      if ($authorized) {
+        my $r = $self->modify($c, $pid, undef, undef, $metadata->{'ownerid'}, undef, undef, $username, $password);
+        if($r->{status} ne 200) {
+          $res->{status} = $r->{status};
+          foreach my $a (@{$r->{alerts}}) {
+            unshift @{$res->{alerts}}, $a;
+          }
+          unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error modifying ownership'};
+        }
+      }
+    } else {
 			$c->app->log->error("Unknown or unsupported metadata format: $f");
 			$found = 1;
 			unshift @{$res->{alerts}}, { type => 'danger', msg => "Unknown or unsupported metadata format: $f" };
