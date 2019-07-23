@@ -114,14 +114,27 @@ sub create_simple {
     return;
   }
 
-  if(ref $metadata eq 'Mojo::Upload'){
-	  $self->app->log->debug("Metadata sent as file param");
-	  $metadata = $metadata->asset->slurp;
-    $metadata = decode_json($metadata);
-	}else{  
-	  # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
-	  $metadata = decode_json(b($metadata)->encode('UTF-8'));
-	}
+  eval {
+    if(ref $metadata eq 'Mojo::Upload'){
+      $self->app->log->debug("Metadata sent as file param");
+      $metadata = $metadata->asset->slurp;
+      $self->app->log->debug("parsing json");
+      $metadata = decode_json($metadata);
+    }else{
+      # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
+      $self->app->log->debug("parsing json");
+      $metadata = decode_json(b($metadata)->encode('UTF-8'));
+    }
+  };
+
+  if($@){
+    $self->app->log->error("Error: $@");
+    unshift @{$res->{alerts}}, { type => 'danger', msg => $@ };
+    $res->{status} = 400;
+    $self->render(json => $res , status => $res->{status});
+    return;
+  }
+
 	my $mimetype = $self->param('mimetype');
 	my $upload = $self->req->upload('file');
 
@@ -174,14 +187,26 @@ sub create_container {
     return;
   }
 
-  if(ref $metadata eq 'Mojo::Upload'){
-	  $self->app->log->debug("Metadata sent as file param");
-	  $metadata = $metadata->asset->slurp;
-    $metadata = decode_json($metadata);
-	}else{  
-	  # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
-	  $metadata = decode_json(b($metadata)->encode('UTF-8'));
-	}
+  eval {
+    if(ref $metadata eq 'Mojo::Upload'){
+      $self->app->log->debug("Metadata sent as file param");
+      $metadata = $metadata->asset->slurp;
+      $self->app->log->debug("parsing json");
+      $metadata = decode_json($metadata);
+    }else{
+      # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
+      $self->app->log->debug("parsing json");
+      $metadata = decode_json(b($metadata)->encode('UTF-8'));
+    }
+  };
+
+  if($@){
+    $self->app->log->error("Error: $@");
+    unshift @{$res->{alerts}}, { type => 'danger', msg => $@ };
+    $res->{status} = 400;
+    $self->render(json => $res , status => $res->{status});
+    return;
+  }
 
 	my $object_model = PhaidraAPI::Model::Object->new;
   my $r = $object_model->create_container($self, $metadata, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
@@ -504,13 +529,25 @@ sub metadata {
     return;
   }
 
-  if(ref $metadata eq 'Mojo::Upload'){
-    $self->app->log->debug("Metadata sent as file param");
-    $metadata = $metadata->asset->slurp;
-    $metadata = decode_json($metadata);
-  }else{
-    # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
-    $metadata = decode_json(b($metadata)->encode('UTF-8'));
+  eval {
+    if(ref $metadata eq 'Mojo::Upload'){
+      $self->app->log->debug("Metadata sent as file param");
+      $metadata = $metadata->asset->slurp;
+      $self->app->log->debug("parsing json");
+      $metadata = decode_json($metadata);
+    }else{
+      # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
+      $self->app->log->debug("parsing json");
+      $metadata = decode_json(b($metadata)->encode('UTF-8'));
+    }
+  };
+  
+  if($@){
+    $self->app->log->error("Error: $@");
+    unshift @{$res->{alerts}}, { type => 'danger', msg => $@ };
+    $res->{status} = 400;
+    $self->render(json => $res , status => $res->{status});
+    return;
   }
 
   unless(defined($metadata->{metadata})){

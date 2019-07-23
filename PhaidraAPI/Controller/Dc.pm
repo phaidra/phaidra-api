@@ -73,13 +73,25 @@ sub uwmetadata_2_dc_index {
     return;
   }
 
-  if(ref $metadata eq 'Mojo::Upload'){
-    $self->app->log->debug("Metadata sent as file param");
-    $metadata = $metadata->asset->slurp;
-    $metadata = decode_json($metadata);
-  }else{
-    # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
-    $metadata = decode_json(b($metadata)->encode('UTF-8'));
+  eval {
+    if(ref $metadata eq 'Mojo::Upload'){
+      $self->app->log->debug("Metadata sent as file param");
+      $metadata = $metadata->asset->slurp;
+      $self->app->log->debug("parsing json");
+      $metadata = decode_json($metadata);
+    }else{
+      # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
+      $self->app->log->debug("parsing json");
+      $metadata = decode_json(b($metadata)->encode('UTF-8'));
+    }
+  };
+
+  if($@){
+    $self->app->log->error("Error: $@");
+    unshift @{$res->{alerts}}, { type => 'danger', msg => $@ };
+    $res->{status} = 400;
+    $self->render(json => $res , status => $res->{status});
+    return;
   }
 
   unless(defined($metadata->{metadata})){
@@ -146,12 +158,22 @@ sub update {
       return;
     }
 
-    if(ref $pids eq 'Mojo::Upload'){
-      $self->app->log->debug("Pids sent as file param");
-      $pids = $pids->asset->slurp;
-      $pids = decode_json($pids);
-    }else{
-      $pids = decode_json(b($pids)->encode('UTF-8'));
+    eval {
+      if(ref $pids eq 'Mojo::Upload'){
+        $self->app->log->debug("Pids sent as file param");
+        $pids = $pids->asset->slurp;
+        $self->app->log->debug("parsing json");
+        $pids = decode_json($pids);
+      }else{
+        $self->app->log->debug("parsing json");
+        $pids = decode_json(b($pids)->encode('UTF-8'));
+      }
+    };
+
+    if($@){
+      $self->app->log->error("Error: $@");
+      $self->render(json => { alerts => [{ type => 'danger', msg => $@ }]} , status => 400);
+      return;
     }
 
     unless(defined($pids->{pids})){
