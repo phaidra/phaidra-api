@@ -386,6 +386,38 @@ sub create_simple {
 	$c->app->log->info("Object successfully created pid[$pid] filename[$name] size[$size]");
       }
 
+  if (exists($metadata->{metadata}->{'ownerid'})) {
+    $c->app->log->debug("Changing ownerid to ". $metadata->{metadata}->{'ownerid'});
+    my $authorized = 0;
+    if (
+      ($username eq $c->app->config->{phaidra}->{intcallusername}) ||
+      ($username eq $c->app->config->{phaidra}->{adminusername})
+    ) {
+      $authorized = 1;
+    } else {
+      if ($c->app->config->{authorization}) {
+        if ($c->app->config->{authorization}->{canmodifyownerid}) {
+          for my $user (@{$c->app->config->{authorization}->{canmodifyownerid}}) {
+            if ($user eq $username) {
+              $authorized = 1;
+              last;
+            }
+          }
+        }
+      }
+    }
+    if ($authorized) {
+      my $r = $self->modify($c, $pid, undef, undef, $metadata->{metadata}->{'ownerid'}, undef, undef, $username, $password, 1);
+      if($r->{status} ne 200) {
+        $res->{status} = $r->{status};
+        foreach my $a (@{$r->{alerts}}) {
+          unshift @{$res->{alerts}}, $a;
+        }
+        unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error modifying ownership'};
+      }
+    }
+  }
+
 
    	return $res;
 }
@@ -450,7 +482,13 @@ sub create_container {
         }
       }
     }
-    $container_metadata = { 'json-ld' => $metadata->{metadata}->{'json-ld'}->{container} };
+    for my $mk (keys %{$metadata->{metadata}}){
+      if ($mk eq 'json-ld') {
+        $container_metadata->{$mk} = $metadata->{metadata}->{'json-ld'}->{container};
+      } else {
+        $container_metadata->{$mk} = $metadata->{metadata}->{$mk};
+      }
+    }
   } else {
     $container_metadata = $metadata->{metadata};
   }
@@ -577,6 +615,38 @@ sub create_container {
     $c->app->log->info("Object successfully created pid[$pid]");
   }
 
+   if (exists($metadata->{metadata}->{'ownerid'})) {
+    $c->app->log->debug("Changing ownerid to ". $metadata->{metadata}->{'ownerid'});
+    my $authorized = 0;
+    if (
+      ($username eq $c->app->config->{phaidra}->{intcallusername}) ||
+      ($username eq $c->app->config->{phaidra}->{adminusername})
+    ) {
+      $authorized = 1;
+    } else {
+      if ($c->app->config->{authorization}) {
+        if ($c->app->config->{authorization}->{canmodifyownerid}) {
+          for my $user (@{$c->app->config->{authorization}->{canmodifyownerid}}) {
+            if ($user eq $username) {
+              $authorized = 1;
+              last;
+            }
+          }
+        }
+      }
+    }
+    if ($authorized) {
+      my $r = $self->modify($c, $pid, undef, undef, $metadata->{metadata}->{'ownerid'}, undef, undef, $username, $password, 1);
+      if($r->{status} ne 200) {
+        $res->{status} = $r->{status};
+        foreach my $a (@{$r->{alerts}}) {
+          unshift @{$res->{alerts}}, $a;
+        }
+        unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error modifying ownership'};
+      }
+    }
+  }
+
 
   return $res;
 }
@@ -699,34 +769,7 @@ sub save_metadata {
       # noop - this is handled elswhere
     } elsif ($f eq "ownerid") {
       $found = 1;
-      my $authorized = 0;
-      if (
-        ($username eq $c->app->config->{phaidra}->{intcallusername}) ||
-        ($username eq $c->app->config->{phaidra}->{adminusername})
-      ) {
-        $authorized = 1;
-      } else {
-        if ($c->app->config->{authorization}) {
-          if ($c->app->config->{authorization}->{canmodifyownerid}) {
-            for my $user (@{$c->app->config->{authorization}->{canmodifyownerid}}) {
-              if ($user eq $username) {
-                $authorized = 1;
-                last;
-              }
-            }
-          }
-        }
-      }
-      if ($authorized) {
-        my $r = $self->modify($c, $pid, undef, undef, $metadata->{'ownerid'}, undef, undef, $username, $password, 1);
-        if($r->{status} ne 200) {
-          $res->{status} = $r->{status};
-          foreach my $a (@{$r->{alerts}}) {
-            unshift @{$res->{alerts}}, $a;
-          }
-          unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error modifying ownership'};
-        }
-      }
+      # noop - this is handled later because it's the last step (after activating object)
     } else {
 			$c->app->log->error("Unknown or unsupported metadata format: $f");
 			$found = 1;
