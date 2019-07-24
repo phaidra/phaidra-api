@@ -882,6 +882,8 @@ sub get_datastream {
 
 	my $res = { alerts => [], status => 200 };
 
+	$c->app->log->debug("get_datastream pid[$pid] dsid[$dsid] username[$username] password[$password] instcallauth[$intcallauth]");
+
 	my $url = Mojo::URL->new;
 	$url->scheme('https');
 

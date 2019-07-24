@@ -253,7 +253,9 @@ sub map_jsonld_2_dc_hash {
 
   $dc_p{type} = $ext->_get_jsonld_objectlabels($c, $jsonld, 'dcterms:type');
 
-  $dc_p{title} = $ext->_get_jsonld_titles($c, $jsonld);  
+  $dc_p{title} = $ext->_get_jsonld_titles($c, $jsonld);
+
+  $dc_p{source} = $ext->_get_jsonld_sources($c, $jsonld);
   
   for my $d (@{$ext->_get_jsonld_descriptions($c, $jsonld)}){
     push @{$dc_p{description}}, $d;

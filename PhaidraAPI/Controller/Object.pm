@@ -429,7 +429,6 @@ sub get_metadata {
 
   my $pid = $self->stash('pid');
 
-  # this is proforma here, at the moment this method is not called throught apiauth bridge so the credentials are not extracted at all
   my $username = $self->stash->{basic_auth_credentials}->{username};
   my $password = $self->stash->{basic_auth_credentials}->{password};
   
@@ -456,7 +455,8 @@ sub get_metadata {
     }
   }
 
-  if($r->{dshash}->{'JSON-LD-PRIVATE'}){   
+  if($r->{dshash}->{'JSON-LD-PRIVATE'}){
+    $self->app->log->debug("XXXXXXXXXXXXXXXXXXXXXXX $username - $password");
     my $jsonldprivate_model = PhaidraAPI::Model::Jsonldprivate->new;  
     my $r_jsonldprivate = $jsonldprivate_model->get_object_jsonldprivate_parsed($self, $pid, $username, $password);
     if($r_jsonldprivate->{status} ne 200){
