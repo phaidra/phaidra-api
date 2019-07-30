@@ -22,7 +22,8 @@ sub get {
   }
 
   my $object_model = PhaidraAPI::Model::Object->new;
-  $object_model->proxy_datastream($self, $pid, 'JSON-LD-PRIVATE', undef, undef, 1);
+  # do not use admin/intcall credentials here!
+  $object_model->proxy_datastream($self, $pid, 'JSON-LD-PRIVATE', $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
   return;
 }
 
@@ -39,13 +40,23 @@ sub post {
     return;
   }
 
-  if(ref $metadata eq 'Mojo::Upload'){
-    $self->app->log->debug("Metadata sent as file param");
-    $metadata = $metadata->asset->slurp;
-    $metadata = decode_json($metadata);
-  }else{
-    # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
-    $metadata = decode_json(b($metadata)->encode('UTF-8'));
+  eval {
+    if(ref $metadata eq 'Mojo::Upload'){
+      $self->app->log->debug("Metadata sent as file param");
+      $metadata = $metadata->asset->slurp;
+      $self->app->log->debug("parsing json");
+      $metadata = decode_json($metadata);
+    }else{
+      # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
+      $self->app->log->debug("parsing json");
+      $metadata = decode_json(b($metadata)->encode('UTF-8'));
+    }
+  };
+
+  if($@){
+    $self->app->log->error("Error: $@");
+    $self->render(json => { alerts => [{ type => 'danger', msg => $@ }]} , status => 400);
+    return;
   }
 
   unless(defined($metadata->{metadata})){

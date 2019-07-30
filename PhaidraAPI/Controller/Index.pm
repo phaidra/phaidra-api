@@ -90,12 +90,22 @@ sub update {
       return;
     }
 
-    if(ref $pids eq 'Mojo::Upload'){
-      $self->app->log->debug("Pids sent as file param");
-      $pids = $pids->asset->slurp;
-      $pids = decode_json($pids);
-    }else{
-      $pids = decode_json(b($pids)->encode('UTF-8'));
+    eval {
+      if(ref $pids eq 'Mojo::Upload'){
+        $self->app->log->debug("Pids sent as file param");
+        $pids = $pids->asset->slurp;
+        $self->app->log->debug("parsing json");
+        $pids = decode_json($pids);
+      }else{
+        $self->app->log->debug("parsing json");
+        $pids = decode_json(b($pids)->encode('UTF-8'));
+      }
+    };
+
+    if($@){
+      $self->app->log->error("Error: $@");
+      $self->render(json => { alerts => [{ type => 'danger', msg => $@ }]} , status => 400);
+      return;
     }
 
     unless(defined($pids->{pids})){

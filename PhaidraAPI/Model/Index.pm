@@ -1123,7 +1123,7 @@ sub _get {
     my $inv_coll = $c->paf_mongo->db->collection('foxml.ds');
     if($inv_coll){
       my $ds_doc = $inv_coll->find({pid => $pid})->sort({ "updated_at" => -1})->next;
-      $index{size} = $ds_doc->{fs_size};
+      $index{size} = $ds_doc->{ds_sizes}->{OCTETS};
     }
   }
 
@@ -1585,6 +1585,17 @@ sub _add_uwm_index {
   for my $r (@{$roles}){
     push @{$index->{"bib_roles_pers_".$r->{role}}}, $r->{name} if $r->{name} ne '';   
     push @{$index->{"bib_roles_corp_".$r->{role}}}, $r->{institution} if $r->{institution} ne '';   
+  }
+
+  my $org = $self->_find_first_uwm_node_rec($c, "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0", "organization", $uwm);
+  if($org){
+    if($org->{children}){
+      for my $orgch (@{$org->{children}}){
+        if($orgch->{xmlname} eq 'hoschtyp'){
+          $index->{"oer"} = '1' if $orgch->{ui_value} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_17/1562801'; 
+        }
+      }
+    }
   }
 
   # digital book stuff

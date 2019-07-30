@@ -60,6 +60,29 @@ sub _get_jsonld_titles {
   return \@dctitles;
 }
 
+sub _get_jsonld_sources {
+
+  my ($self, $c, $jsonld) = @_;
+
+  my @dcsources;
+
+  if (exists($jsonld->{'rdau:P60193'})){
+    my $sources = $jsonld->{'rdau:P60193'};
+
+    for my $o (@{$sources}) {
+      my $new = {
+        value => $o->{'dce:title'}[0]->{'bf:mainTitle'}[0]->{'@value'}
+      };
+      if(exists($o->{'dce:title'}[0]->{'bf:mainTitle'}[0]->{'@language'}) && ($o->{'dce:title'}[0]->{'bf:mainTitle'}[0]->{'@language'} ne '')){
+        $new->{lang} = $o->{'dce:title'}[0]->{'bf:mainTitle'}[0]->{'@language'};
+      }
+      push @dcsources, $new;
+    }
+  }
+
+  return \@dcsources;
+}
+
 sub _get_jsonld_descriptions {
 
   my ($self, $c, $jsonld) = @_;

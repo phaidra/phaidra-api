@@ -347,7 +347,6 @@ sub startup {
 
   # we will get this datastreams by using intcall credentials
   # (instead of defining a API-A disseminator for each of them)
-  $r->route('object/:pid/metadata')               ->via('get')    ->to('object#get_metadata');
   $r->route('object/:pid/uwmetadata')             ->via('get')    ->to('uwmetadata#get');
   $r->route('object/:pid/mods')                   ->via('get')    ->to('mods#get');
   $r->route('object/:pid/jsonld')                 ->via('get')    ->to('jsonld#get');
@@ -410,6 +409,8 @@ sub startup {
   $apiauth_optional->route('object/:pid/diss/:bdef/:method')              ->via('get')      ->to('object#diss');
   $proxyauth->route('object/:pid/rights')                                 ->via('get')      ->to('rights#get');
   $apiauth_optional->route('object/:pid/fulltext')                        ->via('get')      ->to('fulltext#get');
+
+  $apiauth_optional->route('object/:pid/metadata')                        ->via('get')    ->to('object#get_metadata');
 
   unless($self->app->config->{readonly}){
 

@@ -14,6 +14,7 @@ use PhaidraAPI::Model::Geo;
 use PhaidraAPI::Model::Uwmetadata;
 use PhaidraAPI::Model::Mods;
 use PhaidraAPI::Model::Jsonld;
+use PhaidraAPI::Model::Jsonldprivate;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Hooks;
 use PhaidraAPI::Model::Membersorder;
@@ -162,6 +163,9 @@ sub modify {
   my $lastmodifieddate = shift;
   my $username = shift;
   my $password = shift;
+  my $useadmin = shift;
+
+  my $res = { alerts => [], status => 200 };
 
   my %params;
   $params{state} = $state if $state;
@@ -170,7 +174,10 @@ sub modify {
   $params{logMessage} = $logmessage if $logmessage;
   $params{lastModifiedDate} = $lastmodifieddate if $lastmodifieddate;
 
-  my $res = { alerts => [], status => 200 };
+  if($useadmin){
+		$username = $c->app->{config}->{phaidra}->{adminusername};
+		$password = $c->app->{config}->{phaidra}->{adminpassword};
+	}
 
 	my $url = Mojo::URL->new;
 	$url->scheme('https');
@@ -379,6 +386,38 @@ sub create_simple {
 	$c->app->log->info("Object successfully created pid[$pid] filename[$name] size[$size]");
       }
 
+  if (exists($metadata->{metadata}->{'ownerid'})) {
+    $c->app->log->debug("Changing ownerid to ". $metadata->{metadata}->{'ownerid'});
+    my $authorized = 0;
+    if (
+      ($username eq $c->app->config->{phaidra}->{intcallusername}) ||
+      ($username eq $c->app->config->{phaidra}->{adminusername})
+    ) {
+      $authorized = 1;
+    } else {
+      if ($c->app->config->{authorization}) {
+        if ($c->app->config->{authorization}->{canmodifyownerid}) {
+          for my $user (@{$c->app->config->{authorization}->{canmodifyownerid}}) {
+            if ($user eq $username) {
+              $authorized = 1;
+              last;
+            }
+          }
+        }
+      }
+    }
+    if ($authorized) {
+      my $r = $self->modify($c, $pid, undef, undef, $metadata->{metadata}->{'ownerid'}, undef, undef, $username, $password, 1);
+      if($r->{status} ne 200) {
+        $res->{status} = $r->{status};
+        foreach my $a (@{$r->{alerts}}) {
+          unshift @{$res->{alerts}}, $a;
+        }
+        unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error modifying ownership'};
+      }
+    }
+  }
+
 
    	return $res;
 }
@@ -443,7 +482,13 @@ sub create_container {
         }
       }
     }
-    $container_metadata = { 'json-ld' => $metadata->{metadata}->{'json-ld'}->{container} };
+    for my $mk (keys %{$metadata->{metadata}}){
+      if ($mk eq 'json-ld') {
+        $container_metadata->{$mk} = $metadata->{metadata}->{'json-ld'}->{container};
+      } else {
+        $container_metadata->{$mk} = $metadata->{metadata}->{$mk};
+      }
+    }
   } else {
     $container_metadata = $metadata->{metadata};
   }
@@ -570,6 +615,38 @@ sub create_container {
     $c->app->log->info("Object successfully created pid[$pid]");
   }
 
+   if (exists($metadata->{metadata}->{'ownerid'})) {
+    $c->app->log->debug("Changing ownerid to ". $metadata->{metadata}->{'ownerid'});
+    my $authorized = 0;
+    if (
+      ($username eq $c->app->config->{phaidra}->{intcallusername}) ||
+      ($username eq $c->app->config->{phaidra}->{adminusername})
+    ) {
+      $authorized = 1;
+    } else {
+      if ($c->app->config->{authorization}) {
+        if ($c->app->config->{authorization}->{canmodifyownerid}) {
+          for my $user (@{$c->app->config->{authorization}->{canmodifyownerid}}) {
+            if ($user eq $username) {
+              $authorized = 1;
+              last;
+            }
+          }
+        }
+      }
+    }
+    if ($authorized) {
+      my $r = $self->modify($c, $pid, undef, undef, $metadata->{metadata}->{'ownerid'}, undef, undef, $username, $password, 1);
+      if($r->{status} ne 200) {
+        $res->{status} = $r->{status};
+        foreach my $a (@{$r->{alerts}}) {
+          unshift @{$res->{alerts}}, $a;
+        }
+        unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error modifying ownership'};
+      }
+    }
+  }
+
 
   return $res;
 }
@@ -667,18 +744,33 @@ sub save_metadata {
 			$found = 1;
 			$found_bib = 1;
 
-		} elsif ($f eq "members"){
+		} elsif ($f eq "json-ld-private"){
 
-            # noop - this was handled by coll model   
-    } elsif ($f eq "membersorder"){
+			$c->app->log->debug("Saving JSON-LD-PRIVATE for $pid");
+			my $jsonldprivate = $metadata->{'json-ld-private'};
+			my $jsonldprivate_model = PhaidraAPI::Model::Jsonldprivate->new;
+			my $r = $jsonldprivate_model->save_to_object($c, $pid, $jsonldprivate, $username, $password);
+			if ($r->{status} ne 200) {
+				$res->{status} = $r->{status};
+				push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+				unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving json-ld-private'};
+			}
+			$found = 1;
+			$found_bib = 1;
 
-            # noop - this is handled by create_container
-
-		} elsif ($f eq "relationships"){
-
-            # noop - this is handled elswhere  
-
-		} else {
+    } elsif ($f eq "members") {
+      $found = 1;
+      # noop - this was handled by coll model
+    } elsif ($f eq "membersorder") {
+      $found = 1;
+      # noop - this is handled by create_container
+    } elsif ($f eq "relationships") {
+      $found = 1;
+      # noop - this is handled elswhere
+    } elsif ($f eq "ownerid") {
+      $found = 1;
+      # noop - this is handled later because it's the last step (after activating object)
+    } else {
 			$c->app->log->error("Unknown or unsupported metadata format: $f");
 			$found = 1;
 			unshift @{$res->{alerts}}, { type => 'danger', msg => "Unknown or unsupported metadata format: $f" };
@@ -789,6 +881,8 @@ sub get_datastream {
 	my $intcallauth = shift;
 
 	my $res = { alerts => [], status => 200 };
+
+	$c->app->log->debug("get_datastream pid[$pid] dsid[$dsid] username[$username] password[$password] instcallauth[$intcallauth]");
 
 	my $url = Mojo::URL->new;
 	$url->scheme('https');

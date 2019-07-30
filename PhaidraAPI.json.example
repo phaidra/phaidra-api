@@ -173,6 +173,10 @@
         "updateindex": 1
     },
 
+    "authorization": {
+        "canmodifyownerid": [ "username1" ]
+    },
+
     "authentication": {
 
     	"realm": "Phaidra",
