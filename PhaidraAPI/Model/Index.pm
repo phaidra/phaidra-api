@@ -1587,6 +1587,17 @@ sub _add_uwm_index {
     push @{$index->{"bib_roles_corp_".$r->{role}}}, $r->{institution} if $r->{institution} ne '';   
   }
 
+  my $org = $self->_find_first_uwm_node_rec($c, "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0", "organization", $uwm);
+  if($org){
+    if($org->{children}){
+      for my $orgch (@{$org->{children}}){
+        if($orgch->{xmlname} eq 'hoschtyp'){
+          $index->{"oer"} = '1' if $orgch->{ui_value} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_17/1562801'; 
+        }
+      }
+    }
+  }
+
   # digital book stuff
   my $digbook = $self->_find_first_uwm_node_rec($c, "http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0", "digitalbook", $uwm);
   if($digbook){
