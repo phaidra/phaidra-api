@@ -121,6 +121,9 @@ sub _get_uwm_relations {
       if($res eq '1556222'){
         push @$relations, { value => 'info:eu-repo/grantAgreement/EC/FP7/'.$id->text };
       }
+      if($res eq '1562802'){
+        push @$relations, { value => 'http://d-nb.info/gnd/'.$id->text };
+      }
     }
   }
 

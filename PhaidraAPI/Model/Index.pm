@@ -372,6 +372,10 @@ our %uwm_2_mods_roles = (
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561314" => "wpr",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561315" => "wst",
 
+  # duplicates in padova, to be removed from objects
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562631" => "edc",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562630" => "trc",
+
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562796" => "mfr" # remove this from objects, it's a duplicate
 
 );
