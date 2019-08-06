@@ -380,6 +380,45 @@ our %uwm_2_mods_roles = (
 
 );
 
+sub getDoc {
+  my ($self, $c, $pid) = @_;
+
+  my $res = { alerts => [], status => 200 };
+  my $doc;
+
+  my $urlget = Mojo::URL->new;
+  $urlget->scheme($c->app->config->{solr}->{scheme});
+  $urlget->host($c->app->config->{solr}->{host});
+  $urlget->port($c->app->config->{solr}->{port});
+  if($c->app->config->{solr}->{path}){
+    $urlget->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/select");
+  }else{
+    $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
+  }
+
+  $urlget->query(q => "pid:\"$pid\"", rows => "1", wt => "json");
+
+  my $ua = Mojo::UserAgent->new;
+
+  my $getres = $ua->get($urlget)->result;
+
+  if ($getres->is_success) {
+    for my $d (@{$getres->json->{response}->{docs}}){
+      $doc = $d;
+      last;
+    }
+  }else{
+    my $err = "[$pid] error getting object info from solr: ".$res->code." ".$res->message;
+    $c->app->log->error($err);
+    unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+    $res->{status} =  $res->code ? $res->code : 500;
+    return $res;
+  }
+
+  $res->{doc} = $doc;
+  return $res;
+}
+
 sub update {
   my ($self, $c, $pid, $dc_model, $search_model, $rel_model, $object_model, $ignorestatus) = @_;
 

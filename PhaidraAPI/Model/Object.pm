@@ -18,6 +18,7 @@ use PhaidraAPI::Model::Jsonldprivate;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Hooks;
 use PhaidraAPI::Model::Membersorder;
+use PhaidraAPI::Model::Index;
 use IO::Scalar;
 use File::MimeInfo;
 use File::Temp 'tempfile';
@@ -69,8 +70,31 @@ my %mime_to_cmodel = (
 	'video/x-matroska' => 'cmodel:Video'
 );
 
+
+sub info {
+  my $self = shift;
+  my $c = shift;
+  my $pid = shift;
+
+  my $res = { alerts => [], status => 200 };
+  my $info;
+
+  my $index_model = PhaidraAPI::Model::Index->new;
+  my $docres = $index_model->getDoc($c, $pid);
+  if ($docres->{status} != 200) {
+    return $docres;
+  } else {
+		$info = $docres->{doc};
+	}
+
+  # TODO: if uwm_roles_json or roles_json -> decode_json
+
+  $res->{info} = $info;
+  return $res;
+}
+
 sub delete {
-	my $self = shift;
+  my $self = shift;
   my $c = shift;
   my $pid = shift;
   my $username = shift;

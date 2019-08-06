@@ -16,6 +16,20 @@ use PhaidraAPI::Model::Geo;
 use PhaidraAPI::Model::Mods;
 use Time::HiRes qw/tv_interval gettimeofday/;
 
+sub info {
+  my $self = shift;
+
+	unless(defined($self->stash('pid'))){
+		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
+		return;
+	}
+
+	my $object_model = PhaidraAPI::Model::Object->new;
+  my $r = $object_model->info($self, $self->stash('pid'));
+
+  $self->render(json => $r, status => $r->{status}) ;
+}
+
 sub delete {
   my $self = shift;
 
