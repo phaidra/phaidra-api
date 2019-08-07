@@ -99,7 +99,8 @@ sub info {
   for my $ds (@{$info->{datastreams}}){
     $dshash{$ds} = 1
   }
-
+  $info->{dshash} = \%dshash;
+  
   $info->{metadata} = undef;
 
   if($dshash{'JSON-LD'}){   
@@ -146,18 +147,17 @@ sub info {
     }
   }
 
+  $info->{readrights} = 0;
+  $info->{writerights} = 0;
   my $rores = $self->get_datastream($c, $pid, 'READONLY', $username, $password);
   if($rores->{status} eq '404'){
-    $info->{readonly} = 1;
-    my $rwres = $self->get_datastream($c, $pid, 'READWRITE', $username, $password);
-    if($rwres->{status} eq '404'){
-      $info->{readwrite} = 1;
-    }else{
-      $info->{readwrite} = 0;
+    $info->{readrights} = 1;
+    if ($username) {
+      my $rwres = $self->get_datastream($c, $pid, 'READWRITE', $username, $password);
+      if($rwres->{status} eq '404'){
+        $info->{writerights} = 1;
+      }
     }
-  }else{
-    $info->{readonly} = 0;
-    $info->{readwrite} = 0;
   }
 
   my $user_data = $c->app->directory->get_user_data($c, $info->{owner});
