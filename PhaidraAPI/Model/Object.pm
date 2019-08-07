@@ -160,6 +160,14 @@ sub info {
     $info->{readwrite} = 0;
   }
 
+  my $user_data = $c->app->directory->get_user_data($c, $info->{owner});
+  $info->{owner} = {
+    username => $user_data->{username},
+    firstname => $user_data->{firstname},
+    lastname => $user_data->{lastname},
+    email => $user_data->{email}
+  };
+
   # $c->app->log->debug("XXXXXXXXXXXXXX ".$c->app->dumper($info));
 
   $res->{info} = $info;
