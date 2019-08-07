@@ -19,13 +19,16 @@ use Time::HiRes qw/tv_interval gettimeofday/;
 sub info {
   my $self = shift;
 
+  my $username = $self->stash->{basic_auth_credentials}->{username};
+  my $password = $self->stash->{basic_auth_credentials}->{password};
+
 	unless(defined($self->stash('pid'))){
 		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
 		return;
 	}
 
 	my $object_model = PhaidraAPI::Model::Object->new;
-  my $r = $object_model->info($self, $self->stash('pid'));
+  my $r = $object_model->info($self, $self->stash('pid'), $username, $password);
 
   $self->render(json => $r, status => $r->{status}) ;
 }
@@ -470,7 +473,6 @@ sub get_metadata {
   }
 
   if($r->{dshash}->{'JSON-LD-PRIVATE'}){
-    $self->app->log->debug("XXXXXXXXXXXXXXXXXXXXXXX $username - $password");
     my $jsonldprivate_model = PhaidraAPI::Model::Jsonldprivate->new;  
     my $r_jsonldprivate = $jsonldprivate_model->get_object_jsonldprivate_parsed($self, $pid, $username, $password);
     if($r_jsonldprivate->{status} ne 200){

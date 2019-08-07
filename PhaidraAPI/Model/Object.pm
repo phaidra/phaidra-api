@@ -6,6 +6,7 @@ use v5.10;
 use base qw/Mojo::Base/;
 use Data::Dumper;
 use Mojo::Util qw(xml_escape encode decode);
+use Mojo::JSON qw(encode_json decode_json);
 use Mojo::ByteStream qw(b);
 use lib "lib/phaidra_binding";
 use Phaidra::API;
@@ -75,6 +76,8 @@ sub info {
   my $self = shift;
   my $c = shift;
   my $pid = shift;
+  my $username = shift;
+  my $password = shift;
 
   my $res = { alerts => [], status => 200 };
   my $info;
@@ -84,10 +87,80 @@ sub info {
   if ($docres->{status} != 200) {
     return $docres;
   } else {
-		$info = $docres->{doc};
-	}
+    $info = $docres->{doc};
+  }
 
-  # TODO: if uwm_roles_json or roles_json -> decode_json
+  if (exists($info->{uwm_roles_json})) {
+    my $rolesjsonstr = encode 'UTF-8', @{$info->{uwm_roles_json}}[0];
+    $info->{uwm_roles_json} = decode_json($rolesjsonstr);
+  }
+
+  my %dshash;
+  for my $ds (@{$info->{datastreams}}){
+    $dshash{$ds} = 1
+  }
+
+  $info->{metadata} = undef;
+
+  if($dshash{'JSON-LD'}){   
+    my $jsonld_model = PhaidraAPI::Model::Jsonld->new;  
+    my $r_jsonld = $jsonld_model->get_object_jsonld_parsed($c, $pid, $username, $password);
+    if($r_jsonld->{status} ne 200){
+      push @{$res->{alerts}}, @{$r_jsonld->{alerts}} if scalar @{$r_jsonld->{alerts}} > 0;
+      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting JSON-LD' };
+    }else{
+      $info->{metadata}->{'JSON-LD'} = $r_jsonld->{'JSON-LD'};
+    }
+  }
+
+  if($dshash{'MODS'}){   
+    my $mods_model = PhaidraAPI::Model::Mods->new;
+    my $r = $mods_model->get_object_mods_json($c, $pid, 'basic', $username, $password);
+    if($r->{status} ne 200){
+      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting MODS' };
+    }else{
+      $info->{metadata}->{mods} = $r->{mods};
+    }
+  }
+
+  if($dshash{'UWMETADATA'}){   
+    my $uwmetadata_model = PhaidraAPI::Model::Uwmetadata->new;
+    my $r = $uwmetadata_model->get_object_metadata($c, $pid, 'basic', $username, $password);
+    if($r->{status} ne 200){
+      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting UWMETADATA' };
+    }else{
+      $info->{metadata}->{uwmetadata} = $r->{uwmetadata};
+    }
+  }
+
+  if($dshash{'GEO'}){
+    my $geo_model = PhaidraAPI::Model::Geo->new;
+    my $r = $geo_model->get_object_geo_json($c, $pid, $username, $password);
+    if($r->{status} ne 200){
+      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting GEO' };
+    }else{
+      $info->{metadata}->{geo} = $r->{geo};
+    }
+  }
+
+  my $rores = $self->get_datastream($c, $pid, 'READONLY', $username, $password);
+  if($rores->{status} eq '404'){
+    $info->{readonly} = 1;
+    my $rwres = $self->get_datastream($c, $pid, 'READWRITE', $username, $password);
+    if($rwres->{status} eq '404'){
+      $info->{readwrite} = 1;
+    }else{
+      $info->{readwrite} = 0;
+    }
+  }else{
+    $info->{readonly} = 0;
+    $info->{readwrite} = 0;
+  }
+
+  # $c->app->log->debug("XXXXXXXXXXXXXX ".$c->app->dumper($info));
 
   $res->{info} = $info;
   return $res;

@@ -361,7 +361,6 @@ sub startup {
   $r->route('object/:pid/datacite')               ->via('get')    ->to('datacite#get');
   $r->route('object/:pid/state')                  ->via('get')    ->to('object#get_state');
   $r->route('object/:pid/cmodel')                 ->via('get')    ->to('object#get_cmodel');
-  $r->route('object/:pid/info')                   ->via('get')    ->to('object#info');
 
   $r->route('object/:pid/id')                     ->via('get')    ->to('search#id');
 
@@ -378,7 +377,7 @@ sub startup {
 
   # this just extracts the credentials - authentication will be done by fedora
 	my $proxyauth = $r->under('/')->to('authentication#extract_credentials', must_be_present => 1);
-  my $apiauth_optional = $r->under('/')->to('authentication#extract_credentials', must_be_present => 0);  
+  my $proxyauth_optional = $r->under('/')->to('authentication#extract_credentials', must_be_present => 0);  
 
   # we authenticate the user, because we are not going to call fedora
   my $check_auth = $proxyauth->under('/')->to('authentication#authenticate');
@@ -393,25 +392,27 @@ sub startup {
   $check_auth->route('groups')                                            ->via('get')      ->to('groups#get_users_groups');
   $check_auth->route('group/:gid')                                        ->via('get')      ->to('groups#get_group');
 
-  $proxyauth->route('object/:pid/jsonldprivate')                          ->via('get')      ->to('jsonldprivate#get');
-
   $check_auth->route('jsonld/templates')                                  ->via('get')      ->to('jsonld#get_users_templates');
   $check_auth->route('jsonld/template/:tid')                              ->via('get')      ->to('jsonld#get_template');
+  
+  $proxyauth_optional->route('authz/check/:pid/:op')                      ->via('get')      ->to('authorization#check_rights'); 
+
+  $proxyauth_optional->route('streaming/:pid')                            ->via('get')      ->to('utils#streamingplayer');
+
+  $proxyauth_optional->route('imageserver')                               ->via('get')      ->to('imageserver#get');
+
+  $proxyauth_optional->route('object/:pid/octets')                        ->via('get')      ->to('octets#get');
+  $proxyauth_optional->route('object/:pid/diss/:bdef/:method')            ->via('get')      ->to('object#diss');
+  $proxyauth_optional->route('object/:pid/fulltext')                      ->via('get')      ->to('fulltext#get');
+  $proxyauth_optional->route('object/:pid/metadata')                      ->via('get')      ->to('object#get_metadata');
+  $proxyauth_optional->route('object/:pid/info')                          ->via('get')      ->to('object#info');
 
   $proxyauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
-  $apiauth_optional->route('authz/check/:pid/:op')                        ->via('get')      ->to('authorization#check_rights'); 
+  
+  $proxyauth->route('imageserver/:pid/status')                            ->via('get')      ->to('imageserver#status');
 
-  $apiauth_optional->route('streaming/:pid')                              ->via('get')      ->to('utils#streamingplayer');
-
-  $proxyauth->route('imageserver/:pid/status')                            ->via('get')      ->to('imageserver#status');    
-  $apiauth_optional->route('imageserver')                                 ->via('get')      ->to('imageserver#get');
-
-  $apiauth_optional->route('object/:pid/octets')                          ->via('get')      ->to('octets#get');
-  $apiauth_optional->route('object/:pid/diss/:bdef/:method')              ->via('get')      ->to('object#diss');
+  $proxyauth->route('object/:pid/jsonldprivate')                          ->via('get')      ->to('jsonldprivate#get');
   $proxyauth->route('object/:pid/rights')                                 ->via('get')      ->to('rights#get');
-  $apiauth_optional->route('object/:pid/fulltext')                        ->via('get')      ->to('fulltext#get');
-
-  $apiauth_optional->route('object/:pid/metadata')                        ->via('get')    ->to('object#get_metadata');
 
   unless($self->app->config->{readonly}){
 
@@ -422,6 +423,7 @@ sub startup {
     $check_admin_auth->route('object/:pid/dc')                            ->via('post')     ->to('dc#update');
 
     $check_admin_auth->route('imageserver/process')                       ->via('post')     ->to('imageserver#process_pids');
+
     $proxyauth->route('imageserver/:pid/process')                         ->via('post')     ->to('imageserver#process');
 
     $proxyauth->route('object/:pid/modify')                               ->via('post')     ->to('object#modify');
