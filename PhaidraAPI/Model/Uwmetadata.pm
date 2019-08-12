@@ -50,15 +50,17 @@ sub metadata_tree {
 
     my $res = { alerts => [], status => 200 };
 
-	if($c->app->config->{local_uwmetadata_tree} eq 'PhaidraAPI::Model::Uwmetadata::Tree'){
-		$c->app->log->debug("Reading uwmetadata tree from ".$c->app->config->{local_uwmetadata_tree}." class");
-		$res->{metadata_tree} = $PhaidraAPI::Model::Uwmetadata::Tree::tree{tree};
-		return $res;
-	}
+  $c->app->log->debug("metadata_tree nocache[$nocache]");
 
 	if($nocache){
 		$c->app->log->debug("Reading uwmetadata tree from db (nocache request)");
 		$res->{metadata_tree} = $self->get_metadata_tree($c);
+		return $res;
+	}
+
+  if($c->app->config->{local_uwmetadata_tree} eq 'PhaidraAPI::Model::Uwmetadata::Tree'){
+		$c->app->log->debug("Reading uwmetadata tree from ".$c->app->config->{local_uwmetadata_tree}." class");
+		$res->{metadata_tree} = $PhaidraAPI::Model::Uwmetadata::Tree::tree{tree};
 		return $res;
 	}
 
