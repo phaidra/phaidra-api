@@ -425,13 +425,13 @@ sub create_simple {
   $res->{pid} = $pid;
 
   if ($cmodel eq 'cmodel:Resource') {
-    unless (exists($metadata->{metadata}->{link})) {
+    unless (exists($metadata->{metadata}->{resourcelink})) {
       unshift @{$res->{alerts}}, { type => 'danger', msg => 'No resource link provided'};
       $res->{status} = 400;
       return $res;
     }
     # save link
-    my $r = $self->add_datastream($c, $pid, "LINK", "text/html", $metadata->{metadata}->{link}, "Link to external resource", undef, "R", $username, $password);
+    my $r = $self->add_datastream($c, $pid, "LINK", "text/html", $metadata->{metadata}->{resourcelink}, "Link to external resource", undef, "R", $username, $password);
     if($r->{status} ne 200){
       $res->{status} = $r->{status};
       foreach my $a (@{$r->{alerts}}){
