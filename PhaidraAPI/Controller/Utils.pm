@@ -79,6 +79,7 @@ sub streamingplayer {
       $self->stash( server_cd => $self->config->{streaming}->{server_cd} );
       $self->stash( basepath => $self->config->{streaming}->{basepath} );
     } else {
+      $self->app->log->error("Video key not available: ".$self->app->dumper($r));
       $self->render(text => $self->app->dumper($r), status => $r->{status});
     }
   }else{
