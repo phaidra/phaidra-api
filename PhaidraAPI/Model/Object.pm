@@ -241,9 +241,7 @@ sub delete {
 
 	my $ua = Mojo::UserAgent->new;
 	my %headers;
-  if($c->stash->{remote_user}){
-    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
+  $self->add_upstream_headers($c, \%headers);
 
   my $deleteres = $ua->delete($url => \%headers)->result;
   if ($deleteres->code == 200) {
@@ -255,6 +253,18 @@ sub delete {
 	}
 
   return $res;
+}
+
+sub add_upstream_headers {
+  my $self = shift;
+  my $c = shift;
+  my $headers = shift;
+
+  if ($c->stash->{remote_user}) {
+    $headers->{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
+    $headers->{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation} if $c->stash->{remote_affiliation};
+    $headers->{$c->app->config->{authentication}->{upstream}->{groupsheader}} = $c->stash->{remote_groups} if $c->stash->{remote_groups};
+  }
 }
 
 sub modify {
@@ -293,9 +303,7 @@ sub modify {
 
 	my $ua = Mojo::UserAgent->new;
 	my %headers;
-  if($c->stash->{remote_user}){
-    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
+  $self->add_upstream_headers($c, \%headers);
 
   my $putres = $ua->put($url => \%headers)->result;
   if ($putres->is_success) {
@@ -471,9 +479,7 @@ sub create_simple {
 
     my $ua = Mojo::UserAgent->new;
     my %headers;
-    if($c->stash->{remote_user}){
-      $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-    }
+    $self->add_upstream_headers($c, \%headers);
     $headers{'Content-Type'} = $mimetype;
 
     my $post = $ua->post($url => \%headers => form => { file => { file => $upload->asset }} );
@@ -775,6 +781,49 @@ sub create_container {
   return $res;
 }
 
+sub add_octets {
+
+  my $self = shift;
+  my $c = shift;
+  my $pid = shift;
+  my $upload = shift;
+  my $file = shift;
+  my $mimetype = shift;
+
+  my $res = { alerts => [], status => 200 };
+
+  my $size = $file->size;
+  my $name = $file->filename;
+
+  $c->app->log->debug("Got file: $name [$size]");
+
+  my %params;
+  $params{controlGroup} = 'M';
+  $params{dsLabel} = defined($name) ? $name : $c->app->config->{phaidra}->{defaultlabel};
+  $params{mimeType} = $mimetype;
+
+  my $url = Mojo::URL->new;
+  $url->scheme('https');
+  $url->userinfo($c->stash->{basic_auth_credentials}->{username}.":".$c->stash->{basic_auth_credentials}->{password});
+  $url->host($c->app->config->{phaidra}->{fedorabaseurl});
+  $url->path("/fedora/objects/".$pid."/datastreams/OCTETS");
+  $url->query(\%params);
+
+  my $ua = Mojo::UserAgent->new;
+  my %headers;
+  $self->add_upstream_headers($c, \%headers);
+  $headers{'Content-Type'} = $mimetype;
+
+  my $postres = $ua->post($url => \%headers => form => { file => { file => $upload->asset }} )->result;
+  unless($postres->is_success) {
+    $c->app->log->error($postres->code . ": " . $postres->message);
+	  unshift @{$res->{alerts}}, { type => 'danger', msg => $postres->message };
+	  $res->{status} =  $postres->code ? $postres->code : 500;
+  }
+
+  return $res;
+}
+
 sub save_metadata {
 
 	my $self = shift;
@@ -934,9 +983,7 @@ sub get_dissemination {
 	$url->path("/fedora/get/$pid/$bdef/$disseminator");
 
 	my %headers;
-  if($c->stash->{remote_user}){
-    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
+  $self->add_upstream_headers($c, \%headers);
 
 	my $get = Mojo::UserAgent->new->get($url => \%headers);
 
@@ -971,9 +1018,7 @@ sub get_foxml {
 	$url->path("/fedora/objects/$pid/objectXML");
 
   my %headers;
-  if($c->stash->{remote_user}){
-    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
+  $self->add_upstream_headers($c, \%headers);
 
 	my $get = Mojo::UserAgent->new->get($url => \%headers);
 
@@ -1020,9 +1065,7 @@ sub get_datastream {
 	$url->path("/fedora/objects/$pid/datastreams/$dsid/content");
 
 	my %headers;
-	if($c->stash->{remote_user}){
-  	  $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
+	$self->add_upstream_headers($c, \%headers);
 
   my $get = Mojo::UserAgent->new->get($url => \%headers);
 
@@ -1138,9 +1181,7 @@ sub add_datastream {
 	my $ua = Mojo::UserAgent->new;
 
 	my %headers;
-  if($c->stash->{remote_user}){
-    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
+  $self->add_upstream_headers($c, \%headers);
 	
 	my $post;
 	if($dscontent){
@@ -1210,9 +1251,7 @@ sub modify_datastream {
 	my $ua = Mojo::UserAgent->new;
 
 	my %headers;
-  if($c->stash->{remote_user}){
-    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
+  $self->add_upstream_headers($c, \%headers);
 
 	my $put;
 	if($dscontent){
@@ -1350,9 +1389,7 @@ sub create_empty {
 	my $ua = Mojo::UserAgent->new;
 
 	my %headers;
-  if($c->stash->{remote_user}){
-    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
+  $self->add_upstream_headers($c, \%headers);
   $headers{'Content-Type'} = 'text/xml';
 
   	my $put = $ua->post($url => \%headers => $foxml);

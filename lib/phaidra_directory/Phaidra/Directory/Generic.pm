@@ -203,7 +203,7 @@ sub get_study
 	}
 
   my $res = { alerts => [], status => 200 };
-  $res->{study} = $values;
+  $res->{study} = \@values;
   return $res;
 }
 

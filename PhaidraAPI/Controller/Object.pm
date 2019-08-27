@@ -330,67 +330,40 @@ sub add_or_remove_identifier {
 }
 
 sub add_octets {
-	my $self = shift;
+  my $self = shift;
 
-    my $res = { alerts => [], status => 200 };
+  my $res = { alerts => [], status => 200 };
 
-    my $upload = $self->req->upload('file');
+  my $object_model = PhaidraAPI::Model::Object->new;
 
-    if($self->req->is_limit_exceeded){
-    	$self->render(json => { alerts => [{ type => 'danger', msg => 'File is too big' }]}, status => 400);
-		return;
-    }
+  my $upload = $self->req->upload('file');
 
-    unless(defined($self->stash('pid'))){
-		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]}, status => 400);
-		return;
-	}
+  if($self->req->is_limit_exceeded){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'File is too big' }]}, status => 400);
+    return;
+  }
+
+  unless(defined($self->stash('pid'))){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]}, status => 400);
+    return;
+  }
 
   my $mimetype;
-	if(defined($self->param('mimetype'))){
-      $mimetype = $self->param('mimetype');
+  if(defined($self->param('mimetype'))){
+    $mimetype = $self->param('mimetype');
   }else{
-      my $object_model = PhaidraAPI::Model::Object->new;
-      my $mimetype = $object_model->get_mimetype($self, $upload->asset);
-      unshift @{$res->{alerts}}, { type => 'info', msg => "Undefined mimetype, using magic: $mimetype" };
+    $mimetype = $object_model->get_mimetype($self, $upload->asset);
+    unshift @{$res->{alerts}}, { type => 'info', msg => "Undefined mimetype, using magic: $mimetype" };
   }
 
+  my $file = $self->param('file');
+  my $pid = $self->stash('pid');
 
-	my $file = $self->param('file');
-  	my $size = $file->size;
-  	my $name = $file->filename;
+  my $addres = $object_model->add_octets($c, $pid, $upload, $file, $mimetype);
+  push @{$res->{alerts}}, @{$addres->{alerts}} if scalar @{$addres->{alerts}} > 0;
+  $res->{status} = $addres->{status};
 
-  	$self->app->log->debug("Got file: $name [$size]");
-
-	my %params;
-    $params{controlGroup} = 'M';
-    $params{dsLabel} = defined($name) ? $name : $self->app->config->{phaidra}->{defaultlabel};
-    $params{mimeType} = $self->param('mimetype');
-
-	my $url = Mojo::URL->new;
-	$url->scheme('https');
-	$url->userinfo($self->stash->{basic_auth_credentials}->{username}.":".$self->stash->{basic_auth_credentials}->{password});
-	$url->host($self->app->config->{phaidra}->{fedorabaseurl});
-	$url->path("/fedora/objects/".$self->stash('pid')."/datastreams/OCTETS");
-	$url->query(\%params);
-
-	my $ua = Mojo::UserAgent->new;
-  my %headers;
-  if($self->stash->{remote_user}){
-    $headers{$self->app->config->{authentication}->{upstream}->{principalheader}} = $self->stash->{remote_user};
-  }
-  $headers{'Content-Type'} = $self->param('mimetype');
-
-  my $post = $ua->post($url => \%headers => form => { file => { file => $upload->asset }} );
-
-  unless(my $r = $post->success) {
-	  my ($err, $code) = $post->error;
-	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-	  $res->{status} =  $code ? $code : 500;
-	}
-
-	$self->render(json => $res, status => $res->{status}) ;
-
+  $self->render(json => $res, status => $res->{status}) ;
 }
 
 sub add_or_modify_datastream {
