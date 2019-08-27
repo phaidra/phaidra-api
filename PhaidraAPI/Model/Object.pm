@@ -395,101 +395,121 @@ sub get_mimetype(){
 
 sub create_simple {
 
-	my $self = shift;
-    my $c = shift;
-    my $cmodel = shift;
-	my $metadata = shift;
-	my $mimetype = shift;
-	my $upload = shift;
-    my $username = shift;
-    my $password = shift;
+  my $self = shift;
+  my $c = shift;
+  my $cmodel = shift;
+  my $metadata = shift;
+  my $mimetype = shift;
+  my $upload = shift;
+  my $username = shift;
+  my $password = shift;
 
-	my $res = { alerts => [], status => 200 };
+  my $res = { alerts => [], status => 200 };
 
-	# $c->app->log->debug("req Upload: ".$c->app->dumper($c->req->upload));
-	# $c->app->log->debug("upload: ".$c->app->dumper($upload));
+  unless(defined($metadata)){
+    unshift @{$res->{alerts}}, { type => 'danger', msg => 'No metadata provided'};
+    $res->{status} = 400;
+    return $res;
+  }
 
-  	my $size = $upload->size;
-  	my $name = $upload->filename;
+  # create object
+  my $r = $self->create($c, $cmodel, $username, $password);
+  if($r->{status} ne 200){
+    $res->{status} = 500;
+    unshift @{$res->{alerts}}, @{$r->{alerts}};
+    unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error creating object'};
+    return $res;
+  }
 
-	unless(defined($metadata)){
-		unshift @{$res->{alerts}}, { type => 'danger', msg => 'No metadata provided'};
-		$res->{status} = 400;
-		return $res;
-	}
+  my $pid = $r->{pid};
+  $res->{pid} = $pid;
 
-	# create object
-    my $r = $self->create($c, $cmodel, $username, $password);
-   	if($r->{status} ne 200){
-   		$res->{status} = 500;
-		unshift @{$res->{alerts}}, @{$r->{alerts}};
-		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error creating object'};
-   		return $res;
-   	}
+  if ($cmodel eq 'cmodel:Resource') {
+    unless (exists($metadata->{metadata}->{link})) {
+      unshift @{$res->{alerts}}, { type => 'danger', msg => 'No resource link provided'};
+      $res->{status} = 400;
+      return $res;
+    }
+    # save link
+    my $r = $self->add_datastream($c, $pid, "LINK", "text/html", $metadata->{metadata}->{link}, "Link to external resource", undef, "R", $username, $password);
+    if($r->{status} ne 200){
+      $res->{status} = $r->{status};
+      foreach my $a (@{$r->{alerts}}){
+        unshift @{$res->{alerts}}, $a;
+      }
+      unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving link'};
+      return $res;
+    }
+  } else {
 
-	my $pid = $r->{pid};
-	$res->{pid} = $pid;
+    # $c->app->log->debug("req Upload: ".$c->app->dumper($c->req->upload));
+    # $c->app->log->debug("upload: ".$c->app->dumper($upload));
 
-   	# save data first, because these may be needed (dsinfo..) when saving metadata
-   	$c->app->log->debug("[$pid] Saving octets: $name [$size B]");
-   	my %params;
+    my $size = $upload->size;
+    my $name = $upload->filename;
+
+    # save data first, because these may be needed (dsinfo..) when saving metadata
+    $c->app->log->debug("[$pid] Saving octets: $name [$size B]");
+    my %params;
     $params{controlGroup} = 'M';
     $params{dsLabel} = $name;
     if(defined($mimetype)){
-		$c->app->log->info("Provided mimetype $mimetype");
-	}else{
-    	$mimetype = $self->get_mimetype($c, $upload->asset);
-		unshift @{$res->{alerts}}, { type => 'info', msg => "Undefined mimetype, using magic: $mimetype" };
-		$c->app->log->info("Undefined mimetype, using magic: $mimetype");
-	}
-	$params{mimeType} = $mimetype;
+      $c->app->log->info("Provided mimetype $mimetype");
+    }else{
+      $mimetype = $self->get_mimetype($c, $upload->asset);
+      unshift @{$res->{alerts}}, { type => 'info', msg => "Undefined mimetype, using magic: $mimetype" };
+      $c->app->log->info("Undefined mimetype, using magic: $mimetype");
+    }
+    $params{mimeType} = $mimetype;
 
     my $url = Mojo::URL->new;
-	$url->scheme('https');
-	$url->userinfo("$username:$password");
-	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
-	$url->path("/fedora/objects/$pid/datastreams/OCTETS");
-	$url->query(\%params);
+    $url->scheme('https');
+    $url->userinfo("$username:$password");
+    $url->host($c->app->config->{phaidra}->{fedorabaseurl});
+    $url->path("/fedora/objects/$pid/datastreams/OCTETS");
+    $url->query(\%params);
 
-	my $ua = Mojo::UserAgent->new;
-	my %headers;
-  if($c->stash->{remote_user}){
-    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
-  $headers{'Content-Type'} = $mimetype;
-
-	my $post = $ua->post($url => \%headers => form => { file => { file => $upload->asset }} );
-
-  	unless($r = $post->success) {
-	  my ($err, $code) = $post->error;
-	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-	  $res->{status} =  $code ? $code : 500;
-	  return $res;
-	}
-
-    # save metadata
-    $r = $self->save_metadata($c, $pid, $metadata->{metadata}, $username, $password, 1);
-    if($r->{status} ne 200){
-        $res->{status} = $r->{status};
-				foreach my $a (@{$r->{alerts}}){
-        	unshift @{$res->{alerts}}, $a;
-				}
-        unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving metadata'};
-        return $res;
+    my $ua = Mojo::UserAgent->new;
+    my %headers;
+    if($c->stash->{remote_user}){
+      $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
     }
+    $headers{'Content-Type'} = $mimetype;
 
-	# activate
-    $r = $self->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
-    if($r->{status} ne 200){
-   		$res->{status} = $r->{status};
-		foreach my $a (@{$r->{alerts}}){
-			unshift @{$res->{alerts}}, $a;
-		}
-		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error activating object'};
-   		return $res;
-   	}else{
-	$c->app->log->info("Object successfully created pid[$pid] filename[$name] size[$size]");
-      }
+    my $post = $ua->post($url => \%headers => form => { file => { file => $upload->asset }} );
+    if ($r = $post->success) {
+      $c->app->log->info("Data successfully uploaded: filename[$name] size[$size]");
+    } else {
+      my ($err, $code) = $post->error;
+      unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+      $res->{status} =  $code ? $code : 500;
+      return $res;
+    }
+  }
+
+  # save metadata
+  $r = $self->save_metadata($c, $pid, $metadata->{metadata}, $username, $password, 1);
+  if($r->{status} ne 200){
+    $res->{status} = $r->{status};
+    foreach my $a (@{$r->{alerts}}){
+      unshift @{$res->{alerts}}, $a;
+    }
+    unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving metadata'};
+    return $res;
+  }
+
+  # activate
+  $r = $self->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
+  if($r->{status} ne 200){
+    $res->{status} = $r->{status};
+  foreach my $a (@{$r->{alerts}}){
+    unshift @{$res->{alerts}}, $a;
+  }
+  unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error activating object'};
+    return $res;
+  }else{
+    $c->app->log->info("Object successfully created pid[$pid]");
+  }
 
   if (exists($metadata->{metadata}->{'ownerid'})) {
     $c->app->log->debug("Changing ownerid to ". $metadata->{metadata}->{'ownerid'});
@@ -523,8 +543,7 @@ sub create_simple {
     }
   }
 
-
-   	return $res;
+  return $res;
 }
 
 sub create_container {
