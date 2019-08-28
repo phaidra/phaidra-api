@@ -359,7 +359,7 @@ sub add_octets {
   my $file = $self->param('file');
   my $pid = $self->stash('pid');
 
-  my $addres = $object_model->add_octets($c, $pid, $upload, $file, $mimetype);
+  my $addres = $object_model->add_octets($self, $pid, $upload, $file, $mimetype);
   push @{$res->{alerts}}, @{$addres->{alerts}} if scalar @{$addres->{alerts}} > 0;
   $res->{status} = $addres->{status};
 

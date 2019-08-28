@@ -376,7 +376,9 @@ our %uwm_2_mods_roles = (
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562631" => "edc",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562630" => "trc",
 
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562796" => "mfr" # remove this from objects, it's a duplicate
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562796" => "mfr", # remove this from objects, it's a duplicate
+
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557138" => "aus" # remove this from objects, it's a duplicate
 
 );
 
