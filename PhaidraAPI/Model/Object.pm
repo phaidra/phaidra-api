@@ -6,6 +6,7 @@ use v5.10;
 use base qw/Mojo::Base/;
 use Data::Dumper;
 use Mojo::Util qw(xml_escape encode decode);
+use Mojo::JSON qw(encode_json decode_json);
 use Mojo::ByteStream qw(b);
 use lib "lib/phaidra_binding";
 use Phaidra::API;
@@ -18,6 +19,7 @@ use PhaidraAPI::Model::Jsonldprivate;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Hooks;
 use PhaidraAPI::Model::Membersorder;
+use PhaidraAPI::Model::Index;
 use IO::Scalar;
 use File::MimeInfo;
 use File::Temp 'tempfile';
@@ -69,8 +71,111 @@ my %mime_to_cmodel = (
 	'video/x-matroska' => 'cmodel:Video'
 );
 
+
+sub info {
+  my $self = shift;
+  my $c = shift;
+  my $pid = shift;
+  my $username = shift;
+  my $password = shift;
+
+  my $res = { alerts => [], status => 200 };
+  my $info;
+
+  my $index_model = PhaidraAPI::Model::Index->new;
+  my $docres = $index_model->getDoc($c, $pid);
+  if ($docres->{status} != 200) {
+    return $docres;
+  } else {
+    $info = $docres->{doc};
+  }
+
+  if (exists($info->{uwm_roles_json})) {
+    my $rolesjsonstr = encode 'UTF-8', @{$info->{uwm_roles_json}}[0];
+    $info->{uwm_roles_json} = decode_json($rolesjsonstr);
+  }
+
+  my %dshash;
+  for my $ds (@{$info->{datastreams}}){
+    $dshash{$ds} = 1
+  }
+  $info->{dshash} = \%dshash;
+  
+  $info->{metadata} = undef;
+
+  if($dshash{'JSON-LD'}){   
+    my $jsonld_model = PhaidraAPI::Model::Jsonld->new;  
+    my $r_jsonld = $jsonld_model->get_object_jsonld_parsed($c, $pid, $username, $password);
+    if($r_jsonld->{status} ne 200){
+      push @{$res->{alerts}}, @{$r_jsonld->{alerts}} if scalar @{$r_jsonld->{alerts}} > 0;
+      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting JSON-LD' };
+    }else{
+      $info->{metadata}->{'JSON-LD'} = $r_jsonld->{'JSON-LD'};
+    }
+  }
+
+  if($dshash{'MODS'}){   
+    my $mods_model = PhaidraAPI::Model::Mods->new;
+    my $r = $mods_model->get_object_mods_json($c, $pid, 'basic', $username, $password);
+    if($r->{status} ne 200){
+      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting MODS' };
+    }else{
+      $info->{metadata}->{mods} = $r->{mods};
+    }
+  }
+
+  if($dshash{'UWMETADATA'}){   
+    my $uwmetadata_model = PhaidraAPI::Model::Uwmetadata->new;
+    my $r = $uwmetadata_model->get_object_metadata($c, $pid, 'basic', $username, $password);
+    if($r->{status} ne 200){
+      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting UWMETADATA' };
+    }else{
+      $info->{metadata}->{uwmetadata} = $r->{uwmetadata};
+    }
+  }
+
+  if($dshash{'GEO'}){
+    my $geo_model = PhaidraAPI::Model::Geo->new;
+    my $r = $geo_model->get_object_geo_json($c, $pid, $username, $password);
+    if($r->{status} ne 200){
+      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting GEO' };
+    }else{
+      $info->{metadata}->{geo} = $r->{geo};
+    }
+  }
+
+  $info->{readrights} = 0;
+  $info->{writerights} = 0;
+  my $rores = $self->get_datastream($c, $pid, 'READONLY', $username, $password);
+  if($rores->{status} eq '404'){
+    $info->{readrights} = 1;
+    if ($username) {
+      my $rwres = $self->get_datastream($c, $pid, 'READWRITE', $username, $password);
+      if($rwres->{status} eq '404'){
+        $info->{writerights} = 1;
+      }
+    }
+  }
+
+  my $user_data = $c->app->directory->get_user_data($c, $info->{owner});
+  $info->{owner} = {
+    username => $user_data->{username},
+    firstname => $user_data->{firstname},
+    lastname => $user_data->{lastname},
+    email => $user_data->{email}
+  };
+
+  # $c->app->log->debug("XXXXXXXXXXXXXX ".$c->app->dumper($info));
+
+  $res->{info} = $info;
+  return $res;
+}
+
 sub delete {
-	my $self = shift;
+  my $self = shift;
   my $c = shift;
   my $pid = shift;
   my $username = shift;
@@ -136,9 +241,7 @@ sub delete {
 
 	my $ua = Mojo::UserAgent->new;
 	my %headers;
-  if($c->stash->{remote_user}){
-    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
+  $self->add_upstream_headers($c, \%headers);
 
   my $deleteres = $ua->delete($url => \%headers)->result;
   if ($deleteres->code == 200) {
@@ -150,6 +253,18 @@ sub delete {
 	}
 
   return $res;
+}
+
+sub add_upstream_headers {
+  my $self = shift;
+  my $c = shift;
+  my $headers = shift;
+
+  if ($c->stash->{remote_user}) {
+    $headers->{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
+    $headers->{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation} if $c->stash->{remote_affiliation};
+    $headers->{$c->app->config->{authentication}->{upstream}->{groupsheader}} = $c->stash->{remote_groups} if $c->stash->{remote_groups};
+  }
 }
 
 sub modify {
@@ -188,9 +303,7 @@ sub modify {
 
 	my $ua = Mojo::UserAgent->new;
 	my %headers;
-  if($c->stash->{remote_user}){
-    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
+  $self->add_upstream_headers($c, \%headers);
 
   my $putres = $ua->put($url => \%headers)->result;
   if ($putres->is_success) {
@@ -290,101 +403,119 @@ sub get_mimetype(){
 
 sub create_simple {
 
-	my $self = shift;
-    my $c = shift;
-    my $cmodel = shift;
-	my $metadata = shift;
-	my $mimetype = shift;
-	my $upload = shift;
-    my $username = shift;
-    my $password = shift;
+  my $self = shift;
+  my $c = shift;
+  my $cmodel = shift;
+  my $metadata = shift;
+  my $mimetype = shift;
+  my $upload = shift;
+  my $username = shift;
+  my $password = shift;
 
-	my $res = { alerts => [], status => 200 };
+  my $res = { alerts => [], status => 200 };
 
-	# $c->app->log->debug("req Upload: ".$c->app->dumper($c->req->upload));
-	# $c->app->log->debug("upload: ".$c->app->dumper($upload));
+  unless(defined($metadata)){
+    unshift @{$res->{alerts}}, { type => 'danger', msg => 'No metadata provided'};
+    $res->{status} = 400;
+    return $res;
+  }
 
-  	my $size = $upload->size;
-  	my $name = $upload->filename;
+  # create object
+  my $r = $self->create($c, $cmodel, $username, $password);
+  if($r->{status} ne 200){
+    $res->{status} = 500;
+    unshift @{$res->{alerts}}, @{$r->{alerts}};
+    unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error creating object'};
+    return $res;
+  }
 
-	unless(defined($metadata)){
-		unshift @{$res->{alerts}}, { type => 'danger', msg => 'No metadata provided'};
-		$res->{status} = 400;
-		return $res;
-	}
+  my $pid = $r->{pid};
+  $res->{pid} = $pid;
 
-	# create object
-    my $r = $self->create($c, $cmodel, $username, $password);
-   	if($r->{status} ne 200){
-   		$res->{status} = 500;
-		unshift @{$res->{alerts}}, @{$r->{alerts}};
-		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error creating object'};
-   		return $res;
-   	}
+  if ($cmodel eq 'cmodel:Resource') {
+    unless (exists($metadata->{metadata}->{resourcelink})) {
+      unshift @{$res->{alerts}}, { type => 'danger', msg => 'No resource link provided'};
+      $res->{status} = 400;
+      return $res;
+    }
+    # save link
+    my $r = $self->add_datastream($c, $pid, "LINK", "text/html", $metadata->{metadata}->{resourcelink}, "Link to external resource", undef, "R", $username, $password);
+    if($r->{status} ne 200){
+      $res->{status} = $r->{status};
+      foreach my $a (@{$r->{alerts}}){
+        unshift @{$res->{alerts}}, $a;
+      }
+      unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving link'};
+      return $res;
+    }
+  } else {
 
-	my $pid = $r->{pid};
-	$res->{pid} = $pid;
+    # $c->app->log->debug("req Upload: ".$c->app->dumper($c->req->upload));
+    # $c->app->log->debug("upload: ".$c->app->dumper($upload));
 
-   	# save data first, because these may be needed (dsinfo..) when saving metadata
-   	$c->app->log->debug("[$pid] Saving octets: $name [$size B]");
-   	my %params;
+    my $size = $upload->size;
+    my $name = $upload->filename;
+
+    # save data first, because these may be needed (dsinfo..) when saving metadata
+    $c->app->log->debug("[$pid] Saving octets: $name [$size B]");
+    my %params;
     $params{controlGroup} = 'M';
     $params{dsLabel} = $name;
     if(defined($mimetype)){
-		$c->app->log->info("Provided mimetype $mimetype");
-	}else{
-    	$mimetype = $self->get_mimetype($c, $upload->asset);
-		unshift @{$res->{alerts}}, { type => 'info', msg => "Undefined mimetype, using magic: $mimetype" };
-		$c->app->log->info("Undefined mimetype, using magic: $mimetype");
-	}
-	$params{mimeType} = $mimetype;
+      $c->app->log->info("Provided mimetype $mimetype");
+    }else{
+      $mimetype = $self->get_mimetype($c, $upload->asset);
+      unshift @{$res->{alerts}}, { type => 'info', msg => "Undefined mimetype, using magic: $mimetype" };
+      $c->app->log->info("Undefined mimetype, using magic: $mimetype");
+    }
+    $params{mimeType} = $mimetype;
 
     my $url = Mojo::URL->new;
-	$url->scheme('https');
-	$url->userinfo("$username:$password");
-	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
-	$url->path("/fedora/objects/$pid/datastreams/OCTETS");
-	$url->query(\%params);
+    $url->scheme('https');
+    $url->userinfo("$username:$password");
+    $url->host($c->app->config->{phaidra}->{fedorabaseurl});
+    $url->path("/fedora/objects/$pid/datastreams/OCTETS");
+    $url->query(\%params);
 
-	my $ua = Mojo::UserAgent->new;
-	my %headers;
-  if($c->stash->{remote_user}){
-    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
-  $headers{'Content-Type'} = $mimetype;
+    my $ua = Mojo::UserAgent->new;
+    my %headers;
+    $self->add_upstream_headers($c, \%headers);
+    $headers{'Content-Type'} = $mimetype;
 
-	my $post = $ua->post($url => \%headers => form => { file => { file => $upload->asset }} );
-
-  	unless($r = $post->success) {
-	  my ($err, $code) = $post->error;
-	  unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-	  $res->{status} =  $code ? $code : 500;
-	  return $res;
-	}
-
-    # save metadata
-    $r = $self->save_metadata($c, $pid, $metadata->{metadata}, $username, $password, 1);
-    if($r->{status} ne 200){
-        $res->{status} = $r->{status};
-				foreach my $a (@{$r->{alerts}}){
-        	unshift @{$res->{alerts}}, $a;
-				}
-        unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving metadata'};
-        return $res;
+    my $post = $ua->post($url => \%headers => form => { file => { file => $upload->asset }} );
+    if ($r = $post->success) {
+      $c->app->log->info("Data successfully uploaded: filename[$name] size[$size]");
+    } else {
+      my ($err, $code) = $post->error;
+      unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+      $res->{status} =  $code ? $code : 500;
+      return $res;
     }
+  }
 
-	# activate
-    $r = $self->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
-    if($r->{status} ne 200){
-   		$res->{status} = $r->{status};
-		foreach my $a (@{$r->{alerts}}){
-			unshift @{$res->{alerts}}, $a;
-		}
-		unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error activating object'};
-   		return $res;
-   	}else{
-	$c->app->log->info("Object successfully created pid[$pid] filename[$name] size[$size]");
-      }
+  # save metadata
+  $r = $self->save_metadata($c, $pid, $metadata->{metadata}, $username, $password, 1);
+  if($r->{status} ne 200){
+    $res->{status} = $r->{status};
+    foreach my $a (@{$r->{alerts}}){
+      unshift @{$res->{alerts}}, $a;
+    }
+    unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving metadata'};
+    return $res;
+  }
+
+  # activate
+  $r = $self->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
+  if($r->{status} ne 200){
+    $res->{status} = $r->{status};
+  foreach my $a (@{$r->{alerts}}){
+    unshift @{$res->{alerts}}, $a;
+  }
+  unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error activating object'};
+    return $res;
+  }else{
+    $c->app->log->info("Object successfully created pid[$pid]");
+  }
 
   if (exists($metadata->{metadata}->{'ownerid'})) {
     $c->app->log->debug("Changing ownerid to ". $metadata->{metadata}->{'ownerid'});
@@ -418,8 +549,7 @@ sub create_simple {
     }
   }
 
-
-   	return $res;
+  return $res;
 }
 
 sub create_container {
@@ -651,6 +781,49 @@ sub create_container {
   return $res;
 }
 
+sub add_octets {
+
+  my $self = shift;
+  my $c = shift;
+  my $pid = shift;
+  my $upload = shift;
+  my $file = shift;
+  my $mimetype = shift;
+
+  my $res = { alerts => [], status => 200 };
+
+  my $size = $file->size;
+  my $name = $file->filename;
+
+  $c->app->log->debug("Got file: $name [$size]");
+
+  my %params;
+  $params{controlGroup} = 'M';
+  $params{dsLabel} = defined($name) ? $name : $c->app->config->{phaidra}->{defaultlabel};
+  $params{mimeType} = $mimetype;
+
+  my $url = Mojo::URL->new;
+  $url->scheme('https');
+  $url->userinfo($c->stash->{basic_auth_credentials}->{username}.":".$c->stash->{basic_auth_credentials}->{password});
+  $url->host($c->app->config->{phaidra}->{fedorabaseurl});
+  $url->path("/fedora/objects/".$pid."/datastreams/OCTETS");
+  $url->query(\%params);
+
+  my $ua = Mojo::UserAgent->new;
+  my %headers;
+  $self->add_upstream_headers($c, \%headers);
+  $headers{'Content-Type'} = $mimetype;
+
+  my $postres = $ua->post($url => \%headers => form => { file => { file => $upload->asset }} )->result;
+  unless($postres->is_success) {
+    $c->app->log->error($postres->code . ": " . $postres->message);
+	  unshift @{$res->{alerts}}, { type => 'danger', msg => $postres->message };
+	  $res->{status} =  $postres->code ? $postres->code : 500;
+  }
+
+  return $res;
+}
+
 sub save_metadata {
 
 	my $self = shift;
@@ -810,9 +983,7 @@ sub get_dissemination {
 	$url->path("/fedora/get/$pid/$bdef/$disseminator");
 
 	my %headers;
-  if($c->stash->{remote_user}){
-    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
+  $self->add_upstream_headers($c, \%headers);
 
 	my $get = Mojo::UserAgent->new->get($url => \%headers);
 
@@ -847,9 +1018,7 @@ sub get_foxml {
 	$url->path("/fedora/objects/$pid/objectXML");
 
   my %headers;
-  if($c->stash->{remote_user}){
-    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
+  $self->add_upstream_headers($c, \%headers);
 
 	my $get = Mojo::UserAgent->new->get($url => \%headers);
 
@@ -882,7 +1051,7 @@ sub get_datastream {
 
 	my $res = { alerts => [], status => 200 };
 
-	$c->app->log->debug("get_datastream pid[$pid] dsid[$dsid] username[$username] password[$password] instcallauth[$intcallauth]");
+	$c->app->log->debug("get_datastream pid[$pid] dsid[$dsid] username[$username] instcallauth[$intcallauth]");
 
 	my $url = Mojo::URL->new;
 	$url->scheme('https');
@@ -896,9 +1065,7 @@ sub get_datastream {
 	$url->path("/fedora/objects/$pid/datastreams/$dsid/content");
 
 	my %headers;
-	if($c->stash->{remote_user}){
-  	  $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
+	$self->add_upstream_headers($c, \%headers);
 
   my $get = Mojo::UserAgent->new->get($url => \%headers);
 
@@ -1014,9 +1181,7 @@ sub add_datastream {
 	my $ua = Mojo::UserAgent->new;
 
 	my %headers;
-  if($c->stash->{remote_user}){
-    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
+  $self->add_upstream_headers($c, \%headers);
 	
 	my $post;
 	if($dscontent){
@@ -1086,9 +1251,7 @@ sub modify_datastream {
 	my $ua = Mojo::UserAgent->new;
 
 	my %headers;
-  if($c->stash->{remote_user}){
-    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
+  $self->add_upstream_headers($c, \%headers);
 
 	my $put;
 	if($dscontent){
@@ -1226,9 +1389,7 @@ sub create_empty {
 	my $ua = Mojo::UserAgent->new;
 
 	my %headers;
-  if($c->stash->{remote_user}){
-    $headers{$c->app->config->{authentication}->{upstream}->{principalheader}} = $c->stash->{remote_user};
-  }
+  $self->add_upstream_headers($c, \%headers);
   $headers{'Content-Type'} = 'text/xml';
 
   	my $put = $ua->post($url => \%headers => $foxml);
