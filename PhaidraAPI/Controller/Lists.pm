@@ -94,8 +94,6 @@ sub add_members {
 
   my $r = $self->mongo->get_collection('lists')->update({"listid" => $lid, "owner" => $owner}, {'$addToSet' => {'members' => { '$each' => $members->{members} } }, '$set' => {"updated" => time}});
 
-  $self->app->log->debug("XXXXXXXXXXXXXXXXXXXXXXX lists->add_members: ".$self->app->dumper($r));
-
   if ($r->{ok}){
     $self->render(json => { status => 200, alerts => [] }, status => 200 );
   } else {
@@ -128,8 +126,6 @@ sub remove_members {
   };
 
   my $r = $self->mongo->get_collection('lists')->update({"listid" => $lid, "owner" => $owner}, {'$pullAll' => {'members' => $members->{members} }, '$set' => {"updated" => time}});
-
-  $self->app->log->debug("XXXXXXXXXXXXXXXXXXXXXXX lists->remove_members: ".$self->app->dumper($r));
 
   if ($r->{ok}){
     $self->render(json => { status => 200, alerts => [] }, status => 200 );
