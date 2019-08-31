@@ -10,6 +10,7 @@ use Mojo::Loader qw(load_class);
 use lib "lib/phaidra_directory";
 use lib "lib/phaidra_binding";
 use Mango 0.24;
+use MongoDB;
 use Sereal::Encoder qw(encode_sereal);
 use Sereal::Decoder qw(decode_sereal);
 use Crypt::CBC              ();
@@ -133,17 +134,23 @@ sub startup {
 
   $self->plugin('database', { databases => \%databases } );
 
+  # Mango driver
 	$self->helper(mango => sub { state $mango = Mango->new('mongodb://'.$config->{mongodb}->{username}.':'.$config->{mongodb}->{password}.'@'.$config->{mongodb}->{host}.'/'.$config->{mongodb}->{database}) });
+
+  # MongoDB driver
+  $self->helper(mongo => sub { 
+    state $mongo = MongoDB::Connection->new(
+    	host => $config->{mongodb}->{host}, 
+    	port => $config->{mongodb}->{port},
+    	username => $config->{mongodb}->{username},
+    	password => $config->{mongodb}->{password},
+    	db_name => $config->{mongodb}->{database}
+    )->get_database($config->{mongodb}->{database});
+  });
+
   if(exists($config->{paf_mongodb})){
     $self->helper(paf_mongo => sub { state $paf_mongo = Mango->new('mongodb://'.$config->{paf_mongodb}->{username}.':'.$config->{paf_mongodb}->{password}.'@'.$config->{paf_mongodb}->{host}.'/'.$config->{paf_mongodb}->{database}) });
   }
-  if(exists($config->{index_mongodb})){
-    if($config->{index_mongodb}->{username}){
-      $self->helper(index_mongo => sub { state $index_mongo = Mango->new('mongodb://'.$config->{index_mongodb}->{username}.':'.$config->{index_mongodb}->{password}.'@'.$config->{index_mongodb}->{host}.'/'.$config->{index_mongodb}->{database}) });
-    }else{
-      $self->helper(index_mongo => sub { state $index_mongo = Mango->new('mongodb://'.$config->{index_mongodb}->{host}.'/'.$config->{index_mongodb}->{database}) });
-    }
-  }    
 
     # we might possibly save a lot of data to session
     # so we are not going to use cookies, but a database instead
@@ -392,6 +399,9 @@ sub startup {
   $check_auth->route('groups')                                            ->via('get')      ->to('groups#get_users_groups');
   $check_auth->route('group/:gid')                                        ->via('get')      ->to('groups#get_group');
 
+  $check_auth->route('lists')                                             ->via('get')      ->to('lists#get_lists');
+  $check_auth->route('list/:lid')                                         ->via('get')      ->to('lists#get_list');
+
   $check_auth->route('jsonld/templates')                                  ->via('get')      ->to('jsonld#get_users_templates');
   $check_auth->route('jsonld/template/:tid')                              ->via('get')      ->to('jsonld#get_template');
   
@@ -466,6 +476,11 @@ sub startup {
     $check_auth->route('group/:gid/remove')                               ->via('post')     ->to('groups#remove_group');
     $check_auth->route('group/:gid/members/add')                          ->via('post')     ->to('groups#add_members');
     $check_auth->route('group/:gid/members/remove')                       ->via('post')     ->to('groups#remove_members');
+
+    $check_auth->route('list/add')                                        ->via('post')     ->to('lists#add_list');
+    $check_auth->route('list/:lid/remove')                                ->via('post')     ->to('lists#remove_list');
+    $check_auth->route('list/:lid/members/add')                           ->via('post')     ->to('lists#add_members');
+    $check_auth->route('list/:lid/members/remove')                        ->via('post')     ->to('lists#remove_members');
 
     $check_auth->route('jsonld/template/add')                             ->via('post')     ->to('jsonld#add_template');
     $check_auth->route('jsonld/template/:tid/remove')                     ->via('post')     ->to('jsonld#remove_template');
