@@ -139,7 +139,7 @@ sub startup {
 
   # MongoDB driver
   $self->helper(mongo => sub { 
-    state $mongo = MongoDB::Connection->new(
+    state $mongo = MongoDB::MongoClient->new(
     	host => $config->{mongodb}->{host}, 
     	port => $config->{mongodb}->{port},
     	username => $config->{mongodb}->{username},

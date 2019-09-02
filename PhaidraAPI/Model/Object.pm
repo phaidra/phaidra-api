@@ -90,6 +90,31 @@ sub info {
     $info = $docres->{doc};
   }
 
+  if ($info->{cmodel} eq 'Collection') {
+    my $urlget = Mojo::URL->new;
+    $urlget->scheme($c->app->config->{solr}->{scheme});
+    $urlget->host($c->app->config->{solr}->{host});
+    $urlget->port($c->app->config->{solr}->{port});
+    if($c->app->config->{solr}->{path}){
+      $urlget->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/select");
+    }else{
+      $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
+    }
+
+    $urlget->query(q => "ispartof:\"$pid\"", fl => "pid", rows => "0", wt => "json");
+
+    my $ua = Mojo::UserAgent->new;
+
+    my $r_num = $ua->get($urlget)->result;
+    my $numFound;
+    if ($r_num->is_success) {
+      $info->{haspartsize} = $r_num->json->{response}->{numFound};
+    }else{
+      $c->app->log->error("[$pid] error getting object collection size: ".$r_num->code." ".$r_num->message);
+      unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting collection size: ".$r_num->code." ".$r_num->message};
+    }
+  }
+
   if (exists($info->{uwm_roles_json})) {
     my $rolesjsonstr = encode 'UTF-8', @{$info->{uwm_roles_json}}[0];
     $info->{uwm_roles_json} = decode_json($rolesjsonstr);
