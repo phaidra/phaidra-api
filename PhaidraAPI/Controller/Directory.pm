@@ -8,23 +8,24 @@ use base 'Mojolicious::Controller';
 
 # [begin] new methods
 sub org_get_subunits {
-    my $self = shift;  	
-	my $id = $self->param('id');		
-	my $res = $self->app->directory->org_get_subunits($self, $id);	
-    $self->render(json => $res, status => $res->{status});
+  my $self = shift;  	
+  my $id = $self->param('id');		
+  my $res = $self->app->directory->org_get_subunits($self, $id);	
+  $self->render(json => $res, status => $res->{status});
 }
 
 sub org_get_superunits {
-    my $self = shift;  	
-	my $id = $self->param('id');		
-	my $res = $self->app->directory->org_get_superunits($self, $id);	
-    $self->render(json => $res, status => $res->{status});
+  my $self = shift;  	
+  my $id = $self->param('id');		
+  my $res = $self->app->directory->org_get_superunits($self, $id);	
+  $self->render(json => $res, status => $res->{status});
 }
 
 sub org_get_units {
-    my $self = shift;
-	my $res = $self->app->directory->org_get_units($self);	
-    $self->render(json => $res, status => $res->{status});
+  my $self = shift;
+  my $flat = $self->param('flat');		
+  my $res = $self->app->directory->org_get_units($self, $flat);	
+  $self->render(json => $res, status => $res->{status});
 }
 # [end] new methods
 
