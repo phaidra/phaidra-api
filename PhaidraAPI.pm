@@ -484,6 +484,8 @@ sub startup {
 
     $check_auth->route('jsonld/template/add')                             ->via('post')     ->to('jsonld#add_template');
     $check_auth->route('jsonld/template/:tid/remove')                     ->via('post')     ->to('jsonld#remove_template');
+
+    $proxyauth->route('ir/submit')                                        ->via('post')     ->to('ir#submit');
   }
 
 	return $self;

@@ -102,6 +102,8 @@ sub add_template {
     return;
   }
 
+  my $tag = $self->param('tag');
+
   eval {
     if(ref $form eq 'Mojo::Upload'){
       $self->app->log->debug("form sent as file param");
@@ -121,10 +123,10 @@ sub add_template {
   }
 
   my $ug = Data::UUID->new;
-	my $btid = $ug->create();
-	my $tid = $ug->to_string($btid);
+  my $btid = $ug->create();
+  my $tid = $ug->to_string($btid);
 
-  $self->mango->db->collection('jsonldtemplates')->insert({ tid => $tid, owner => $self->stash->{basic_auth_credentials}->{username}, name => $name, form => $form, created => time });
+  $self->mango->db->collection('jsonldtemplates')->insert({ tid => $tid, owner => $self->stash->{basic_auth_credentials}->{username}, name => $name, form => $form, tag => $tag, created => time });
 
   $res->{tid} = $tid;
 
@@ -137,10 +139,10 @@ sub get_template {
   my $res = { alerts => [], status => 200 };
 
   unless(defined($self->stash('tid'))){
-		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined template id' }]} , status => 400) ;
-		return;
-	}
-$self->app->log->debug($self->stash('tid')." ".$self->stash->{basic_auth_credentials}->{username});
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined template id' }]} , status => 400) ;
+    return;
+  }
+  $self->app->log->debug($self->stash('tid')." ".$self->stash->{basic_auth_credentials}->{username});
   my $tres = $self->mango->db->collection('jsonldtemplates')->find({tid => $self->stash('tid'), owner => $self->stash->{basic_auth_credentials}->{username}})->next;
 
   $res->{template} = $tres;
@@ -153,11 +155,18 @@ sub get_users_templates {
 
   my $res = { alerts => [], status => 200 };
 
-  my $users_templates = $self->mango->db->collection('jsonldtemplates')->find({"owner" => $self->stash->{basic_auth_credentials}->{username}})->sort({ "created" => -1});
-	my @tmplts = ();
-	while (my $doc = $users_templates->next) {
-    	push @tmplts, { tid => $doc->{tid}, name => $doc->{name}, created => $doc->{created}};
-	}
+  my $tag = $self->param('tag');
+
+  my $find = {'owner' => $self->stash->{basic_auth_credentials}->{username}};
+  if ($tag) {
+    $find->{'tag'} = $tag;
+  }
+
+  my $users_templates = $self->mango->db->collection('jsonldtemplates')->find($find)->sort({ 'created' => -1});
+  my @tmplts = ();
+  while (my $doc = $users_templates->next) {
+      push @tmplts, { tid => $doc->{tid}, name => $doc->{name}, created => $doc->{created}};
+  }
 
   $res->{templates} = \@tmplts;
 
