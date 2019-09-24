@@ -39,9 +39,17 @@ sub notifications {
   my @pids;
 
   push @pids, $pid;
-  if ($self->param('alternatives')) {
-    for my $apid (@{$self->param('alternatives')}) {
-      push @pids, $apid;
+
+  my $alternatives = $self->param('alternatives[]');
+
+  if ($alternatives) {
+    $self->app->log->debug("XXXXXXXXXXX".$self->app->dumper($self->param('alternatives[]')));
+    if(ref($alternatives) eq 'ARRAY'){
+      for my $apid (@$alternatives) {
+        push @pids, $apid;
+      }
+    }else{
+      push @pids, $alternatives;
     }
   }
 
@@ -70,11 +78,11 @@ sub addEvent
       my $check_sth = $self->app->db_ir->prepare($check_ss) or $self->app->log->error($self->app->db_ir->errstr);
       $check_sth->execute($username, $pid) or $self->app->log->error($self->app->db_ir->errstr);
       if($check_sth->rows){
-        $self->app->log->info("IR skipping addEvent (username=".$username.", alerttype=$eventtype, pids=$pids), already added.");
+        $self->app->log->info("IR skipping addEvent (username=".$username.", alerttype=$eventtype, pids=$pid), already added.");
         next;
       }
     }
-    $self->app->log->info("IR addEvent (username=".$username.", alerttype=$eventtype, pids=$pids)");
+    $self->app->log->info("IR addEvent (username=".$username.", alerttype=$eventtype, pids=$pid)");
     my $ss = qq/INSERT INTO event (event_type, pid, user_id, gmtimestamp) VALUES (?,?,?,?)/;
     my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
     $sth->execute($eventtype, $pid, $username, $time) or $self->app->log->error($self->app->db_ir->errstr);
