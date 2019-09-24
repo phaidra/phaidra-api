@@ -99,23 +99,32 @@ sub startup {
     	},
   	});
 
-  	# init databases
-  	my %databases;
-  	$databases{'db_metadata'} = {
-				dsn      => $config->{phaidra_db}->{dsn},
-                username => $config->{phaidra_db}->{username},
-                password => $config->{phaidra_db}->{password},
-                options  => { mysql_auto_reconnect => 1}
-    };
+  # init databases
+  my %databases;
+  $databases{'db_metadata'} = {
+    dsn => $config->{phaidra_db}->{dsn},
+    username => $config->{phaidra_db}->{username},
+    password => $config->{phaidra_db}->{password},
+    options  => { mysql_auto_reconnect => 1}
+  };
 
-	if($config->{phaidra}->{triplestore} eq 'localMysqlMPTTriplestore'){
-		$databases{'db_triplestore'} = {
-				dsn      => $config->{localMysqlMPTTriplestore}->{dsn},
-                username => $config->{localMysqlMPTTriplestore}->{username},
-                password => $config->{localMysqlMPTTriplestore}->{password},
-                options  => { mysql_auto_reconnect => 1}
-    	};
-	}
+  if($config->{phaidra}->{triplestore} eq 'localMysqlMPTTriplestore'){
+    $databases{'db_triplestore'} = {
+      dsn  => $config->{localMysqlMPTTriplestore}->{dsn},
+      username => $config->{localMysqlMPTTriplestore}->{username},
+      password => $config->{localMysqlMPTTriplestore}->{password},
+      options  => { mysql_auto_reconnect => 1}
+    };
+  }
+
+  if($config->{ir}){
+    $databases{'db_ir'} = {
+      dsn  => $config->{ir}->{'db'}->{dsn},
+      username => $config->{ir}->{'db'}->{username},
+      password => $config->{ir}->{'db'}->{password},
+      options  => { mysql_auto_reconnect => 1}
+    };
+  }
 
   if(exists($config->{frontends})){
     for my $f (@{$config->{frontends}}){
@@ -486,6 +495,7 @@ sub startup {
     $check_auth->route('jsonld/template/:tid/remove')                     ->via('post')     ->to('jsonld#remove_template');
 
     $proxyauth->route('ir/submit')                                        ->via('post')     ->to('ir#submit');
+    $proxyauth->route('ir/notifications')                                 ->via('post')     ->to('ir#notifications');
   }
 
 	return $self;
