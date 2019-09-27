@@ -433,6 +433,8 @@ sub startup {
   $proxyauth->route('object/:pid/jsonldprivate')                          ->via('get')      ->to('jsonldprivate#get');
   $proxyauth->route('object/:pid/rights')                                 ->via('get')      ->to('rights#get');
 
+  $check_auth->route('ir/requestedlicenses')                              ->via('post')     ->to('ir#requestedlicenses');
+
   unless($self->app->config->{readonly}){
 
     $check_admin_auth->route('index')                                     ->via('post')     ->to('index#update');
@@ -495,7 +497,7 @@ sub startup {
     $check_auth->route('jsonld/template/:tid/remove')                     ->via('post')     ->to('jsonld#remove_template');
 
     $proxyauth->route('ir/submit')                                        ->via('post')     ->to('ir#submit');
-    $proxyauth->route('ir/notifications')                                 ->via('post')     ->to('ir#notifications');
+    $check_auth->route('ir/notifications')                                ->via('post')     ->to('ir#notifications');
   }
 
 	return $self;

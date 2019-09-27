@@ -1210,6 +1210,7 @@ http://phaidra.org/XML/V1.0/relations#isBackSideOf
 http://phaidra.univie.ac.at/XML/V1.0/relations#hasSuccessor
 http://phaidra.org/XML/V1.0/relations#isAlternativeFormatOf
 http://phaidra.org/XML/V1.0/relations#isAlternativeVersionOf
+http://phaidra.org/ontology/isInAdminSet
 =cut
 sub _index_relsext {
   my ($self, $c, $xml, $index) = @_;
@@ -1259,6 +1260,11 @@ sub _index_relsext {
     my $o = $e->attr('rdf:resource');
     $o =~ s/^info:fedora\/(.*)$/$1/;
     push @{$index->{isalternativeversionof}}, $o;
+  }
+
+  for my $e ($xml->find('isInAdminSet')->each){
+    my $o = $e->attr('rdf:resource');
+    push @{$index->{isinadminset}}, $o;
   }
 
   # we save this now as haspart but this is later removed

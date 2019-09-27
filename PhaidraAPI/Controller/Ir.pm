@@ -40,10 +40,9 @@ sub notifications {
 
   push @pids, $pid;
 
-  my $alternatives = $self->param('alternatives[]');
+  my $alternatives = $self->every_param('alternatives[]');
 
   if ($alternatives) {
-    $self->app->log->debug("XXXXXXXXXXX".$self->app->dumper($self->param('alternatives[]')));
     if(ref($alternatives) eq 'ARRAY'){
       for my $apid (@$alternatives) {
         push @pids, $apid;
@@ -118,6 +117,74 @@ sub hasAlert
   $sth->execute($username, $alerttype, $pids) or $self->app->log->error($self->app->db_ir->errstr);
 
   return $sth->rows;
+}
+
+sub requestedlicenses {
+
+  my $self = shift;
+
+  my $res = { alerts => [], status => 200 };
+
+  my $username = $self->stash->{basic_auth_credentials}->{username};
+  my $password = $self->stash->{basic_auth_credentials}->{password};
+
+  $self->app->log->debug("=== params ===");
+  for my $pn (@{$self->req->params->names}){
+    $self->app->log->debug($pn);
+  }
+  $self->app->log->debug("==============");
+
+  unless($username eq $self->config->{ir}->{iraccount}){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Not authorized.' }]} , status => 403) ;
+  }else{
+
+    my @pids;
+    my $pids = $self->every_param('pids[]');
+
+    if ($pids) {
+      if(ref($pids) eq 'ARRAY'){
+        for my $apid (@$pids) {
+          push @pids, $apid;
+        }
+      }else{
+        push @pids, $pids;
+      }
+    }
+
+    my @pidsquoted;
+    for my $p (@pids) {
+      push @pidsquoted, "'".$p."'";
+    }
+    my $pidsparam = join ',', @pidsquoted;
+
+    my @licenses;
+    my $ss = "SELECT pid, license FROM requested_license WHERE pid IN ($pidsparam)";
+    my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
+    $sth->execute() or $self->app->log->error($self->app->db_ir->errstr);
+    my ($pid,$license);
+    $sth->bind_columns(undef, \$pid, \$license) or $self->app->log->error($self->app->db_ir->errstr);
+    while($sth->fetch())
+    {
+      push @licenses, {pid => $pid, requestedlicense => $license};
+    }
+
+    $res->{requestedlicenses} = \@licenses;
+
+    $self->render(json => $res, status => $res->{status});
+  }
+}
+
+sub addrequestedlicense {
+  my $self = shift;
+  my $pid = shift;
+  my $username = shift;
+  my $license = shift;
+
+  my $time = strftime "%Y-%m-%dT%H:%M:%SZ", (gmtime);	
+
+  my $ss = qq/INSERT INTO requested_license (pid, license, user_id, gmtimestamp) VALUES (?,?,?,?)/;
+  my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
+  $sth->execute($pid, $license, $username, $time) or $self->app->log->error($self->app->db_ir->errstr);
 }
 
 sub submit {
@@ -252,6 +319,12 @@ sub submit {
     my @mimetypeArr = ($mimetype);
     $jsonld->{'ebucore:hasMimeType'} = \@mimetypeArr;
 
+    $self->app->log->debug('Requested license:'.$self->app->dumper($jsonld->{'edm:rights'}));
+    my $requestedLicense = @{$jsonld->{'edm:rights'}}[0];
+    my @lic;
+    push @lic, 'http://rightsstatements.org/vocab/InC/1.0/';
+    $jsonld->{'edm:rights'} = \@lic;
+
     my $isAlternativeFormat = 0;
     my $cmodel;
     if ($mimetype eq 'application/pdf' || $mimetype eq 'application/x-pdf') {
@@ -286,42 +359,53 @@ sub submit {
     } else {
       $mainObjectPid = $r->{pid};
     }
+
+    $self->addrequestedlicense($r->{pid}, $username, $requestedLicense);
   }
+
+  my @mainObjectRelationships = (
+    {
+      predicate => "http://phaidra.org/ontology/isInAdminSet", 
+      object => $self->config->{ir}->{adminset}
+    }
+  );
 
   my $alternativeVersionPid = $self->param('isAlternativeVersionOf');
   if ($alternativeVersionPid) {
-    my @relationships = (
-      {
-        predicate => "http://phaidra.org/XML/V1.0/relations#isAlternativeVersionOf", 
-        object => "info:fedora/".$alternativeVersionPid
-      }
-    );
+    push @mainObjectRelationships, {
+      predicate => "http://phaidra.org/XML/V1.0/relations#isAlternativeVersionOf", 
+      object => "info:fedora/".$alternativeVersionPid
+    };
+  }
 
-    $self->app->log->debug("Adding relationships[".$self->app->dumper(\@relationships)."] to pid[$mainObjectPid]");
+  $self->app->log->debug("Adding relationships[".$self->app->dumper(\@mainObjectRelationships)."] to pid[$mainObjectPid]");
 
-    my $r = $object_model->add_relationships($self, $mainObjectPid, \@relationships, $username, $password);
-    push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-    if($r->{status} ne 200){
-      $self->app->log->error("Error adding relationships[".$self->app->dumper(\@relationships)."] pid[$mainObjectPid] res[".$self->app->dumper($res)."]");
-      # continue, this isn't fatal
-    }
+  my $r = $object_model->add_relationships($self, $mainObjectPid, \@mainObjectRelationships, $username, $password);
+  push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+  if($r->{status} ne 200){
+    $self->app->log->error("Error adding relationships[".$self->app->dumper(\@mainObjectRelationships)."] pid[$mainObjectPid] res[".$self->app->dumper($res)."]");
+    # continue, this isn't fatal
   }
 
   for my $alternativeFromatPid (@alternativeFormatPids) {
 
-    my @relationships = (
+    my @alternativeFormatsRelationships = (
       {
         predicate => "http://phaidra.org/XML/V1.0/relations#isAlternativeFormatOf", 
         object => "info:fedora/".$mainObjectPid
+      },
+      {
+        predicate => "http://phaidra.org/ontology/isInAdminSet", 
+        object => $self->config->{ir}->{adminset}
       }
     );
 
-    $self->app->log->debug("Adding relationships[".$self->app->dumper(\@relationships)."] to pid[$alternativeFromatPid]");
+    $self->app->log->debug("Adding relationships[".$self->app->dumper(\@alternativeFormatsRelationships)."] to pid[$alternativeFromatPid]");
 
-    my $r = $object_model->add_relationships($self, $alternativeFromatPid, \@relationships, $username, $password);
+    my $r = $object_model->add_relationships($self, $alternativeFromatPid, \@alternativeFormatsRelationships, $username, $password);
     push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
     if($r->{status} ne 200){
-      $self->app->log->error("Error adding relationships[".$self->app->dumper(\@relationships)."] pid[$alternativeFromatPid] res[".$self->app->dumper($res)."]");
+      $self->app->log->error("Error adding relationships[".$self->app->dumper(\@alternativeFormatsRelationships)."] pid[$alternativeFromatPid] res[".$self->app->dumper($res)."]");
       # continue, this isn't fatal
     }
   }
