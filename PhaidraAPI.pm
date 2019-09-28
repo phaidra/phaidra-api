@@ -498,6 +498,9 @@ sub startup {
 
     $proxyauth->route('ir/submit')                                        ->via('post')     ->to('ir#submit');
     $check_auth->route('ir/notifications')                                ->via('post')     ->to('ir#notifications');
+    $check_auth->route('ir/accept')                                       ->via('post')     ->to('ir#accept');
+    $check_auth->route('ir/reject')                                       ->via('post')     ->to('ir#reject');
+    $check_auth->route('ir/approve')                                      ->via('post')     ->to('ir#approve');
   }
 
 	return $self;

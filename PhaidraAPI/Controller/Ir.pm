@@ -119,6 +119,139 @@ sub hasAlert
   return $sth->rows;
 }
 
+sub accept
+{
+  my $self = shift;
+
+  my $res = { alerts => [], status => 200 };
+
+  my $username = $self->stash->{basic_auth_credentials}->{username};
+  my $password = $self->stash->{basic_auth_credentials}->{password};
+
+  $self->app->log->debug("=== params ===");
+  for my $pn (@{$self->req->params->names}){
+    $self->app->log->debug($pn);
+  }
+  $self->app->log->debug("==============");
+
+  if($username ne $self->config->{ir}->{iraccount}){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Not authorized.' }]} , status => 403) ;
+    return;
+  }
+
+  my $pid = $self->param('pid');
+
+  unless($pid){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No pid sent.' }]}, status => 400);
+    return;
+  }
+
+  my $object_model = PhaidraAPI::Model::Object->new;
+
+  my $r = $object_model->modify($self, $pid, undef, undef, $self->config->{ir}->{iraccount}, 'ir accept', undef, $username, $password);
+  if($r->{status} ne 200){
+    $res->{status} = 500;
+    unshift @{$res->{alerts}}, @{$r->{alerts}};
+    unshift @{$res->{alerts}}, { type => 'danger', msg => "Error accepting object $pid"};
+    $self->render(json => $res, status => $res->{status});
+    return;
+  }
+
+  my @pids = ($pid);
+  $self->addEvent('accept', \@pids, $username);
+
+  $self->render(json => $res, status => $res->{status});
+}
+
+sub reject
+{
+  my $self = shift;
+
+  my $res = { alerts => [], status => 200 };
+
+  my $username = $self->stash->{basic_auth_credentials}->{username};
+  my $password = $self->stash->{basic_auth_credentials}->{password};
+
+  $self->app->log->debug("=== params ===");
+  for my $pn (@{$self->req->params->names}){
+    $self->app->log->debug($pn);
+  }
+  $self->app->log->debug("==============");
+
+  if($username ne $self->config->{ir}->{iraccount}){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Not authorized.' }]} , status => 403) ;
+    return;
+  }
+
+  my $pid = $self->param('pid');
+
+  unless($pid){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No pid sent.' }]}, status => 400);
+    return;
+  }
+
+  my $object_model = PhaidraAPI::Model::Object->new;
+
+  my $r = $object_model->purge_relationship($self, $pid, "http://phaidra.org/ontology/isInAdminSet", $self->config->{ir}->{adminset}, $self->config->{phaidra}->{adminusername}, $self->config->{phaidra}->{adminpassword}, 0);
+  push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+  if($r->{status} ne 200){
+    $res->{status} = 500;
+    unshift @{$res->{alerts}}, @{$r->{alerts}};
+    unshift @{$res->{alerts}}, { type => 'danger', msg => "Error rejecting object $pid"};
+    $self->render(json => $res, status => $res->{status});
+    return;
+  }
+
+  my @pids = ($pid);
+  $self->addEvent('reject', \@pids, $username);
+
+  $self->render(json => $res, status => $res->{status});
+}
+
+sub approve
+{
+  my $self = shift;
+
+  my $res = { alerts => [], status => 200 };
+
+  my $username = $self->stash->{basic_auth_credentials}->{username};
+  my $password = $self->stash->{basic_auth_credentials}->{password};
+
+  $self->app->log->debug("=== params ===");
+  for my $pn (@{$self->req->params->names}){
+    $self->app->log->debug($pn);
+  }
+  $self->app->log->debug("==============");
+
+  if($username ne $self->config->{ir}->{iraccount}){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Not authorized.' }]} , status => 403) ;
+    return;
+  }
+
+  my $pid = $self->param('pid');
+
+  unless($pid){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No pid sent.' }]}, status => 400);
+    return;
+  }
+
+  my $object_model = PhaidraAPI::Model::Object->new;
+  my $r = $object_model->add_relationship($self, $self->config->{ir}->{ircollection}, "info:fedora/fedora-system:def/relations-external#hasCollectionMember", "info:fedora/".$pid, $username, $password, 0);
+  push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+  if($r->{status} ne 200){
+    $res->{status} = 500;
+    unshift @{$res->{alerts}}, @{$r->{alerts}};
+    unshift @{$res->{alerts}}, { type => 'danger', msg => "Error approving object $pid"};
+    $self->render(json => $res, status => $res->{status});
+    return;
+  }
+
+  my @pids = ($pid);
+  $self->addEvent('approve', \@pids, $username);
+
+  $self->render(json => $res, status => $res->{status});
+}
+
 sub requestedlicenses {
 
   my $self = shift;
@@ -134,44 +267,44 @@ sub requestedlicenses {
   }
   $self->app->log->debug("==============");
 
-  unless($username eq $self->config->{ir}->{iraccount}){
+  if($username ne $self->config->{ir}->{iraccount}){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'Not authorized.' }]} , status => 403) ;
-  }else{
-
-    my @pids;
-    my $pids = $self->every_param('pids[]');
-
-    if ($pids) {
-      if(ref($pids) eq 'ARRAY'){
-        for my $apid (@$pids) {
-          push @pids, $apid;
-        }
-      }else{
-        push @pids, $pids;
-      }
-    }
-
-    my @pidsquoted;
-    for my $p (@pids) {
-      push @pidsquoted, "'".$p."'";
-    }
-    my $pidsparam = join ',', @pidsquoted;
-
-    my @licenses;
-    my $ss = "SELECT pid, license FROM requested_license WHERE pid IN ($pidsparam)";
-    my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
-    $sth->execute() or $self->app->log->error($self->app->db_ir->errstr);
-    my ($pid,$license);
-    $sth->bind_columns(undef, \$pid, \$license) or $self->app->log->error($self->app->db_ir->errstr);
-    while($sth->fetch())
-    {
-      push @licenses, {pid => $pid, requestedlicense => $license};
-    }
-
-    $res->{requestedlicenses} = \@licenses;
-
-    $self->render(json => $res, status => $res->{status});
+    return;
   }
+
+  my @pids;
+  my $pids = $self->every_param('pids[]');
+
+  if ($pids) {
+    if(ref($pids) eq 'ARRAY'){
+      for my $apid (@$pids) {
+        push @pids, $apid;
+      }
+    }else{
+      push @pids, $pids;
+    }
+  }
+
+  my @pidsquoted;
+  for my $p (@pids) {
+    push @pidsquoted, "'".$p."'";
+  }
+  my $pidsparam = join ',', @pidsquoted;
+
+  my @licenses;
+  my $ss = "SELECT pid, license FROM requested_license WHERE pid IN ($pidsparam)";
+  my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
+  $sth->execute() or $self->app->log->error($self->app->db_ir->errstr);
+  my ($pid,$license);
+  $sth->bind_columns(undef, \$pid, \$license) or $self->app->log->error($self->app->db_ir->errstr);
+  while($sth->fetch())
+  {
+    push @licenses, {pid => $pid, requestedlicense => $license};
+  }
+
+  $res->{requestedlicenses} = \@licenses;
+
+  $self->render(json => $res, status => $res->{status});
 }
 
 sub addrequestedlicense {
