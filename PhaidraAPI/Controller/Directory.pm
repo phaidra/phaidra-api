@@ -95,13 +95,17 @@ sub get_user_email {
 }
 
 sub get_user_data {
-    my $self = shift;  	
+  my $self = shift;
 
-	my $username = $self->stash('username');
+  my $username = $self->stash('username');
 
-	my $user_data = $self->app->directory->get_user_data($self, $username);
-	
-    $self->render(json => { status => 200, user_data => $user_data }, status => 200);
+  unless ($username) {
+    $username = $self->stash->{basic_auth_credentials}->{username};
+  }
+
+  my $user_data = $self->app->directory->get_user_data($self, $username);
+
+  $self->render(json => { status => 200, user_data => $user_data }, status => 200);
 }
 
 sub search_user {

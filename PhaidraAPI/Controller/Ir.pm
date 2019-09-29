@@ -128,18 +128,12 @@ sub accept
   my $username = $self->stash->{basic_auth_credentials}->{username};
   my $password = $self->stash->{basic_auth_credentials}->{password};
 
-  $self->app->log->debug("=== params ===");
-  for my $pn (@{$self->req->params->names}){
-    $self->app->log->debug($pn);
-  }
-  $self->app->log->debug("==============");
-
   if($username ne $self->config->{ir}->{iraccount}){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'Not authorized.' }]} , status => 403) ;
     return;
   }
 
-  my $pid = $self->param('pid');
+  my $pid = $self->stash('pid');
 
   unless($pid){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No pid sent.' }]}, status => 400);
@@ -172,18 +166,12 @@ sub reject
   my $username = $self->stash->{basic_auth_credentials}->{username};
   my $password = $self->stash->{basic_auth_credentials}->{password};
 
-  $self->app->log->debug("=== params ===");
-  for my $pn (@{$self->req->params->names}){
-    $self->app->log->debug($pn);
-  }
-  $self->app->log->debug("==============");
-
   if($username ne $self->config->{ir}->{iraccount}){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'Not authorized.' }]} , status => 403) ;
     return;
   }
 
-  my $pid = $self->param('pid');
+  my $pid = $self->stash('pid');
 
   unless($pid){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No pid sent.' }]}, status => 400);
@@ -217,18 +205,12 @@ sub approve
   my $username = $self->stash->{basic_auth_credentials}->{username};
   my $password = $self->stash->{basic_auth_credentials}->{password};
 
-  $self->app->log->debug("=== params ===");
-  for my $pn (@{$self->req->params->names}){
-    $self->app->log->debug($pn);
-  }
-  $self->app->log->debug("==============");
-
   if($username ne $self->config->{ir}->{iraccount}){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'Not authorized.' }]} , status => 403) ;
     return;
   }
 
-  my $pid = $self->param('pid');
+  my $pid = $self->stash('pid');
 
   unless($pid){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No pid sent.' }]}, status => 400);
@@ -248,6 +230,42 @@ sub approve
 
   my @pids = ($pid);
   $self->addEvent('approve', \@pids, $username);
+
+  $self->render(json => $res, status => $res->{status});
+}
+
+sub events {
+
+  my $self = shift;
+
+  my $res = { alerts => [], status => 200 };
+
+  my $username = $self->stash->{basic_auth_credentials}->{username};
+  my $password = $self->stash->{basic_auth_credentials}->{password};
+
+  if($username ne $self->config->{ir}->{iraccount}){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Not authorized.' }]} , status => 403) ;
+    return;
+  }
+
+  my $pid = $self->stash('pid');
+
+  unless($pid){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'No pid sent.' }]}, status => 400);
+    return;
+  }
+
+  my @events;
+  my $ss = qq/SELECT event_type, user_id, gmtimestamp FROM event WHERE pid = ?;/;
+  my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
+  $sth->execute($pid) or $self->app->log->error($self->app->db_ir->errstr);
+  my ($event, $username, $ts);
+  $sth->bind_columns(\$event, \$username, \$ts) or $self->app->log->error($self->app->db_ir->errstr);
+  while($sth->fetch()){	
+    push @events, { event => $event, username => $username, ts => $ts};
+  }
+
+  $res->{events} = \@events;
 
   $self->render(json => $res, status => $res->{status});
 }

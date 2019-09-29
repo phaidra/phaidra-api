@@ -405,6 +405,8 @@ sub startup {
     $check_auth->route('directory/user/search')                           ->via('get')      ->to('directory#search_user');
   }
 
+  $check_auth->route('directory/user/data')                               ->via('get')      ->to('directory#get_user_data');
+
   $check_auth->route('groups')                                            ->via('get')      ->to('groups#get_users_groups');
   $check_auth->route('group/:gid')                                        ->via('get')      ->to('groups#get_group');
 
@@ -434,6 +436,7 @@ sub startup {
   $proxyauth->route('object/:pid/rights')                                 ->via('get')      ->to('rights#get');
 
   $check_auth->route('ir/requestedlicenses')                              ->via('post')     ->to('ir#requestedlicenses');
+  $check_auth->route('ir/:pid/events')                                    ->via('get')      ->to('ir#events');
 
   unless($self->app->config->{readonly}){
 
@@ -498,9 +501,9 @@ sub startup {
 
     $proxyauth->route('ir/submit')                                        ->via('post')     ->to('ir#submit');
     $check_auth->route('ir/notifications')                                ->via('post')     ->to('ir#notifications');
-    $check_auth->route('ir/accept')                                       ->via('post')     ->to('ir#accept');
-    $check_auth->route('ir/reject')                                       ->via('post')     ->to('ir#reject');
-    $check_auth->route('ir/approve')                                      ->via('post')     ->to('ir#approve');
+    $check_auth->route('ir/:pid/accept')                                  ->via('post')     ->to('ir#accept');
+    $check_auth->route('ir/:pid/reject')                                  ->via('post')     ->to('ir#reject');
+    $check_auth->route('ir/:pid/approve')                                 ->via('post')     ->to('ir#approve');
   }
 
 	return $self;
