@@ -1492,6 +1492,18 @@ sub _add_jsonld_index {
     }
   }
 
+  my $titles = $jsonld->{'dce:title'};
+  for my $o (@{$titles}) {
+    for my $mt (@{$o->{'bf:mainTitle'}}) {
+      if ($o->{'@type'} eq 'bf:Title') {
+        push @{$index->{"bf_title_maintitle"}}, $mt->{'@value'};
+      }
+      if ($o->{'@type'} eq 'bf:ParallelTitle') {
+        push @{$index->{"bf_paralleltitle_maintitle"}}, $mt->{'@value'};
+      }
+    }
+  }
+
   if($jsonld->{'dcterms:created'}){
     for my $date (@{$jsonld->{'dcterms:created'}}) {
       push @{$index->{"dcterms_created_year"}}, int(substr($date, 0, 4));
@@ -1554,6 +1566,12 @@ sub _add_jsonld_index {
       for my $id (@{$o->{'skos:exactMatch'}}) {
         push @{$index->{"schema_genre_id"}}, $id;
       }
+    }
+  }
+
+  if($jsonld->{'bf:shelfMark'}){
+    for my $o (@{$jsonld->{'bf:shelfMark'}}) {
+      push @{$index->{"bf_shelfmark"}}, $o;
     }
   }
 
