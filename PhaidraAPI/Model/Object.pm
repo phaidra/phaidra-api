@@ -385,7 +385,7 @@ sub create {
   	# add thumbnail
   	my $thumburl = "http://".$c->app->config->{phaidra}->{baseurl}."/preview/$pid";
   	$c->app->log->debug("Adding thumbnail ($thumburl)");
-		$r = $self->add_datastream($c, $pid, "THUMBNAIL", "image/png", $thumburl, undef, undef, "E", $username, $password);
+		$r = $self->add_datastream($c, $pid, "THUMBNAIL", "image/png", $thumburl, undef, undef, "E", undef, undef, $username, $password);
   	push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
@@ -393,7 +393,7 @@ sub create {
     }
 
   	# add stylesheet
-  	$r = $self->add_datastream($c, $pid, "STYLESHEET", "text/xml", $c->app->config->{phaidra}->{fedorastylesheeturl}, undef, undef, "E", $username, $password);
+  	$r = $self->add_datastream($c, $pid, "STYLESHEET", "text/xml", $c->app->config->{phaidra}->{fedorastylesheeturl}, undef, undef, "E", undef, undef, $username, $password);
   	push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
     $res->{status} = $r->{status};
     if($r->{status} ne 200){
@@ -434,6 +434,8 @@ sub create_simple {
   my $metadata = shift;
   my $mimetype = shift;
   my $upload = shift;
+  my $checksumtype = shift;
+	my $checksum = shift;
   my $username = shift;
   my $password = shift;
 
@@ -464,7 +466,7 @@ sub create_simple {
       return $res;
     }
     # save link
-    my $r = $self->add_datastream($c, $pid, "LINK", "text/html", $metadata->{metadata}->{resourcelink}, "Link to external resource", undef, "R", $username, $password);
+    my $r = $self->add_datastream($c, $pid, "LINK", "text/html", $metadata->{metadata}->{resourcelink}, "Link to external resource", undef, "R", undef, undef, $username, $password);
     if($r->{status} ne 200){
       $res->{status} = $r->{status};
       foreach my $a (@{$r->{alerts}}){
@@ -486,6 +488,12 @@ sub create_simple {
     my %params;
     $params{controlGroup} = 'M';
     $params{dsLabel} = $name;
+    if ($checksumtype) {
+      $params{checksumType} = $checksumtype;
+    }
+    if ($checksum) {
+      $params{checksum} = $checksum;
+    }
     if(defined($mimetype)){
       $c->app->log->info("Provided mimetype $mimetype");
     }else{
@@ -625,7 +633,7 @@ sub create_container {
         if ($childcmodel){
           my $child_metadata = { metadata => { 'json-ld' => $childmetadata } };
           #$c->app->log->debug("Creating child with metadata:".$c->app->dumper($child_metadata));
-          my $r = $self->create_simple($c, $childcmodel, $child_metadata, $mt, $childupload, $username, $password);
+          my $r = $self->create_simple($c, $childcmodel, $child_metadata, $mt, $childupload, undef, undef, $username, $password);
           if($r->{status} ne 200){
             $res->{status} = 500;
             unshift @{$res->{alerts}}, @{$r->{alerts}};
@@ -814,6 +822,8 @@ sub add_octets {
   my $upload = shift;
   my $file = shift;
   my $mimetype = shift;
+  my $checksumtype = shift;
+  my $checksum = shift;
 
   my $res = { alerts => [], status => 200 };
 
@@ -826,6 +836,12 @@ sub add_octets {
   $params{controlGroup} = 'M';
   $params{dsLabel} = defined($name) ? $name : $c->app->config->{phaidra}->{defaultlabel};
   $params{mimeType} = $mimetype;
+  if ($checksumtype) {
+    $params{checksumType} = $checksumtype;
+  }
+  if ($checksum) {
+    $params{checksum} = $checksum;
+  }
 
   my $url = Mojo::URL->new;
   $url->scheme('https');
@@ -904,7 +920,7 @@ sub save_metadata {
 			my $rights = $metadata->{rights};
 			my $rights_model = PhaidraAPI::Model::Rights->new;
 			#my $xml = $rights_model->json_2_xml($c, $rights);
-			#my $r = $self->add_datastream($c, $pid, "RIGHTS", "text/xml", undef, "Phaidra Permissions", $xml, "X", $username, $password);
+			#my $r = $self->add_datastream($c, $pid, "RIGHTS", "text/xml", undef, "Phaidra Permissions", $xml, "X", undef, undef, $username, $password);
 			my $r = $rights_model->save_to_object($c, $pid, $rights, $username, $password);
 		    if($r->{status} ne 200){
 					$res->{status} = $r->{status};
@@ -919,7 +935,7 @@ sub save_metadata {
 			my $geo = $metadata->{geo};
 			my $geo_model = PhaidraAPI::Model::Geo->new;
 			#my $xml = $geo_model->json_2_xml($c, $geo);				
-			#my $r = $self->add_datastream($c, $pid, "GEO", "text/xml", undef, "Georeferencing", $xml, "X", $username, $password);
+			#my $r = $self->add_datastream($c, $pid, "GEO", "text/xml", undef, "Georeferencing", $xml, "X", undef, undef, $username, $password);
 			my $r = $geo_model->save_to_object($c, $pid, $geo, $username, $password);
 			if($r->{status} ne 200){
 				$res->{status} = $r->{status};
@@ -1170,6 +1186,8 @@ sub add_datastream {
 	my $label = shift;
 	my $dscontent = shift;
 	my $controlgroup = shift;
+  my $checksumtype = shift;
+  my $checksum = shift;
 	my $username = shift;
 	my $password = shift;
 
@@ -1189,8 +1207,10 @@ sub add_datastream {
   }
   $params{dsState} = 'A';
   #$params{formatURI}
-  $params{checksumType} = 'DISABLED';
-  #$params{checksum}
+  $params{checksumType} = $checksumtype ? $checksumtype : 'DISABLED';
+  if ($checksum) {
+    $params{checksum} = $checksum;
+  }
   $params{mimeType} = $mimetype if $mimetype;
   $params{logMessage} = 'PhaidraAPI object/add_datastream';
 
@@ -1239,6 +1259,8 @@ sub modify_datastream {
 	my $location = shift;
 	my $label = shift;
 	my $dscontent = shift;
+  my $checksumtype = shift;
+  my $checksum = shift;
 	my $username = shift;
 	my $password = shift;
 
@@ -1254,8 +1276,10 @@ sub modify_datastream {
   #$params{versionable} = 1;
   $params{dsState} = 'A';
   #$params{formatURI}
-  $params{checksumType} = 'DISABLED';
-  #$params{checksum}
+  $params{checksumType} = $checksumtype ? $checksumtype : 'DISABLED';
+  if ($checksum) {
+    $params{checksum} = $checksum;
+  }
   $params{mimeType} = $mimetype if $mimetype;
   $params{logMessage} = 'PhaidraAPI object/modify_datastream';
   $params{force} = 0;
@@ -1310,6 +1334,8 @@ sub add_or_modify_datastream {
 	my $label = shift;
 	my $dscontent = shift;
 	my $controlgroup = shift;
+  my $checksumtype = shift;
+  my $checksum = shift;
 	my $username = shift;
 	my $password = shift;
 	my $useadmin = shift;
@@ -1344,7 +1370,7 @@ sub add_or_modify_datastream {
 
 	# save
 	if($sr->{'exists'}){
-		my $r = $self->modify_datastream($c, $pid, $dsid, $mimetype, $location, $label, $dscontent, $username, $password);
+		my $r = $self->modify_datastream($c, $pid, $dsid, $mimetype, $location, $label, $dscontent, $checksumtype, $checksum, $username, $password);
 		push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
 		$res->{status} = $r->{status};
 		if($r->{status} ne 200){
@@ -1352,7 +1378,7 @@ sub add_or_modify_datastream {
 		}
 		$c->app->log->debug("Modifying $dsid for $pid successful.");
 	}else{
-		my $r = $self->add_datastream($c, $pid, $dsid, $mimetype, $location, $label, $dscontent, $controlgroup, $username, $password);
+		my $r = $self->add_datastream($c, $pid, $dsid, $mimetype, $location, $label, $dscontent, $controlgroup, $checksumtype, $checksum, $username, $password);
 		push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
 		$res->{status} = $r->{status};
 		if($r->{status} ne 200){

@@ -496,7 +496,7 @@ sub submit {
       $md->{metadata}->{rights} = \%rights;
     }
 
-    my $r = $object_model->create_simple($self, $cmodel, $md, $mimetype, $fileupload, $username, $password);
+    my $r = $object_model->create_simple($self, $cmodel, $md, $mimetype, $fileupload, undef, undef, $username, $password);
     if($r->{status} ne 200){
       $res->{status} = 500;
       unshift @{$res->{alerts}}, @{$r->{alerts}};

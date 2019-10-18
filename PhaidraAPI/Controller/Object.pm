@@ -154,9 +154,11 @@ sub create_simple {
 
 	my $mimetype = $self->param('mimetype');
 	my $upload = $self->req->upload('file');
+  my $checksumtype = $self->param('checksumtype');
+	my $checksum = $self->param('checksum');
 
 	my $object_model = PhaidraAPI::Model::Object->new;
-    my $r = $object_model->create_simple($self, $self->stash('cmodel'), $metadata, $mimetype, $upload, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+    my $r = $object_model->create_simple($self, $self->stash('cmodel'), $metadata, $mimetype, $upload, $checksumtype, $checksum, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
    	if($r->{status} ne 200){
    		$res->{status} = $r->{status};
       foreach my $a (@{$r->{alerts}}){
@@ -358,8 +360,10 @@ sub add_octets {
 
   my $file = $self->param('file');
   my $pid = $self->stash('pid');
+  my $checksumtype = $self->param('checksumtype');
+	my $checksum = $self->param('checksum');
 
-  my $addres = $object_model->add_octets($self, $pid, $upload, $file, $mimetype);
+  my $addres = $object_model->add_octets($self, $pid, $upload, $file, $mimetype, $checksumtype, $checksum);
   push @{$res->{alerts}}, @{$addres->{alerts}} if scalar @{$addres->{alerts}} > 0;
   $res->{status} = $addres->{status};
 
@@ -387,6 +391,8 @@ sub add_or_modify_datastream {
 
 	my $mimetype = $self->param('mimetype');
 	my $location = $self->param('location');
+  my $checksumtype = $self->param('checksumtype');
+	my $checksum = $self->param('checksum');
 	my $label = undef;
 	if($self->param('dslabel')){
 		$label = $self->param('dslabel');
@@ -407,7 +413,7 @@ sub add_or_modify_datastream {
 
 	my $object_model = PhaidraAPI::Model::Object->new;
 
-	my $r = $object_model->add_or_modify_datastream($self, $self->stash('pid'), $self->stash('dsid'), $mimetype, $location, $label, $dscontent, $controlgroup, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+	my $r = $object_model->add_or_modify_datastream($self, $self->stash('pid'), $self->stash('dsid'), $mimetype, $location, $label, $dscontent, $controlgroup, $checksumtype, $checksum, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 
 	$self->render(json => $r, status => $r->{status}) ;
 }

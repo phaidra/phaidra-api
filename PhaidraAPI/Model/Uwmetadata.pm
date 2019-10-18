@@ -1461,7 +1461,7 @@ sub save_to_object(){
   }
 
   my $object_model = PhaidraAPI::Model::Object->new;
-  return $object_model->add_or_modify_datastream($c, $pid, "UWMETADATA", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $uwmetadata, "X", $username, $password, 0);
+  return $object_model->add_or_modify_datastream($c, $pid, "UWMETADATA", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $uwmetadata, "X", undef, undef, $username, $password, 0);
 
 }
 

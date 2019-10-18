@@ -55,7 +55,7 @@ sub save_to_object(){
   my $object_model = PhaidraAPI::Model::Object->new;
   my $coder = JSON->new->utf8->pretty;
   my $json = $coder->encode($metadata);
-  return $object_model->add_or_modify_datastream($c, $pid, "JSON-LD", "application/json", undef, $c->app->config->{phaidra}->{defaultlabel}, $json, "M", $username, $password);
+  return $object_model->add_or_modify_datastream($c, $pid, "JSON-LD", "application/json", undef, $c->app->config->{phaidra}->{defaultlabel}, $json, "M", undef, undef, $username, $password);
 }
 
 sub validate() {
