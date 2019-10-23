@@ -372,7 +372,7 @@ sub allowsubmit {
         $self->app->log->info("User[$username] deny submitform, user has [$nr] unapproved uploads within ".$nrdays." days.");
         $res->{allowsubmit} = 0;
       } else {
-        $self->app->log->info("User[$username] - not a bulk upload.");
+        $self->app->log->info("User[$username] - not a bulk upload, user has [$nr] unapproved uploads within ".$nrdays." days.");
         $res->{allowsubmit} = 1;
       }
     }else{
