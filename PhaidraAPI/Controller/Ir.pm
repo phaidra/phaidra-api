@@ -338,6 +338,60 @@ sub addrequestedlicense {
   $sth->execute($pid, $license, $username, $time) or $self->app->log->error($self->app->db_ir->errstr);
 }
 
+sub allowsubmit {
+  my $self = shift;
+
+  my $res = { alerts => [], status => 200 };
+
+  $res->{allowsubmit} = 0;
+  $res->{candobulkupload} = 0;
+
+  my $username = $self->stash->{basic_auth_credentials}->{username};
+
+  if($self->config->{ir}->{bulkuploadlimit}->{nruploads} && $self->config->{ir}->{bulkuploadlimit}->{nrdays}){
+    my $nruploads =$self->config->{ir}->{bulkuploadlimit}->{nruploads};
+    my $nrdays = $self->config->{ir}->{bulkuploadlimit}->{nrdays};
+    $res->{nruploads} = $nruploads;
+    $res->{nrdays} = $nrdays;
+    $self->app->log->info("Bulk upload check configured: nruploads[$nruploads] within days[$nrdays]");
+    my $candobulkupload = 0;
+    if($self->config->{ir}->{candobulkupload}){
+      for my $acc (@{$self->config->{ir}->{candobulkupload}}){
+        if($username eq $acc){
+          $res->{candobulkupload} = 1;
+          $candobulkupload = 1;
+        }
+      }
+    }
+
+    unless($candobulkupload){
+      $self->app->log->info("User[$username] CAN NOT do bulk uploads. Checking if this is bulk upload...");
+      my $nr = $self->getNrUnapprovedUploads($username, $nrdays);
+      $res->{nrunapproveduploads} = $nr;
+      if($nr >= $nruploads){
+        $self->app->log->info("User[$username] deny submitform, user has [$nr] unapproved uploads within ".$nrdays." days.");
+        $res->{allowsubmit} = 0;
+      } else {
+        $self->app->log->info("User[$username] - not a bulk upload.");
+        $res->{allowsubmit} = 1;
+      }
+    }else{
+      $self->app->log->info("User[$username] CAN do bulk uploads.");
+      $res->{allowsubmit} = 1;
+    }
+  }
+
+  $self->render(json => $res, status => $res->{status});
+}
+
+sub getNrUnapprovedUploads {
+  my ($self, $username, $nrdays) = @_;
+
+  my $ss = 'SELECT COUNT(*) AS nrunapproveduploads FROM (SELECT INSTR(GROUP_CONCAT(event_type),"approve") as approvedstrpos, pid, INSTR(GROUP_CONCAT(user_id),?) as userstrpos, gmtimestamp FROM event as e, (SELECT MAX(STR_TO_DATE(gmtimestamp,"%Y-%m-%dT%TZ")) as maxd FROM event WHERE user_id = ? AND event_type = "submit") subq1 WHERE user_id = ? OR user_id = ? AND STR_TO_DATE(e.gmtimestamp,"%Y-%m-%dT%TZ") >= SUBDATE(subq1.maxd, ?) GROUP BY pid) uploads WHERE approvedstrpos = 0 AND userstrpos > 0;';
+  my $res = $self->app->db_ir->selectrow_hashref($ss, undef, ($username, $username, $self->config->{ir}->{iraccount}, $username, $nrdays)) or $self->app->log->error($self->app->db_ir->errstr);
+  return $res->{nrunapproveduploads};
+}
+
 sub submit {
 
   my $self = shift;

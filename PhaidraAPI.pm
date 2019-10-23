@@ -437,6 +437,7 @@ sub startup {
 
   $check_auth->route('ir/requestedlicenses')                              ->via('post')     ->to('ir#requestedlicenses');
   $check_auth->route('ir/:pid/events')                                    ->via('get')      ->to('ir#events');
+  $check_auth->route('ir/allowsubmit')                                    ->via('get')      ->to('ir#allowsubmit');
 
   unless($self->app->config->{readonly}){
 
