@@ -143,7 +143,7 @@ sub _get_uwm_identifiers {
         $reslabel = 'doi:';
       }
       elsif($res eq '1552103'){
-        $reslabel = 'urn:';
+        # $reslabel = 'urn:'; urn already includes this
       }
       else{        
         $reslabel = $self->_get_value_label($c, $uwns_rev{'extended'}, 'resource', $res, $uw_vocs{'resource'}, $tree, $metadata_model, 'en');
