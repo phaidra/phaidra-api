@@ -14,6 +14,8 @@ use PhaidraAPI::Model::Rights;
 use Time::HiRes qw/tv_interval gettimeofday/;
 use Storable qw(dclone);
 use POSIX qw/strftime/;
+use MIME::Lite;
+use MIME::Lite::TT::HTML;
 
 sub notifications {
   my $self = shift;
@@ -94,7 +96,7 @@ sub addAlert
 
   my $pids = join(',', @{$pidsArr});
 
-  if($self->hasAlert($alerttype, $pids, $username))
+  if($self->hasAlerts($alerttype, $pids, $username))
   {
     $self->app->log->info("IR skipping addAlert (username=".$username.", alerttype=$alerttype, pids=$pids), already added.");
   }
@@ -108,7 +110,7 @@ sub addAlert
   }
 }
 
-sub hasAlert
+sub hasAlerts
 {
   my ($self, $alerttype, $pids, $username) = @_;
 
@@ -117,6 +119,30 @@ sub hasAlert
   $sth->execute($username, $alerttype, $pids) or $self->app->log->error($self->app->db_ir->errstr);
 
   return $sth->rows;
+}
+
+sub getAlertForPid
+{
+  my ($self, $alerttype, $pids) = @_;
+
+  my $ss = qq/SELECT id, username, pids FROM alert WHERE alert_type = ? AND processed = 0 AND alert.pids LIKE ?;/;
+  my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
+  $sth->execute($alerttype, $pids) or $self->app->log->error($self->app->db_ir->errstr);
+  my ($id, $username, $pids);
+  $sth->bind_columns(\$id, \$username, \$pids) or $self->app->log->error($self->app->db_ir->errstr);
+  while($sth->fetch()){
+    return { id => $id, username => $username, pids => $pids };
+  }
+}
+
+sub setAlertProcessed
+{
+  my ($self, $id) = @_;
+
+  $self->app->log->info("Ir::setAlertProcessed id[$id]");
+  my $ss = qq/UPDATE alert SET processed = 1 WHERE id = ?;/;
+  my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
+  $sth->execute($id) or $self->app->log->error($self->app->db_ir->errstr);
 }
 
 sub accept
@@ -219,7 +245,6 @@ sub approve
 
   my $object_model = PhaidraAPI::Model::Object->new;
   my $r = $object_model->add_relationship($self, $self->config->{ir}->{ircollection}, "info:fedora/fedora-system:def/relations-external#hasCollectionMember", "info:fedora/".$pid, $username, $password, 0);
-  push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
   if($r->{status} ne 200){
     $res->{status} = 500;
     unshift @{$res->{alerts}}, @{$r->{alerts}};
@@ -230,6 +255,56 @@ sub approve
 
   my @pids = ($pid);
   $self->addEvent('approve', \@pids, $username);
+
+  my $alert = $self->getAlertForPid('mdcheck', $pid);
+  unless ($alert->{username}) {
+    $self->app->log->debug("approve pid[$pid]: no alerts found");
+    $self->render(json => $res, status => $res->{status});
+    return;
+  }
+
+  my $owner = $alert->{username};
+
+  my $email = $self->app->directory->get_email($self, $owner);
+
+ 	my %emaildata;
+ 	$emaildata{pid} = $pid;
+ 	$emaildata{baseurl} = $self->config->{ir}->{baseurl};
+
+  my $subject = $self->config->{ir}->{name}." - Redaktionelle Bearbeitung abgeschlossen / Submission process completed";
+  my $templatefolder = $self->config->{ir}->{templatefolder};
+
+  my %options;
+  $options{INCLUDE_PATH} = $templatefolder;	
+  eval
+  {
+    my $msg = MIME::Lite::TT::HTML->new(
+      From        => $self->config->{ir}->{supportemail},
+      To          => $email,
+      Subject     => $subject,
+      Charset		=> 'utf8',
+      Encoding    => 'quoted-printable',
+      Template    => { html => 'mdcheck.html.tt', text => 'mdcheck.txt.tt'},
+      TmplParams  => \%emaildata,
+      TmplOptions => \%options
+    );
+    $msg->send;
+  };
+  if($@)
+  {
+    $self->addEvent('approval_notification_failed', \@pids, $username);
+    my $err = "[$pid] sending notification email failed: ".$@;
+    $self->app->log->error($err);
+    # 200 - the object was approved, notification failure goes to alerts
+    $res->{status} = 200;
+    unshift @{$res->{alerts}}, { type => 'danger', msg => $err};
+    $self->render(json => $res, status => $res->{status});
+    return;
+  }
+
+  # update history
+  $self->setAlertProcessed($alert->{id});
+  $self->addEvent('approval_notification_sent', \@pids, $username);
 
   $self->render(json => $res, status => $res->{status});
 }
@@ -519,6 +594,13 @@ sub submit {
 
     my $jsonld = dclone($metadata->{metadata}->{'json-ld'});
 
+    my $title;
+    my $titles = $jsonld->{'dce:title'};
+    for my $o (@{$titles}) {
+      $title = $o->{'bf:mainTitle'}[0]->{'@value'};
+      last;
+    }
+
     my @filenameArr = ($filename);
     $jsonld->{'ebucore:filename'} = \@filenameArr;
     my @mimetypeArr = ($mimetype);
@@ -566,6 +648,8 @@ sub submit {
     }
 
     $self->addrequestedlicense($r->{pid}, $username, $requestedLicense);
+
+    $self->sendEmail($title, $username, $r->{pid}, $requestedLicense);
   }
 
   my @mainObjectRelationships = (
@@ -626,6 +710,37 @@ sub submit {
   $res->{alternatives} = \@alternativeFormatPids;
 
   $self->render(json => $res, status => $res->{status});
+}
+
+sub sendEmail {
+  my ($self, $title, $owner, $pid, $license) = @_;
+
+  my $phaidrabaseurl = $self->config->{phaidra}->{baseurl};
+  my $irbaseur = $self->config->{ir}->{baseurl};
+
+  my $email = "
+  <html>
+    <body>
+      <p>Title: $title</p>
+      <p>Owner: $owner</p>
+      <p>IR: <a href=\"https://$irbaseur/detail/$pid\" target=\"_blank\">https://$irbaseur/detail/$pid</a></p>
+      <p>Phaidra: <a href=\"https://$phaidrabaseurl/detail_object/$pid\" target=\"_blank\">https://$phaidrabaseurl/detail_object/$pid</a></p>		
+      <p>Requested license: $license</p>
+    </body>
+  </html>	
+  ";
+
+  $self->app->log->info("Sending email for pid[$pid]: \n$email"); 
+
+  my $msg = MIME::Lite->new(
+    From     => $self->config->{ir}->{supportemail},
+    To       => $self->config->{ir}->{supportemail},	  
+    Type     => 'text/html; charset=UTF-8',
+    Subject  => "New upload: $pid",
+    Data     => encode('UTF-8', $email)
+  );
+
+  $msg->send;
 }
 
 1;
