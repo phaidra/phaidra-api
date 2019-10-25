@@ -1547,6 +1547,74 @@ sub _add_jsonld_index {
     }
   }
 
+  if($jsonld->{'rdax:P00009'}){
+    for my $ass (@{$jsonld->{'rdax:P00009'}}) {
+      for my $l (@{$ass->{'skos:prefLabel'}}) {
+        push @{$index->{"association"}}, $l->{'@value'};
+      }
+      if ($ass->{'skos:exactMatch'}) {
+        for my $id (@{$ass->{'skos:exactMatch'}}) {
+          push @{$index->{"association_id"}}, $id;
+          my $pp = $c->app->directory->org_get_parentpath($c, $id);
+          if ($pp->{status} eq 200) {
+            for my $parent (@{$pp->{parentpath}}) {
+              if ($parent->{'@id'} ne $id) {
+                push @{$index->{"association_id"}}, $parent->{'@id'};
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if($jsonld->{'frapo:isOutputOf'}){
+    for my $proj (@{$jsonld->{'frapo:isOutputOf'}}) {
+      if($proj->{'frapo:hasFundingAgency'}){
+        for my $funder (@{$proj->{'frapo:hasFundingAgency'}}) {
+          for my $l (@{$funder->{'skos:prefLabel'}}) {
+            push @{$index->{"funder"}}, $l->{'@value'};
+          }
+          if ($funder->{'skos:exactMatch'}) {
+            for my $id (@{$funder->{'skos:exactMatch'}}) {
+              push @{$index->{"funder_id"}}, $id;
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if($jsonld->{'frapo:hasFundingAgency'}){
+    for my $funder (@{$jsonld->{'frapo:hasFundingAgency'}}) {
+      for my $l (@{$funder->{'skos:prefLabel'}}) {
+        push @{$index->{"funder"}}, $l->{'@value'};
+      }
+      for my $id (@{$funder->{'skos:exactMatch'}}) {
+        push @{$index->{"funder_id"}}, $id;
+      }
+    }
+  }
+
+  if (exists($jsonld->{'rdau:P60193'})){
+    for my $o (@{$jsonld->{'rdau:P60193'}}) {
+      if (exists($o->{'dce:title'})) {
+        if ($o->{'dce:title'}[0]->{'bf:mainTitle'}[0]->{'@value'} ne '') {
+          push @{$index->{"bib_journal"}}, $o->{'dce:title'}[0]->{'bf:mainTitle'}[0]->{'@value'}
+        }
+      }
+      if (exists($o->{'bibo:volume'}) && $o->{'bibo:volume'} ne '') {
+        push @{$index->{"bib_volume"}}, $o->{'bibo:volume'}[0];
+      }
+      if (exists($o->{'bibo:issue'}) && $o->{'bibo:issue'} ne '') {
+        push @{$index->{"bib_issue"}}, $o->{'bibo:issue'}[0];
+      }
+      if (exists($o->{'dcterms:issued'}) && $o->{'dcterms:issued'} ne ''){
+        push @{$index->{"bib_published"}}, $o->{'dcterms:issued'}[0];
+      }
+    }
+  }
+
   if($jsonld->{'edm:hasType'}){
     for my $o (@{$jsonld->{'edm:hasType'}}) {
       for my $l (@{$o->{'skos:prefLabel'}}) {
@@ -1600,8 +1668,34 @@ sub _add_jsonld_roles {
           } else {
             $name = $contr->{'schema:name'}[0]->{'@value'};
           }
+          if($contr->{'schema:affiliation'}) {
+            for my $aff (@{$contr->{'schema:affiliation'}}) {
+              for my $affname (@{$aff->{'schema:name'}}) {
+                push @{$index->{"association"}}, $affname->{'@value'};
+              }
+              if ($aff->{'skos:exactMatch'}) {
+                for my $id (@{$aff->{'skos:exactMatch'}}) {
+                  push @{$index->{"association_id"}}, $id;
+                  my $pp = $c->app->directory->org_get_parentpath($c, $id);
+                  if ($pp->{status} eq 200) {
+                    for my $parent (@{$pp->{parentpath}}) {
+                      if ($parent->{'@id'} ne $id) {
+                        push @{$index->{"association_id"}}, $parent->{'@id'};
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
         }elsif($contr->{'@type'} eq 'schema:Organisation'){
           $name = $contr->{'schema:name'}[0]->{'@value'};
+          push @{$index->{"association"}}, $name;
+          if ($contr->{'skos:exactMatch'}) {
+            for my $id (@{$contr->{'skos:exactMatch'}}) {
+              push @{$index->{"association_id"}}, $id;
+            }
+          }
         }else{
           $c->app->log->error("Unknown contributor type in jsonld for pid $pid");
           push @{$res->{alerts}}, { type => 'danger', msg => "Unknown contributor type in jsonld for pid $pid"};
@@ -1686,6 +1780,9 @@ sub _add_uwm_index {
         }
         if($dbf->{xmlname} eq 'edition'){
           push @{$index->{"bib_edition"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+        }
+        if($dbf->{xmlname} eq 'booklet'){
+          push @{$index->{"bib_issue"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
         if($dbf->{xmlname} eq 'releaseyear'){
           push @{$index->{"bib_published"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  

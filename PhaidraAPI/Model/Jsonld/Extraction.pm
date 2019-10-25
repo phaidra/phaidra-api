@@ -73,10 +73,13 @@ sub _get_jsonld_sources {
       my $new = {
         value => $o->{'dce:title'}[0]->{'bf:mainTitle'}[0]->{'@value'}
       };
-      if(exists($o->{'dce:title'}[0]->{'bf:mainTitle'}[0]->{'@language'}) && ($o->{'dce:title'}[0]->{'bf:mainTitle'}[0]->{'@language'} ne '')){
+      if (exists($o->{'dce:title'}[0]->{'bf:mainTitle'}[0]->{'@language'}) && ($o->{'dce:title'}[0]->{'bf:mainTitle'}[0]->{'@language'} ne '')) {
         $new->{lang} = $o->{'dce:title'}[0]->{'bf:mainTitle'}[0]->{'@language'};
       }
       push @dcsources, $new;
+      if (exists($o->{'identifiers:issn'}) && $o->{'identifiers:issn'} ne ''){
+        push @dcsources, { value => 'issn:'.$o->{'identifiers:issn'}[0] };
+      }
     }
   }
 

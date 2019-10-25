@@ -21,6 +21,13 @@ sub org_get_superunits {
   $self->render(json => $res, status => $res->{status});
 }
 
+sub org_get_parentpath {
+  my $self = shift;  	
+  my $id = $self->param('id');		
+  my $res = $self->app->directory->org_get_parentpath($self, $id);	
+  $self->render(json => $res, status => $res->{status});
+}
+
 sub org_get_units {
   my $self = shift;
   my $flat = $self->param('flat');		
