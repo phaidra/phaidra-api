@@ -608,9 +608,11 @@ sub submit {
 
     $self->app->log->debug('Requested license:'.$self->app->dumper($jsonld->{'edm:rights'}));
     my $requestedLicense = @{$jsonld->{'edm:rights'}}[0];
-    my @lic;
-    push @lic, 'http://rightsstatements.org/vocab/InC/1.0/';
-    $jsonld->{'edm:rights'} = \@lic;
+    if ($username ne $self->config->{ir}->{iraccount}) {
+      my @lic;
+      push @lic, 'http://rightsstatements.org/vocab/InC/1.0/';
+      $jsonld->{'edm:rights'} = \@lic;
+    }
 
     my $isAlternativeFormat = 0;
     my $cmodel;
@@ -696,6 +698,14 @@ sub submit {
     if($r->{status} ne 200){
       $self->app->log->error("Error adding relationships[".$self->app->dumper(\@alternativeFormatsRelationships)."] pid[$alternativeFromatPid] res[".$self->app->dumper($res)."]");
       # continue, this isn't fatal
+    }
+  }
+
+  if ($username eq $self->config->{ir}->{iraccount}) {
+    my $r = $object_model->add_relationship($self, $self->config->{ir}->{ircollection}, "info:fedora/fedora-system:def/relations-external#hasCollectionMember", "info:fedora/".$mainObjectPid, $username, $password, 0);
+    push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+    if($r->{status} ne 200){
+      $self->app->log->error("Error adding object to IR collection collpid[" . $self->config->{ir}->{ircollection} . "] relationship[info:fedora/fedora-system:def/relations-external#hasCollectionMember] pid[$mainObjectPid] res[".$self->app->dumper($res)."]");
     }
   }
 
