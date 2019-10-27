@@ -1518,7 +1518,39 @@ sub _add_jsonld_index {
     }
   }
 
-  my $roles_res = $self->_add_jsonld_roles($c, $pid, $jsonld, $index);
+  my %foundAss;
+  my %foundAssIds;
+  if($jsonld->{'rdax:P00009'}){
+    for my $ass (@{$jsonld->{'rdax:P00009'}}) {
+      for my $l (@{$ass->{'skos:prefLabel'}}) {
+        unless (exists($foundAssIds{$l->{'@value'}})) {
+          push @{$index->{"association"}}, $l->{'@value'};
+          $foundAss{$l->{'@value'}} = 1;
+        }
+      }
+      if ($ass->{'skos:exactMatch'}) {
+        for my $id (@{$ass->{'skos:exactMatch'}}) {
+          unless (exists($foundAssIds{$id})) {
+            push @{$index->{"association_id"}}, $id;
+            $foundAssIds{$id} = 1;
+            my $pp = $c->app->directory->org_get_parentpath($c, $id);
+            if ($pp->{status} eq 200) {
+              for my $parent (@{$pp->{parentpath}}) {
+                if ($parent->{'@id'} ne $id) {
+                  unless (exists($foundAssIds{$parent->{'@id'}})) {
+                    push @{$index->{"association_id"}}, $parent->{'@id'};
+                    $foundAssIds{$parent->{'@id'}} = 1;
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  my $roles_res = $self->_add_jsonld_roles($c, $pid, $jsonld, $index, \%foundAss, \%foundAssIds);
   push @{$res->{alerts}}, @{$roles_res->{alerts}} if scalar @{$roles_res->{alerts}} > 0;
   for my $r (@{$roles_res->{roles}}){
     push @roles, $r;
@@ -1543,27 +1575,6 @@ sub _add_jsonld_index {
       if ($o->{'@type'} eq 'phaidra:Subject') {
         my $rr = $self->_add_jsonld_index($c, $pid, $o, $index);
         push @{$res->{alerts}}, @{$rr->{alerts}} if scalar @{$rr->{alerts}} > 0;
-      }
-    }
-  }
-
-  if($jsonld->{'rdax:P00009'}){
-    for my $ass (@{$jsonld->{'rdax:P00009'}}) {
-      for my $l (@{$ass->{'skos:prefLabel'}}) {
-        push @{$index->{"association"}}, $l->{'@value'};
-      }
-      if ($ass->{'skos:exactMatch'}) {
-        for my $id (@{$ass->{'skos:exactMatch'}}) {
-          push @{$index->{"association_id"}}, $id;
-          my $pp = $c->app->directory->org_get_parentpath($c, $id);
-          if ($pp->{status} eq 200) {
-            for my $parent (@{$pp->{parentpath}}) {
-              if ($parent->{'@id'} ne $id) {
-                push @{$index->{"association_id"}}, $parent->{'@id'};
-              }
-            }
-          }
-        }
       }
     }
   }
@@ -1653,7 +1664,7 @@ sub _add_jsonld_index {
 }
 
 sub _add_jsonld_roles {
-  my ($self, $c, $pid, $jsonld, $index) = @_;
+  my ($self, $c, $pid, $jsonld, $index, $foundAss, $foundAssIds) = @_;
   my $res = { alerts => [], status => 200 };
   my @roles;
   for my $pred (keys %{$jsonld}){
@@ -1671,16 +1682,25 @@ sub _add_jsonld_roles {
           if($contr->{'schema:affiliation'}) {
             for my $aff (@{$contr->{'schema:affiliation'}}) {
               for my $affname (@{$aff->{'schema:name'}}) {
-                push @{$index->{"association"}}, $affname->{'@value'};
+                unless (exists($foundAss->{$affname->{'@value'}})) {
+                  push @{$index->{"association"}}, $affname->{'@value'};
+                  $foundAss->{$affname->{'@value'}} = 1;
+                }
               }
               if ($aff->{'skos:exactMatch'}) {
                 for my $id (@{$aff->{'skos:exactMatch'}}) {
-                  push @{$index->{"association_id"}}, $id;
-                  my $pp = $c->app->directory->org_get_parentpath($c, $id);
-                  if ($pp->{status} eq 200) {
-                    for my $parent (@{$pp->{parentpath}}) {
-                      if ($parent->{'@id'} ne $id) {
-                        push @{$index->{"association_id"}}, $parent->{'@id'};
+                  unless (exists($foundAssIds->{$id})) {
+                    push @{$index->{"association_id"}}, $id;
+                    $foundAssIds->{$id} = 1;
+                    my $pp = $c->app->directory->org_get_parentpath($c, $id);
+                    if ($pp->{status} eq 200) {
+                      for my $parent (@{$pp->{parentpath}}) {
+                        if ($parent->{'@id'} ne $id) {
+                          unless (exists($foundAssIds->{$parent->{'@id'}})) {
+                            push @{$index->{"association_id"}}, $parent->{'@id'};
+                            $foundAssIds->{$parent->{'@id'}} = 1;
+                          }
+                        }
                       }
                     }
                   }
@@ -1689,19 +1709,25 @@ sub _add_jsonld_roles {
             }
           }
         }elsif($contr->{'@type'} eq 'schema:Organisation'){
-          $name = $contr->{'schema:name'}[0]->{'@value'};
-          push @{$index->{"association"}}, $name;
+          unless (exists($foundAss->{$name})) {
+            $name = $contr->{'schema:name'}[0]->{'@value'};
+            push @{$index->{"association"}}, $name;
+            $foundAss->{$name} = 1;
+          }
           if ($contr->{'skos:exactMatch'}) {
             for my $id (@{$contr->{'skos:exactMatch'}}) {
-              push @{$index->{"association_id"}}, $id;
+              unless (exists($foundAssIds->{$id})) {
+                push @{$index->{"association_id"}}, $id;
+                $foundAssIds->{$id} = 1;
+              }
             }
           }
         }else{
           $c->app->log->error("Unknown contributor type in jsonld for pid $pid");
           push @{$res->{alerts}}, { type => 'danger', msg => "Unknown contributor type in jsonld for pid $pid"};
         }
+        push @{$index->{"bib_roles_pers_$role"}}, $name unless ($name eq '' || $name eq ' ');
       }
-      push @{$index->{"bib_roles_pers_$role"}}, $name unless ($name eq '' || $name eq ' ');
     }
   }
   $res->{roles} = \@roles;
