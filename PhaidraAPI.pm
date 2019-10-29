@@ -372,7 +372,7 @@ sub startup {
   $r->route('object/:pid/annotations')            ->via('get')    ->to('annotations#get');
   $r->route('object/:pid/techinfo')               ->via('get')    ->to('techinfo#get');
   $r->route('object/:pid/dc')                     ->via('get')    ->to('dc#get', dsid => 'DC_P');
-  $r->route('object/:pid/oai_dc')                 ->via('get')    ->to('dc#get', dsid => 'DC_OAI');  
+  $r->route('object/:pid/oai_dc')                 ->via('get')    ->to('dc#get', dsid => 'DC_OAI');
   $r->route('object/:pid/index')                  ->via('get')    ->to('index#get');
   $r->route('object/:pid/index/dc')               ->via('get')    ->to('index#get_dc');
   $r->route('object/:pid/datacite')               ->via('get')    ->to('datacite#get');
@@ -387,6 +387,11 @@ sub startup {
   $r->route('stats/:pid/downloads')               ->via('get')    ->to('stats#stats', stats_param_key => 'downloads');
   $r->route('stats/:pid/detail_page')             ->via('get')    ->to('stats#stats', stats_param_key => 'detail_page');
   $r->route('stats/:pid/chart')                   ->via('get')    ->to('stats#chart');
+
+  $r->route('ir/stats/:pid')                      ->via('get')    ->to('ir#stats');
+  $r->route('ir/stats/:pid/downloads')            ->via('get')    ->to('ir#stats', stats_param_key => 'downloads');
+  $r->route('ir/stats/:pid/detail_page')          ->via('get')    ->to('ir#stats', stats_param_key => 'detail_page');
+  $r->route('ir/stats/:pid/chart')                ->via('get')    ->to('ir#stats_chart');
 
   $r->route('directory/user/#username/data')      ->via('get')    ->to('directory#get_user_data');
   $r->route('directory/user/#username/name')      ->via('get')    ->to('directory#get_user_name');

@@ -23,7 +23,7 @@ sub stats {
     if(exists($self->app->config->{frontends})){
         for my $f (@{$self->app->config->{frontends}}){
             if(defined($f->{frontend_id}) && $f->{frontend_id} eq 'phaidra_catalyst'){
-                $fr = $f;                    
+                $fr = $f;
             }
         }
     }
@@ -71,7 +71,7 @@ sub stats {
         my $downloads = 0; #$self->app->db_stats_phaidra_catalyst->selectrow_array("select count(*) from piwik_log_link_visit_action as a where a.idsite=$siteid and a.custom_var_v2 = \"$pid\" and a.custom_var_k2 = \"Download\"") or $self->app->log->error("Error querying piwik database for downloads:".$self->app->db_stats_phaidra_catalyst->errstr);
 
         # this counts *any* page with pid in URL. But that kind of makes sense anyways...
-        my $sth = $self->app->db_stats_phaidra_catalyst->prepare("CREATE TEMPORARY TABLE pid_visits_idsite_$pidnum AS (SELECT piwik_log_link_visit_action.idsite FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE piwik_log_action.name like '%view/$pid%' OR piwik_log_action.name like '%detail_object/$pid%');");
+        my $sth = $self->app->db_stats_phaidra_catalyst->prepare("CREATE TEMPORARY TABLE pid_visits_idsite_$pidnum AS (SELECT piwik_log_link_visit_action.idsite FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE piwik_log_action.name like '%view/$pid%' OR piwik_log_action.name like '%detail_object/$pid%' OR piwik_log_action.name like '%detail/$pid%');");
         $sth->execute();
 #        $sth->fetchall_arrayref();
         my $detail_page = $self->app->db_stats_phaidra_catalyst->selectrow_array("SELECT count(*) FROM pid_visits_idsite_$pidnum WHERE idsite = $siteid;");
@@ -91,7 +91,6 @@ sub stats {
     }else{
         $self->render(json => { stats => $cacheval }, status => 200);
     }
-    
 }
 
 sub chart {
@@ -163,7 +162,7 @@ sub chart {
 
         # this counts pages with view/pid or detail_page/pid in URL
         my $detail_page;
-        my $sth = $self->app->db_stats_phaidra_catalyst->prepare("SELECT DATE_FORMAT(server_time,'%Y-%m-%d') FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE idsite = $siteid AND (piwik_log_action.name like '%view/$pid%' OR piwik_log_action.name like '%detail_object/$pid%')");
+        my $sth = $self->app->db_stats_phaidra_catalyst->prepare("SELECT DATE_FORMAT(server_time,'%Y-%m-%d') FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE idsite = $siteid AND (piwik_log_action.name like '%view/$pid%' OR piwik_log_action.name like '%detail_object/$pid%' OR piwik_log_action.name like '%detail/$pid%')");
         $sth->execute();
         my $date;
         $sth->bind_columns(undef, \$date);

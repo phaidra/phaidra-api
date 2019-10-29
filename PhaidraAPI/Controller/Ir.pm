@@ -753,4 +753,190 @@ sub sendEmail {
   $msg->send;
 }
 
+sub stats {
+  my $self = shift; 
+
+  my $pid = $self->stash('pid');
+  my $irsiteid = $self->param('siteid');
+
+  unless(defined($pid)){
+    $self->render(json => { alerts => [{ type => 'info', msg => 'Undefined pid' }]}, status => 400);
+    return;
+  }
+
+  my $key = $self->stash('stats_param_key');
+
+  my $fr = undef;
+  if(exists($self->app->config->{frontends})){
+    for my $f (@{$self->app->config->{frontends}}){
+      if(defined($f->{frontend_id}) && $f->{frontend_id} eq 'ir'){
+        $fr = $f;
+      }
+    }
+  }
+
+  unless(defined($fr)){
+    # return 200, this is just ok
+    $self->render(json => { alerts => [{ type => 'info', msg => 'Frontend is not configured' }]}, status => 200);
+    return;
+  }
+  unless($fr->{frontend_id} eq 'ir'){
+    # return 200, this is just ok
+    $self->render(json => { alerts => [{ type => 'info', msg => 'Frontend ['.$fr->{frontend_id}.'] is not supported' }]}, status => 200);
+    return;
+  }
+  unless(defined($fr->{stats})){
+    # return 200, this is just ok
+    $self->render(json => { alerts => [{ type => 'info', msg => 'Statistics source is not configured' }]}, status => 200);
+    return;
+  }
+  # only piwik now
+  unless($fr->{stats}->{type} eq 'piwik'){
+    # return 200, this is just ok
+    $self->render(json => { alerts => [{ type => 'info', msg => 'Statistics source ['.$fr->{stats}->{type}.'] is not supported.' }]}, status => 200);
+    return;
+  }
+  unless($irsiteid){
+    unless(defined($fr->{stats}->{siteid})){
+      $self->render(json => { alerts => [{ type => 'info', msg => 'Piwik siteid is not configured' }]}, status => 500);
+      return;
+    }
+    $irsiteid = $fr->{stats}->{siteid};
+  }
+
+  my $cachekey = 'stats_'.$irsiteid.'_'.$pid;
+  my $cacheval = $self->app->chi->get($cachekey);
+
+  unless($cacheval){
+
+    $self->app->log->debug("[cache miss] $cachekey");
+
+    my $pidnum = $pid;
+    $pidnum =~ s/://g;
+
+    my $sth = $self->app->db_stats_phaidra_catalyst->prepare("CREATE TEMPORARY TABLE pid_visits_idsite_downloads_$pidnum AS (SELECT piwik_log_link_visit_action.idsite FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE piwik_log_action.name like '%download/$pid%');");
+    $sth->execute();
+    my $downloads = $self->app->db_stats_phaidra_catalyst->selectrow_array("SELECT count(*) FROM pid_visits_idsite_downloads_$pidnum WHERE idsite = $irsiteid;");
+
+    unless(defined($downloads)){
+      $self->app->log->error("Error querying piwik database for download stats:".$self->app->db_stats_phaidra_catalyst->errstr);
+    }
+
+    # this counts *any* page with pid in URL. But that kind of makes sense anyways...
+    my $sth = $self->app->db_stats_phaidra_catalyst->prepare("CREATE TEMPORARY TABLE pid_visits_idsite_detail_$pidnum AS (SELECT piwik_log_link_visit_action.idsite FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE piwik_log_action.name like '%detail/$pid%');");
+    $sth->execute();
+    my $detail_page = $self->app->db_stats_phaidra_catalyst->selectrow_array("SELECT count(*) FROM pid_visits_idsite_detail_$pidnum WHERE idsite = $irsiteid;");
+  
+    unless(defined($detail_page)){
+      $self->app->log->error("Error querying piwik database for detail stats:".$self->app->db_stats_phaidra_catalyst->errstr);
+    }
+
+    if(defined($detail_page) || defined($downloads)){
+      $cacheval = { downloads => $downloads, detail_page => $detail_page };
+      $self->app->chi->set($cachekey, $cacheval, '1 day');
+    }
+  }else{
+    $self->app->log->debug("[cache hit] $cachekey");
+  }
+
+  if(defined($key)){
+    $self->render(text => $cacheval->{$key}, status => 200);
+  }else{
+    $self->render(json => { stats => $cacheval }, status => 200);
+  }
+}
+
+sub stats_chart {
+  my $self = shift;
+
+  my $pid = $self->stash('pid');
+  my $irsiteid = $self->param('siteid');
+
+  unless(defined($pid)){
+    $self->render(json => { alerts => [{ type => 'info', msg => 'Undefined pid' }]}, status => 400);
+    return;
+  }
+
+  my $key = $self->stash('stats_param_key');
+
+  my $fr = undef;
+  if(exists($self->app->config->{frontends})){
+    for my $f (@{$self->app->config->{frontends}}){
+      if(defined($f->{frontend_id}) && $f->{frontend_id} eq 'ir'){
+        $fr = $f;
+      }
+    }
+  }
+
+  unless(defined($fr)){
+    # return 200, this is just ok
+    $self->render(json => { alerts => [{ type => 'info', msg => 'Frontend is not configured' }]}, status => 200);
+    return;
+  }
+  unless($fr->{frontend_id} eq 'ir'){
+    # return 200, this is just ok
+    $self->render(json => { alerts => [{ type => 'info', msg => 'Frontend ['.$fr->{frontend_id}.'] is not supported' }]}, status => 200);
+    return;
+  }
+  unless(defined($fr->{stats})){
+    # return 200, this is just ok
+    $self->render(json => { alerts => [{ type => 'info', msg => 'Statistics source is not configured' }]}, status => 200);
+    return;
+  }
+  # only piwik now
+  unless($fr->{stats}->{type} eq 'piwik'){
+    # return 200, this is just ok
+    $self->render(json => { alerts => [{ type => 'info', msg => 'Statistics source ['.$fr->{stats}->{type}.'] is not supported.' }]}, status => 200);
+    return;
+  }
+  unless($irsiteid){
+    unless(defined($fr->{stats}->{siteid})){
+      $self->render(json => { alerts => [{ type => 'info', msg => 'Piwik siteid is not configured' }]}, status => 500);
+      return;
+    }
+    $irsiteid = $fr->{stats}->{siteid};
+  }
+
+  my $cachekey = 'statschart_'.$irsiteid.'_'.$pid;
+  my $cacheval = $self->app->chi->get($cachekey);
+
+  unless($cacheval){
+
+    $self->app->log->debug("[cache miss] $cachekey");
+
+    my $pidnum = $pid;
+    $pidnum =~ s/://g;
+
+    my $downloads;
+    my $sth = $self->app->db_stats_phaidra_catalyst->prepare("SELECT DATE_FORMAT(server_time,'%Y-%m-%d') FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE idsite = $irsiteid AND (piwik_log_action.name like '%download/$pid%')") or $self->app->log->error("Error querying piwik database for download stats chart:".$self->app->db_stats_phaidra_catalyst->errstr);
+    $sth->execute() or $self->app->log->error("Error querying piwik database for download stats chart:".$self->app->db_stats_phaidra_catalyst->errstr);
+    my $date;
+    $sth->bind_columns(undef, \$date);
+    while($sth->fetch) {
+      $downloads->{$date}++;
+    }
+
+    my $detail_page;
+    $sth = $self->app->db_stats_phaidra_catalyst->prepare("SELECT DATE_FORMAT(server_time,'%Y-%m-%d') FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE idsite = $irsiteid AND (piwik_log_action.name like '%download/$pid%')") or $self->app->log->error("Error querying piwik database for detail stats chart:".$self->app->db_stats_phaidra_catalyst->errstr);
+    $sth->execute() or $self->app->log->error("Error querying piwik database for detail stats chart:".$self->app->db_stats_phaidra_catalyst->errstr);
+    $sth->bind_columns(undef, \$date);
+    while($sth->fetch) {
+      $detail_page->{$date}++;
+    }
+
+    if(defined($detail_page) || defined($downloads)){
+      $cacheval = { downloads => $downloads, detail_page => $detail_page };
+      $self->app->chi->set($cachekey, $cacheval, '1 day');
+    }
+  }else{
+    $self->app->log->debug("[cache hit] $cachekey");
+  }
+
+  if(defined($key)){
+    $self->render(text => $cacheval->{$key}, status => 200);
+  }else{
+    $self->render(json => { stats => $cacheval }, status => 200);
+  }
+}
+
 1;
