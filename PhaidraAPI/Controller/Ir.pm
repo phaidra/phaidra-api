@@ -11,6 +11,7 @@ use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Collection;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Rights;
+use PhaidraAPI::Model::Index;
 use Time::HiRes qw/tv_interval gettimeofday/;
 use Storable qw(dclone);
 use POSIX qw/strftime/;
@@ -751,6 +752,98 @@ sub sendEmail {
   );
 
   $msg->send;
+}
+
+sub stats_topdownloads {
+  my $self = shift; 
+
+  my $irsiteid = $self->param('siteid');
+  my $interval = $self->param('interval');
+  my $limit = $self->param('limit');
+
+  my $fr = undef;
+  if(exists($self->app->config->{frontends})){
+    for my $f (@{$self->app->config->{frontends}}){
+      if(defined($f->{frontend_id}) && $f->{frontend_id} eq 'ir'){
+        $fr = $f;
+      }
+    }
+  }
+  unless(defined($fr)){
+    # return 200, this is just ok
+    $self->render(json => { alerts => [{ type => 'info', msg => 'Frontend is not configured' }]}, status => 200);
+    return;
+  }
+  unless($fr->{frontend_id} eq 'ir'){
+    # return 200, this is just ok
+    $self->render(json => { alerts => [{ type => 'info', msg => 'Frontend ['.$fr->{frontend_id}.'] is not supported' }]}, status => 200);
+    return;
+  }
+  unless(defined($fr->{stats})){
+    # return 200, this is just ok
+    $self->render(json => { alerts => [{ type => 'info', msg => 'Statistics source is not configured' }]}, status => 200);
+    return;
+  }
+  # only piwik now
+  unless($fr->{stats}->{type} eq 'piwik'){
+    # return 200, this is just ok
+    $self->render(json => { alerts => [{ type => 'info', msg => 'Statistics source ['.$fr->{stats}->{type}.'] is not supported.' }]}, status => 200);
+    return;
+  }
+  unless($irsiteid){
+    unless(defined($fr->{stats}->{siteid})){
+      $self->render(json => { alerts => [{ type => 'info', msg => 'Piwik siteid is not configured' }]}, status => 500);
+      return;
+    }
+    $irsiteid = $fr->{stats}->{siteid};
+  }
+  unless($interval){
+    $interval = 7;
+  }
+  unless($limit){
+    $limit = 10;
+  }
+
+  my $cachekey = 'stats_'.$irsiteid.'_topdownloads';
+  my $cacheval = $self->app->chi->get($cachekey);
+
+  unless($cacheval){
+
+    $self->app->log->debug("[cache miss] $cachekey");
+
+    my $sth = $self->app->db_stats_phaidra_catalyst->prepare("SELECT count(name) AS cnt, name FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE piwik_log_action.name like '%download%' AND idsite = ? AND server_time > DATE_SUB(curdate(), INTERVAL ? MONTH) GROUP BY name ORDER BY cnt DESC LIMIT ?;") or $self->app->log->error("Error querying piwik database for top downloads:".$self->app->db_stats_phaidra_catalyst->errstr);
+    $sth->execute($irsiteid, $interval, $limit) or $self->app->log->error("Error querying piwik database for top downloads:".$self->app->db_stats_phaidra_catalyst->errstr);
+    my ($nr, $action);
+    $sth->bind_columns(undef, \$nr, \$action);
+    my @tops;
+    while($sth->fetch) {
+      if ($action =~ /download\/(\w+:\d+)/) {
+        push @tops, $1;
+      }
+    }
+$self->app->log->debug("tops\n".$self->app->dumper(\@tops));
+    my $index_model = PhaidraAPI::Model::Index->new;
+    my @topdownloads;
+    for my $pid (@tops) {
+      $self->app->log->debug("getting index of $pid");
+      my $docres = $index_model->getDoc($self, $pid);
+      if ($docres->{status} eq 200) {
+        $self->app->log->debug("res\n".$self->app->dumper($docres));
+        push @topdownloads, $docres->{doc};
+      }
+    }
+
+    my $topscnt = scalar @topdownloads;
+    if($topscnt > 0){
+      $cacheval = \@topdownloads;
+      $self->app->chi->set($cachekey, $cacheval, '1 day');
+    }
+  }else{
+    $self->app->log->debug("[cache hit] $cachekey");
+  }
+
+  $self->render(json => { topdownloads => $cacheval }, status => 200);
+
 }
 
 sub stats {

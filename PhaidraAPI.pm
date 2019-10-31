@@ -388,6 +388,7 @@ sub startup {
   $r->route('stats/:pid/detail_page')             ->via('get')    ->to('stats#stats', stats_param_key => 'detail_page');
   $r->route('stats/:pid/chart')                   ->via('get')    ->to('stats#chart');
 
+  $r->route('ir/stats/topdownloads')              ->via('get')    ->to('ir#stats_topdownloads');
   $r->route('ir/stats/:pid')                      ->via('get')    ->to('ir#stats');
   $r->route('ir/stats/:pid/downloads')            ->via('get')    ->to('ir#stats', stats_param_key => 'downloads');
   $r->route('ir/stats/:pid/detail_page')          ->via('get')    ->to('ir#stats', stats_param_key => 'detail_page');
