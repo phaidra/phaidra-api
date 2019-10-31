@@ -821,14 +821,12 @@ sub stats_topdownloads {
         push @tops, $1;
       }
     }
-$self->app->log->debug("tops\n".$self->app->dumper(\@tops));
+
     my $index_model = PhaidraAPI::Model::Index->new;
     my @topdownloads;
     for my $pid (@tops) {
-      $self->app->log->debug("getting index of $pid");
       my $docres = $index_model->getDoc($self, $pid);
       if ($docres->{status} eq 200) {
-        $self->app->log->debug("res\n".$self->app->dumper($docres));
         push @topdownloads, $docres->{doc};
       }
     }
