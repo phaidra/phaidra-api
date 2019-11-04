@@ -169,7 +169,7 @@ sub accept
 
   my $object_model = PhaidraAPI::Model::Object->new;
 
-  my $r = $object_model->modify($self, $pid, undef, undef, $self->config->{ir}->{iraccount}, 'ir accept', undef, $username, $password);
+  my $r = $object_model->modify($self, $pid, undef, undef, $self->config->{ir}->{iraccount}, 'ir accept', undef, $username, $password, 1);
   if($r->{status} ne 200){
     $res->{status} = 500;
     unshift @{$res->{alerts}}, @{$r->{alerts}};
