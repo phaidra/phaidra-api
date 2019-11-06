@@ -6,7 +6,6 @@ use v5.10;
 use utf8;
 use Mojo::ByteStream qw(b);
 use JSON;
-use Mojo::JSON qw(encode_json decode_json);
 use Mojo::Util qw(encode decode);
 use base qw/Mojo::Base/;
 use XML::LibXML;
