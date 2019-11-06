@@ -208,6 +208,8 @@ sub xml2json {
 
 	my $uwmetadataxml = $self->req->body;
 
+  $uwmetadataxml = b($uwmetadataxml)->decode('UTF-8');
+
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
 	my $res = $metadata_model->uwmetadata_2_json($self, $uwmetadataxml);
 
@@ -215,7 +217,6 @@ sub xml2json {
 	#$self->app->log->debug("xml2json took $t1 s");
 #$self->app->log->debug("XXXXXXXXXXX: ".$self->app->dumper($res));
 	$self->render(json => { metadata => { uwmetadata => $res->{uwmetadata} }, alerts => $res->{alerts}}  , status => $res->{status});
-
 }
 
 sub validate {
