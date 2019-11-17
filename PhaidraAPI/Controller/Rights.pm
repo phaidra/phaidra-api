@@ -58,6 +58,8 @@ sub xml2json {
 
   my $mode = $self->param('mode');
   my $xml = $self->req->body;
+  
+  $xml = b($xml)->decode('UTF-8');
 
   my $rights_model = PhaidraAPI::Model::Rights->new;
   my $res = $rights_model->xml_2_json($self, $xml, $mode);
