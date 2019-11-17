@@ -1654,6 +1654,12 @@ sub _add_jsonld_index {
     }
   }
 
+  if($jsonld->{'phaidra:systemTag'}){
+    for my $o (@{$jsonld->{'phaidra:systemTag'}}) {
+      push @{$index->{"systemtag"}}, $o;
+    }
+  }
+
   if($jsonld->{'bf:physicalLocation'}){
     for my $o (@{$jsonld->{'bf:physicalLocation'}}) {
       push @{$index->{"bf_physicallocation"}}, $o->{'@value'};
