@@ -47,7 +47,6 @@ sub xml_2_json {
     my %json;
     $self->xml_2_json_rec($c, \%json, $dom->children);
 
-    my $mods;
     foreach my $ch (@{$json{children}}){
       if($ch->{xmlname} eq 'dc'){
         $res->{$output_label} = $ch->{children};
@@ -71,7 +70,7 @@ sub xml_2_json_rec {
         my $node;
         $node->{xmlname} = $id;
         if(defined($e->content) && $e->content ne ''){
-          $node->{ui_value} = b($e->content)->decode('UTF-8');
+          $node->{ui_value} = b(html_unescape $e->content)->decode('UTF-8');
         }
 
         if(defined($e->attr)){
