@@ -384,16 +384,16 @@ sub _get_entities {
       
       my $firstname = $e->find($entity_ns.'\:firstname')->first;
       if(defined($firstname)){
-        $firstname = $firstname->content;
+        $firstname = $firstname->text;
       }
       my $lastname = $e->find($entity_ns.'\:lastname')->first;
       if(defined($lastname)){
-        $lastname = $lastname->content;
+        $lastname = $lastname->text;
       } 
 
       my $institution = $e->find($entity_ns.'\:institution')->first;
       if(defined($institution)){
-        $institution = $institution->content;
+        $institution = $institution->text;
       }
 
       if(defined($institution) &&  $institution ne ''){
@@ -513,7 +513,7 @@ sub _get_publishers {
     # check publisher in digitalbook only once, not for 'provenience' namespace
     if($ns eq 'lom'){
       my $publishers = $dom->find($doc_uwns->{'digitalbook'}.'\:publisher')->first;
-      push @res, { value => $publishers->content } if(defined($publishers));
+      push @res, { value => $publishers->text } if(defined($publishers));
     }
   }
 
