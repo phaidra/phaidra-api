@@ -87,6 +87,22 @@ sub streamingplayer {
   }
 }
 
+sub streamingplayer_key {
+  my $self = shift;
+  my $pid = $self->stash('pid');
+  if($self->config->{streaming}){
+    my $r = $self->get_video_key($pid);
+    if ($r->{status} eq 200) {
+      $self->render(text => $r->{video_key}, status => 200);
+    } else {
+      $self->app->log->error("Video key not available: ".$self->app->dumper($r));
+      $self->render(text => $self->app->dumper($r), status => $r->{status});
+    }
+  }else{
+    $self->render(text => "stremaing not configured", status => 503);
+  }
+}
+
 sub get_all_pids {
 
   my $self = shift;  

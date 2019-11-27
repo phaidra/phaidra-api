@@ -426,6 +426,7 @@ sub startup {
   $proxyauth_optional->route('authz/check/:pid/:op')                      ->via('get')      ->to('authorization#check_rights'); 
 
   $proxyauth_optional->route('streaming/:pid')                            ->via('get')      ->to('utils#streamingplayer');
+  $proxyauth_optional->route('streaming/:pid/key')                        ->via('get')     ->to('utils#streamingplayer_key');
 
   $proxyauth_optional->route('imageserver')                               ->via('get')      ->to('imageserver#get');
 

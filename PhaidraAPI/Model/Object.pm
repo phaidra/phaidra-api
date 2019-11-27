@@ -881,7 +881,7 @@ sub save_metadata {
 	my $found_bib = 0;
 	foreach my $f (keys %{$metadata}){
 
-		if($f eq "uwmetadata") {
+		if(lc($f) eq "uwmetadata") {
 			
 			$c->app->log->debug("Adding uwmetadata");
 			my $uwmetadata = $metadata->{uwmetadata};
@@ -897,7 +897,7 @@ sub save_metadata {
 		  $found = 1;
 		  $found_bib = 1;
 
-		} elsif ($f eq "mods"){
+		} elsif (lc($f) eq "mods"){
 			
 			$c->app->log->debug("Saving MODS for $pid");
 			my $mods = $metadata->{mods};
@@ -914,7 +914,7 @@ sub save_metadata {
 			$found = 1;
 			$found_bib = 1;
 
-		} elsif ($f eq "rights"){
+		} elsif (lc($f) eq "rights"){
 
 			$c->app->log->debug("Saving RIGHTS for $pid");
 			my $rights = $metadata->{rights};
@@ -929,7 +929,7 @@ sub save_metadata {
 		    }
 			$found = 1;
 
-		} elsif ($f eq "geo"){
+		} elsif (lc($f) eq "geo"){
 
 			$c->app->log->debug("Saving GEO for $pid");
 			my $geo = $metadata->{geo};
@@ -944,7 +944,7 @@ sub save_metadata {
 			}
 			$found = 1;
 
-		} elsif ($f eq "json-ld"){
+		} elsif (lc($f) eq "json-ld"){
 
 			$c->app->log->debug("Saving JSON-LD for $pid");
 			my $jsonld = $metadata->{'json-ld'};
@@ -958,7 +958,7 @@ sub save_metadata {
 			$found = 1;
 			$found_bib = 1;
 
-		} elsif ($f eq "json-ld-private"){
+		} elsif (lc($f) eq "json-ld-private"){
 
 			$c->app->log->debug("Saving JSON-LD-PRIVATE for $pid");
 			my $jsonldprivate = $metadata->{'json-ld-private'};
@@ -972,16 +972,16 @@ sub save_metadata {
 			$found = 1;
 			$found_bib = 1;
 
-    } elsif ($f eq "members") {
+    } elsif (lc($f) eq "members") {
       $found = 1;
       # noop - this was handled by coll model
-    } elsif ($f eq "membersorder") {
+    } elsif (lc($f) eq "membersorder") {
       $found = 1;
       # noop - this is handled by create_container
-    } elsif ($f eq "relationships") {
+    } elsif (lc($f) eq "relationships") {
       $found = 1;
       # noop - this is handled elswhere
-    } elsif ($f eq "ownerid") {
+    } elsif (lc($f) eq "ownerid") {
       $found = 1;
       # noop - this is handled later because it's the last step (after activating object)
     } else {
