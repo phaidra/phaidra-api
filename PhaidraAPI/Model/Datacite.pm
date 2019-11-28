@@ -123,7 +123,7 @@ sub map_uwmetadata_2_datacite {
   my $relids = $self->_get_relsext_identifiers($c, $pid);
   my $relids2 = $ext->_get_uwm_identifiers($c, $dom, \%doc_uwns, $tree, $metadata_model);
   for my $ri (@{$relids2}){
-    push $relids, $ri;
+    push @$relids, $ri;
   }
   for my $relid (@$relids){
     if($relid->{value} =~ /hdl/i){
@@ -202,7 +202,7 @@ sub map_mods_2_datacite {
   my $relids = $self->_get_relsext_identifiers($c, $pid);
   my $relids2 = $ext->_get_mods_element_values($c, $dom, 'mods > identifier');
   for my $ri (@{$relids2}){
-    push $relids, $ri;
+    push @$relids, $ri;
   }
   for my $relid (@$relids){
     my $rrr = $relid->{value} =~ /doi/i;
