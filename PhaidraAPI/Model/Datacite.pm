@@ -67,7 +67,7 @@ sub get {
     if($r1->{status} ne 200){
       return $r1;
     }
-
+    $r1->{MODS} = b($r1->{MODS})->decode('UTF-8');
     my $datacite = $self->map_mods_2_datacite($c, $pid, $cmodel, $r1->{MODS});
 
     $res->{datacite} = $datacite;
@@ -79,7 +79,7 @@ sub get {
     if($r1->{status} ne 200){
       return $r1;
     }
-
+    $r1->{UWMETADATA} = b($r1->{UWMETADATA})->decode('UTF-8');
     my $datacite = $self->map_uwmetadata_2_datacite($c, $pid, $cmodel, $r1->{UWMETADATA});
 
     $res->{datacite} = $datacite;
