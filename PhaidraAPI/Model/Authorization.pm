@@ -31,7 +31,7 @@ sub check_rights {
         return $res;
     }else{
         $c->app->log->info("Authz op[$op] pid[$pid] username[".$c->stash->{basic_auth_credentials}->{username}."] failed");	
-        $res->{status} = '403';
+        $res->{status} = 403;
         $res->{json} = $getres;
         return $res;
     }    
