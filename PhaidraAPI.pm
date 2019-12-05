@@ -423,8 +423,6 @@ sub startup {
   $check_auth->route('jsonld/templates')                                  ->via('get')      ->to('jsonld#get_users_templates');
   $check_auth->route('jsonld/template/:tid')                              ->via('get')      ->to('jsonld#get_template');
 
-  $check_auth->route('object/:pid/md5')                                   ->via('get')      ->to('inventory#get_md5');
-  
   $proxyauth_optional->route('authz/check/:pid/:op')                      ->via('get')      ->to('authorization#check_rights'); 
 
   $proxyauth_optional->route('streaming/:pid')                            ->via('get')      ->to('utils#streamingplayer');
@@ -437,6 +435,7 @@ sub startup {
   $proxyauth_optional->route('object/:pid/fulltext')                      ->via('get')      ->to('fulltext#get');
   $proxyauth_optional->route('object/:pid/metadata')                      ->via('get')      ->to('object#get_metadata');
   $proxyauth_optional->route('object/:pid/info')                          ->via('get')      ->to('object#info');
+  $proxyauth_optional->route('object/:pid/md5')                           ->via('get')      ->to('inventory#get_md5');
 
   $proxyauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
   
