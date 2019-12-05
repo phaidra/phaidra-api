@@ -422,6 +422,8 @@ sub startup {
 
   $check_auth->route('jsonld/templates')                                  ->via('get')      ->to('jsonld#get_users_templates');
   $check_auth->route('jsonld/template/:tid')                              ->via('get')      ->to('jsonld#get_template');
+
+  $check_auth->route('object/:pid/md5')                                   ->via('get')      ->to('inventory#get_md5');
   
   $proxyauth_optional->route('authz/check/:pid/:op')                      ->via('get')      ->to('authorization#check_rights'); 
 
@@ -454,6 +456,8 @@ sub startup {
     
     $check_admin_auth->route('object/:pid/index')                         ->via('post')     ->to('index#update');
     $check_admin_auth->route('object/:pid/dc')                            ->via('post')     ->to('dc#update');
+
+    $check_admin_auth->route('ir/embargocheck')                           ->via('post')     ->to('ir#embargocheck');
 
     $check_admin_auth->route('imageserver/process')                       ->via('post')     ->to('imageserver#process_pids');
 

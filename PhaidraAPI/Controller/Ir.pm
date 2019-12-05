@@ -17,6 +17,8 @@ use Storable qw(dclone);
 use POSIX qw/strftime/;
 use MIME::Lite;
 use MIME::Lite::TT::HTML;
+use DateTime;
+use DateTime::Format::ISO8601;
 
 sub notifications {
   my $self = shift;
@@ -1027,6 +1029,177 @@ sub stats_chart {
     $self->render(text => $cacheval->{$key}, status => 200);
   }else{
     $self->render(json => { stats => $cacheval }, status => 200);
+  }
+}
+
+sub hasEmbargo {
+  my $self = shift;
+  my $pid = shift;
+  my $now_date = shift;
+
+  my $rights_model = PhaidraAPI::Model::Rights->new;
+
+  my $res = $rights_model->get_object_rights_json($self, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  if($res->{status} ne 200){
+    $self->app->log->error("ERROR getting rights for object $pid");
+    # assume it has embargo -> this means nothing will be done (no email sent etc)
+    return 1;
+  }
+
+# example
+#  "rights": {
+#      "faculty": [
+#          "A34"
+#      ],
+#      "spl": [
+#          "29"
+#      ],
+#      "username": [
+#          {
+#              "expires": "2019-12-11T16:11:45Z",
+#              "value": "blumess6"
+#          }
+#      ]
+#  }
+
+  my $hasEmbargo = 0;
+  # check embrago
+  # normally the embargo should be defined as a grant only to user/owner with an 'expires' attribute
+  # but we rather check all of them
+  # if there are any rights defined which do not have 'expires' or the 'expires' is in future, then
+  # we assume embargo is still in place (it's not yet 'open access' object)
+
+  # UPDATE: also if 'expires' is in past it will be left as if there is embargo because phaidra cronjob
+  # needs to remove it first
+
+  for my $key (keys %{$rights_model->allowed_tags}) {
+    if ($res->{rights}->{$key}) {
+      for my $rule (@{$res->{rights}->{$key}}) {
+        if ($rule->{expires}) {
+          $self->app->log->info("Found expires: ".$rule->{expires});
+          my $expires_date = DateTime::Format::ISO8601->parse_datetime($expires_str);
+          # $cmp is -1, 0, or 1 if $now_date is <, ==, or > than $expires_date respectively
+          my $cmp = DateTime->compare($now_date, $expires_date);
+          $self->app->log->info("Comparing now $now_date VS expires $expires_date");
+          if($cmp < 0){ # embargo is NOT over
+            $hasEmbargo = 1;
+            $self->app->log->info("Expires is in the future.");
+          }else{
+            $hasEmbargo = 1;
+            # UPDATE: also if 'expires' is in past it will be left as if there is embargo because phaidra cronjob
+            # needs to remove it first
+            $self->app->log->info("Expires is in the past.");
+          }
+        }else{
+          # there is a rule and cannot be expired so it's not an open access object, leave it as embargo
+          $self->app->log->info("No expires found.");
+          $hasEmbargo = 1;
+        }
+      }
+    }
+  }
+
+  return $hasEmbargo;
+}
+
+sub embargocheck {
+  my $self = shift;
+
+  my $now_date = DateTime->now();
+
+  my @rows;
+
+  my $ss = qq/SELECT alert.id, alert.username, alert.pids FROM alert WHERE alert_type = ? AND alert.processed = 0;/;
+  my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
+  $sth->execute('embargo') or $self->app->log->error($self->app->db_ir->errstr);
+  my ($id, $username, $pids);
+  $sth->bind_columns(\$id, \$username, \$pids) or $self->app->log->error($self->app->db_ir->errstr);
+  while($sth->fetch()){	
+    push @rows, {id => $id, username => $username, pids => $pids };
+  }
+
+  foreach my $row (@rows) {
+    $self->app->log->info("Checking alert definition:\n".$self->app->dumper($row));
+
+    my @pids;
+    my $pid = $row->{pids};	
+    if($pid =~ m/^o:\d+$/){
+      push @pids, $pid;
+    }else{ # in this case there are more pids separated by a comma
+      @pids = split(',',$pid);
+    }
+
+    foreach my $p (@pids){
+
+      unless($self->hasEmbargo($p, $now_date)){
+        # we say 'no more' because we are only checking objects which are supposed
+        # to be embargoed according to our table
+        $self->app->log->info("Object $p is no more under embargo.");
+        
+        # set alert processed
+        $self->app->log->info("Object $p, setting alert as processed.");
+        my $ss = qq/UPDATE alert SET processed = 1 WHERE id = ?;/;
+        my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
+        $sth->execute($row->{id}) or $self->app->log->error($self->app->db_ir->errstr);
+        
+        # change object's 'infoeurepoaccess' metadata field to open access
+        #$self->app->log->info("Object $p changing infoeurepoaccess.");	
+        #change_infoeurepoaccess($phaidra, $p, 'open');
+        
+        # send email
+        #$self->app->log->info("Object $p sending ...");
+        #send_email($config, $p, $row->{username}, $row->{language});
+        #$self->app->log->info("Object $p email sent.");
+
+        ##### check also if there are any IR embargoed objects where infoeurepoaccess should be changed
+        ##### even if there was no alert requested
+
+        # my $email = $self->app->directory->get_email($self, $owner);
+
+        # my %emaildata;
+        # $emaildata{pid} = $pid;
+        # $emaildata{baseurl} = $self->config->{ir}->{baseurl};
+
+        # unless(Email::Valid->address($email)){
+        #   ERROR("Email to user $username cannot be sent, invalid email address: $email");
+        #   return;
+        # }
+
+        # my $subject = $self->config->{ir}->{name}." - Redaktionelle Bearbeitung abgeschlossen / Submission process completed";
+        # my $templatefolder = $self->config->{ir}->{templatefolder};
+
+        # my %options;
+        # $options{INCLUDE_PATH} = $templatefolder;	
+        # eval
+        # {
+        #   my $msg = MIME::Lite::TT::HTML->new(
+        #     From        => $self->config->{ir}->{supportemail},
+        #     To          => $email,
+        #     Subject     => $subject,
+        #     Charset		=> 'utf8',
+        #     Encoding    => 'quoted-printable',
+        #     Template    => { html => 'mdcheck.html.tt', text => 'mdcheck.txt.tt'},
+        #     TmplParams  => \%emaildata,
+        #     TmplOptions => \%options
+        #   );
+        #   $msg->send;
+        # };
+        # if($@)
+        # {
+        #   $self->addEvent('approval_notification_failed', \@pids, $username);
+        #   my $err = "[$pid] sending notification email failed: ".$@;
+        #   $self->app->log->error($err);
+        #   # 200 - the object was approved, notification failure goes to alerts
+        #   $res->{status} = 200;
+        #   unshift @{$res->{alerts}}, { type => 'danger', msg => $err};
+        #   $self->render(json => $res, status => $res->{status});
+        #   return;
+        # }
+        
+      }else{
+        $self->app->log->info("Object $p is still under embargo.");
+      }
+    }
   }
 }
 
