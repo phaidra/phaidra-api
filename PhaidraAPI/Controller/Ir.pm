@@ -1031,7 +1031,7 @@ sub stats_chart {
     $self->render(json => { stats => $cacheval }, status => 200);
   }
 }
-
+=cut x
 sub hasEmbargo {
   my $self = shift;
   my $pid = shift;
@@ -1202,5 +1202,6 @@ sub embargocheck {
     }
   }
 }
+=cut
 
 1;
