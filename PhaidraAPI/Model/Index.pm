@@ -1648,6 +1648,14 @@ sub _add_jsonld_index {
     }
   }
 
+  if($jsonld->{'dcterms:accessRights'}){
+    for my $o (@{$jsonld->{'dcterms:accessRights'}}) {
+      for my $id (@{$o->{'skos:exactMatch'}}) {
+        push @{$index->{"dcterms_accessrights_id"}}, $id;
+      }
+    }
+  }
+
   if($jsonld->{'bf:shelfMark'}){
     for my $o (@{$jsonld->{'bf:shelfMark'}}) {
       push @{$index->{"bf_shelfmark"}}, $o;

@@ -7,11 +7,14 @@ use base 'Mojolicious::Controller';
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::Util qw(encode decode);
 use Mojo::ByteStream qw(b);
+use Mojo::URL;
+use Mojo::UserAgent;
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Collection;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Rights;
 use PhaidraAPI::Model::Index;
+use PhaidraAPI::Model::Jsonld;
 use Time::HiRes qw/tv_interval gettimeofday/;
 use Storable qw(dclone);
 use POSIX qw/strftime/;
@@ -540,7 +543,7 @@ sub submit {
       if(exists($ar->{'skos:exactMatch'})){
         for my $arId (@{$ar->{'skos:exactMatch'}}) {
           # embargoed
-          if ($arId eq 'https://vocab.phaidra.org/vocabulary/AVFC-ZZSZ') {
+          if ($arId eq 'https://pid.phaidra.org/vocabulary/AVFC-ZZSZ') {
             if(exists($metadata->{metadata}->{'json-ld'}->{'dcterms:available'})){
               for my $embargoDate (@{$metadata->{metadata}->{'json-ld'}->{'dcterms:available'}}) {
                 $rights{'username'} = (
@@ -554,11 +557,11 @@ sub submit {
             }
           }
           # closed
-          if ($arId eq 'https://vocab.phaidra.org/vocabulary/QNGE-V02H') {
+          if ($arId eq 'https://pid.phaidra.org/vocabulary/QNGE-V02H') {
             $rights{'username'} = $username;
           }
           # restricted
-          if ($arId eq 'https://vocab.phaidra.org/vocabulary/KC3K-CCGM') {
+          if ($arId eq 'https://pid.phaidra.org/vocabulary/KC3K-CCGM') {
             $rights{'username'} = $username;
           }
         }
@@ -654,7 +657,7 @@ sub submit {
 
     $self->addrequestedlicense($r->{pid}, $username, $requestedLicense);
 
-    $self->sendEmail($title, $username, $r->{pid}, $requestedLicense);
+    $self->sendAdminEmail($title, $username, $r->{pid}, $requestedLicense);
   }
 
   my @mainObjectRelationships = (
@@ -725,7 +728,7 @@ sub submit {
   $self->render(json => $res, status => $res->{status});
 }
 
-sub sendEmail {
+sub sendAdminEmail {
   my ($self, $title, $owner, $pid, $license) = @_;
 
   my $phaidrabaseurl = $self->config->{phaidra}->{baseurl};
@@ -1031,18 +1034,16 @@ sub stats_chart {
     $self->render(json => { stats => $cacheval }, status => 200);
   }
 }
-=cut x
-sub hasEmbargo {
+
+sub isRestricted {
   my $self = shift;
   my $pid = shift;
-  my $now_date = shift;
 
   my $rights_model = PhaidraAPI::Model::Rights->new;
-
   my $res = $rights_model->get_object_rights_json($self, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
   if($res->{status} ne 200){
-    $self->app->log->error("ERROR getting rights for object $pid");
-    # assume it has embargo -> this means nothing will be done (no email sent etc)
+    $self->app->log->error("ERROR getting rights for object $pid:\n".$self->app->dumper($res));
+    # assume it is restricted -> this means nothing will be done (no email sent etc)
     return 1;
   }
 
@@ -1062,50 +1063,128 @@ sub hasEmbargo {
 #      ]
 #  }
 
-  my $hasEmbargo = 0;
-  # check embrago
-  # normally the embargo should be defined as a grant only to user/owner with an 'expires' attribute
-  # but we rather check all of them
-  # if there are any rights defined which do not have 'expires' or the 'expires' is in future, then
-  # we assume embargo is still in place (it's not yet 'open access' object)
-
-  # UPDATE: also if 'expires' is in past it will be left as if there is embargo because phaidra cronjob
-  # needs to remove it first
-
-  for my $key (keys %{$rights_model->allowed_tags}) {
+  for my $key (keys %{PhaidraAPI::Model::Rights::allowed_tags}) {
     if ($res->{rights}->{$key}) {
       for my $rule (@{$res->{rights}->{$key}}) {
-        if ($rule->{expires}) {
-          $self->app->log->info("Found expires: ".$rule->{expires});
-          my $expires_date = DateTime::Format::ISO8601->parse_datetime($expires_str);
-          # $cmp is -1, 0, or 1 if $now_date is <, ==, or > than $expires_date respectively
-          my $cmp = DateTime->compare($now_date, $expires_date);
-          $self->app->log->info("Comparing now $now_date VS expires $expires_date");
-          if($cmp < 0){ # embargo is NOT over
-            $hasEmbargo = 1;
-            $self->app->log->info("Expires is in the future.");
-          }else{
-            $hasEmbargo = 1;
-            # UPDATE: also if 'expires' is in past it will be left as if there is embargo because phaidra cronjob
-            # needs to remove it first
-            $self->app->log->info("Expires is in the past.");
-          }
-        }else{
-          # there is a rule and cannot be expired so it's not an open access object, leave it as embargo
-          $self->app->log->info("No expires found.");
-          $hasEmbargo = 1;
-        }
+        $self->app->log->debug("$pid is restricted:\n".$self->app->dumper($res));
+        return 1;
       }
     }
   }
 
-  return $hasEmbargo;
+  return 0;
+}
+
+sub changeEmbargoedToOpenAccess {
+  my $self = shift;
+  my $pid = shift;
+
+  my $jsonld_model = PhaidraAPI::Model::Jsonld->new;
+  my $res = $jsonld_model->get_object_jsonld_parsed($self, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  if($res->{status} ne 200){
+    $self->app->log->error("ERROR getting json-ld for object $pid:\n".$self->app->dumper($res));
+    return;
+  }
+
+  # dcterms:accessRights: [
+  #   {
+  #     @type: "skos:Concept",
+  #     skos:prefLabel: [
+  #       {
+  #         @language: "eng",
+  #         @value: "embargoed access"
+  #       }
+  #     ],
+  #     skos:exactMatch: [
+  #       "https://pid.phaidra.org/vocabulary/AVFC-ZZSZ"
+  #     ]
+  #   }
+  # ]
+
+  if (exists($res->{'JSON-LD'}->{'dcterms:accessRights'})) {
+    for my $ar (@{$res->{'JSON-LD'}->{'dcterms:accessRights'}}) {
+      my $isEmbargoAccessRight = 0;
+      if ($ar->{'skos:exactMatch'}) {
+        for my $em (@{$ar->{'skos:exactMatch'}}) {
+          # embargoed access
+          if ($em eq 'https://pid.phaidra.org/vocabulary/AVFC-ZZSZ') {
+            $isEmbargoAccessRight = 1;
+            last;
+          }
+        }
+      }
+      if ($isEmbargoAccessRight) {
+        $ar = {
+          '@type' => 'skos:Concept',
+          'skos:prefLabel' => [
+            {
+              '@language' => 'eng',
+              '@value' => 'open access'
+            }
+          ],
+          'skos:exactMatch' => [
+            'https://pid.phaidra.org/vocabulary/QW5R-NG4J'
+          ]
+        };
+        last;
+      }
+    }
+    my $saveres = $jsonld_model->save_to_object($self, $pid, $res->{'JSON-LD'}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+    if($saveres->{status} ne 200){
+      $saveres->app->log->error("ERROR saving json-ld for object $pid:\n".$self->app->dumper($res));
+      return;
+    }
+  } else {
+    $self->app->log->error("ERROR object $pid is missing dcterms:accessRights:\n".$self->app->dumper($res));
+  }
+
+}
+
+sub sendEmbargoendEmail {
+  my ($self, $username, $pid) = @_;
+
+  my $email = $self->app->directory->get_email($self, $username);
+
+ 	my %emaildata;
+ 	$emaildata{pid} = $pid;
+ 	$emaildata{baseurl} = $self->config->{ir}->{baseurl};
+
+  my $subject = $self->config->{ir}->{name}." - Embargofrist abgelaufen / Embargo period expired";
+  my $templatefolder = $self->config->{ir}->{templatefolder};
+
+  my %options;
+  $options{INCLUDE_PATH} = $templatefolder;	
+  eval
+  {
+    my $msg = MIME::Lite::TT::HTML->new(
+      From        => $self->config->{ir}->{supportemail},
+      To          => 'rastislav.hudak@univie.ac.at',#$email,
+      Subject     => $subject,
+      Charset		=> 'utf8',
+      Encoding    => 'quoted-printable',
+      Template    => { html => 'embargoend.html.tt', text => 'embargoend.txt.tt'},
+      TmplParams  => \%emaildata,
+      TmplOptions => \%options
+    );
+    $msg->send;
+  };
+  if($@)
+  {
+    my @pids;
+    push @pids, $pid;
+    $self->addEvent('embargoend_notification_failed', \@pids, $username);
+    my $err = "[$pid] sending notification email to username[$username] email[$email] failed: ".$@;
+    $self->app->log->error($err);
+  }
 }
 
 sub embargocheck {
   my $self = shift;
 
-  my $now_date = DateTime->now();
+  ##### check also if there are any IR embargoed objects where infoeurepoaccess should be changed
+  ##### even if there was no alert requested
+
+  $self->app->log->info("embargocheck processing alerts");
 
   my @rows;
 
@@ -1118,8 +1197,11 @@ sub embargocheck {
     push @rows, {id => $id, username => $username, pids => $pids };
   }
 
+  my $i = 0;
+  my $nrAlerts = scalar @rows;
   foreach my $row (@rows) {
-    $self->app->log->info("Checking alert definition:\n".$self->app->dumper($row));
+    $i++;
+    $self->app->log->info("embargocheck alerts processing[$i/$nrAlerts] checking alert definition: alert[".$row->{id}."] username[".$row->{username}."] pids[".$row->{pids}."]");
 
     my @pids;
     my $pid = $row->{pids};	
@@ -1129,79 +1211,70 @@ sub embargocheck {
       @pids = split(',',$pid);
     }
 
+    my $j = 0;
+    my $nrPids = scalar @pids;
     foreach my $p (@pids){
+      $j++;
+      $self->app->log->info("embargocheck alerts processing[$i/$nrAlerts] alert[".$row->{id}."] processing pid[$p]");
 
-      unless($self->hasEmbargo($p, $now_date)){
-        # we say 'no more' because we are only checking objects which are supposed
-        # to be embargoed according to our table
-        $self->app->log->info("Object $p is no more under embargo.");
+      if($self->isRestricted($p)){
+        $self->app->log->info("embargocheck alerts processing[$i/$nrAlerts] alert[".$row->{id}."] pid[$p] restricted");
+      } else {
+        $self->app->log->info("embargocheck alerts processing[$i/$nrAlerts] alert[".$row->{id}."] pid[$p] not restricted");
         
         # set alert processed
-        $self->app->log->info("Object $p, setting alert as processed.");
+        $self->app->log->info("embargocheck alerts processing[$i/$nrAlerts] alert[".$row->{id}."] pid[$p] setting alert as processed");
         my $ss = qq/UPDATE alert SET processed = 1 WHERE id = ?;/;
         my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
         $sth->execute($row->{id}) or $self->app->log->error($self->app->db_ir->errstr);
         
-        # change object's 'infoeurepoaccess' metadata field to open access
-        #$self->app->log->info("Object $p changing infoeurepoaccess.");	
-        #change_infoeurepoaccess($phaidra, $p, 'open');
+        # change object's 'dcterms:accessRights' metadata field to open access
+        $self->app->log->info("embargocheck alerts processing[$i/$nrAlerts] alert[".$row->{id}."] pid[$p] changing infoeurepoaccess");
+        $self->changeEmbargoedToOpenAccess($p);
         
         # send email
-        #$self->app->log->info("Object $p sending ...");
-        #send_email($config, $p, $row->{username}, $row->{language});
-        #$self->app->log->info("Object $p email sent.");
-
-        ##### check also if there are any IR embargoed objects where infoeurepoaccess should be changed
-        ##### even if there was no alert requested
-
-        # my $email = $self->app->directory->get_email($self, $owner);
-
-        # my %emaildata;
-        # $emaildata{pid} = $pid;
-        # $emaildata{baseurl} = $self->config->{ir}->{baseurl};
-
-        # unless(Email::Valid->address($email)){
-        #   ERROR("Email to user $username cannot be sent, invalid email address: $email");
-        #   return;
-        # }
-
-        # my $subject = $self->config->{ir}->{name}." - Redaktionelle Bearbeitung abgeschlossen / Submission process completed";
-        # my $templatefolder = $self->config->{ir}->{templatefolder};
-
-        # my %options;
-        # $options{INCLUDE_PATH} = $templatefolder;	
-        # eval
-        # {
-        #   my $msg = MIME::Lite::TT::HTML->new(
-        #     From        => $self->config->{ir}->{supportemail},
-        #     To          => $email,
-        #     Subject     => $subject,
-        #     Charset		=> 'utf8',
-        #     Encoding    => 'quoted-printable',
-        #     Template    => { html => 'mdcheck.html.tt', text => 'mdcheck.txt.tt'},
-        #     TmplParams  => \%emaildata,
-        #     TmplOptions => \%options
-        #   );
-        #   $msg->send;
-        # };
-        # if($@)
-        # {
-        #   $self->addEvent('approval_notification_failed', \@pids, $username);
-        #   my $err = "[$pid] sending notification email failed: ".$@;
-        #   $self->app->log->error($err);
-        #   # 200 - the object was approved, notification failure goes to alerts
-        #   $res->{status} = 200;
-        #   unshift @{$res->{alerts}}, { type => 'danger', msg => $err};
-        #   $self->render(json => $res, status => $res->{status});
-        #   return;
-        # }
-        
-      }else{
-        $self->app->log->info("Object $p is still under embargo.");
+        $self->app->log->info("embargocheck alerts processing[$i/$nrAlerts] alert[".$row->{id}."] pid[$p] sending email");
+        $self->sendEmbargoendEmail($row->{username}, $p);
       }
     }
   }
+
+  $self->app->log->info("embargocheck processing embargoed objects from solr");
+
+  my $urlget = Mojo::URL->new;
+  $urlget->scheme($self->app->config->{solr}->{scheme});
+  $urlget->host($self->app->config->{solr}->{host});
+  $urlget->port($self->app->config->{solr}->{port});
+  if($self->app->config->{solr}->{path}){
+    $urlget->path("/".$self->app->config->{solr}->{path}."/solr/".$self->app->config->{solr}->{core}."/select");
+  }else{
+    $urlget->path("/solr/".$self->app->config->{solr}->{core}."/select");
+  }
+  $urlget->query(q => "*:*", fq => "isinadminset:\"phaidra:ir.univie.ac.at\" AND dcterms_accessrights_id:\"https://pid.phaidra.org/vocabulary/AVFC-ZZSZ\"", rows => "10000", wt => "json");
+
+  my $ua = Mojo::UserAgent->new;
+  my $getres = $ua->get($urlget)->result;
+
+  if ($getres->is_success) {
+    my $nrDocs = $getres->json->{response}->{numFound};
+    my $k = 0;
+    for my $d (@{$getres->json->{response}->{docs}}){
+      $k++;
+      my $p = $d->{pid};
+      $self->app->log->info("embargocheck solr processing[$k/$nrDocs] pid[$p]");
+      if($self->isRestricted($p)) {
+        $self->app->log->info("embargocheck solr processing[$k/$nrDocs] pid[$p] restricted");
+      } else {
+        # change object's 'dcterms:accessRights' metadata field to open access
+        $self->app->log->info("embargocheck processing[$k/$nrDocs] pid[$p] changing infoeurepoaccess");
+        $self->changeEmbargoedToOpenAccess($p);
+      }
+    }
+  }else{
+    $self->app->log->error("embargocheck error getting embargoed objects from solr: ".$getres->code." ".$getres->message);
+  }
+
+  $self->render(text => 'finished', status => 200);
 }
-=cut
 
 1;

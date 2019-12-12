@@ -136,7 +136,8 @@ sub get {
   if($res->{status} ne 200){
     if($res->{status} eq 404){
       # no RIGHTS
-      $self->render(json => { alerts => $res->{alerts}, metadata => { rights => {} } }, status => $res->{status});
+      $self->render(json => { alerts => $res->{alerts}, metadata => { rights => {} } }, status => 200);
+      return;
     }
     $self->render(json => { alerts => $res->{alerts} }, status => $res->{status});
     return;
