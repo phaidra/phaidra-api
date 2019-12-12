@@ -1158,7 +1158,7 @@ sub sendEmbargoendEmail {
   {
     my $msg = MIME::Lite::TT::HTML->new(
       From        => $self->config->{ir}->{supportemail},
-      To          => 'rastislav.hudak@univie.ac.at',#$email,
+      To          => $email,
       Subject     => $subject,
       Charset		=> 'utf8',
       Encoding    => 'quoted-printable',
@@ -1180,9 +1180,6 @@ sub sendEmbargoendEmail {
 
 sub embargocheck {
   my $self = shift;
-
-  ##### check also if there are any IR embargoed objects where infoeurepoaccess should be changed
-  ##### even if there was no alert requested
 
   $self->app->log->info("embargocheck processing alerts");
 
