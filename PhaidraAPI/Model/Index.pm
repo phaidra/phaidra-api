@@ -974,7 +974,7 @@ sub _get {
         $index{created} = $e1->attr('VALUE');
       }
 
-      if($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#lastModifiedDate'){
+      if($e1->attr('NAME') eq 'info:fedora/fedora-system:def/view#lastModifiedDate'){
         $index{modified} = $e1->attr('VALUE');
       }
 
