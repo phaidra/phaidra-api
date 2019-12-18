@@ -517,6 +517,30 @@ sub get_state {
 
 }
 
+sub get_ownerid {	
+	my $self = shift;
+	my $c = shift;
+	my $pid = shift;
+
+	my $res = { alerts => [], status => 200 };
+
+	my $sr = $self->triples($c, "<info:fedora/$pid> <info:fedora/fedora-system:def/model#ownerId> *");
+	push @{$res->{alerts}}, @{$sr->{alerts}} if scalar @{$sr->{alerts}} > 0;
+	$res->{status} = $sr->{status};
+	if($sr->{status} ne 200){
+		return $res;
+	}
+
+	foreach my $statement (@{$sr->{result}}){
+		$res->{ownerid} = @{$statement}[2];
+		return $res;
+	}
+
+	unshift @{$res->{alerts}}, { type => 'danger', msg => "Cannot determine status"};
+	$res->{status} = 500;
+	return $res;
+}
+
 sub get_last_modified_date {	
 	my $self = shift;
 	my $c = shift;

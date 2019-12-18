@@ -1472,6 +1472,27 @@ sub add_relationship {
 
     my $res = { alerts => [], status => 200 };
 
+    # only allow if object's owner is subject's owner
+    if ($predicate eq 'http://pcdm.org/models#hasMember') {
+      my $objectPid = $object;
+      $objectPid =~ s/info:fedora\///;
+      my $search_model = PhaidraAPI::Model::Search->new;
+      my $owr = $search_model->get_ownerid($c, $objectPid);
+      if ($owr->{status} ne 200) {
+        unshift @{$res->{alerts}}, @{$owr->{alerts}};
+        $res->{status} =  500;
+        return $res;
+      }
+      my $objectOwner = $owr->{ownerid};
+      $objectOwner =~ s/"//g;
+      $c->app->log->debug("adding hasMember check: memberOwner[$objectOwner] username[$username]");
+      if (($username ne $c->app->config->{phaidra}->{adminusername}) && ($username ne $objectOwner)) {
+        unshift @{$res->{alerts}}, { type => 'danger', msg => 'Forbidden' };
+        $res->{status} =  403;
+        return $res;
+      }
+    }
+
     if($c->app->config->{fedora}->{version} eq '3.8'){
     	my %params;
 	    $params{subject} = 'info:fedora/'.$pid;
