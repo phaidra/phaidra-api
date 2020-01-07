@@ -2258,7 +2258,7 @@ our %tree = ( tree => [
         "help_id" => "helpmeta_32",
         "hidden" => 0,
         "input_regex" => "^.*\$",
-        "input_type" => "input_text_lang",
+        "input_type" => "input_textarea_lang",
         "labels" => {
           "de" => "Installationshinweise",
           "en" => "Installation Guide",
@@ -2286,7 +2286,7 @@ our %tree = ( tree => [
         "help_id" => "helpmeta_33",
         "hidden" => 0,
         "input_regex" => "^.*\$",
-        "input_type" => "input_text_lang",
+        "input_type" => "input_textarea_lang",
         "labels" => {
           "de" => "Sonstige Anforderungen",
           "en" => "Requirements for the Use of the Object",
@@ -6197,7 +6197,7 @@ our %tree = ( tree => [
             "help_id" => "helpmeta_119",
             "hidden" => 0,
             "input_regex" => "^.*\$",
-            "input_type" => "input_text_lang",
+            "input_type" => "input_textarea_lang",
             "labels" => {
               "de" => "Angaben zur Quelle",
               "en" => "Details about the Source",
@@ -7560,7 +7560,7 @@ our %tree = ( tree => [
         "help_id" => "helpmeta_136",
         "hidden" => 0,
         "input_regex" => ".*",
-        "input_type" => "input_text_lang",
+        "input_type" => "input_textarea_lang",
         "labels" => {
           "de" => "Ver\x{f6}ffentlichungsdaten",
           "en" => "Publication Dates",
@@ -7653,10 +7653,10 @@ our %tree = ( tree => [
         "input_regex" => "",
         "input_type" => "input_text",
         "labels" => {
-          "de" => "Aleph-URL",
-          "en" => "Aleph-URL",
+          "de" => "Link zu bibliografischen Angaben",
+          "en" => "Link to bibliographic information",
           "it" => "URL Catalogo",
-          "sr" => "Aleph - URL"
+          "sr" => "Link to bibliographic information"
         },
         "loaded" => 0,
         

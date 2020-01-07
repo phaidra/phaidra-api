@@ -281,6 +281,22 @@ sub get_metadata_tree {
 				$format{$mid}->{input_type} = "input_textarea_lang";
 				$format{$mid}->{value_lang} =  $c->app->config->{defaults}->{metadata_field_language};
 				}
+      case "installremarks"	{
+				$format{$mid}->{input_type} = "input_textarea_lang";
+				$format{$mid}->{value_lang} =  $c->app->config->{defaults}->{metadata_field_language};
+				}
+      case "otherrequirements"	{
+				$format{$mid}->{input_type} = "input_textarea_lang";
+				$format{$mid}->{value_lang} =  $c->app->config->{defaults}->{metadata_field_language};
+				}
+      case "comment"	{
+				$format{$mid}->{input_type} = "input_textarea_lang";
+				$format{$mid}->{value_lang} =  $c->app->config->{defaults}->{metadata_field_language};
+				}
+      case "release_notes"	{
+				$format{$mid}->{input_type} = "input_textarea_lang";
+				$format{$mid}->{value_lang} =  $c->app->config->{defaults}->{metadata_field_language};
+				}
 			case "identifier" {
 				# because there is also an 'identifier' in the http://phaidra.univie.ac.at/XML/metadata/extended/V1.0 namespace
 				if($format{$mid}->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0'){
