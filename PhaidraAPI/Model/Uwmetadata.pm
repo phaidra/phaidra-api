@@ -1084,7 +1084,7 @@ sub fill_object_metadata {
 			    					$last_kennzahl = 1;
 			    				}
 
-			    				my $child_type = $child->type;
+			    				my $child_type = $child->tag;
 							    my ($ns, $id) = $self->_get_ns_id($c, $child_type);
 							    if($id eq 'spl'){
 							    	$spl = $child->text;
