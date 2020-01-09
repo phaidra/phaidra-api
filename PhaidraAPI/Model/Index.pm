@@ -522,7 +522,7 @@ sub update {
         $res->{status} = 200;
       }
 
-      if($r->{index}->{cmodel} eq 'Collection'){
+      if($cmodel_res->{cmodel} eq 'Collection'){
         # if this collection is Inactive or Deleted, set collectionMembers to 0
         # so that the ispartof is removed from members
         if (($getStatus eq 301) || ($getStatus eq 302)) {
@@ -538,7 +538,7 @@ sub update {
         }
       }
 
-      if($r->{index}->{cmodel} eq 'Container'){
+      if($cmodel_res->{cmodel} eq 'Container'){
         # if this container is Inactive or Deleted, set members to 0
         # so that the ismemberof is removed from members
         if (($getStatus eq 301) || ($getStatus eq 302)) {
@@ -554,7 +554,7 @@ sub update {
         }
       }
 
-      if(($r->{index}->{cmodel} eq 'Collection') || ($r->{index}->{cmodel} eq 'Container')){
+      if(($cmodel_res->{cmodel} eq 'Collection') || ($cmodel_res->{cmodel} eq 'Container')){
         # if this container or collection is Inactive or Deleted, set membersorder to 0
         # so that the pos_in_<pid> is removed from members
         if (($getStatus eq 301) || ($getStatus eq 302)) {

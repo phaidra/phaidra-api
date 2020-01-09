@@ -1054,7 +1054,7 @@ sub get_foxml {
 
 	my $url = Mojo::URL->new;
 	$url->scheme('https');
-	$url->userinfo($c->app->config->{phaidra}->{intcallusername}.':'.$c->app->config->{phaidra}->{intcallpassword});
+	$url->userinfo($c->app->config->{phaidra}->{adminusername}.':'.$c->app->config->{phaidra}->{adminpassword});
 	$url->host($c->app->config->{phaidra}->{fedorabaseurl});
 	$url->path("/fedora/objects/$pid/objectXML");
 
