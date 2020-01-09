@@ -481,7 +481,9 @@ sub update {
       # don't save this
       delete $r->{index}->{membersorder};
 
-      if($r->{status} eq 200){
+      my $getStatus = $r->{status};
+
+      if($getStatus eq 200){
 
         if(exists($c->app->config->{index_mongodb})){
           $c->index_mongo->db->collection($c->app->config->{index_mongodb}->{collection})->update({pid => $pid}, $r->{index}, { upsert => 1 });
@@ -502,7 +504,8 @@ sub update {
           }
           
         }
-      }elsif(($r->{status} eq 301) || ($r->{status} eq 302)){
+      }elsif(($getStatus eq 301) || ($getStatus eq 302)){
+        
         # 301 - object is in state Deleted
         # 302 - object is in state Inactive
         if(exists($c->app->config->{solr})){
@@ -520,6 +523,11 @@ sub update {
       }
 
       if($r->{index}->{cmodel} eq 'Collection'){
+        # if this collection is Inactive or Deleted, set collectionMembers to 0
+        # so that the ispartof is removed from members
+        if (($getStatus eq 301) || ($getStatus eq 302)) {
+          @{$collectionMembers} = ();
+        }
         unless(defined($collectionMembers)){
           @{$collectionMembers} = ();
         }
@@ -531,6 +539,11 @@ sub update {
       }
 
       if($r->{index}->{cmodel} eq 'Container'){
+        # if this container is Inactive or Deleted, set members to 0
+        # so that the ismemberof is removed from members
+        if (($getStatus eq 301) || ($getStatus eq 302)) {
+          @{$collectionMembers} = ();
+        }
         unless(defined($members)){
           @{$members} = ();
         }
@@ -542,6 +555,11 @@ sub update {
       }
 
       if(($r->{index}->{cmodel} eq 'Collection') || ($r->{index}->{cmodel} eq 'Container')){
+        # if this container or collection is Inactive or Deleted, set membersorder to 0
+        # so that the pos_in_<pid> is removed from members
+        if (($getStatus eq 301) || ($getStatus eq 302)) {
+          @{$collectionMembers} = ();
+        }
         unless(defined($membersorder)){
           @{$membersorder} = ();
         }
@@ -930,6 +948,7 @@ sub _get {
   my $t0 = [gettimeofday];
 
   my %index;
+  $res->{index} = \%index;
 
   $c->app->log->debug("indexing $pid: getting foxml");
   my $r_oxml = $object_model->get_foxml($c, $pid);
@@ -941,6 +960,39 @@ sub _get {
   $dom->xml(1);
   $dom->parse($r_oxml->{foxml});
   $c->app->log->debug("indexing $pid: foxml parsed!");
+
+  my %datastreams;
+  my %datastreamids;
+  for my $e ($dom->find('foxml\:datastream')->each){
+
+    my $dsid = $e->attr('ID');
+
+    $datastreamids{$dsid} = 1;
+
+    if($indexed_datastreams{$dsid}){
+      my $latestVersion = $e->find('foxml\:datastreamVersion')->first;
+      for my $e1 ($e->find('foxml\:datastreamVersion')->each){
+        if($e1->attr('CREATED') gt $latestVersion->attr('CREATED')){
+          $latestVersion = $e1;
+        }
+      }
+      $datastreams{$dsid} = $latestVersion;
+    }
+
+  }
+
+  push @{$index{datastreams}}, keys %datastreamids;
+
+  # keep this first so that we always get the cmodel
+  if(exists($datastreams{'RELS-EXT'})){ # it should
+
+    my $r_relsext = $self->_index_relsext($c, $datastreams{'RELS-EXT'}->find('foxml\:xmlContent')->first, \%index);
+    if($r_relsext->{status} ne 200){
+      push @{$res->{alerts}}, { type => 'danger', msg => "Error indexing RELS-EXT for $pid" };
+      push @{$res->{alerts}}, @{$r_relsext->{alerts}} if scalar @{$r_relsext->{alerts}} > 0;
+    }
+
+  }
 
   for my $e ($dom->find('foxml\:objectProperties')->each){
     for my $e1 ($e->find('foxml\:property')->each){
@@ -979,39 +1031,7 @@ sub _get {
       }
 
     }
-  }
-
-  my %datastreams;
-  my %datastreamids;
-  for my $e ($dom->find('foxml\:datastream')->each){
-
-    my $dsid = $e->attr('ID');
-
-    $datastreamids{$dsid} = 1;
-
-    if($indexed_datastreams{$dsid}){
-      my $latestVersion = $e->find('foxml\:datastreamVersion')->first;
-      for my $e1 ($e->find('foxml\:datastreamVersion')->each){
-        if($e1->attr('CREATED') gt $latestVersion->attr('CREATED')){
-          $latestVersion = $e1;
-        }
-      }
-      $datastreams{$dsid} = $latestVersion;
-    }
-
-  }
-
-  push @{$index{datastreams}}, keys %datastreamids; 
-
-  if(exists($datastreams{'RELS-EXT'})){ # it should
-
-    my $r_relsext = $self->_index_relsext($c, $datastreams{'RELS-EXT'}->find('foxml\:xmlContent')->first, \%index);
-    if($r_relsext->{status} ne 200){
-      push @{$res->{alerts}}, { type => 'danger', msg => "Error indexing RELS-EXT for $pid" };
-      push @{$res->{alerts}}, @{$r_relsext->{alerts}} if scalar @{$r_relsext->{alerts}} > 0;
-    }
-
-  }
+  } 
 
   if(exists($datastreams{'UWMETADATA'})){
 
@@ -1194,8 +1214,6 @@ sub _get {
 
   # ts
   $index{_updated} = time; 
-
-  $res->{index} = \%index;
 
   #$c->app->log->debug("XXXXXXX indexing took ".tv_interval($t0));
   return $res;

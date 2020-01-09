@@ -60,11 +60,11 @@ sub get_study {
     my $self = shift;  	
 
 	my $spl = $self->param('spl');
-	my @ids = $self->param('ids');
+	my $ids = $self->every_param('ids');
 	my $values_namespace = $self->param('values_namespace');
 	
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;	
-	my $terms = $metadata_model->get_study_terms($self, $spl, \@ids, $values_namespace);
+	my $terms = $metadata_model->get_study_terms($self, $spl, $ids, $values_namespace);
 
     $self->render(json => { status => 200, terms => $terms }, status => 200);
 }
@@ -73,10 +73,10 @@ sub get_study_name {
     my $self = shift;  	
 
 	my $spl = $self->param('spl');
-	my @ids = $self->param('ids');
+	my $ids = $self->every_param('ids');
 
 	my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;	
-	my $names = $metadata_model->get_study_name($self, $spl, \@ids);
+	my $names = $metadata_model->get_study_name($self, $spl, $ids);
 	
     $self->render(json => { status => 200, study_name => $names }, status => 200);
 }
