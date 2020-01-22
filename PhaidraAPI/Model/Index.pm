@@ -1464,7 +1464,7 @@ sub _add_mods_index {
         }        
       }
       my $name = "$firstname $lastname";
-      push @{$index->{"bib_roles_pers_$role"}}, $name unless $name eq ' ';
+      push @{$index->{"bib_roles_pers_$role"}}, trim $name unless $name eq ' ';
       push @{$index->{"bib_roles_corp_$role"}}, $institution if defined $institution;
     }
 
@@ -1758,7 +1758,7 @@ sub _add_jsonld_roles {
           $c->app->log->error("Unknown contributor type in jsonld for pid $pid");
           push @{$res->{alerts}}, { type => 'danger', msg => "Unknown contributor type in jsonld for pid $pid"};
         }
-        push @{$index->{"bib_roles_pers_$role"}}, $name unless ($name eq '' || $name eq ' ');
+        push @{$index->{"bib_roles_pers_$role"}}, trim $name unless ($name eq '' || $name eq ' ');
       }
     }
   }
@@ -1804,7 +1804,7 @@ sub _add_uwm_index {
   # $c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($contributions));
   $index->{"uwm_roles_json"} = b(encode_json($contributions))->decode('UTF-8');
   for my $r (@{$roles}){
-    push @{$index->{"bib_roles_pers_".$r->{role}}}, $r->{name} if $r->{name} ne '';   
+    push @{$index->{"bib_roles_pers_".$r->{role}}}, trim $r->{name} if $r->{name} ne '';   
     push @{$index->{"bib_roles_corp_".$r->{role}}}, $r->{institution} if $r->{institution} ne '';   
   }
 
