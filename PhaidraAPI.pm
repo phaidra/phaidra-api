@@ -398,6 +398,9 @@ sub startup {
   $r->route('directory/user/#username/name')      ->via('get')    ->to('directory#get_user_name');
   $r->route('directory/user/#username/email')     ->via('get')    ->to('directory#get_user_email');
 
+  $r->route('oai')                                ->via('get')    ->to('oai#handler');
+  $r->route('oai')                                ->via('post')   ->to('oai#handler');
+
   # this just extracts the credentials - authentication will be done by fedora
 	my $proxyauth = $r->under('/')->to('authentication#extract_credentials', must_be_present => 1);
   my $proxyauth_optional = $r->under('/')->to('authentication#extract_credentials', must_be_present => 0);  
@@ -426,7 +429,7 @@ sub startup {
   $proxyauth_optional->route('authz/check/:pid/:op')                      ->via('get')      ->to('authorization#check_rights'); 
 
   $proxyauth_optional->route('streaming/:pid')                            ->via('get')      ->to('utils#streamingplayer');
-  $proxyauth_optional->route('streaming/:pid/key')                        ->via('get')     ->to('utils#streamingplayer_key');
+  $proxyauth_optional->route('streaming/:pid/key')                        ->via('get')      ->to('utils#streamingplayer_key');
 
   $proxyauth_optional->route('imageserver')                               ->via('get')      ->to('imageserver#get');
 

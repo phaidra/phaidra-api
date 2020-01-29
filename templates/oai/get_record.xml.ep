@@ -1,0 +1,12 @@
+%= include 'oai/header'
+<GetRecord>
+  <record>
+%= include 'oai/record_header'
+<% unless ($r->{deleted}) { %>
+    <metadata>
+%= include 'oai/oai_dc'
+    </metadata>
+<% } %>
+  </record>
+</GetRecord>
+%= include 'oai/footer'
