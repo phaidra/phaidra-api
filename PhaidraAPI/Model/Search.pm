@@ -359,7 +359,7 @@ sub related_objects_mptmysql(){
 			}
 
 			$o->{title} = $pref_title;
-			$o->{titles} = @titles_out;
+			$o->{titles} = \@titles_out;
 			$cmodel =~ s/^<info:fedora\/(.*)>$/$1/;
 			$o->{cmodel} = $cmodel;
 
