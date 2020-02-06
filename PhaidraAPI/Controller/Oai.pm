@@ -61,18 +61,26 @@ sub _serialize {
 sub _get_fields {
   my $self = shift;
   my $rec = shift;
+  my $metadataPrefix = shift;
 
-  my @fields;
-  for my $k (keys %{$rec}) {
-    if ($k =~ m/dc_([a-z]+)_?([a-z]+)?/) {
-      my %field;
-      $field{name} = $1;
-      $field{values} = $rec->{$k};
-      $field{lang} = $2 if $2;
-      push @fields, \%field;
+  switch ($metadataPrefix) {
+    case 'oai_dc' {
+      my @fields;
+      for my $k (keys %{$rec}) {
+        if ($k =~ m/dc_([a-z]+)_?([a-z]+)?/) {
+          my %field;
+          $field{name} = $1;
+          $field{values} = $rec->{$k};
+          $field{lang} = $2 if $2;
+          push @fields, \%field;
+        }
+      }
+      return \@fields;
+    }
+    case 'oai_openaire' {
+      return $rec->{openaire};
     }
   }
-  return \@fields;
 }
 
 sub handler {
@@ -167,7 +175,9 @@ sub handler {
   }
 
   if (exists $params->{metadataPrefix}) {
-    unless ($params->{metadataPrefix} eq 'oai_dc') {
+    if ($params->{metadataPrefix} eq 'oai_dc' || ($params->{metadataPrefix} eq 'oai_openaire')) {
+      $self->stash(metadataPrefix => $params->{metadataPrefix});
+    } else {
       push @$errors, [cannotDisseminateFormat => "metadataPrefix $params->{metadataPrefix} is not supported" ];
     }
   }
@@ -184,7 +194,7 @@ sub handler {
     my $rec = $self->mongo->get_collection('oai_records')->find_one({"pid" => $id});
 
     if (defined $rec) {
-      $self->stash(r => $rec, fields => $self->_get_fields($rec));
+      $self->stash(r => $rec, fields => $self->_get_fields($rec, $params->{metadataPrefix}));
       $self->render(template => 'oai/get_record', format => 'xml', handler => 'ep');
       return;
     }
@@ -216,7 +226,7 @@ sub handler {
     }
 
     if ($from && $until && length($from) != length($until)) {
-      push @$errors, [ badArgument => "datestamps must have the same granularity" ];
+      push @$errors, [badArgument => "datestamps must have the same granularity"];
       $self->render(template => 'oai/error', format => 'xml', handler => 'ep');
       return;
     }
@@ -262,7 +272,7 @@ sub handler {
       if ($verb eq 'ListIdentifiers') {
         push @records, {r => $rec};
       } else {
-        push @records, {r => $rec, fields => $self->_get_fields($rec)};
+        push @records, {r => $rec, fields => $self->_get_fields($rec, $params->{metadataPrefix})};
       }
     }
     $self->stash(records => \@records);
@@ -302,13 +312,12 @@ sub handler {
 
   } elsif ($verb eq 'ListSets') {
     for my $setSpec (keys %{$sets}) {
-      $sets->{$setSpec}->{fields} = $self->_get_fields($sets->{$setSpec}->{setDescription})
+      $sets->{$setSpec}->{fields} = $self->_get_fields($sets->{$setSpec}->{setDescription}, 'oai_dc')
     }
     $self->stash(sets => $sets);
     $self->render(template => 'oai/list_sets', format => 'xml', handler => 'ep');
     return;
   }
-
 }
 
 1;

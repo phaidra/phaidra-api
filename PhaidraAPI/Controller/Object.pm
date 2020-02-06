@@ -75,8 +75,14 @@ sub get_state {
 		return;
 	}
 
-  my $search_model = PhaidraAPI::Model::Search->new;
-  my $r = $search_model->get_state($self, $self->stash('pid'));
+  my $r;
+  if ($self->param('foxml')) {
+    my $object_model = PhaidraAPI::Model::Object->new;
+    $r = $object_model->get_state($self, $self->stash('pid'));
+  } else {
+    my $search_model = PhaidraAPI::Model::Search->new;
+    $r = $search_model->get_state($self, $self->stash('pid'));
+  }
 
   $self->render(json => $r, status => $r->{status}) ;
 }

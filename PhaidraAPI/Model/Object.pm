@@ -403,6 +403,39 @@ sub create {
   	return $res;
 }
 
+sub get_state {
+  my ($self, $c, $pid) = @_;
+
+  my $res = { status => 200 };
+
+  $c->app->log->debug("get_state $pid: getting foxml");
+  my $r_oxml = $self->get_foxml($c, $pid);
+  if($r_oxml->{status} ne 200){
+    return $r_oxml;
+  }
+  $c->app->log->debug("get_state $pid: parsing foxml");
+  my $dom = Mojo::DOM->new();
+  $dom->xml(1);
+  $dom->parse($r_oxml->{foxml});
+  $c->app->log->debug("get_state $pid: foxml parsed!");
+
+  for my $e ($dom->find('foxml\:objectProperties')->each){
+    for my $e1 ($e->find('foxml\:property')->each){
+      if($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#state'){
+        my $state = $e1->attr('VALUE');
+        $res->{state} = $state;
+        if($state eq 'Deleted'){
+          $res->{status} = 301;
+        }
+        if($state eq 'Inactive'){
+          $res->{status} = 302;
+        }
+        return $res;
+      }
+    }
+  }
+}
+
 sub get_mimetype(){
 	my ($self, $c, $asset) = @_;
 	my $mimetype = undef;

@@ -5,7 +5,7 @@
 %= include 'oai/record_header', r => $rec->{r}
 <% unless ($rec->{r}->{deleted}) { %>
 <metadata>
-%= include 'oai/oai_dc', r => $rec->{r}, fields => $rec->{fields}
+%= include 'oai/' + $metadataPrefix, r => $rec->{r}, fields => $rec->{fields}
 </metadata>
 <% } %>
 </record>
