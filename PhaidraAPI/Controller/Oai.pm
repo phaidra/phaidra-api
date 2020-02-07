@@ -6,6 +6,7 @@ use strict;
 use warnings;
 use v5.10;
 use base 'Mojolicious::Controller';
+use Switch;
 use Data::MessagePack;
 use MIME::Base64 qw(encode_base64url decode_base64url);
 use DateTime;
@@ -58,27 +59,241 @@ sub _serialize {
   return encode_base64url($mp->pack($data));
 }
 
-sub _get_fields {
+sub _get_metadata {
   my $self = shift;
   my $rec = shift;
   my $metadataPrefix = shift;
 
   switch ($metadataPrefix) {
     case 'oai_dc' {
-      my @fields;
+      my @metadata;
       for my $k (keys %{$rec}) {
         if ($k =~ m/dc_([a-z]+)_?([a-z]+)?/) {
           my %field;
           $field{name} = $1;
           $field{values} = $rec->{$k};
           $field{lang} = $2 if $2;
-          push @fields, \%field;
+          push @metadata, \%field;
         }
       }
-      return \@fields;
+      return \@metadata;
     }
     case 'oai_openaire' {
-      return $rec->{openaire};
+      my @metadata;
+
+      #### MANDATORY ####
+
+      # Resource Identifier (M)
+      # datacite:identifier
+      push @metadata, {
+        name => 'datacite:identifier',
+        value => 'https://'.$self->app->config->{phaidra}->{baseurl}.'/'.$rec->{pid},
+        attributes => [
+          {
+            name => 'identifierType',
+            value => 'URL'
+          }
+        ]
+      };
+
+      # Title (M)
+      # datacite:title
+      my @titles;
+      my %foundTitles;
+      for my $enTitle (@{$rec->{dc_title_eng}}) {
+        $foundTitles{$enTitle} = 1;
+        push @titles, {
+          name => 'datacite:title',
+          value => $enTitle,
+          attributes => [
+            {
+              name => 'xml:lang',
+              value => 'en'
+            }
+          ]
+        };
+      }
+      for my $deTitle (@{$rec->{dc_title_deu}}) {
+        $foundTitles{$deTitle} = 1;
+        push @titles, {
+          name => 'datacite:title',
+          value => $deTitle,
+          attributes => [
+            {
+              name => 'xml:lang',
+              value => 'de'
+            }
+          ]
+        };
+      }
+      for my $itTitle (@{$rec->{dc_title_ita}}) {
+        $foundTitles{$itTitle} = 1;
+        push @titles, {
+          name => 'datacite:title',
+          value => $itTitle,
+          attributes => [
+            {
+              name => 'xml:lang',
+              value => 'it'
+            }
+          ]
+        };
+      }
+      for my $title (@{$rec->{dc_title}}) {
+        unless ($foundTitles{$title}) {
+          push @titles, {
+            name => 'datacite:title',
+            value => $title
+          };
+        }
+      }
+      push @metadata, {
+        name => 'datacite:titles',
+        children => \@titles
+      };
+
+      # Creator (M)
+      # datacite:creator
+
+      # Publication Date (M)
+      # datacite:date
+
+      # Resource Type (M)
+      # oaire:resourceType
+
+      # Access Rights (M)
+      # datacite:rights
+
+      #### MANDATORY IF AVAILABLE ####
+
+      # Contributor (MA)
+      # datacite:contributor
+
+      # Funding Reference (MA)
+      # oaire:fundingReference
+
+      # Embargo Period Date (MA)
+      # datacite:date
+
+      # Language (MA)
+      # dc:language
+
+      # Publisher (MA)
+      # dc:publisher
+
+      # Description (MA)
+      # dc:description
+
+      # Subject (MA)
+      # datacite:subject
+
+      # File Location (MA)
+      # oaire:file
+
+      #### RECOMMENDED ####
+
+      # Alternate Identifier (R)
+      # datacite:alternateIdentifier
+      my @ids;
+      for my $id (@{$rec->{dc_identifier}}) {
+        if (rindex($id, 'hdl:', 0) == 0) {
+          push @ids, {
+            name => 'datacite:alternateIdentifier',
+            value => substr($id, 4),
+            attributes => [
+              {
+                name => 'alternateIdentifierType',
+                value => 'Handle'
+              }
+            ]
+          };
+        }
+        if (rindex($id, 'doi:', 0) == 0) {
+          push @ids, {
+            name => 'datacite:alternateIdentifier',
+            value => substr($id, 4),
+            attributes => [
+              {
+                name => 'alternateIdentifierType',
+                value => 'DOI'
+              }
+            ]
+          };
+        }
+        if (rindex($id, 'urn:', 0) == 0) {
+          push @ids, {
+            name => 'datacite:alternateIdentifier',
+            value => substr($id, 4),
+            attributes => [
+              {
+                name => 'alternateIdentifierType',
+                value => 'URN'
+              }
+            ]
+          };
+        }
+      }
+      if (scalar @ids > 0) {
+        push @metadata, {
+          name => 'datacite:alternateIdentifiers',
+          children => \@ids
+        };
+      }
+
+      # Related Identifier (R)
+      # datacite:relatedIdentifier
+
+      # Format (R)
+      # dc:format
+
+      # Source (R)
+      # dc:source
+
+      # License Condition (R)
+      # oaire:licenseCondition
+
+      # Coverage (R)
+      # dc:coverage
+
+      # Resource Version (R)
+      # oaire:version
+
+      # Citation Title (R)
+      # oaire:citationTitle
+
+      # Citation Volume (R)
+      # oaire:citationVolume
+
+      # Citation Issue (R)
+      # oaire:citationIssue
+
+      # Citation Start Page (R)
+      # oaire:citationStartPage
+
+      # Citation End Page (R)
+      # oaire:citationEndPage
+
+      # Citation Edition (R)
+      # oaire:citationEdition
+
+      # Citation Conference Place (R)
+      # oaire:citationConferencePlace
+
+      # Citation Conference Date (R)
+      # oaire:citationConferenceDate
+
+      #### OPTIONAL ####
+
+      # Size (O)
+      # datacite:size
+
+      # Geo Location (O)
+      # datacite:geoLocation
+
+      # Audience (O)
+      # dcterms:audience
+
+      return \@metadata;
     }
   }
 }
@@ -192,9 +407,8 @@ sub handler {
     $id =~ s/^$ns//;
 
     my $rec = $self->mongo->get_collection('oai_records')->find_one({"pid" => $id});
-
     if (defined $rec) {
-      $self->stash(r => $rec, fields => $self->_get_fields($rec, $params->{metadataPrefix}));
+      $self->stash(r => $rec, metadata => $self->_get_metadata($rec, $params->{metadataPrefix}));
       $self->render(template => 'oai/get_record', format => 'xml', handler => 'ep');
       return;
     }
@@ -272,7 +486,7 @@ sub handler {
       if ($verb eq 'ListIdentifiers') {
         push @records, {r => $rec};
       } else {
-        push @records, {r => $rec, fields => $self->_get_fields($rec, $params->{metadataPrefix})};
+        push @records, {r => $rec, metadata => $self->_get_metadata($rec, $params->{metadataPrefix})};
       }
     }
     $self->stash(records => \@records);
@@ -312,7 +526,7 @@ sub handler {
 
   } elsif ($verb eq 'ListSets') {
     for my $setSpec (keys %{$sets}) {
-      $sets->{$setSpec}->{fields} = $self->_get_fields($sets->{$setSpec}->{setDescription}, 'oai_dc')
+      $sets->{$setSpec}->{metadata} = $self->_get_metadata($sets->{$setSpec}->{setDescription}, 'oai_dc')
     }
     $self->stash(sets => $sets);
     $self->render(template => 'oai/list_sets', format => 'xml', handler => 'ep');

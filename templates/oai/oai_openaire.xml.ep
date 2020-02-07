@@ -5,5 +5,7 @@
   xmlns:datacite="http://datacite.org/schema/kernel-4"
   xmlns="http://namespace.openaire.eu/schema/oaire/"
   xsi:schemaLocation="http://namespace.openaire.eu/schema/oaire/ https://www.openaire.eu/schema/repo-lit/4.0/openaire.xsd">
-
+  <% for my $n (@{$metadata}) { %>
+  %= include 'oai/oai_openaire_node', n => $n
+  <% } %>
 </resource>

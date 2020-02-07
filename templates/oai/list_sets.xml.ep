@@ -5,7 +5,7 @@
     <setSpec><%= $sets->{$setSpec}->{setSpec} %></setSpec>
     <setName><%= $sets->{$setSpec}->{setName} %></setName>
     <setDescription>
-%= include 'oai/oai_dc', r => $sets->{$setSpec}->{setDescription}, fields => $sets->{$setSpec}->{fields}
+%= include 'oai/oai_dc', r => $sets->{$setSpec}->{setDescription}, metadata => $sets->{$setSpec}->{metadata}
     </setDescription>
   </set>
 <% } %>
