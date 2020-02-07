@@ -330,23 +330,13 @@ sub _connect_mongodb_group_manager()
 	my $self = shift;
 	my $c = shift;	
 
-	my $uri = "mongodb://"
-		. $c->app->config->{mongodb_group_manager}->{username}.":".$c->app->config->{mongodb_group_manager}->{password}
-		. "@"
-		. $c->app->config->{mongodb_group_manager}->{host}.":".$c->app->config->{mongodb_group_manager}->{port}
-		. "/".$c->app->config->{mongodb_group_manager}->{database};
-
-	my $client = MongoDB->connect($uri);
-
-=cut
-    my $client = MongoDB::Connection->new(
-    	host => $c->app->config->{mongodb_group_manager}->{host}, 
-    	port => $c->app->config->{mongodb_group_manager}->{port},
-    	username => $c->app->config->{mongodb_group_manager}->{username},
-    	password => $c->app->config->{mongodb_group_manager}->{password},
-    	db_name => $c->app->config->{mongodb_group_manager}->{database}
+    my $client = MongoDB::MongoClient->new(
+        host => $c->app->config->{mongodb_group_manager}->{host}, 
+        port => $c->app->config->{mongodb_group_manager}->{port},
+        username => $c->app->config->{mongodb_group_manager}->{username},
+        password => $c->app->config->{mongodb_group_manager}->{password},
+        db_name => $c->app->config->{mongodb_group_manager}->{database}
     );
-=cut
 
 	return $client;
 }
