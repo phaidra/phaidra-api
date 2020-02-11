@@ -365,6 +365,7 @@ sub handler {
         $params->{set}            = $token->{_s} if defined $token->{_s};
         $params->{from}           = $token->{_f} if defined $token->{_f};
         $params->{until}          = $token->{_u} if defined $token->{_u};
+        $params->{metadataPrefix} = $token->{_m} if defined $token->{_m};
         $skip                     = $token->{_n} if defined $token->{_n};
         $self->stash(token => $token);
       };
@@ -429,6 +430,7 @@ sub handler {
   } elsif ($verb eq 'ListIdentifiers' || $verb eq 'ListRecords') {
     my $from  = $params->{from};
     my $until = $params->{until};
+    my $metadataPrefix = $params->{metadataPrefix};
 
     for my $datestamp (($from, $until)) {
       $datestamp || next;
@@ -486,7 +488,7 @@ sub handler {
       if ($verb eq 'ListIdentifiers') {
         push @records, {r => $rec};
       } else {
-        push @records, {r => $rec, metadata => $self->_get_metadata($rec, $params->{metadataPrefix})};
+        push @records, {r => $rec, metadata => $self->_get_metadata($rec, $metadataPrefix)};
       }
     }
     $self->stash(records => \@records);
@@ -497,6 +499,7 @@ sub handler {
       $t->{_s} = $set->{setSpec} if defined $set;
       $t->{_f} = $from if defined $from;
       $t->{_u} = $until if defined $until;
+      $t->{_m} = $metadataPrefix if defined $metadataPrefix;
       $self->stash(resumption_token => $self->_serialize($t));
     } else {
       $self->stash(resumption_token => undef);
