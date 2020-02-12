@@ -1599,6 +1599,14 @@ sub _add_jsonld_index {
 
   if($jsonld->{'frapo:isOutputOf'}){
     for my $proj (@{$jsonld->{'frapo:isOutputOf'}}) {
+      if($proj->{'skos:exactMatch'}){
+        for my $l (@{$proj->{'skos:prefLabel'}}) {
+          push @{$index->{"project"}}, $l->{'@value'};
+        }
+        for my $projId (@{$proj->{'skos:exactMatch'}}) {
+          push @{$index->{"project_id"}}, $projId;
+        }
+      }
       if($proj->{'frapo:hasFundingAgency'}){
         for my $funder (@{$proj->{'frapo:hasFundingAgency'}}) {
           for my $l (@{$funder->{'skos:prefLabel'}}) {
@@ -1613,6 +1621,7 @@ sub _add_jsonld_index {
       }
     }
   }
+  push @{$index->{"frapo_isoutputof_json"}}, b(encode_json($jsonld->{'frapo:isOutputOf'}))->decode('UTF-8');
 
   if($jsonld->{'frapo:hasFundingAgency'}){
     for my $funder (@{$jsonld->{'frapo:hasFundingAgency'}}) {
@@ -1624,6 +1633,7 @@ sub _add_jsonld_index {
       }
     }
   }
+  push @{$index->{"frapo_hasfundingagency_json"}}, b(encode_json($jsonld->{'frapo:hasFundingAgency'}))->decode('UTF-8');
 
   if (exists($jsonld->{'rdau:P60193'})){
     for my $o (@{$jsonld->{'rdau:P60193'}}) {

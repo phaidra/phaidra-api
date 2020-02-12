@@ -13,8 +13,34 @@ use DateTime;
 use DateTime::Format::ISO8601;
 use DateTime::Format::Strptime;
 use Clone qw(clone);
+use Mojo::JSON qw(encode_json decode_json);
+use Mojo::ByteStream qw(b);
 
 my $DEFAULT_LIMIT = 100;
+
+my $openaireContributorType = {
+  # ContactPerson
+  # DataCollector
+  # DataCurator
+  dtm => "DataManager",
+  dst => "Distributor",
+  edt => "Editor",
+  his => "HostingInstitution",
+  pro => "Producer",
+  pdr => "ProjectLeader", # Project director
+  # ProjectManager
+  # ProjectMember
+  # RegistrationAgency
+  # RegistrationAuthority
+  # RelatedPerson
+  res => "Researcher",
+  # ResearchGroup
+  # RightsHolder
+  spn => "Sponsor"
+  # Supervisor
+  # WorkPackageLeader
+  # Other < all unmapped contributor roles
+};
 
 my $VERBS = {
   GetRecord => {
@@ -59,27 +85,409 @@ sub _serialize {
   return encode_base64url($mp->pack($data));
 }
 
-sub _get_metadata {
-  my $self = shift;
-  my $rec = shift;
-  my $metadataPrefix = shift;
+sub _get_roles_uwm {
+  my ($self, $str) = @_;
 
-  switch ($metadataPrefix) {
-    case 'oai_dc' {
-      my @metadata;
-      for my $k (keys %{$rec}) {
-        if ($k =~ m/dc_([a-z]+)_?([a-z]+)?/) {
-          my %field;
-          $field{name} = $1;
-          $field{values} = $rec->{$k};
-          $field{lang} = $2 if $2;
-          push @metadata, \%field;
+  my @roles;
+
+  my $arr = decode_json(b($str)->encode('UTF-8'));
+  my @contrib = sort { $a->{data_order} <=> $b->{data_order} } @{$arr};
+  for my $con (@contrib) {
+    my @entities = sort { $a->{data_order} <=> $b->{data_order} } @{$con->{entities}};
+    for my $e (@entities) {
+      my %role;
+      my @ids;
+      my @affiliations;
+      my $roleCode = $con->{role};
+      next if $roleCode eq 'uploader';
+      switch ($roleCode) {
+        case 'aut' {
+          $role{dcRole} = 'creator';
+        }
+        case 'pbl' {
+          $role{dcRole} = 'publisher';
+        }
+        default {
+          $role{dcRole} = 'contributor';
+          $role{contributorType} = exists($openaireContributorType->{$roleCode}) ? $openaireContributorType->{$roleCode} : 'Other';
         }
       }
-      return \@metadata;
+
+      if ($e->{orcid}) {
+        push @ids, {
+          nameIdentifier => $e->{orcid},
+          nameIdentifierScheme => 'ORCID',
+          schemeURI => 'https://orcid.org/'
+        }
+      }
+      if ($e->{gnd}) {
+        push @ids, {
+          nameIdentifier => $e->{gnd},
+          nameIdentifierScheme => 'GND',
+          schemeURI => 'https://d-nb.info/gnd/'
+        }
+      }
+      if ($e->{isni}) {
+        push @ids, {
+          nameIdentifier => $e->{isni},
+          nameIdentifierScheme => 'ISNI',
+          schemeURI => 'http://isni.org/isni/'
+        }
+      }
+      if ($e->{viaf}) {
+        push @ids, {
+          nameIdentifier => $e->{viaf},
+          nameIdentifierScheme => 'VIAF',
+          schemeURI => 'https://viaf.org/viaf/'
+        }
+      }
+      if ($e->{wdq}) {
+        push @ids, {
+          nameIdentifier => $e->{wdq},
+          nameIdentifierScheme => 'Wikidata',
+          schemeURI => 'https://www.wikidata.org/wiki/'
+        }
+      }
+      if ($e->{lcnaf}) {
+        push @ids, {
+          nameIdentifier => $e->{lcnaf},
+          nameIdentifierScheme => 'LCNAF',
+          schemeURI => 'https://id.loc.gov/authorities/names/'
+        }
+      }
+
+      if ($e->{firstname} || $e->{lastname}) {
+        $role{nameType} = 'Personal';
+        $role{name} = $e->{lastname};
+        $role{name} += ', '. $e->{firstname} if $e->{firstname};
+        $role{givenName} = $e->{firstname};
+        $role{familyName} = $e->{lastname};
+        push @affiliations, $e->{institution};
+        $role{affiliations} = \@affiliations;
+      } else {
+        if ($e->{institution}) {
+          $role{nameType} = 'Organizational';
+          $role{name} = $e->{institution};
+        }
+      }
+      $role{nameIdentifiers} = \@ids;
     }
-    case 'oai_openaire' {
-      my @metadata;
+  }
+
+  return \@roles;
+}
+
+sub _get_roles {
+  my ($self, $str) = @_;
+
+  my @roles;
+
+  my $arr = decode_json(b($str)->encode('UTF-8'));
+  for my $hash (@{$arr}) {
+    for my $rolePredicate (keys %{$hash}) {
+      for my $e (@{$hash->{$rolePredicate}}) {
+        my %role;
+        my $firstname;
+        my $lastname;
+        my @affiliations;
+        my $name;
+        my @ids;
+        my $roleCode = $rolePredicate;
+        $roleCode =~ s/^role://g;
+        next if $roleCode eq 'uploader';
+        switch ($roleCode) {
+          case 'aut' {
+            $role{dcRole} = 'creator';
+          }
+          case 'pbl' {
+            $role{dcRole} = 'publisher';
+          }
+          default {
+            $role{dcRole} = 'contributor';
+            $role{contributorType} = exists($openaireContributorType->{$roleCode}) ? $openaireContributorType->{$roleCode} : 'Other';
+          }
+        }
+        for my $prop (keys %{$e}){
+          if($prop eq '@type'){
+            if ($e->{$prop} eq 'schema:Person') {
+              $role{nameType} = 'Personal'
+            }
+            if ($e->{$prop} eq 'schema:Organization') {
+              $role{nameType} = 'Organizational'
+            }
+          }
+          if($prop eq 'schema:givenName'){
+            for my $v (@{$e->{$prop}}){
+              $firstname = $v->{'@value'}
+            }
+          }
+          if($prop eq 'schema:familyName'){
+            for my $v (@{$e->{$prop}}){
+              $lastname = $v->{'@value'}
+            }
+          }
+          if($prop eq 'schema:name'){
+            for my $v (@{$e->{$prop}}){
+              $name = $v->{'@value'}
+            }
+          }
+          if($prop eq 'skos:exactMatch'){
+            for my $id (@{$e->{$prop}}){
+              if ($id->{'@type'} eq 'ids:orcid') {
+                push @ids, {
+                  nameIdentifier => $id->{'@value'},
+                  nameIdentifierScheme => 'ORCID',
+                  schemeURI => 'https://orcid.org/'
+                }
+              }
+              if ($id->{'@type'} eq 'ids:gnd') {
+                push @ids, {
+                  nameIdentifier => $id->{'@value'},
+                  nameIdentifierScheme => 'GND',
+                  schemeURI => 'https://d-nb.info/gnd/'
+                }
+              }
+              if ($id->{'@type'} eq 'ids:isni') {
+                push @ids, {
+                  nameIdentifier => $id->{'@value'},
+                  nameIdentifierScheme => 'ISNI',
+                  schemeURI => 'http://isni.org/isni/'
+                }
+              }
+              if ($id->{'@type'} eq 'ids:viaf') {
+                push @ids, {
+                  nameIdentifier => $id->{'@value'},
+                  nameIdentifierScheme => 'VIAF',
+                  schemeURI => 'https://viaf.org/viaf/'
+                }
+              }
+              if ($id->{'@type'} eq 'ids:wikidata') {
+                push @ids, {
+                  nameIdentifier => $id->{'@value'},
+                  nameIdentifierScheme => 'Wikidata',
+                  schemeURI => 'https://www.wikidata.org/wiki/'
+                }
+              }
+              if ($id->{'@type'} eq 'ids:lcnaf') {
+                push @ids, {
+                  nameIdentifier => $id->{'@value'},
+                  nameIdentifierScheme => 'LCNAF',
+                  schemeURI => 'https://id.loc.gov/authorities/names/'
+                }
+              }
+            }
+          }
+
+          if($prop eq 'schema:affiliation'){
+            my %affs;
+            my $addInstitutionName = 0;
+            for my $affProp (@{$e->{'schema:affiliation'}}){
+              if ($affProp eq 'skos:exactMatch') {
+                for my $affId (@{$e->{'schema:affiliation'}->{'skos:exactMatch'}}) {
+                  if (rindex($affId, '"https://pid.phaidra.org/', 0) == 0) {
+                    $addInstitutionName = 1;
+                  }
+                }
+              }
+              if ($affProp eq 'schema:name') {
+                for my $affName (@{$e->{'schema:affiliation'}->{'schema:name'}}) {
+                  if (exists($affName->{'@language'})) {
+                    if ($affName->{'@language'} ne '') {
+                      $affs{$affName->{'@language'}} = $affName->{'@value'};
+                    } else {
+                      $affs{'nolang'} = $affName->{'@value'};
+                    }
+                  } else {
+                    $affs{'nolang'} = $affName->{'@value'};
+                  }
+                }
+              }
+            }
+
+            # https://openaire-guidelines-for-literature-repository-managers.readthedocs.io/en/v4.0.0/field_publisher.html
+            # I think this should apply to affiliations of creators and contributors too:
+            # "With university publications place the name of the faculty and/or research group or research school 
+            # after the name of the university. In the case of organizations where there is clearly a hierarchy present,
+            # list the parts of the hierarchy from largest to smallest, separated by full stops."
+
+            # prefer version without language
+            if ($affs{'nolang'}) {
+              push @affiliations, $affs{'nolang'};
+            } else {
+              # if not found, prefer english
+              if ($affs{'eng'}) {
+                my $affiliation = $affs{'eng'};
+                if ($addInstitutionName) {
+                  my $institutionName = $self->app->directory->get_org_name($self, 'eng');
+                  if ($institutionName) {
+                    if ((index($affiliation, $institutionName) == -1)) {
+                      $affiliation = "$institutionName. $affiliation";
+                    }
+                  }
+                }
+                push @affiliations, $affiliation;
+              } else {
+                # if not found just pop whatever
+                my $affiliation;
+                for my $affLang (keys %affs) {
+                  $affiliation = $affs{$affLang};
+                  if ($addInstitutionName) {
+                    my $institutionName = $self->app->directory->get_org_name($self, $affLang);
+                    if ($institutionName) {
+                      if ((index($affiliation, $institutionName) == -1)) {
+                        $affiliation = "$institutionName. $affiliation";
+                      }
+                    }
+                  }
+                  last;
+                }
+                push @affiliations, $affiliation;
+              }
+            }
+          }
+        }
+        if ($role{nameType} eq 'Personal') {
+          if ($name) {
+            $role{name} = $name;
+          } else {
+            $role{name} = $lastname;
+            $role{name} += ', '. $firstname if $firstname;
+          }
+          $role{givenName} = $firstname;
+          $role{familyName} = $lastname;
+          $role{affiliations} = \@affiliations;
+        } else {
+          $role{name} = $name;
+        }
+        $role{nameIdentifiers} = \@ids;
+      }
+    }
+  }
+
+  return \@roles;
+}
+
+sub _get_funding_references {
+  my ($self, $str) = @_;
+
+  my @fundingReferences;
+
+  my $arr = decode_json(b($str)->encode('UTF-8'));
+
+  for my $obj (@$arr) {
+    my $funderName;
+    my $awardTitle;
+    my $awardNumber;
+    if ($obj->{'@type'} eq 'foaf:Project') {
+      if (exists($obj->{'skos:prefLabel'})) {
+        for my $l (@{$obj->{'skos:prefLabel'}}) {
+          $awardTitle = $l->{'@value'};
+          last;
+        }
+      }
+      if (exists($obj->{'skos:exactMatch'})) {
+        for my $id (@{$obj->{'skos:exactMatch'}}) {
+          $awardNumber = $id;
+          last;
+        }
+      }
+      if (exists($obj->{'frapo:hasFundingAgency'})) {
+        for my $fun (@{$obj->{'frapo:hasFundingAgency'}}) {
+          if (exists($fun->{'skos:prefLabel'})) {
+            for my $l (@{$fun->{'skos:prefLabel'}}) {
+              $funderName = $l->{'@value'};
+              last;
+            }
+          }
+        }
+      }
+    }
+    if ($obj->{'@type'} eq 'frapo:FundingAgency') {
+      if (exists($obj->{'skos:prefLabel'})) {
+        for my $l (@{$obj->{'skos:prefLabel'}}) {
+          $funderName = $l->{'@value'};
+          last;
+        }
+      }
+    }
+    push @fundingReferences, {
+      funderName => $funderName,
+      awardTitle => $awardTitle,
+      awardNumber => $awardNumber
+    }
+  }
+  return \@fundingReferences;
+}
+
+sub _get_metadata_dc {
+  my ($self, $rec) = @_;
+
+  my @metadata;
+  for my $k (keys %{$rec}) {
+    if ($k =~ m/dc_([a-z]+)_?([a-z]+)?/) {
+      my %field;
+      $field{name} = $1;
+      $field{values} = $rec->{$k};
+      $field{lang} = $2 if $2;
+      push @metadata, \%field;
+    }
+  }
+  return \@metadata;
+}
+
+sub _rolesToNodes {
+  my ($self, $type, $roles) = @_;
+
+  my @roleNodes;
+  for my $role (@$roles) {
+    my @childNodes;
+    my %nameNode;
+    $nameNode{name} = $type eq 'creator' ? 'datacite:creatorName' : 'datacite:contributorName';
+    $nameNode{value} = $role->{name};
+    if ($role->{nameType}) {
+      $nameNode{attributes} = [
+        {
+          name => 'nameType',
+          value => $role->{nameType}
+        }
+      ]
+    }
+    push @childNodes, \%nameNode;
+    for my $id (@{$role->{nameIdentifiers}}) {
+      push @childNodes, {
+        name => 'datacite:nameIdentifier',
+        value => $id->{nameIdentifier},
+        attributes => [
+          {
+            name => 'nameIdentifierScheme',
+            value => $id->{nameIdentifierScheme}
+          },
+          {
+            name => 'schemeURI',
+            value => $id->{schemeURI}
+          }
+        ]
+      }
+    }
+    for my $aff (@{$role->{affiliations}}) {
+      push @childNodes, {
+        name => 'datacite:affiliation',
+        value => $aff
+      }
+    }
+    push @roleNodes, {
+      name => $type eq 'creator' ? 'datacite:creator' : 'datacite:contributor',
+      children => \@childNodes
+    }
+  }
+  return \@roleNodes;
+}
+
+sub _get_metadata_openaire {
+  my $self = shift;
+  my $rec = shift;
+
+  my @metadata;
 
       #### MANDATORY ####
 
@@ -154,32 +562,301 @@ sub _get_metadata {
 
       # Creator (M)
       # datacite:creator
+      # creator = author
+      # 
+      # Contributor (MA)
+      # datacite:contributor
+      # contributor = not author, not publisher, not uploader
+      # 
+      # Publisher (MA)
+      # dc:publisher
+      # publisher = role publisher or bib_publisher
+      my $roles;
+      if (exists($rec->{roles_json})) {
+        for my $roles_json_str (@{$rec->{roles_json}}) {
+          $roles = $self->_get_roles($roles_json_str);
+          last;
+        }
+      } else {
+        if (exists($rec->{uwm_roles_json})) {
+          for my $uwm_roles_json_str (@{$rec->{uwm_roles_json}}) {
+            $roles = $self->_get_roles($uwm_roles_json_str);
+            last;
+          }
+        }
+      }
+      my @creators = ();
+      my @contributors = ();
+      my @publishers = ();
+      for my $role (@$roles) {
+        switch ($role->{dcRole}) {
+          case 'creator' {
+            push @creators, $role;
+          }
+          case 'contributor' {
+            push @contributors, $role;
+          }
+          case 'publisher' {
+            push @publishers, $role;
+          }
+        }
+      }
+
+      push @metadata, {
+        name => 'datacite:creators',
+        children => $self->_rolesToNodes('creator', \@creators)
+      };
+      push @metadata, {
+        name => 'datacite:contributors',
+        children => $self->_rolesToNodes('contributor', \@creators)
+      };
+
+      if (scalar @publishers < 1) {
+        # push bib_publisher
+        if ($rec->{bib_publisher}) {
+          for my $pub (@{$rec->{bib_publisher}}) {
+            push @metadata, {
+              name => 'dc:publisher',
+              value => $pub
+            };
+          }
+        }
+      } else {
+        for my $pub (@publishers) {
+          push @metadata, {
+            name => 'dc:publisher',
+            value => $pub->{name}
+          };
+        }
+      }
 
       # Publication Date (M)
       # datacite:date
+      if (exists($rec->{bib_published})) {
+        for my $pubDate (@{$rec->{bib_published}}) {
+          push @metadata, {
+            name => 'datacite:date',
+            value => $pubDate,
+            attributes => [
+              {
+                name => 'dateType',
+                value => 'Issued'
+              }
+            ]
+          };
+        }
+      } else {
+        if (exists($rec->{created})) {
+          push @metadata, {
+            name => 'datacite:date',
+            value => substr($rec->{created}, 0, 4),
+            attributes => [
+              {
+                name => 'dateType',
+                value => 'Issued'
+              }
+            ]
+          };
+        } else {
+          $self->app->log->error("oai: could not find 'created' date in solr record pid[$rec->{pid}]");
+        }
+      }
 
       # Resource Type (M)
       # oaire:resourceType
+      if ($rec->{resourcetype}) {
+        my $resourceTypeGeneral = '';
+        my $resourcetype = '';
+        my $uri = '';
+        switch ($rec->{resourcetype}) {
+          case 'sound' {
+            $resourceTypeGeneral = 'dataset';
+            $resourcetype = 'sound';
+            $uri = 'http://purl.org/coar/resource_type/c_18cc';
+          }
+          case 'book' {
+            $resourceTypeGeneral = 'literature';
+            $resourcetype = 'book';
+            $uri = 'http://purl.org/coar/resource_type/c_2f33';
+          }
+          case 'collection' { # this should likely not end up in oaiprovider at all
+            $resourceTypeGeneral = 'dataset';
+            $resourcetype = 'other';
+            $uri = 'http://purl.org/coar/resource_type/c_1843';
+          }
+          case 'dataset' {
+            $resourceTypeGeneral = 'dataset';
+            $resourcetype = 'dataset';
+            $uri = 'http://purl.org/coar/resource_type/c_ddb1';
+          }
+          case 'text' {
+            $resourceTypeGeneral = 'literature';
+            $resourcetype = 'text';
+            $uri = 'http://purl.org/coar/resource_type/c_18cf';
+          }
+          case 'journalarticle' {
+            $resourceTypeGeneral = 'literature';
+            $resourcetype = 'journal article';
+            $uri = 'http://purl.org/coar/resource_type/c_6501';
+          }
+          case 'image' {
+            $resourceTypeGeneral = 'dataset';
+            $resourcetype = 'image';
+            $uri = 'http://purl.org/coar/resource_type/c_c513';
+          }
+          case 'map' {
+            $resourceTypeGeneral = 'dataset';
+            $resourcetype = 'map';
+            $uri = 'http://purl.org/coar/resource_type/c_12cd';
+          }
+          case 'interactiveresource' {
+            $resourceTypeGeneral = 'other research product';
+            $resourcetype = 'interactive resource';
+            $uri = 'http://purl.org/coar/resource_type/c_e9a0';
+          }
+          case 'video' {
+            $resourceTypeGeneral = 'dataset';
+            $resourcetype = 'video';
+            $uri = 'http://purl.org/coar/resource_type/c_12ce';
+          }
+          default {
+            $resourceTypeGeneral = 'other research product';
+            $resourcetype = 'other';
+            $uri = 'http://purl.org/coar/resource_type/c_1843';
+          }
+        }
+        if (exists($rec->{edm_hastype_id})) {
+          for my $edmType (@{$rec->{edm_hastype_id}}) {
+            if ($edmType eq 'https://pid.phaidra.org/vocabulary/VKA6-9XTY') {
+              $resourceTypeGeneral = 'literature';
+              $resourcetype = 'journal article';
+              $uri = 'http://purl.org/coar/resource_type/c_6501';
+            }
+            last;
+          }
+        }
+        push @metadata, {
+          name => 'oaire:resourceType',
+          value => $resourcetype,
+          attributes => [
+            {
+              name => 'resourceTypeGeneral',
+              value => $resourceTypeGeneral
+            },
+            {
+              name => 'uri',
+              value => $uri
+            }
+          ]
+        };
+      }
 
       # Access Rights (M)
       # datacite:rights
+      my $rights = '';
+      my $rightsURI = '';
+      for my $dcRights (@{$rec->{dc_rights}}) {
+        switch ($dcRights) {
+          case 'openAccess' {
+            $rights = 'open access';
+            $rightsURI = 'http://purl.org/coar/access_right/c_abf2';
+          }
+          case 'embargoedAccess' {
+            $rights = 'embargoed access';
+            $rightsURI = 'http://purl.org/coar/access_right/c_f1cf';
+          }
+          case 'restrictedAccess' {
+            $rights = 'restricted access';
+            $rightsURI = 'http://purl.org/coar/access_right/c_16ec';
+          }
+          case 'closedAccess' {
+            $rights = 'metadata only accesss';
+            $rightsURI = 'http://purl.org/coar/access_right/c_14cb';
+          }
+        }
+      }
+      for my $dcRightsId (@{$rec->{dcterms_accessrights_id}}) {
+        switch ($dcRightsId) {
+          case 'https://pid.phaidra.org/vocabulary/QW5R-NG4J' {
+            $rights = 'open access';
+            $rightsURI = 'http://purl.org/coar/access_right/c_abf2';
+          }
+          case 'https://pid.phaidra.org/vocabulary/AVFC-ZZSZ' {
+            $rights = 'embargoed access';
+            $rightsURI = 'http://purl.org/coar/access_right/c_f1cf';
+          }
+          case 'https://pid.phaidra.org/vocabulary/KC3K-CCGM' {
+            $rights = 'restricted access';
+            $rightsURI = 'http://purl.org/coar/access_right/c_16ec';
+          }
+          case 'https://pid.phaidra.org/vocabulary/QNGE-V02H' {
+            $rights = 'metadata only accesss';
+            $rightsURI = 'http://purl.org/coar/access_right/c_14cb';
+          }
+        }
+      }
+      push @metadata, {
+        name => 'datacite:rights',
+        value => $rights,
+        attributes => [
+          {
+            name => 'rightsURI',
+            value => $rightsURI
+          }
+        ]
+      };
 
       #### MANDATORY IF AVAILABLE ####
 
-      # Contributor (MA)
-      # datacite:contributor
-
       # Funding Reference (MA)
       # oaire:fundingReference
+      my @refs;
+      my @refNodes;
+      my $fundRefsProj;
+      if (exists($rec->{frapo_isoutputof_json})) {
+        $fundRefsProj = $self->_get_funding_references($rec->{frapo_isoutputof_json});
+      }
+      for my $ref (@{$fundRefsProj}) {
+        push @refs, $ref;
+      }
+      my $fundRefsFun;
+      if (exists($rec->{frapo_hasfundingagency_json})) {
+        $fundRefsFun = $self->_get_funding_references($rec->{frapo_hasfundingagency_json});
+      }
+      for my $ref (@{$fundRefsFun}) {
+        push @refs, $ref;
+      }
+      for my $ref (@refs) {
+        push @refNodes, {
+          name => 'oaire:fundingReference',
+          children => [
+            {
+              name => 'oaire:funderName',
+              value => $ref->{funderName}
+            },
+            {
+              name => 'oaire:awardNumber',
+              value => $ref->{awardNumber}
+            },
+            {
+              name => 'oaire:awardTitle',
+              value => $ref->{awardTitle}
+            }
+          ]
+        };
+      }
+      if (scalar @refNodes > 1) {
+        push @metadata, {
+          name => 'oaire:fundingReferences',
+          children => \@refNodes
+        };
+      }
 
       # Embargo Period Date (MA)
       # datacite:date
 
       # Language (MA)
       # dc:language
-
-      # Publisher (MA)
-      # dc:publisher
 
       # Description (MA)
       # dc:description
@@ -294,6 +971,19 @@ sub _get_metadata {
       # dcterms:audience
 
       return \@metadata;
+}
+
+sub _get_metadata {
+  my $self = shift;
+  my $rec = shift;
+  my $metadataPrefix = shift;
+
+  switch ($metadataPrefix) {
+    case 'oai_dc' {
+      return $self->_get_metadata_dc($rec);
+    }
+    case 'oai_openaire' {
+      return $self->_get_metadata_openaire($rec);
     }
   }
 }
