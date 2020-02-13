@@ -18,6 +18,26 @@ use Mojo::ByteStream qw(b);
 
 my $DEFAULT_LIMIT = 100;
 
+# pretend you don't see this
+my %iso6393ToBCP = reverse %{$PhaidraAPI::Model::Languages::iso639map};
+
+my $resourceTypesToDownload = {
+  'http://purl.org/coar/resource_type/c_18cc' => 1, # sound
+  'http://purl.org/coar/resource_type/c_18cf' => 1, # text
+  'http://purl.org/coar/resource_type/c_6501' => 1, # journal article
+  'http://purl.org/coar/resource_type/c_c513' => 1, # image
+  'http://purl.org/coar/resource_type/c_12ce' => 1 # video
+};
+
+my $relations = {
+  'references' => 'References',
+  'isbacksideof' => 'Continues',
+  'hassuccessor' => 'IsPreviousVersionOf',
+  'isalternativeformatof' => 'IsVariantFormOf',
+  'isalternativeversionof' => 'IsVersionOf',
+  'ispartof' => 'IsPartOf'
+}
+
 my $openaireContributorType = {
   # ContactPerson
   # DataCollector
@@ -424,7 +444,7 @@ sub _get_metadata_dc {
 
   my @metadata;
   for my $k (keys %{$rec}) {
-    if ($k =~ m/dc_([a-z]+)_?([a-z]+)?/) {
+    if ($k =~ m/^dc_([a-z]+)_?([a-z]+)?$/) {
       my %field;
       $field{name} = $1;
       $field{values} = $rec->{$k};
@@ -483,9 +503,63 @@ sub _rolesToNodes {
   return \@roleNodes;
 }
 
+sub _map_iso3_to_bcp {
+  my ($self, $lang) = @_;
+  return exists($iso6393ToBCP{$lang}) ? $iso6393ToBCP{$lang} : $lang;
+}
+
+sub _get_dc_fields {
+  my ($self, $rec, $dcfield, $targetfield) = @_;
+
+  my @nodes;
+  my %foundValues;
+  for my $k (keys %{$rec}) {
+    if ($k =~ m/^dc_$field_([a-z]+)$/) {
+      my $lang = $1;
+      for my $v (@{$rec->{$k}}) {
+        $foundValues{$v} = 1;
+        push @nodes, {
+          name => $targetfield,
+          value => $v,
+          attributes => [
+            {
+              name => 'xml:lang',
+              value => $self->_map_iso3_to_bcp($lang)
+            }
+          ]
+        };
+      }
+    }
+  }
+  for my $k (keys %{$rec}) {
+    if ($k =~ m/^dc_$field$/) {
+      for my $v (@{$rec->{$k}}) {
+        unless ($foundValues{$v}) {
+          push @nodes, {
+            name => $targetfield,
+            value => $v
+          };
+        }
+      }
+    }
+  }
+  return \@nodes;
+}
+
+sub _bytes_string {
+  my ($self, $bytes) = @_;
+  return "" if(!defined($bytes));
+  my @suffixes = ('B', 'kB', 'MB', 'GB', 'TB', 'EB');
+  while($bytes > 1024)
+  {
+    shift @suffixes;
+    $bytes /= 1024;
+  }
+  return sprintf("%.2f %s", $bytes,shift @suffixes);
+}
+
 sub _get_metadata_openaire {
-  my $self = shift;
-  my $rec = shift;
+  my ($self, $rec) = @_;
 
   my @metadata;
 
@@ -506,58 +580,10 @@ sub _get_metadata_openaire {
 
       # Title (M)
       # datacite:title
-      my @titles;
-      my %foundTitles;
-      for my $enTitle (@{$rec->{dc_title_eng}}) {
-        $foundTitles{$enTitle} = 1;
-        push @titles, {
-          name => 'datacite:title',
-          value => $enTitle,
-          attributes => [
-            {
-              name => 'xml:lang',
-              value => 'en'
-            }
-          ]
-        };
-      }
-      for my $deTitle (@{$rec->{dc_title_deu}}) {
-        $foundTitles{$deTitle} = 1;
-        push @titles, {
-          name => 'datacite:title',
-          value => $deTitle,
-          attributes => [
-            {
-              name => 'xml:lang',
-              value => 'de'
-            }
-          ]
-        };
-      }
-      for my $itTitle (@{$rec->{dc_title_ita}}) {
-        $foundTitles{$itTitle} = 1;
-        push @titles, {
-          name => 'datacite:title',
-          value => $itTitle,
-          attributes => [
-            {
-              name => 'xml:lang',
-              value => 'it'
-            }
-          ]
-        };
-      }
-      for my $title (@{$rec->{dc_title}}) {
-        unless ($foundTitles{$title}) {
-          push @titles, {
-            name => 'datacite:title',
-            value => $title
-          };
-        }
-      }
+      my $titles = $self->_get_dc_fields($rec, 'title', 'datacite:title');
       push @metadata, {
         name => 'datacite:titles',
-        children => \@titles
+        children => $titles
       };
 
       # Creator (M)
@@ -632,9 +658,12 @@ sub _get_metadata_openaire {
 
       # Publication Date (M)
       # datacite:date
+      # Embargo Period Date (MA)
+      # datacite:date
+      my @dates;
       if (exists($rec->{bib_published})) {
         for my $pubDate (@{$rec->{bib_published}}) {
-          push @metadata, {
+          push @dates, {
             name => 'datacite:date',
             value => $pubDate,
             attributes => [
@@ -647,7 +676,7 @@ sub _get_metadata_openaire {
         }
       } else {
         if (exists($rec->{created})) {
-          push @metadata, {
+          push @dates, {
             name => 'datacite:date',
             value => substr($rec->{created}, 0, 4),
             attributes => [
@@ -661,68 +690,91 @@ sub _get_metadata_openaire {
           $self->app->log->error("oai: could not find 'created' date in solr record pid[$rec->{pid}]");
         }
       }
+      if (exists($rec->{dcterms_available})) {
+        for my $embDate (@{$rec->{dcterms_available}}) {
+          push @dates, {
+            name => 'datacite:date',
+            value => $embDate,
+            attributes => [
+              {
+                name => 'dateType',
+                value => 'Available'
+              }
+            ]
+          };
+        }
+      }
+      push @dates, {
+        name => 'datacite:dates',
+        children => \@dates
+      };
 
       # Resource Type (M)
       # oaire:resourceType
+      my $resourceTypeURI = '';
+      my $resourceTypeGeneral = '';
+      my $downloadObjectType = '';
       if ($rec->{resourcetype}) {
-        my $resourceTypeGeneral = '';
         my $resourcetype = '';
-        my $uri = '';
         switch ($rec->{resourcetype}) {
           case 'sound' {
             $resourceTypeGeneral = 'dataset';
+            $downloadObjectType = 'dataset';
             $resourcetype = 'sound';
-            $uri = 'http://purl.org/coar/resource_type/c_18cc';
+            $resourceTypeURI = 'http://purl.org/coar/resource_type/c_18cc';
           }
           case 'book' {
             $resourceTypeGeneral = 'literature';
             $resourcetype = 'book';
-            $uri = 'http://purl.org/coar/resource_type/c_2f33';
+            $resourceTypeURI = 'http://purl.org/coar/resource_type/c_2f33';
           }
           case 'collection' { # this should likely not end up in oaiprovider at all
             $resourceTypeGeneral = 'dataset';
             $resourcetype = 'other';
-            $uri = 'http://purl.org/coar/resource_type/c_1843';
+            $resourceTypeURI = 'http://purl.org/coar/resource_type/c_1843';
           }
           case 'dataset' {
             $resourceTypeGeneral = 'dataset';
             $resourcetype = 'dataset';
-            $uri = 'http://purl.org/coar/resource_type/c_ddb1';
+            $resourceTypeURI = 'http://purl.org/coar/resource_type/c_ddb1';
           }
           case 'text' {
             $resourceTypeGeneral = 'literature';
+            $downloadObjectType = 'fulltext';
             $resourcetype = 'text';
-            $uri = 'http://purl.org/coar/resource_type/c_18cf';
+            $resourceTypeURI = 'http://purl.org/coar/resource_type/c_18cf';
           }
           case 'journalarticle' {
             $resourceTypeGeneral = 'literature';
+            $downloadObjectType = 'fulltext';
             $resourcetype = 'journal article';
-            $uri = 'http://purl.org/coar/resource_type/c_6501';
+            $resourceTypeURI = 'http://purl.org/coar/resource_type/c_6501';
           }
           case 'image' {
             $resourceTypeGeneral = 'dataset';
             $resourcetype = 'image';
-            $uri = 'http://purl.org/coar/resource_type/c_c513';
+            $resourceTypeURI = 'http://purl.org/coar/resource_type/c_c513';
           }
           case 'map' {
             $resourceTypeGeneral = 'dataset';
             $resourcetype = 'map';
-            $uri = 'http://purl.org/coar/resource_type/c_12cd';
+            $resourceTypeURI = 'http://purl.org/coar/resource_type/c_12cd';
           }
           case 'interactiveresource' {
             $resourceTypeGeneral = 'other research product';
             $resourcetype = 'interactive resource';
-            $uri = 'http://purl.org/coar/resource_type/c_e9a0';
+            $resourceTypeURI = 'http://purl.org/coar/resource_type/c_e9a0';
           }
           case 'video' {
             $resourceTypeGeneral = 'dataset';
+            $downloadObjectType = 'dataset';
             $resourcetype = 'video';
-            $uri = 'http://purl.org/coar/resource_type/c_12ce';
+            $resourceTypeURI = 'http://purl.org/coar/resource_type/c_12ce';
           }
           default {
             $resourceTypeGeneral = 'other research product';
             $resourcetype = 'other';
-            $uri = 'http://purl.org/coar/resource_type/c_1843';
+            $resourceTypeURI = 'http://purl.org/coar/resource_type/c_1843';
           }
         }
         if (exists($rec->{edm_hastype_id})) {
@@ -730,7 +782,7 @@ sub _get_metadata_openaire {
             if ($edmType eq 'https://pid.phaidra.org/vocabulary/VKA6-9XTY') {
               $resourceTypeGeneral = 'literature';
               $resourcetype = 'journal article';
-              $uri = 'http://purl.org/coar/resource_type/c_6501';
+              $resourceTypeURI = 'http://purl.org/coar/resource_type/c_6501';
             }
             last;
           }
@@ -745,7 +797,7 @@ sub _get_metadata_openaire {
             },
             {
               name => 'uri',
-              value => $uri
+              value => $resourceTypeURI
             }
           ]
         };
@@ -756,6 +808,7 @@ sub _get_metadata_openaire {
       my $rights = '';
       my $rightsURI = '';
       for my $dcRights (@{$rec->{dc_rights}}) {
+        # legacy mapping
         switch ($dcRights) {
           case 'openAccess' {
             $rights = 'open access';
@@ -852,97 +905,318 @@ sub _get_metadata_openaire {
         };
       }
 
-      # Embargo Period Date (MA)
-      # datacite:date
-
       # Language (MA)
       # dc:language
+      for my $lang (@{$rec->{dc_language}}) {
+        push @metadata, {
+          name => 'dc:language',
+          value => $lang
+        };
+      }
 
       # Description (MA)
       # dc:description
+      my $descNodes = $self->_get_dc_fields($rec, 'description', 'dc:description');
+      for my $descNode (@{$descNodes}) {
+        push @metadata, $descNode;
+      }
 
       # Subject (MA)
       # datacite:subject
+      my $subjects = $self->_get_dc_fields($rec, 'subject', 'datacite:subject');
+      push @metadata, {
+        name => 'datacite:subjects',
+        children => $subjects
+      };
 
       # File Location (MA)
       # oaire:file
+      my $mime;
+      if ($rightsURI eq 'http://purl.org/coar/access_right/c_abf2') {
+        my @attrs;
+        push @attrs, {
+          name => 'accessRightsURI',
+          value => $rightsURI
+        };
+        my $mime;
+        for my $format (@{$rec->{dc_format}}) {
+          if ($format =~ m/*\/*/) {
+            $mime = $format;
+            push @attrs, {
+              name => 'mimeType',
+              value => $mime
+            };
+            last;
+          }
+        }
+        if ($downloadObjectType) {
+          push @attrs, {
+            name => 'objectType',
+            value => $downloadObjectType
+          };
+        }
+        if ($resourceTypesToDownload{$resourceTypeURI}) {
+          my $downloadUrl;
+          if ($self->app->config->{feodra}->{version} eq '3.8') {
+            $downloadUrl = 'https://'.$self->app->config->{phaidra}->{fedorabaseurl}.'/fedora/objects/'.$rec->{pid}.'/methods/bdef:Content/download'
+          } else {
+            $downloadUrl = 'https://'.$self->app->config->{phaidra}->{fedorabaseurl}.'/fedora/get/'.$rec->{pid}.'/bdef:Content/download'
+          }
+          push @metadata, {
+            name => 'oaire:file',
+            value => $downloadUrl,
+            attributes => \@attrs
+          };
+        }
+      }
 
       #### RECOMMENDED ####
 
       # Alternate Identifier (R)
       # datacite:alternateIdentifier
       my @ids;
-      for my $id (@{$rec->{dc_identifier}}) {
-        if (rindex($id, 'hdl:', 0) == 0) {
-          push @ids, {
-            name => 'datacite:alternateIdentifier',
-            value => substr($id, 4),
-            attributes => [
-              {
-                name => 'alternateIdentifierType',
-                value => 'Handle'
-              }
-            ]
+      if (exists($rec->{dc_identifier})) {
+        for my $id (@{$rec->{dc_identifier}}) {
+          if (rindex($id, 'hdl:', 0) == 0) {
+            push @ids, {
+              name => 'datacite:alternateIdentifier',
+              value => substr($id, 4),
+              attributes => [
+                {
+                  name => 'alternateIdentifierType',
+                  value => 'Handle'
+                }
+              ]
+            };
+          }
+          if (rindex($id, 'doi:', 0) == 0) {
+            push @ids, {
+              name => 'datacite:alternateIdentifier',
+              value => substr($id, 4),
+              attributes => [
+                {
+                  name => 'alternateIdentifierType',
+                  value => 'DOI'
+                }
+              ]
+            };
+          }
+          if (rindex($id, 'urn:', 0) == 0) {
+            push @ids, {
+              name => 'datacite:alternateIdentifier',
+              value => substr($id, 4),
+              attributes => [
+                {
+                  name => 'alternateIdentifierType',
+                  value => 'URN'
+                }
+              ]
+            };
+          }
+        }
+        if (scalar @ids > 0) {
+          push @metadata, {
+            name => 'datacite:alternateIdentifiers',
+            children => \@ids
           };
         }
-        if (rindex($id, 'doi:', 0) == 0) {
-          push @ids, {
-            name => 'datacite:alternateIdentifier',
-            value => substr($id, 4),
-            attributes => [
-              {
-                name => 'alternateIdentifierType',
-                value => 'DOI'
-              }
-            ]
-          };
-        }
-        if (rindex($id, 'urn:', 0) == 0) {
-          push @ids, {
-            name => 'datacite:alternateIdentifier',
-            value => substr($id, 4),
-            attributes => [
-              {
-                name => 'alternateIdentifierType',
-                value => 'URN'
-              }
-            ]
-          };
-        }
-      }
-      if (scalar @ids > 0) {
-        push @metadata, {
-          name => 'datacite:alternateIdentifiers',
-          children => \@ids
-        };
       }
 
       # Related Identifier (R)
       # datacite:relatedIdentifier
-
+      my @relatedIdsNodes;
+      for my $phaidraRel (keys %{$relations}) {
+        if (exists($rec->{$phaidraRel})) {
+          for my $pid (@{$rec->{$phaidraRel}}) {
+            push @relatedIdsNodes, {
+              name => 'datacite:relatedIdentifier',
+              value => 'https://'.$self->app->config->{phaidra}->{baseurl}.'/'.$pid,
+              attributes => [
+                {
+                  name => 'relatedIdentifierType',
+                  value => 'URL'
+                },
+                {
+                  name => 'relationType',
+                  value => $relations{$phaidraRel}
+                }
+              ]
+            };
+          }
+        }
+      }
+      if (scalar @relatedIdsNodes > 0) {
+        push @metadata, {
+          name => 'datacite:relatedIdentifiers',
+          children => \@relatedIdsNodes
+        };
+      }
+      
       # Format (R)
       # dc:format
+      if ($mime) {
+        push @metadata, {
+          name => 'dc:format',
+          value => $mime
+        };
+      }
 
       # Source (R)
       # dc:source
+      my $sourceNodes = $self->_get_dc_fields($rec, 'source', 'dc:source');
+      for my $sourceNode (@{$sourceNodes}) {
+        push @metadata, $sourceNode;
+      }
 
       # License Condition (R)
       # oaire:licenseCondition
+      if (exists($rec->{dc_license})) {
+        for my $lic (@{$rec->{dc_license}}) {
+          if ($lic =~ m/^http(s)?:\/\//) {
+            push @relatedIdsNodes, {
+              name => 'oaire:licenseCondition',
+              value => $lic,
+              attributes => [
+                {
+                  name => 'uri',
+                  value => $lic
+                }
+              ]
+            };
+          }
+          if ($lic eq 'All rights reserved') {
+            push @relatedIdsNodes, {
+              name => 'oaire:licenseCondition',
+              value => $lic,
+              attributes => [
+                {
+                  name => 'uri',
+                  value => 'http://rightsstatements.org/vocab/InC/1.0/'
+                }
+              ]
+            };
+          }
+        }
+      }
 
       # Coverage (R)
       # dc:coverage
+      my $coverageNodes = $self->_get_dc_fields($rec, 'coverage', 'dc:coverage');
+      for my $coverageNode (@{$coverageNodes}) {
+        push @metadata, $coverageNode;
+      }
 
       # Resource Version (R)
       # oaire:version
+      my $oaireversion;
+      my $oaireversionURI;
+      for my $versionId (@{$rec->{dc_type}}) {
+        # legacy mapping
+        switch ($versionId) {
+          case 'draft' {
+            $oaireversion = 'AO';
+            $oaireversionURI = 'http://purl.org/coar/version/c_b1a7d7d4d402bcce';
+          }
+          case 'acceptedVersion' {
+            $oaireversion = 'AM';
+            $oaireversionURI = 'http://purl.org/coar/version/c_ab4af688f83e57aa';
+          }
+          case 'updatedVersion' { # there was only one case of CVoR in our phaidra and no EVoR
+            $oaireversion = 'CVoR';
+            $oaireversionURI = 'http://purl.org/coar/version/c_e19f295774971610';
+          }
+          case 'submittedVersion' {
+            $oaireversion = 'SMUR';
+            $oaireversionURI = 'http://purl.org/coar/version/c_71e4c1898caa6e32';
+          }
+          case 'publishedVersion' {
+            $oaireversion = 'VoR';
+            $oaireversionURI = 'http://purl.org/coar/version/c_970fb48d4fbd8a85';
+          }
+        }
+      }
+      for my $versionId (@{$rec->{oaire_version_id}}) {
+        switch ($versionId) {
+          case 'https://pid.phaidra.org/vocabulary/TV31-080M' {
+            $oaireversion = 'AO';
+            $oaireversionURI = 'http://purl.org/coar/version/c_b1a7d7d4d402bcce';
+          }
+          case 'https://pid.phaidra.org/vocabulary/JTD4-R26P' {
+            $oaireversion = 'SMUR';
+            $oaireversionURI = 'http://purl.org/coar/version/c_71e4c1898caa6e32';
+          }
+          case 'https://pid.phaidra.org/vocabulary/PHXV-R6B3' {
+            $oaireversion = 'AM';
+            $oaireversionURI = 'http://purl.org/coar/version/c_ab4af688f83e57aa';
+          }
+          case 'https://pid.phaidra.org/vocabulary/83ZP-CPP2' {
+            $oaireversion = 'P';
+            $oaireversionURI = 'http://purl.org/coar/version/c_fa2ee174bc00049f';
+          }
+          case 'https://pid.phaidra.org/vocabulary/PMR8-3C8D' {
+            $oaireversion = 'VoR';
+            $oaireversionURI = 'http://purl.org/coar/version/c_970fb48d4fbd8a85';
+          }
+          case 'https://pid.phaidra.org/vocabulary/MT1G-APSB' {
+            $oaireversion = 'CVoR';
+            $oaireversionURI = 'http://purl.org/coar/version/c_e19f295774971610';
+          }
+          case 'https://pid.phaidra.org/vocabulary/SSQW-AP1S' {
+            $oaireversion = 'EVoR';
+            $oaireversionURI = 'http://purl.org/coar/version/c_dc82b40f9837b551';
+          }
+          case 'https://pid.phaidra.org/vocabulary/KZB5-0F5G' {
+            $oaireversion = 'NA';
+            $oaireversionURI = 'http://purl.org/coar/version/c_be7fb7dd8ff6fe43';
+          }
+        }
+      }
+      push @metadata, {
+        name => 'oaire:version',
+        value => $oaireversion,
+        attributes => [
+          {
+            name => 'uri',
+            value => $oaireversionURI
+          }
+        ]
+      };
 
       # Citation Title (R)
       # oaire:citationTitle
+      if (exists($rec->{bib_journal})) {
+        for my $journal (@{$rec->{bib_journal}}) {
+          push @metadata, {
+            name => 'oaire:citationTitle',
+            value => $journal;
+          };
+          last;
+        }
+      }
 
       # Citation Volume (R)
       # oaire:citationVolume
+      if (exists($rec->{bib_volume})) {
+        for my $vol (@{$rec->{bib_volume}}) {
+          push @metadata, {
+            name => 'oaire:citationVolume',
+            value => $vol;
+          };
+          last;
+        }
+      }
 
       # Citation Issue (R)
       # oaire:citationIssue
+      if (exists($rec->{bib_issue})) {
+        for my $iss (@{$rec->{bib_issue}}) {
+          push @metadata, {
+            name => 'oaire:citationIssue',
+            value => $iss;
+          };
+          last;
+        }
+      }
 
       # Citation Start Page (R)
       # oaire:citationStartPage
@@ -952,6 +1226,15 @@ sub _get_metadata_openaire {
 
       # Citation Edition (R)
       # oaire:citationEdition
+      if (exists($rec->{bib_edition})) {
+        for my $ed (@{$rec->{bib_edition}}) {
+          push @metadata, {
+            name => 'oaire:citationEdition',
+            value => $ed;
+          };
+          last;
+        }
+      }
 
       # Citation Conference Place (R)
       # oaire:citationConferencePlace
@@ -963,6 +1246,22 @@ sub _get_metadata_openaire {
 
       # Size (O)
       # datacite:size
+      my @sizes;
+      if (exists($rec->{size})) {
+        for my $size (@{$rec->{size}}) {
+          push @sizes, {
+            name => 'datacite:size',
+            value => $self->_bytes_string($size);
+          };
+          last;
+        }
+      }
+      if (scalar @sizes > 0) {
+        push @metadata, {
+          name => 'datacite:sizes',
+          children => \@sizes
+        };
+      }
 
       # Geo Location (O)
       # datacite:geoLocation

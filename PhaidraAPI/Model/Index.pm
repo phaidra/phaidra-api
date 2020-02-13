@@ -1092,7 +1092,7 @@ sub _get {
         if(exists($plm->{point})){
           $index{latlon} = $plm->{point}->{coordinates}->{latitude}.",".$plm->{point}->{coordinates}->{longitude};
         }
-      }      
+      }
     }
 
   }
@@ -1121,7 +1121,7 @@ sub _get {
     my $jsonld_model = PhaidraAPI::Model::Jsonld->new;  
     my $r_jsonld = $jsonld_model->get_object_jsonld_parsed($c, $pid, $c->app->config->{phaidra}->{intcallusername}, $c->app->config->{phaidra}->{intcallpassword});
     #$c->app->log->debug("XXXXXXXXX found JSON-LD: ".$c->app->dumper($r_jsonld));
-    if($r_jsonld->{status} ne 200){        
+    if($r_jsonld->{status} ne 200){
       push @{$res->{alerts}}, { type => 'danger', msg => "Error getting JSON-LD for $pid" };
       push @{$res->{alerts}}, @{$r_jsonld->{alerts}} if scalar @{$r_jsonld->{alerts}} > 0;          
     }else{
@@ -1681,6 +1681,20 @@ sub _add_jsonld_index {
       for my $id (@{$o->{'skos:exactMatch'}}) {
         push @{$index->{"dcterms_accessrights_id"}}, $id;
       }
+    }
+  }
+
+  if($jsonld->{'oaire:version'}){
+    for my $o (@{$jsonld->{'oaire:version'}}) {
+      for my $id (@{$o->{'skos:exactMatch'}}) {
+        push @{$index->{"oaire_version_id"}}, $id;
+      }
+    }
+  }
+
+  if($jsonld->{'dcterms:available'}){
+    for my $d (@{$jsonld->{'dcterms:available'}}) {
+      push @{$index->{"dcterms_available"}}, $d;
     }
   }
 
