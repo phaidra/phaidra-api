@@ -203,6 +203,10 @@ our %iso639map=
   'iw' => 'heb'
 );
 
+sub get_iso639map {
+  my ($self) = @_;
+  return \%iso639map;
+}
 
 sub get_languages {
 

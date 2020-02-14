@@ -943,7 +943,7 @@ sub _get {
 
   my ($self, $c, $pid, $dc_model, $search_model, $rel_model, $object_model, $ignorestatus) = @_;
 
-  my $res = { status => 200 };        
+  my $res = { status => 200 };
 
   my $t0 = [gettimeofday];
 
