@@ -1654,6 +1654,18 @@ sub _add_jsonld_index {
     }
   }
 
+  if (exists($jsonld->{'schema:pageStart'})){
+    for my $o (@{$jsonld->{'schema:pageStart'}}) {
+      push @{$index->{"schema_pagestart"}}, $o;
+    }
+  }
+
+  if (exists($jsonld->{'schema:pageEnd'})){
+    for my $o (@{$jsonld->{'schema:pageEnd'}}) {
+      push @{$index->{"schema_pageend"}}, $o;
+    }
+  }
+
   if($jsonld->{'edm:hasType'}){
     for my $o (@{$jsonld->{'edm:hasType'}}) {
       for my $l (@{$o->{'skos:prefLabel'}}) {

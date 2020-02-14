@@ -1220,9 +1220,27 @@ sub _get_metadata_openaire {
 
       # Citation Start Page (R)
       # oaire:citationStartPage
+      if (exists($rec->{schema_pagestart})) {
+        for my $p (@{$rec->{schema_pagestart}}) {
+          push @metadata, {
+            name => 'oaire:citationStartPage',
+            value => $p;
+          };
+          last;
+        }
+      }
 
       # Citation End Page (R)
       # oaire:citationEndPage
+      if (exists($rec->{schema_pageend})) {
+        for my $p (@{$rec->{schema_pageend}}) {
+          push @metadata, {
+            name => 'oaire:citationEndPage',
+            value => $p;
+          };
+          last;
+        }
+      }
 
       # Citation Edition (R)
       # oaire:citationEdition
@@ -1268,6 +1286,24 @@ sub _get_metadata_openaire {
 
       # Audience (O)
       # dcterms:audience
+      if (exists($rec->{educational_context})) {
+        for my $ed (@{$rec->{educational_context}}) {
+          push @metadata, {
+            name => 'dcterms:audience',
+            value => $ed;
+          };
+          last;
+        }
+      }
+      if (exists($rec->{educational_enduserrole})) {
+        for my $ed (@{$rec->{educational_enduserrole}}) {
+          push @metadata, {
+            name => 'dcterms:audience',
+            value => $ed;
+          };
+          last;
+        }
+      }
 
       return \@metadata;
 }
