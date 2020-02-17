@@ -718,7 +718,7 @@ sub get_metadata_openaire {
         $resourcetype = 'video';
         $resourceTypeURI = 'http://purl.org/coar/resource_type/c_12ce';
       }
-      default {
+      else {
         $resourceTypeGeneral = 'other research product';
         $resourcetype = 'other';
         $resourceTypeURI = 'http://purl.org/coar/resource_type/c_1843';
