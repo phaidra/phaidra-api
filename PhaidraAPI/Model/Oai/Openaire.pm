@@ -125,11 +125,11 @@ sub _get_roles_uwm {
       if ($e->{firstname} || $e->{lastname}) {
         $role{nameType} = 'Personal';
         $role{name} = $e->{lastname};
-        $role{name} += ', '. $e->{firstname} if $e->{firstname};
+        $role{name} .= ($e->{lastname} ? ', ' : ''). $e->{firstname} if $e->{firstname};
         $role{givenName} = $e->{firstname};
         $role{familyName} = $e->{lastname};
-        push @affiliations, $e->{institution};
-        $role{affiliations} = \@affiliations;
+        push @affiliations, $e->{institution} if $e->{institution};
+        $role{affiliations} = \@affiliations if (scalar @affiliations > 0);
       } else {
         if ($e->{institution}) {
           $role{nameType} = 'Organizational';
@@ -137,6 +137,7 @@ sub _get_roles_uwm {
         }
       }
       $role{nameIdentifiers} = \@ids;
+      push @roles, \%role;
     }
   }
 
@@ -291,7 +292,7 @@ sub _get_roles {
                     }
                   }
                 }
-                push @affiliations, $affiliation;
+                push @affiliations, $affiliation if $affiliation;
               } else {
                 # if not found just pop whatever
                 my $affiliation;
@@ -307,7 +308,7 @@ sub _get_roles {
                   }
                   last;
                 }
-                push @affiliations, $affiliation;
+                push @affiliations, $affiliation  if $affiliation;
               }
             }
           }
@@ -317,11 +318,11 @@ sub _get_roles {
             $role{name} = $name;
           } else {
             $role{name} = $lastname;
-            $role{name} += ', '. $firstname if $firstname;
+            $role{name} .= ( $lastname ? ', ' : ''). $firstname if $firstname;
           }
           $role{givenName} = $firstname;
           $role{familyName} = $lastname;
-          $role{affiliations} = \@affiliations;
+          $role{affiliations} = \@affiliations if (scalar @affiliations > 0);
         } else {
           $role{name} = $name;
         }
@@ -403,6 +404,18 @@ sub _rolesToNodes {
       ]
     }
     push @childNodes, \%nameNode;
+    if ($role->{givenName}) {
+      push @childNodes, {
+        name => 'datacite:givenName',
+        value => $role->{givenName}
+      }
+    }
+    if ($role->{familyName}) {
+      push @childNodes, {
+        name => 'datacite:familyName',
+        value => $role->{familyName}
+      }
+    }
     for my $id (@{$role->{nameIdentifiers}}) {
       push @childNodes, {
         name => 'datacite:nameIdentifier',
@@ -565,11 +578,11 @@ sub get_metadata_openaire {
   push @metadata, {
     name => 'datacite:creators',
     children => $self->_rolesToNodes($c, 'creator', \@creators)
-  };
+  } if (scalar @creators > 0);
   push @metadata, {
     name => 'datacite:contributors',
-    children => $self->_rolesToNodes($c, 'contributor', \@creators)
-  };
+    children => $self->_rolesToNodes($c, 'contributor', \@contributors)
+  } if (scalar @contributors > 0);
 
   if (scalar @publishers < 1) {
     # push bib_publisher
@@ -791,7 +804,7 @@ sub get_metadata_openaire {
         value => $rightsURI
       }
     ]
-  };
+  } if $rights;
 
   #### MANDATORY IF AVAILABLE ####
 
@@ -832,7 +845,7 @@ sub get_metadata_openaire {
       ]
     };
   }
-  if (scalar @refNodes > 1) {
+  if (scalar @refNodes > 0) {
     push @metadata, {
       name => 'oaire:fundingReferences',
       children => \@refNodes
@@ -861,7 +874,7 @@ sub get_metadata_openaire {
   push @metadata, {
     name => 'datacite:subjects',
     children => $subjects
-  };
+  } if (scalar @$subjects > 0);
 
   # File Location (MA)
   # oaire:file
@@ -1007,7 +1020,7 @@ sub get_metadata_openaire {
   if (exists($rec->{dc_license})) {
     for my $lic (@{$rec->{dc_license}}) {
       if ($lic =~ m/^http(s)?:\/\//) {
-        push @relatedIdsNodes, {
+        push @metadata, {
           name => 'oaire:licenseCondition',
           value => $lic,
           attributes => [
@@ -1019,7 +1032,7 @@ sub get_metadata_openaire {
         };
       }
       if ($lic eq 'All rights reserved') {
-        push @relatedIdsNodes, {
+        push @metadata, {
           name => 'oaire:licenseCondition',
           value => $lic,
           attributes => [
@@ -1114,7 +1127,7 @@ sub get_metadata_openaire {
         value => $oaireversionURI
       }
     ]
-  };
+  } if $oaireversion;
 
   # Citation Title (R)
   # oaire:citationTitle
