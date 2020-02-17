@@ -59,85 +59,87 @@ sub _get_roles_uwm {
   my $arr = decode_json(b($str)->encode('UTF-8'));
   my @contrib = sort { $a->{data_order} <=> $b->{data_order} } @{$arr};
   for my $con (@contrib) {
-    my @entities = sort { $a->{data_order} <=> $b->{data_order} } @{$con->{entities}};
-    for my $e (@entities) {
-      my %role;
-      my @ids;
-      my @affiliations;
-      my $roleCode = $con->{role};
-      next if $roleCode eq 'uploader';
-      switch ($roleCode) {
-        case 'aut' {
-          $role{dcRole} = 'creator';
+    if ($con->{entities}) {
+      my @entities = sort { $a->{data_order} <=> $b->{data_order} } @{$con->{entities}};
+      for my $e (@entities) {
+        my %role;
+        my @ids;
+        my @affiliations;
+        my $roleCode = $con->{role};
+        next if $roleCode eq 'uploader';
+        switch ($roleCode) {
+          case 'aut' {
+            $role{dcRole} = 'creator';
+          }
+          case 'pbl' {
+            $role{dcRole} = 'publisher';
+          }
+          else {
+            $role{dcRole} = 'contributor';
+            $role{contributorType} = exists($openaireContributorType->{$roleCode}) ? $openaireContributorType->{$roleCode} : 'Other';
+          }
         }
-        case 'pbl' {
-          $role{dcRole} = 'publisher';
-        }
-        else {
-          $role{dcRole} = 'contributor';
-          $role{contributorType} = exists($openaireContributorType->{$roleCode}) ? $openaireContributorType->{$roleCode} : 'Other';
-        }
-      }
 
-      if ($e->{orcid}) {
-        push @ids, {
-          nameIdentifier => $e->{orcid},
-          nameIdentifierScheme => 'ORCID',
-          schemeURI => 'https://orcid.org/'
+        if ($e->{orcid}) {
+          push @ids, {
+            nameIdentifier => $e->{orcid},
+            nameIdentifierScheme => 'ORCID',
+            schemeURI => 'https://orcid.org/'
+          }
         }
-      }
-      if ($e->{gnd}) {
-        push @ids, {
-          nameIdentifier => $e->{gnd},
-          nameIdentifierScheme => 'GND',
-          schemeURI => 'https://d-nb.info/gnd/'
+        if ($e->{gnd}) {
+          push @ids, {
+            nameIdentifier => $e->{gnd},
+            nameIdentifierScheme => 'GND',
+            schemeURI => 'https://d-nb.info/gnd/'
+          }
         }
-      }
-      if ($e->{isni}) {
-        push @ids, {
-          nameIdentifier => $e->{isni},
-          nameIdentifierScheme => 'ISNI',
-          schemeURI => 'http://isni.org/isni/'
+        if ($e->{isni}) {
+          push @ids, {
+            nameIdentifier => $e->{isni},
+            nameIdentifierScheme => 'ISNI',
+            schemeURI => 'http://isni.org/isni/'
+          }
         }
-      }
-      if ($e->{viaf}) {
-        push @ids, {
-          nameIdentifier => $e->{viaf},
-          nameIdentifierScheme => 'VIAF',
-          schemeURI => 'https://viaf.org/viaf/'
+        if ($e->{viaf}) {
+          push @ids, {
+            nameIdentifier => $e->{viaf},
+            nameIdentifierScheme => 'VIAF',
+            schemeURI => 'https://viaf.org/viaf/'
+          }
         }
-      }
-      if ($e->{wdq}) {
-        push @ids, {
-          nameIdentifier => $e->{wdq},
-          nameIdentifierScheme => 'Wikidata',
-          schemeURI => 'https://www.wikidata.org/wiki/'
+        if ($e->{wdq}) {
+          push @ids, {
+            nameIdentifier => $e->{wdq},
+            nameIdentifierScheme => 'Wikidata',
+            schemeURI => 'https://www.wikidata.org/wiki/'
+          }
         }
-      }
-      if ($e->{lcnaf}) {
-        push @ids, {
-          nameIdentifier => $e->{lcnaf},
-          nameIdentifierScheme => 'LCNAF',
-          schemeURI => 'https://id.loc.gov/authorities/names/'
+        if ($e->{lcnaf}) {
+          push @ids, {
+            nameIdentifier => $e->{lcnaf},
+            nameIdentifierScheme => 'LCNAF',
+            schemeURI => 'https://id.loc.gov/authorities/names/'
+          }
         }
-      }
 
-      if ($e->{firstname} || $e->{lastname}) {
-        $role{nameType} = 'Personal';
-        $role{name} = $e->{lastname};
-        $role{name} .= ($e->{lastname} ? ', ' : ''). $e->{firstname} if $e->{firstname};
-        $role{givenName} = $e->{firstname};
-        $role{familyName} = $e->{lastname};
-        push @affiliations, $e->{institution} if $e->{institution};
-        $role{affiliations} = \@affiliations if (scalar @affiliations > 0);
-      } else {
-        if ($e->{institution}) {
-          $role{nameType} = 'Organizational';
-          $role{name} = $e->{institution};
+        if ($e->{firstname} || $e->{lastname}) {
+          $role{nameType} = 'Personal';
+          $role{name} = $e->{lastname};
+          $role{name} .= ($e->{lastname} ? ', ' : ''). $e->{firstname} if $e->{firstname};
+          $role{givenName} = $e->{firstname};
+          $role{familyName} = $e->{lastname};
+          push @affiliations, $e->{institution} if $e->{institution};
+          $role{affiliations} = \@affiliations if (scalar @affiliations > 0);
+        } else {
+          if ($e->{institution}) {
+            $role{nameType} = 'Organizational';
+            $role{name} = $e->{institution};
+          }
         }
+        $role{nameIdentifiers} = \@ids;
+        push @roles, \%role;
       }
-      $role{nameIdentifiers} = \@ids;
-      push @roles, \%role;
     }
   }
 
@@ -1215,13 +1217,10 @@ sub get_metadata_openaire {
   # datacite:size
   my @sizes;
   if (exists($rec->{size})) {
-    for my $size (@{$rec->{size}}) {
-      push @sizes, {
-        name => 'datacite:size',
-        value => $self->_bytes_string($size)
-      };
-      last;
-    }
+    push @sizes, {
+      name => 'datacite:size',
+      value => $self->_bytes_string($rec->{size})
+    };
   }
   if (scalar @sizes > 0) {
     push @metadata, {
