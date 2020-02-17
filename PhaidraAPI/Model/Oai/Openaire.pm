@@ -461,16 +461,18 @@ sub _get_dc_fields {
       my $lang = $1;
       for my $v (@{$rec->{$k}}) {
         $foundValues{$v} = 1;
-        push @nodes, {
-          name => $targetfield,
-          value => $v,
-          attributes => [
+        my %node;
+        $node{name} = $targetfield;
+        $node{value} = $v;
+        unless ($lang eq 'xxx') {
+          $node{attributes} = [
             {
               name => 'xml:lang',
               value => $self->_map_iso3_to_bcp($iso6393ToBCP, $lang)
             }
           ]
-        };
+        }
+        push @nodes, \%node;
       }
     }
   }

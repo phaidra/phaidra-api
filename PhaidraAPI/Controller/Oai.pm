@@ -278,7 +278,7 @@ sub handler {
     }
     $self->stash(total => $total);
 
-    my $cursor = $self->mongo->get_collection('oai_records')->find(\%filter)->sort({ "updated" => 1 })->limit($pagesize)->skip($skip);
+    my $cursor = $self->mongo->get_collection('oai_records')->find(\%filter)->sort({ "updated" => -1 })->limit($pagesize)->skip($skip);
     my @records = ();
     while (my $rec = $cursor->next) {
       if ($verb eq 'ListIdentifiers') {

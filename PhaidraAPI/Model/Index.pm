@@ -1878,6 +1878,12 @@ sub _add_uwm_index {
         if($dbf->{xmlname} eq 'booklet'){
           push @{$index->{"bib_issue"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
+        if($dbf->{xmlname} eq 'from_page'){
+          push @{$index->{"schema_pagestart"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+        }
+        if($dbf->{xmlname} eq 'to_page'){
+          push @{$index->{"schema_pageend"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+        }
         if($dbf->{xmlname} eq 'releaseyear'){
           push @{$index->{"bib_published"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
         }
