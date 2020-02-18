@@ -1536,6 +1536,22 @@ sub _add_jsonld_index {
     }
   }
 
+  if($jsonld->{'rdam:P30004'}){
+    for my $id (@{$jsonld->{'rdam:P30004'}}) {
+      my $prefix = '';
+      if (exists($id->{'@type'})) {
+        my $type = $id->{'@type'};
+        if ($type =~ m/^ids:(\w)+$/) {
+          $prefix = substr($type, 4);
+        }
+        if ($type =~ m/^phaidra:(\w)+$/) {
+          $prefix = substr($type, 8);
+        }
+      }
+      push @{$index->{"dc_identifier"}}, $prefix.":".$id->{'@value'};
+    }
+  }
+
   my %foundAss;
   my %foundAssIds;
   if($jsonld->{'rdax:P00009'}){
