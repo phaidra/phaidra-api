@@ -1588,7 +1588,7 @@ sub _add_jsonld_index {
     $index->{"descriptions_json"} = b(encode_json(\@descriptions))->decode('UTF-8');
   }
 
-  if($jsonld->{'dcterms:subject'}){
+  if(exists($jsonld->{'dcterms:subject'})){
     for my $o (@{$jsonld->{'dcterms:subject'}}) {
       if ($o->{'@type'} eq 'phaidra:Subject') {
         my $rr = $self->_add_jsonld_index($c, $pid, $o, $index);
@@ -1597,22 +1597,76 @@ sub _add_jsonld_index {
     }
   }
 
-  if($jsonld->{'frapo:isOutputOf'}){
-    for my $proj (@{$jsonld->{'frapo:isOutputOf'}}) {
-      if($proj->{'skos:exactMatch'}){
-        for my $l (@{$proj->{'skos:prefLabel'}}) {
-          push @{$index->{"project"}}, $l->{'@value'};
+  if(exists($jsonld->{'bf:provisionActivity'})){
+    for my $pa (@{$jsonld->{'bf:provisionActivity'}}) {
+      if (exists($pa->{'bf:agent'})) {
+        for my $ag (@{$pa->{'bf:agent'}}) {
+          if (exists($ag->{'schema:name'})) {
+            my %publisherNames;
+            for my $pn (@{$ag->{'schema:name'}}) {
+              if (exists($pn->{'@language'}) && ($pn->{'@language'} ne 'xxx')) {
+                $publisherNames{$pn->{'@language'}} = $pn->{'@value'};
+              } else {
+                $publisherNames{'nolang'} = $pn->{'@value'};
+              }
+            }
+            my $publisher;
+            my $addInstitutionName = 0;
+            if (exists($ag->{'skos:exactMatch'})) {
+              for my $pubId (@{$ag->{'skos:exactMatch'}}) {
+                if (rindex($pubId, 'https://pid.phaidra.org/', 0) == 0) {
+                  $addInstitutionName = 1;
+                  last;
+                }
+              }
+            }
+            if (exists($publisherNames{'nolang'})) {
+              $publisher = $publisherNames{'nolang'} if $publisherNames{'nolang'} ne '';
+            } else {
+              if (exists($publisherNames{'eng'})) {
+                $publisher = $publisherNames{'eng'} if $publisherNames{'eng'} ne '';
+              } else {
+                for my $pubNameLang (keys %publisherNames) {
+                  $publisher = $publisherNames{$pubNameLang} if $publisherNames{$pubNameLang} ne '';
+                  last;
+                }
+              }
+            }
+            if ($addInstitutionName) {
+              my $institutionName = $c->app->directory->get_org_name($c, 'eng');
+              if ($institutionName) {
+                if ((index($publisher, $institutionName) == -1)) {
+                  $publisher = "$institutionName. $publisher";
+                }
+              }
+            }
+            push @{$index->{"bib_publisher"}}, $publisher;
+          }
         }
+      }
+    }
+  }
+
+  if(exists($jsonld->{'frapo:isOutputOf'})){
+    for my $proj (@{$jsonld->{'frapo:isOutputOf'}}) {
+      if(exists($proj->{'skos:exactMatch'})){
         for my $projId (@{$proj->{'skos:exactMatch'}}) {
           push @{$index->{"project_id"}}, $projId;
         }
       }
-      if($proj->{'frapo:hasFundingAgency'}){
+      if(exists($proj->{'skos:prefLabel'})){
+        for my $l (@{$proj->{'skos:prefLabel'}}) {
+          push @{$index->{"project"}}, $l->{'@value'};
+        }
+      }
+      if(exists($proj->{'frapo:hasFundingAgency'})){
         for my $funder (@{$proj->{'frapo:hasFundingAgency'}}) {
-          for my $l (@{$funder->{'skos:prefLabel'}}) {
-            push @{$index->{"funder"}}, $l->{'@value'};
+          if(exists($funder->{'skos:prefLabel'})){
+            for my $l (@{$funder->{'skos:prefLabel'}}) {
+              push @{$index->{"funder"}}, $l->{'@value'};
+            }
           }
-          if ($funder->{'skos:exactMatch'}) {
+          if (exists($funder->{'skos:exactMatch'})) {
             for my $id (@{$funder->{'skos:exactMatch'}}) {
               push @{$index->{"funder_id"}}, $id;
             }
@@ -1620,20 +1674,24 @@ sub _add_jsonld_index {
         }
       }
     }
+    push @{$index->{"frapo_isoutputof_json"}}, b(encode_json($jsonld->{'frapo:isOutputOf'}))->decode('UTF-8');
   }
-  push @{$index->{"frapo_isoutputof_json"}}, b(encode_json($jsonld->{'frapo:isOutputOf'}))->decode('UTF-8');
 
-  if($jsonld->{'frapo:hasFundingAgency'}){
+  if(exists($jsonld->{'frapo:hasFundingAgency'})){
     for my $funder (@{$jsonld->{'frapo:hasFundingAgency'}}) {
-      for my $l (@{$funder->{'skos:prefLabel'}}) {
-        push @{$index->{"funder"}}, $l->{'@value'};
+      if(exists($funder->{'skos:prefLabel'})){
+        for my $l (@{$funder->{'skos:prefLabel'}}) {
+          push @{$index->{"funder"}}, $l->{'@value'};
+        }
       }
-      for my $id (@{$funder->{'skos:exactMatch'}}) {
-        push @{$index->{"funder_id"}}, $id;
+      if (exists($funder->{'skos:exactMatch'})) {
+        for my $id (@{$funder->{'skos:exactMatch'}}) {
+          push @{$index->{"funder_id"}}, $id;
+        }
       }
     }
+    push @{$index->{"frapo_hasfundingagency_json"}}, b(encode_json($jsonld->{'frapo:hasFundingAgency'}))->decode('UTF-8');
   }
-  push @{$index->{"frapo_hasfundingagency_json"}}, b(encode_json($jsonld->{'frapo:hasFundingAgency'}))->decode('UTF-8');
 
   if (exists($jsonld->{'rdau:P60193'})){
     for my $o (@{$jsonld->{'rdau:P60193'}}) {
@@ -1648,10 +1706,15 @@ sub _add_jsonld_index {
       if (exists($o->{'bibo:issue'}) && $o->{'bibo:issue'} ne '') {
         push @{$index->{"bib_issue"}}, $o->{'bibo:issue'}[0];
       }
-      if (exists($o->{'dcterms:issued'}) && $o->{'dcterms:issued'} ne ''){
-        push @{$index->{"bib_published"}}, $o->{'dcterms:issued'}[0];
-      }
     }
+  }
+
+  if (exists($jsonld->{'dcterms:issued'}) && $jsonld->{'dcterms:issued'} ne ''){
+    push @{$index->{"bib_published"}}, $jsonld->{'dcterms:issued'}[0];
+  }
+
+  if (exists($jsonld->{'dcterms:dateSubmitted'}) && $jsonld->{'dcterms:dateSubmitted'} ne ''){
+    push @{$index->{"dcterms_datesubmitted"}}, $jsonld->{'dcterms:dateSubmitted'}[0];
   }
 
   if (exists($jsonld->{'schema:pageStart'})){

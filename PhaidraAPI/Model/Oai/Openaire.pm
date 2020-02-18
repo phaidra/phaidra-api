@@ -152,6 +152,7 @@ sub _get_roles {
   my @roles;
 
   my $arr = decode_json(b($str)->encode('UTF-8'));
+  $c->app->log->debug("XXXXXXXXXXX arr:\n".$c->app->dumper($arr));
   for my $hash (@{$arr}) {
     for my $rolePredicate (keys %{$hash}) {
       for my $e (@{$hash->{$rolePredicate}}) {
@@ -250,24 +251,26 @@ sub _get_roles {
           if($prop eq 'schema:affiliation'){
             my %affs;
             my $addInstitutionName = 0;
-            for my $affProp (@{$e->{'schema:affiliation'}}){
-              if ($affProp eq 'skos:exactMatch') {
-                for my $affId (@{$e->{'schema:affiliation'}->{'skos:exactMatch'}}) {
-                  if (rindex($affId, '"https://pid.phaidra.org/', 0) == 0) {
-                    $addInstitutionName = 1;
+            for my $aff (@{$e->{'schema:affiliation'}}){
+              for my $affProp (keys %{$aff}){
+                if ($affProp eq 'skos:exactMatch') {
+                  for my $affId (@{$aff->{'skos:exactMatch'}}) {
+                    if (rindex($affId, 'https://pid.phaidra.org/', 0) == 0) {
+                      $addInstitutionName = 1;
+                    }
                   }
                 }
-              }
-              if ($affProp eq 'schema:name') {
-                for my $affName (@{$e->{'schema:affiliation'}->{'schema:name'}}) {
-                  if (exists($affName->{'@language'})) {
-                    if ($affName->{'@language'} ne '') {
-                      $affs{$affName->{'@language'}} = $affName->{'@value'};
+                if ($affProp eq 'schema:name') {
+                  for my $affName (@{$aff->{'schema:name'}}) {
+                    if (exists($affName->{'@language'})) {
+                      if ($affName->{'@language'} ne '') {
+                        $affs{$affName->{'@language'}} = $affName->{'@value'};
+                      } else {
+                        $affs{'nolang'} = $affName->{'@value'};
+                      }
                     } else {
                       $affs{'nolang'} = $affName->{'@value'};
                     }
-                  } else {
-                    $affs{'nolang'} = $affName->{'@value'};
                   }
                 }
               }
@@ -329,10 +332,12 @@ sub _get_roles {
           $role{name} = $name;
         }
         $role{nameIdentifiers} = \@ids;
+
+        push @roles, \%role;
       }
     }
   }
-
+$c->app->log->debug("XXXXXXXXXXX roles:\n".$c->app->dumper(\@roles));
   return \@roles;
 }
 
@@ -342,7 +347,6 @@ sub _get_funding_references {
   my @fundingReferences;
 
   my $arr = decode_json(b($str)->encode('UTF-8'));
-
   for my $obj (@$arr) {
     my $funderName;
     my $awardTitle;
@@ -379,11 +383,11 @@ sub _get_funding_references {
         }
       }
     }
-    push @fundingReferences, {
-      funderName => $funderName,
-      awardTitle => $awardTitle,
-      awardNumber => $awardNumber
-    }
+    my %ref;
+    $ref{funderName} = $funderName if $funderName;
+    $ref{awardTitle} = $awardTitle if $awardTitle;
+    $ref{awardNumber} = $awardNumber if $awardNumber;
+    push @fundingReferences, \%ref;
   }
   return \@fundingReferences;
 }
@@ -440,10 +444,18 @@ sub _rolesToNodes {
         value => $aff
       }
     }
-    push @roleNodes, {
-      name => $type eq 'creator' ? 'datacite:creator' : 'datacite:contributor',
-      children => \@childNodes
+    my %roleNode;
+    $roleNode{name} = $type eq 'creator' ? 'datacite:creator' : 'datacite:contributor';
+    $roleNode{children} = \@childNodes;
+    if ($role->{contributorType}) {
+      $roleNode{attributes} = [
+        {
+          name => 'contributorType',
+          value => $role->{contributorType}
+        }
+      ]
     }
+    push @roleNodes, \%roleNode;
   }
   return \@roleNodes;
 }
@@ -626,40 +638,49 @@ sub get_metadata_openaire {
       };
     }
   } else {
-    if (exists($rec->{created})) {
-      push @dates, {
-        name => 'datacite:date',
-        value => substr($rec->{created}, 0, 4),
-        attributes => [
-          {
-            name => 'dateType',
-            value => 'Issued'
-          }
-        ]
-      };
+    if (exists($rec->{dcterms_datesubmitted})) {
+      for my $pubDate (@{$rec->{dcterms_datesubmitted}}) {
+        push @dates, {
+          name => 'datacite:date',
+          value => $pubDate,
+          attributes => [
+            {
+              name => 'dateType',
+              value => 'Issued'
+            }
+          ]
+        };
+      }
     } else {
-      $c->app->log->error("oai: could not find 'created' date in solr record pid[$rec->{pid}]");
+      if (exists($rec->{created})) {
+        push @dates, {
+          name => 'datacite:date',
+          value => substr($rec->{created}, 0, 4),
+          attributes => [
+            {
+              name => 'dateType',
+              value => 'Issued'
+            }
+          ]
+        };
+      } else {
+        $c->app->log->error("oai: could not find 'created' date in solr record pid[$rec->{pid}]");
+      }
     }
   }
   if (exists($rec->{dcterms_available})) {
-    for my $embDate (@{$rec->{dcterms_available}}) {
-      push @dates, {
-        name => 'datacite:date',
-        value => $embDate,
-        attributes => [
-          {
-            name => 'dateType',
-            value => 'Available'
-          }
-        ]
-      };
-    }
+    push @dates, {
+      name => 'datacite:date',
+      value => $rec->{dcterms_available},
+      attributes => [
+        {
+          name => 'dateType',
+          value => 'Available'
+        }
+      ]
+    };
   }
-  push @dates, {
-    name => 'datacite:dates',
-    children => \@dates
-  };
-
+  
   # Resource Type (M)
   # oaire:resourceType
   my $resourceTypeURI = '';
@@ -752,6 +773,7 @@ sub get_metadata_openaire {
         }
       ]
     };
+
   }
 
   # Access Rights (M)
@@ -818,36 +840,48 @@ sub get_metadata_openaire {
   my @refNodes;
   my $fundRefsProj;
   if (exists($rec->{frapo_isoutputof_json})) {
-    $fundRefsProj = $self->_get_funding_references($c, $rec->{frapo_isoutputof_json});
+    for my $isoutputof (@{$rec->{frapo_isoutputof_json}}) {
+      $fundRefsProj = $self->_get_funding_references($c, $isoutputof);
+      last;
+    }
   }
   for my $ref (@{$fundRefsProj}) {
     push @refs, $ref;
   }
   my $fundRefsFun;
   if (exists($rec->{frapo_hasfundingagency_json})) {
-    $fundRefsFun = $self->_get_funding_references($c, $rec->{frapo_hasfundingagency_json});
+    for my $hasfundingagency (@{$rec->{frapo_hasfundingagency_json}}) {
+      $fundRefsFun = $self->_get_funding_references($c, $hasfundingagency);
+      last;
+    } 
   }
   for my $ref (@{$fundRefsFun}) {
     push @refs, $ref;
   }
   for my $ref (@refs) {
-    push @refNodes, {
-      name => 'oaire:fundingReference',
-      children => [
-        {
-          name => 'oaire:funderName',
-          value => $ref->{funderName}
-        },
-        {
-          name => 'oaire:awardNumber',
-          value => $ref->{awardNumber}
-        },
-        {
-          name => 'oaire:awardTitle',
-          value => $ref->{awardTitle}
-        }
-      ]
-    };
+    my %refNode;
+    $refNode{name} = 'oaire:fundingReference';
+    my @refNodeChildren;
+    if ($ref->{funderName}) {
+      push @refNodeChildren, {
+        name => 'oaire:funderName',
+        value => $ref->{funderName}
+      }
+    }
+    if ($ref->{awardTitle}) {
+      push @refNodeChildren, {
+        name => 'oaire:awardTitle',
+        value => $ref->{awardTitle}
+      }
+    }
+    if ($ref->{awardNumber}) {
+      push @refNodeChildren, {
+        name => 'oaire:awardNumber',
+        value => $ref->{awardNumber}
+      }
+    }
+    $refNode{children} = \@refNodeChildren if (scalar @refNodeChildren > 0);
+    push @refNodes, \%refNode;
   }
   if (scalar @refNodes > 0) {
     push @metadata, {
@@ -1252,6 +1286,11 @@ sub get_metadata_openaire {
       last;
     }
   }
+
+  push @metadata, {
+    name => 'datacite:dates',
+    children => \@dates
+  };
 
   return \@metadata;
 }

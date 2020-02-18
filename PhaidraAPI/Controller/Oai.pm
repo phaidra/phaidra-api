@@ -75,6 +75,24 @@ sub _get_metadata_dc {
       push @metadata, \%field;
     }
   }
+  if (exists($rec->{bib_publisher})) {
+    my %field;
+    $field{name} = 'publisher';
+    $field{values} = $rec->{bib_publisher};
+    push @metadata, \%field;
+  }
+  if (exists($rec->{bib_published})) {
+    my %field;
+    $field{name} = 'date';
+    $field{values} = $rec->{bib_published};
+    push @metadata, \%field;
+  }
+  if (exists($rec->{dcterms_datesubmitted})) {
+    my %field;
+    $field{name} = 'date';
+    $field{values} = $rec->{dcterms_datesubmitted};
+    push @metadata, \%field;
+  }
   return \@metadata;
 }
 
