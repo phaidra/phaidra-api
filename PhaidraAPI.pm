@@ -3,7 +3,7 @@ package PhaidraAPI;
 use strict;
 use warnings;
 use Mojo::Base 'Mojolicious';
-use Mojo::Log;
+use Log::Log4perl;
 use Mojolicious::Plugin::I18N;
 use Mojolicious::Plugin::Session;
 use Mojo::Loader qw(load_class);
@@ -58,8 +58,9 @@ sub startup {
 	$self->mode($config->{mode});
   $self->secrets([$config->{secret}]);
 
-  # init log
-  $self->log(Mojo::Log->new(path => $config->{log_path}, level => $config->{log_level}));
+  Log::Log4perl::init('log4perl.conf');
+  my $log = Log::Log4perl::get_logger("PhaidraAPI");
+  $self->log($log);
 
   if($config->{tmpdir}){
     $self->app->log->debug("Setting MOJO_TMPDIR: ".$config->{tmpdir});
