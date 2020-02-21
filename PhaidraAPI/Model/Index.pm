@@ -442,7 +442,9 @@ sub update {
 
     my $ua = Mojo::UserAgent->new;
 
+    my $tcm = [gettimeofday];
     my $cmodel_res = $search_model->get_cmodel($c, $pid);
+    $c->app->log->debug("getting cmodel took ".tv_interval($tcm));
     if($cmodel_res->{status} ne 200){
       return $cmodel_res;
     }elsif($cmodel_res->{cmodel} eq ''){
@@ -451,7 +453,7 @@ sub update {
       if(exists($c->app->config->{solr})){
           my $post = $ua->post($updateurl => json => { delete => $pid });
           if (my $r = $post->success) {
-            $c->app->log->debug("[$pid] solr document deleted");
+            $c->app->log->debug("[$pid] solr document deleted (not found in triplestore)");
           }else {
             my ($err, $code) = $post->error;
             unshift @{$res->{alerts}}, { type => 'danger', msg => "[$pid] Error deleting document from solr: ".$c->app->dumper($err) };
@@ -466,7 +468,7 @@ sub update {
 
       my $t0 = [gettimeofday];
       my $r = $self->_get($c, $pid, $dc_model, $search_model, $rel_model, $object_model, $ignorestatus);
-      #$c->app->log->debug("XXXXXXX indexing took ".tv_interval($t0));
+      $c->app->log->debug("indexing took ".tv_interval($t0));
       $res = $r;
 
       my $collectionMembers = $r->{index}->{haspart} if exists $r->{index}->{haspart};
@@ -487,14 +489,14 @@ sub update {
 
         if(exists($c->app->config->{index_mongodb})){
           $c->index_mongo->db->collection($c->app->config->{index_mongodb}->{collection})->update({pid => $pid}, $r->{index}, { upsert => 1 });
-          $c->app->log->debug("[$pid] mongo index updated");          
+          $c->app->log->debug("[$pid] mongo index updated");
         }
 
         if(exists($c->app->config->{solr})){
           $t0 = [gettimeofday];
           my @docs = ($r->{index});
           my $post = $ua->post($updateurl => json => \@docs);
-          #$c->app->log->debug("XXXXXXX posting index took ".tv_interval($t0));
+          $c->app->log->debug("posting index took ".tv_interval($t0));
           if (my $r = $post->success) {
             $c->app->log->debug("[$pid] solr document updated");
           }else {
@@ -511,7 +513,7 @@ sub update {
         if(exists($c->app->config->{solr})){
           my $post = $ua->post($updateurl => json => { delete => $pid });
           if (my $r = $post->success) {
-            $c->app->log->debug("[$pid] solr document deleted");
+            $c->app->log->debug("[$pid] solr document deleted getStatus[$getStatus]");
           }else {
             my ($err, $code) = $post->error;
             unshift @{$res->{alerts}}, { type => 'danger', msg => "[$pid] Error deleting document from solr: ".$c->app->dumper($err) };
@@ -951,14 +953,18 @@ sub _get {
   $res->{index} = \%index;
 
   $c->app->log->debug("indexing $pid: getting foxml");
+  my $tgetfoxml = [gettimeofday];
   my $r_oxml = $object_model->get_foxml($c, $pid);
+  $c->app->log->debug("getting foxml took ".tv_interval($tgetfoxml));
   if($r_oxml->{status} ne 200){
     return $r_oxml;
   }
   $c->app->log->debug("indexing $pid: parsing foxml");
+  my $tparsefoxml = [gettimeofday];
   my $dom = Mojo::DOM->new();
   $dom->xml(1);
   $dom->parse($r_oxml->{foxml});
+  $c->app->log->debug("parsing foxml took ".tv_interval($tparsefoxml));
   $c->app->log->debug("indexing $pid: foxml parsed!");
 
   my %datastreams;
@@ -1035,7 +1041,9 @@ sub _get {
 
   if(exists($datastreams{'UWMETADATA'})){
 
+    my $tadduwmindex = [gettimeofday];
     my $r_add_uwm = $self->_add_uwm_index($c, $pid, $datastreams{'UWMETADATA'}->find('foxml\:xmlContent')->first, \%index);
+    $c->app->log->debug("_add_uwm_index took ".tv_interval($tadduwmindex));
     if($r_add_uwm->{status} ne 200){
       push @{$res->{alerts}}, { type => 'danger', msg => "Error adding UWMETADATA fields for $pid" };
       push @{$res->{alerts}}, @{$r_add_uwm->{alerts}} if scalar @{$r_add_uwm->{alerts}} > 0;
@@ -1043,13 +1051,17 @@ sub _get {
         
     my $uw_model = PhaidraAPI::Model::Uwmetadata->new;
 
+    my $tgetuwmtree = [gettimeofday];
     my $r0 = $uw_model->metadata_tree($c);
+    $c->app->log->debug("getting metadata_tree took ".tv_interval($tgetuwmtree));
 
     if($r0->{status} ne 200){
       push @{$res->{alerts}}, { type => 'danger', msg => "Error getting UWMETADATA tree for $pid" };
       push @{$res->{alerts}}, @{$r0->{alerts}} if scalar @{$r0->{alerts}} > 0;
     }else{
+      my $tmapuwmdc = [gettimeofday];
       my ($dc_p, $dc_oai) = $dc_model->map_uwmetadata_2_dc_hash($c, $pid, $index{cmodel}, $datastreams{'UWMETADATA'}->find('foxml\:xmlContent')->first, $r0->{metadata_tree}, $uw_model, 1);
+      $c->app->log->debug("mapping uwm to dc took ".tv_interval($tmapuwmdc));
       #$c->app->log->debug("XXXXXXXXXXXXXXXXX ".$c->app->dumper($dc_p));
       $self->_add_dc_index($c, $dc_p, \%index);
     }
