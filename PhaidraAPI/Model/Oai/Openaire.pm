@@ -760,7 +760,7 @@ sub get_metadata_openaire {
       }
     }
     push @metadata, {
-      name => 'oaire:resourceType',
+      name => 'resourceType',
       value => $resourcetype,
       attributes => [
         {
@@ -860,23 +860,23 @@ sub get_metadata_openaire {
   }
   for my $ref (@refs) {
     my %refNode;
-    $refNode{name} = 'oaire:fundingReference';
+    $refNode{name} = 'fundingReference';
     my @refNodeChildren;
     if ($ref->{funderName}) {
       push @refNodeChildren, {
-        name => 'oaire:funderName',
+        name => 'funderName',
         value => $ref->{funderName}
       }
     }
     if ($ref->{awardTitle}) {
       push @refNodeChildren, {
-        name => 'oaire:awardTitle',
+        name => 'awardTitle',
         value => $ref->{awardTitle}
       }
     }
     if ($ref->{awardNumber}) {
       push @refNodeChildren, {
-        name => 'oaire:awardNumber',
+        name => 'awardNumber',
         value => $ref->{awardNumber}
       }
     }
@@ -885,7 +885,7 @@ sub get_metadata_openaire {
   }
   if (scalar @refNodes > 0) {
     push @metadata, {
-      name => 'oaire:fundingReferences',
+      name => 'fundingReferences',
       children => \@refNodes
     };
   }
@@ -948,7 +948,7 @@ sub get_metadata_openaire {
         $downloadUrl = 'https://'.$c->app->config->{phaidra}->{fedorabaseurl}.'/fedora/get/'.$rec->{pid}.'/bdef:Content/download'
       }
       push @metadata, {
-        name => 'oaire:file',
+        name => 'file',
         value => $downloadUrl,
         attributes => \@attrs
       };
@@ -1059,7 +1059,7 @@ sub get_metadata_openaire {
     for my $lic (@{$rec->{dc_license}}) {
       if ($lic =~ m/^http(s)?:\/\//) {
         push @metadata, {
-          name => 'oaire:licenseCondition',
+          name => 'licenseCondition',
           value => $lic,
           attributes => [
             {
@@ -1071,7 +1071,7 @@ sub get_metadata_openaire {
       }
       if ($lic eq 'All rights reserved') {
         push @metadata, {
-          name => 'oaire:licenseCondition',
+          name => 'licenseCondition',
           value => $lic,
           attributes => [
             {
@@ -1157,7 +1157,7 @@ sub get_metadata_openaire {
     }
   }
   push @metadata, {
-    name => 'oaire:version',
+    name => 'version',
     value => $oaireversion,
     attributes => [
       {
@@ -1172,7 +1172,7 @@ sub get_metadata_openaire {
   if (exists($rec->{bib_journal})) {
     for my $journal (@{$rec->{bib_journal}}) {
       push @metadata, {
-        name => 'oaire:citationTitle',
+        name => 'citationTitle',
         value => $journal
       };
       last;
@@ -1184,7 +1184,7 @@ sub get_metadata_openaire {
   if (exists($rec->{bib_volume})) {
     for my $vol (@{$rec->{bib_volume}}) {
       push @metadata, {
-        name => 'oaire:citationVolume',
+        name => 'citationVolume',
         value => $vol
       };
       last;
@@ -1196,7 +1196,7 @@ sub get_metadata_openaire {
   if (exists($rec->{bib_issue})) {
     for my $iss (@{$rec->{bib_issue}}) {
       push @metadata, {
-        name => 'oaire:citationIssue',
+        name => 'citationIssue',
         value => $iss
       };
       last;
@@ -1208,7 +1208,7 @@ sub get_metadata_openaire {
   if (exists($rec->{schema_pagestart})) {
     for my $p (@{$rec->{schema_pagestart}}) {
       push @metadata, {
-        name => 'oaire:citationStartPage',
+        name => 'citationStartPage',
         value => $p
       };
       last;
@@ -1220,7 +1220,7 @@ sub get_metadata_openaire {
   if (exists($rec->{schema_pageend})) {
     for my $p (@{$rec->{schema_pageend}}) {
       push @metadata, {
-        name => 'oaire:citationEndPage',
+        name => 'citationEndPage',
         value => $p
       };
       last;
@@ -1232,7 +1232,7 @@ sub get_metadata_openaire {
   if (exists($rec->{bib_edition})) {
     for my $ed (@{$rec->{bib_edition}}) {
       push @metadata, {
-        name => 'oaire:citationEdition',
+        name => 'citationEdition',
         value => $ed
       };
       last;
