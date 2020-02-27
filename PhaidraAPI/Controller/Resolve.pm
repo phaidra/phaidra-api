@@ -183,7 +183,7 @@ sub _resolve_geonames {
   my $get = $self->ua->max_redirects(5)->get($url);
   if (my $getres = $get->success) {
     my $json = $getres->json;
-    push @{$res->{'skos:prefLabel'}}, $json->{toponymName};
+    push @{$res->{'skos:prefLabel'}}, { '@value' => $json->{toponymName} };
     my $path = "";
     if ($json->{adminName5}) {
       $path .= "--".$json->{adminName5};

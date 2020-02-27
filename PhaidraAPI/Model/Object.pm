@@ -560,7 +560,7 @@ sub create_simple {
   }
 
   # save metadata
-  $r = $self->save_metadata($c, $pid, $metadata->{metadata}, $username, $password, 1);
+  $r = $self->save_metadata($c, $pid, $cmodel, $metadata->{metadata}, $username, $password, 1);
   if($r->{status} ne 200){
     $res->{status} = $r->{status};
     foreach my $a (@{$r->{alerts}}){
@@ -703,7 +703,7 @@ sub create_container {
   $res->{pid} = $pid;
 
   # save metadata	
-  $r = $self->save_metadata($c, $pid, $container_metadata, $username, $password, 1);
+  $r = $self->save_metadata($c, $pid, 'cmodel:Container', $container_metadata, $username, $password, 1);
   if($r->{status} ne 200){
       $res->{status} = $r->{status};
   foreach my $a (@{$r->{alerts}}){
@@ -903,6 +903,7 @@ sub save_metadata {
 	my $self = shift;
 	my $c = shift;
 	my $pid = shift;
+  my $cmodel = shift;
 	my $metadata = shift;
 	my $username = shift;
 	my $password = shift;
@@ -982,7 +983,7 @@ sub save_metadata {
 			$c->app->log->debug("Saving JSON-LD for $pid");
 			my $jsonld = $metadata->{'json-ld'};
 			my $jsonld_model = PhaidraAPI::Model::Jsonld->new;
-			my $r = $jsonld_model->save_to_object($c, $pid, $jsonld, $username, $password);
+			my $r = $jsonld_model->save_to_object($c, $pid, $cmodel, $jsonld, $username, $password);
 			if($r->{status} ne 200){
 				$res->{status} = $r->{status};
 				push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;

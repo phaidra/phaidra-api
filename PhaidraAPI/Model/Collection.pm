@@ -29,7 +29,7 @@ sub create {
   }
   $pid = $res_create->{pid};
 
-  my $res_md = $object_model->save_metadata($c, $pid, $metadata, $username, $password);
+  my $res_md = $object_model->save_metadata($c, $pid, 'cmodel:Collection', $metadata, $username, $password);
   if($res_md->{status} ne 200){
     return $res_md;
   }

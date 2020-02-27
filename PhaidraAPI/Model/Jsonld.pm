@@ -35,6 +35,7 @@ sub save_to_object(){
   my $self = shift;
   my $c = shift;
   my $pid = shift;
+  my $cmodel = shift;
   my $metadata = shift;
   my $username = shift;
   my $password = shift;
@@ -42,7 +43,7 @@ sub save_to_object(){
   my $res = { alerts => [], status => 200 };
 
   # validate
-  my $valres = $self->validate($c, $metadata);
+  my $valres = $self->validate($c, $cmodel, $metadata);
   if($valres->{status} != 200){
     $res->{status} = $valres->{status};
     foreach my $a ( @{$valres->{alerts}} ){
@@ -60,9 +61,18 @@ sub save_to_object(){
 sub validate() {
   my $self = shift;
   my $c = shift;
+  my $cmodel = shift;
   my $metadata = shift;
 
   my $res = { alerts => [], status => 200 };
+
+  unless (($cmodel eq 'cmodel:Container') || ($cmodel eq 'cmodel:Collection') || ($cmodel eq 'cmodel:Resource')) {
+    unless (exists($metadata->{'edm:rights'})) {
+      $res->{status} = 400;
+      push @{$res->{alerts}}, { type => 'danger', msg => "Missing edm:rights" };
+      return $res;
+    }
+  }
 
   return $res;
 }

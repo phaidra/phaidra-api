@@ -1079,6 +1079,16 @@ sub changeEmbargoedToOpenAccess {
   my $self = shift;
   my $pid = shift;
 
+  my $cmodel;
+  my $search_model = PhaidraAPI::Model::Search->new;
+  my $res_cmodel = $search_model->get_cmodel($self, $pid);
+  if($res_cmodel->{status} ne 200){
+    $self->app->log->error("ERROR saving json-ld for object $pid, could not get cmodel:".$self->app->dumper($res_cmodel));
+    return;
+  }else{
+    $cmodel = $res_cmodel->{cmodel};
+  }
+
   my $jsonld_model = PhaidraAPI::Model::Jsonld->new;
   my $res = $jsonld_model->get_object_jsonld_parsed($self, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
   if($res->{status} ne 200){
@@ -1129,9 +1139,9 @@ sub changeEmbargoedToOpenAccess {
         last;
       }
     }
-    my $saveres = $jsonld_model->save_to_object($self, $pid, $res->{'JSON-LD'}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+    my $saveres = $jsonld_model->save_to_object($self, $pid, $cmodel, $res->{'JSON-LD'}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
     if($saveres->{status} ne 200){
-      $saveres->app->log->error("ERROR saving json-ld for object $pid:\n".$self->app->dumper($res));
+      $self->app->log->error("ERROR saving json-ld for object $pid:\n".$self->app->dumper($res));
       return;
     }
   } else {
