@@ -183,25 +183,25 @@ sub _resolve_geonames {
   my $get = $self->ua->max_redirects(5)->get($url);
   if (my $getres = $get->success) {
     my $json = $getres->json;
-    push @{$res->{'skos:prefLabel'}}, { '@value' => $json->{toponymName} };
+    push @{$res->{'skos:prefLabel'}}, { '@value' => $json->{name} };
     my $path = "";
     if ($json->{adminName5}) {
-      $path .= "--".$json->{adminName5};
+      $path .= "--".$json->{adminName5} unless $json->{adminName5} eq $json->{toponymName};
     }
     if ($json->{adminName4}) {
-      $path .= "--".$json->{adminName4};
+      $path .= "--".$json->{adminName4} unless $json->{adminName4} eq $json->{toponymName};
     }
     if ($json->{adminName3}) {
-      $path .= "--".$json->{adminName3};
+      $path .= "--".$json->{adminName3} unless $json->{adminName3} eq $json->{toponymName};
     }
     if ($json->{adminName2}) {
-      $path .= "--".$json->{adminName2};
+      $path .= "--".$json->{adminName2} unless $json->{adminName2} eq $json->{toponymName};
     }
     if ($json->{adminName1}) {
-      $path .= "--".$json->{adminName1};
+      $path .= "--".$json->{adminName1} unless $json->{adminName1} eq $json->{toponymName};
     }
     if ($json->{countryName}) {
-      $path .= "--".$json->{countryName};
+      $path .= "--".$json->{countryName} unless $json->{countryName} eq $json->{toponymName};
     }
     if ($json->{continentCode}) {
       my $continentName = "";
