@@ -562,8 +562,20 @@ sub metadata {
     return;
   }
 
+  my $cmodel;
+  my $search_model = PhaidraAPI::Model::Search->new;
+  my $res_cmodel = $search_model->get_cmodel($self, $pid);
+  if($res_cmodel->{status} ne 200){
+    my $err = "ERROR saving json-ld for object $pid, could not get cmodel:".$self->app->dumper($res_cmodel);
+    $self->app->log->error($err);
+    $self->render(json => { alerts => [{ type => 'danger', msg => $err }]} , status => 500) ;
+    return;
+  }else{
+    $cmodel = $res_cmodel->{cmodel};
+  }
+
   my $object_model = PhaidraAPI::Model::Object->new;
-  my $r = $object_model->save_metadata($self, $pid, $metadata, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  my $r = $object_model->save_metadata($self, $pid, $cmodel, $metadata, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
   if($r->{status} ne 200){
       $res->{status} = $r->{status};
       foreach my $a (@{$r->{alerts}}){
