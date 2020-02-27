@@ -566,7 +566,7 @@ sub metadata {
   my $search_model = PhaidraAPI::Model::Search->new;
   my $res_cmodel = $search_model->get_cmodel($self, $pid);
   if($res_cmodel->{status} ne 200){
-    my $err = "ERROR saving json-ld for object $pid, could not get cmodel:".$self->app->dumper($res_cmodel);
+    my $err = "ERROR saving metadata for object $pid, could not get cmodel:".$self->app->dumper($res_cmodel);
     $self->app->log->error($err);
     $self->render(json => { alerts => [{ type => 'danger', msg => $err }]} , status => 500) ;
     return;
