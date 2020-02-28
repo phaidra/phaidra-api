@@ -981,7 +981,12 @@ sub save_metadata {
 		} elsif (lc($f) eq "json-ld"){
 
 			$c->app->log->debug("Saving JSON-LD for $pid");
-			my $jsonld = $metadata->{'json-ld'};
+      my $jsonld;
+      if (defined($metadata->{'json-ld'})) {
+        $jsonld = $metadata->{'json-ld'}
+      } else {
+        $jsonld = $metadata->{'JSON-LD'}
+      }
 			my $jsonld_model = PhaidraAPI::Model::Jsonld->new;
 			my $r = $jsonld_model->save_to_object($c, $pid, $cmodel, $jsonld, $username, $password);
 			if($r->{status} ne 200){
@@ -995,7 +1000,12 @@ sub save_metadata {
 		} elsif (lc($f) eq "json-ld-private"){
 
 			$c->app->log->debug("Saving JSON-LD-PRIVATE for $pid");
-			my $jsonldprivate = $metadata->{'json-ld-private'};
+      my $jsonldprivate;
+      if (defined($metadata->{'json-ld-private'})) {
+        $jsonldprivate = $metadata->{'json-ld-private'}
+      } else {
+        $jsonldprivate = $metadata->{'JSON-LD-PRIVATE'}
+      }
 			my $jsonldprivate_model = PhaidraAPI::Model::Jsonldprivate->new;
 			my $r = $jsonldprivate_model->save_to_object($c, $pid, $jsonldprivate, $username, $password);
 			if ($r->{status} ne 200) {

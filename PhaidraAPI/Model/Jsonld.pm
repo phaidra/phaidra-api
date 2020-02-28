@@ -66,7 +66,7 @@ sub validate() {
 
   my $res = { alerts => [], status => 200 };
 
-  unless (($cmodel eq 'cmodel:Container') || ($cmodel eq 'cmodel:Collection') || ($cmodel eq 'cmodel:Resource')) {
+  unless (($cmodel eq 'Container') || ($cmodel eq 'Collection') || ($cmodel eq 'Resource')) {
     unless (exists($metadata->{'edm:rights'})) {
       $res->{status} = 400;
       push @{$res->{alerts}}, { type => 'danger', msg => "Missing edm:rights" };

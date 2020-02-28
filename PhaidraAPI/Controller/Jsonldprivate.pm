@@ -70,13 +70,20 @@ sub post {
     return;
   }
 
-  unless(defined($metadata->{'json-ld-private'})){
+  unless(defined($metadata->{'json-ld-private'}) || $metadata->{'JSON-LD-PRIVATE'}){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No JSON-LD-PRIVATE sent' }]} , status => 400) ;
     return;
   }
 
+  my $jsonld;
+  if (defined($metadata->{'json-ld-private'})) {
+    $jsonld = $metadata->{'json-ld-private'}
+  } else {
+    $jsonld = $metadata->{'JSON-LD-PRIVATE'}
+  }
+
   my $jsonldprivate_model = PhaidraAPI::Model::Jsonldprivate->new;
-  my $res = $jsonldprivate_model->save_to_object($self, $pid, $metadata->{'json-ld-private'}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  my $res = $jsonldprivate_model->save_to_object($self, $pid, $jsonld, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 
   my $t1 = tv_interval($t0);
   if($res->{status} eq 200){
