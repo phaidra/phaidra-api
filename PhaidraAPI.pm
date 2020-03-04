@@ -379,6 +379,7 @@ sub startup {
   $r->route('object/:pid/datacite')               ->via('get')    ->to('datacite#get');
   $r->route('object/:pid/state')                  ->via('get')    ->to('object#get_state');
   $r->route('object/:pid/cmodel')                 ->via('get')    ->to('object#get_cmodel');
+  $r->route('object/:pid/relationships')          ->via('get')    ->to('relationships#get_rels_ext');
 
   $r->route('object/:pid/id')                     ->via('get')    ->to('search#id');
 

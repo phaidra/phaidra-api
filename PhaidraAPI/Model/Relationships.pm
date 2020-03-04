@@ -5,6 +5,8 @@ use warnings;
 use v5.10;
 use base qw/Mojo::Base/;
 use PhaidraAPI::Model::Search;
+use PhaidraAPI::Model::Object;
+use Time::HiRes qw/tv_interval gettimeofday/;
 
 our %version_map = (
   'info:eu-repo/semantics/draft' => 1,
@@ -13,6 +15,65 @@ our %version_map = (
   'info:eu-repo/semantics/publishedVersion' => 1,
   'info:eu-repo/semantics/updatedVersion' => 1
 );
+
+sub get_rels_ext {
+  my ($self, $c, $pid) = @_;
+
+  my $res = { alerts => [], status => 200 };
+
+  my $t0 = [gettimeofday];
+
+  $c->app->log->debug("get_rels_ext $pid: getting foxml");
+  my $tgetfoxml = [gettimeofday];
+  my $object_model = PhaidraAPI::Model::Object->new;
+  my $r_oxml = $object_model->get_foxml($c, $pid);
+  $c->app->log->debug("getting foxml took ".tv_interval($tgetfoxml));
+  if($r_oxml->{status} ne 200){
+    return $r_oxml;
+  }
+  $c->app->log->debug("get_rels_ext $pid: parsing foxml");
+  my $tparsefoxml = [gettimeofday];
+  my $dom = Mojo::DOM->new();
+  $dom->xml(1);
+  $dom->parse($r_oxml->{foxml});
+  $c->app->log->debug("parsing foxml took ".tv_interval($tparsefoxml));
+  $c->app->log->debug("get_rels_ext $pid: foxml parsed!");
+
+  my %datastreams;
+  for my $e ($dom->find('foxml\:datastream')->each){
+    my $dsid = $e->attr('ID');
+    if($dsid eq 'RELS-EXT'){
+      my $latestVersion = $e->find('foxml\:datastreamVersion')->first;
+      for my $e1 ($e->find('foxml\:datastreamVersion')->each){
+        if($e1->attr('CREATED') gt $latestVersion->attr('CREATED')){
+          $latestVersion = $e1;
+        }
+      }
+      $datastreams{$dsid} = $latestVersion;
+    }
+  }
+
+  my $index_model = PhaidraAPI::Model::Index->new;
+  my $relsExt = $datastreams{'RELS-EXT'}->find('foxml\:xmlContent')->first;
+
+  my %rels;
+  my $r_relsext = $index_model->_index_relsext($c, $datastreams{'RELS-EXT'}->find('foxml\:xmlContent')->first, \%rels);
+  if($r_relsext->{status} ne 200){
+    push @{$res->{alerts}}, { type => 'danger', msg => "Error indexing RELS-EXT for $pid" };
+    push @{$res->{alerts}}, @{$r_relsext->{alerts}} if scalar @{$r_relsext->{alerts}} > 0;
+  }
+
+  if(exists($rels{'cmodel'})){
+    delete $rels{'cmodel'};
+  }
+  if(exists($rels{'dc_identifier'})){
+    delete $rels{'dc_identifier'};
+  }
+
+  $res->{relationships} = \%rels;
+
+  return $res;
+}
 
 sub get {
   my ($self, $c, $pid, $search_model) = @_;
