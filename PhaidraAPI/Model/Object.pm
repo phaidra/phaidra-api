@@ -703,7 +703,7 @@ sub create_container {
   $res->{pid} = $pid;
 
   # save metadata	
-  $r = $self->save_metadata($c, $pid, 'cmodel:Container', $container_metadata, $username, $password, 1);
+  $r = $self->save_metadata($c, $pid, 'Container', $container_metadata, $username, $password, 1);
   if($r->{status} ne 200){
       $res->{status} = $r->{status};
   foreach my $a (@{$r->{alerts}}){

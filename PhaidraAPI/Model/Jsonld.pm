@@ -66,6 +66,8 @@ sub validate() {
 
   my $res = { alerts => [], status => 200 };
 
+  #$c->app->log->debug("XXXXXXXXXXXXXX jsonld->validate cmodel [".$cmodel."]");
+  #$c->app->log->debug("XXXXXXXXXXXXXX jsonld->validate metadata: ".$c->app->dumper($metadata));
   unless (($cmodel eq 'Container') || ($cmodel eq 'Collection') || ($cmodel eq 'Resource')) {
     unless (exists($metadata->{'edm:rights'})) {
       $res->{status} = 400;
