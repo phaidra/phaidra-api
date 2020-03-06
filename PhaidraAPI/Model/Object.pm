@@ -665,6 +665,9 @@ sub create_container {
         $c->app->log->debug("ebucore:hasMimeType[$mt] maps to cmodel[$childcmodel]");
         if ($childcmodel){
           my $child_metadata = { metadata => { 'json-ld' => $childmetadata } };
+          if (exists($metadata->{metadata}->{'json-ld'}->{'rights'})) {
+            $child_metadata->{metadata}->{rights} = $metadata->{metadata}->{'json-ld'}->{'rights'};
+          }
           #$c->app->log->debug("Creating child with metadata:".$c->app->dumper($child_metadata));
           my $r = $self->create_simple($c, $childcmodel, $child_metadata, $mt, $childupload, undef, undef, $username, $password);
           if($r->{status} ne 200){
