@@ -64,34 +64,52 @@ sub _serialize {
 
 sub _get_metadata_dc {
   my ($self, $rec) = @_;
-
+  my @el = qw(contributor, coverage, creator, date, description, format, identifier, language, publisher, relation, rights, source, subject, title, type);
+  my %valuesCheck = map { $_ => {} } @el;
   my @metadata;
-  for my $k (keys %{$rec}) {
-    if ($k =~ m/^dc_([a-z]+)_?([a-z]+)?$/) {
-      my %field;
-      $field{name} = $1;
-      $field{values} = $rec->{$k};
-      $field{lang} = $2 if $2;
-      push @metadata, \%field;
-    }
-  }
   if (exists($rec->{bib_publisher})) {
+    for my $v (@{$rec->{bib_publisher}}) {
+      $valuesCheck{'publisher'}{$v} = 1;
+    }
     my %field;
     $field{name} = 'publisher';
     $field{values} = $rec->{bib_publisher};
     push @metadata, \%field;
   }
   if (exists($rec->{bib_published})) {
+    for my $v (@{$rec->{bib_published}}) {
+      $valuesCheck{'date'}{$v} = 1;
+    }
     my %field;
     $field{name} = 'date';
     $field{values} = $rec->{bib_published};
     push @metadata, \%field;
   }
   if (exists($rec->{dcterms_datesubmitted})) {
+    for my $v (@{$rec->{dcterms_datesubmitted}}) {
+      $valuesCheck{'date'}{$v} = 1;
+    }
     my %field;
     $field{name} = 'date';
     $field{values} = $rec->{dcterms_datesubmitted};
     push @metadata, \%field;
+  }
+  for my $k (keys %{$rec}) {
+    if ($k =~ m/^dc_([a-z]+)_?([a-z]+)?$/) {
+      my $skip = 0;
+      for my $v (@{$rec->{$k}}) {
+        if ($valuesCheck{$1}{$v}) {
+          $skip = 1;
+          last;
+        }
+      }
+      next if $skip;
+      my %field;
+      $field{name} = $1;
+      $field{values} = $rec->{$k};
+      $field{lang} = $2 if $2;
+      push @metadata, \%field;
+    }
   }
   return \@metadata;
 }
