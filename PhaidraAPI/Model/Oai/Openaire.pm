@@ -914,16 +914,58 @@ sub get_metadata_openaire {
     children => $subjects
   } if (scalar @$subjects > 0);
 
+  # License Condition (R)
+  # oaire:licenseCondition
+  my $allRightReserved = 0;
+  if (exists($rec->{dc_license})) {
+    for my $lic (@{$rec->{dc_license}}) {
+      if ($lic =~ m/^http(s)?:\/\//) {
+        push @metadata, {
+          name => 'licenseCondition',
+          value => $lic,
+          attributes => [
+            {
+              name => 'uri',
+              value => $lic
+            }
+          ]
+        };
+      }
+      if ($lic eq 'All rights reserved') {
+        $allRightReserved = 1;
+        push @metadata, {
+          name => 'licenseCondition',
+          value => $lic,
+          attributes => [
+            {
+              name => 'uri',
+              value => 'http://rightsstatements.org/vocab/InC/1.0/'
+            }
+          ]
+        };
+      }
+    }
+  }
+
   # File Location (MA)
   # oaire:file
   my $mime;
-  if ($rightsURI eq 'http://purl.org/coar/access_right/c_abf2') {
+  my $restricted = 0;
+  if (exists($rec->{datastreams})) {
+    for my $ds (@{$rec->{datastreams}}) {
+      if ($ds eq 'POLICY') {
+        $restricted = 1;
+      }
+    }
+  }
+  unless ($allRightReserved|| $restricted) {
     my @attrs;
-    push @attrs, {
-      name => 'accessRightsURI',
-      value => $rightsURI
-    };
-    my $mime;
+    if ($rightsURI) {
+      push @attrs, {
+        name => 'accessRightsURI',
+        value => $rightsURI
+      };
+    }
     for my $format (@{$rec->{dc_format}}) {
       if ($format =~ m/(\w)+\/(\w)+/) {
         $mime = $format;
@@ -1051,37 +1093,6 @@ sub get_metadata_openaire {
   my $sourceNodes = $self->_get_dc_fields($c, \%iso6393ToBCP, $rec, 'source', 'dc:source');
   for my $sourceNode (@{$sourceNodes}) {
     push @metadata, $sourceNode;
-  }
-
-  # License Condition (R)
-  # oaire:licenseCondition
-  if (exists($rec->{dc_license})) {
-    for my $lic (@{$rec->{dc_license}}) {
-      if ($lic =~ m/^http(s)?:\/\//) {
-        push @metadata, {
-          name => 'licenseCondition',
-          value => $lic,
-          attributes => [
-            {
-              name => 'uri',
-              value => $lic
-            }
-          ]
-        };
-      }
-      if ($lic eq 'All rights reserved') {
-        push @metadata, {
-          name => 'licenseCondition',
-          value => $lic,
-          attributes => [
-            {
-              name => 'uri',
-              value => 'http://rightsstatements.org/vocab/InC/1.0/'
-            }
-          ]
-        };
-      }
-    }
   }
 
   # Coverage (R)
