@@ -461,8 +461,12 @@ sub get_metadata {
     my $jsonldprivate_model = PhaidraAPI::Model::Jsonldprivate->new;  
     my $r_jsonldprivate = $jsonldprivate_model->get_object_jsonldprivate_parsed($self, $pid, $username, $password);
     if($r_jsonldprivate->{status} ne 200){
-      push @{$res->{alerts}}, @{$r_jsonldprivate->{alerts}} if scalar @{$r_jsonldprivate->{alerts}} > 0;
-      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting JSON-LD-PRIVATE' };
+      if (($r->{status} eq 401) || ($r->{status} eq 403)) {
+        # unauthorized users should not see that JSON-LD-PRIVATE exists
+      } else {
+        push @{$res->{alerts}}, @{$r_jsonldprivate->{alerts}} if scalar @{$r_jsonldprivate->{alerts}} > 0;
+        push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting JSON-LD-PRIVATE' };
+      }
     }else{
       $res->{metadata}->{'JSON-LD-PRIVATE'} = $r_jsonldprivate->{'JSON-LD-PRIVATE'};
     }
@@ -505,8 +509,12 @@ sub get_metadata {
     my $rights_model = PhaidraAPI::Model::Rights->new;
     my $r = $rights_model->get_object_rights_json($self, $pid, $username, $password);
     if($r->{status} ne 200){
-      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting RIGHTS' };
+      if (($r->{status} eq 401) || ($r->{status} eq 403)) {
+        # unauthorized users should not see that RIGHTS exists
+      } else {
+        push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+        push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting RIGHTS' };
+      }
     }else{
       $res->{metadata}->{rights} = $r->{rights};
     }

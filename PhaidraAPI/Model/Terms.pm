@@ -17,7 +17,7 @@ our %voc_ids = (
 	"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/requirement" => ['4','5'],
 	"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational" => ['10','11','12','14','15','16'],
 	"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/annotation" => undef,
-	$classification_ns => ['9','18','20','26','27','28','29','30','33','34','35','39','41','42','43'],
+	$classification_ns => ['9','18','20','26','27','28','29','30','33','34','35','39','41','42','43','44'],
 	"http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization" => ['17'],
 	"http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0" => ['22','23','24','25'],
 	"http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0" => ['3','24'],
@@ -27,7 +27,7 @@ our %voc_ids = (
 );
 
 # FIXME get this from database
-our @cls_ids = ('1','2','3','4','5','6','7','8','9','10','11','12','13','14','15');
+our @cls_ids = ('1','2','3','4','5','6','7','8','9','10','11','12','13','14','15','16');
 
 sub _get_taxon_labels {
 	my $self = shift;
