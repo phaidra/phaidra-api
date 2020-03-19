@@ -152,7 +152,7 @@ sub info {
 
   if($dshash{'UWMETADATA'}){   
     my $uwmetadata_model = PhaidraAPI::Model::Uwmetadata->new;
-    my $r = $uwmetadata_model->get_object_metadata($c, $pid, 'basic', $username, $password);
+    my $r = $uwmetadata_model->get_object_metadata($c, $pid, 'resolved', $username, $password);
     if($r->{status} ne 200){
       push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
       push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting UWMETADATA' };
