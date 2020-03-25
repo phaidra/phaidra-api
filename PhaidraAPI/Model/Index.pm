@@ -1532,6 +1532,14 @@ sub _add_jsonld_index {
         push @{$index->{"bf_paralleltitle_maintitle"}}, $mt->{'@value'};
       }
     }
+    for my $mt (@{$o->{'bf:subitle'}}) {
+      if ($o->{'@type'} eq 'bf:Title') {
+        push @{$index->{"bf_title_subtitle"}}, $mt->{'@value'};
+      }
+      if ($o->{'@type'} eq 'bf:ParallelTitle') {
+        push @{$index->{"bf_paralleltitle_subtitle"}}, $mt->{'@value'};
+      }
+    }
   }
 
   if($jsonld->{'dcterms:created'}){
