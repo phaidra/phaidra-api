@@ -346,6 +346,8 @@ sub related_objects_mptmysql(){
 				}else{
 					$text =~ s/^"|"$//g;
 					$text =~ s/\\"/"/g;
+          # unicode escaped stuff to utf8
+					$text =~ s/\\u([0-9a-fA-F]{4})/pack('U', hex($1))/eg;
 				}
 				push @titles_out, {text => $text, lang=> $lang};
 			}
