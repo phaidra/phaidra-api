@@ -491,6 +491,7 @@ sub add_properties_rec {
   }
 
   # $c->app->log->debug("XXXXXXXXX searching p [$path] chp [$child_path]");
+  return unless exists $mods_nodes_hash->{$child_path};
   my $ref_node = dclone($mods_nodes_hash->{$child_path});
 
   foreach my $k (keys %$ref_node){

@@ -57,12 +57,7 @@ sub stats {
         $siteid = $fr->{stats}->{siteid};
     }
 
-    my $cachekey = 'stats_'.$siteid.'_'.$pid;
-    my $cacheval = $self->app->chi->get($cachekey);
-
-    unless($cacheval){
-
-        $self->app->log->debug("[cache miss] $cachekey");
+    my $retval;
 
         my $pidnum = $pid;
         $pidnum =~ s/://g;
@@ -73,23 +68,18 @@ sub stats {
         # this counts *any* page with pid in URL. But that kind of makes sense anyways...
         my $sth = $self->app->db_stats_phaidra_catalyst->prepare("CREATE TEMPORARY TABLE pid_visits_idsite_$pidnum AS (SELECT piwik_log_link_visit_action.idsite FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE piwik_log_action.name like '%view/$pid%' OR piwik_log_action.name like '%detail_object/$pid%' OR piwik_log_action.name like '%detail/$pid%');");
         $sth->execute();
-#        $sth->fetchall_arrayref();
         my $detail_page = $self->app->db_stats_phaidra_catalyst->selectrow_array("SELECT count(*) FROM pid_visits_idsite_$pidnum WHERE idsite = $siteid;");
         
         if(defined($detail_page)){
-            $cacheval = { downloads => $downloads, detail_page => $detail_page };        
-            $self->app->chi->set($cachekey, $cacheval, '1 day');
+            $retval = { downloads => $downloads, detail_page => $detail_page };        
         }else{
             $self->app->log->error("Error querying piwik database for detail views:".$self->app->db_stats_phaidra_catalyst->errstr);
         }
-    }else{
-        $self->app->log->debug("[cache hit] $cachekey");
-    }
 
     if(defined($key)){
-        $self->render(text => $cacheval->{$key}, status => 200);
+        $self->render(text => $retval->{$key}, status => 200);
     }else{
-        $self->render(json => { stats => $cacheval }, status => 200);
+        $self->render(json => { stats => $retval }, status => 200);
     }
 }
 
@@ -144,12 +134,7 @@ sub chart {
         $siteid = $fr->{stats}->{siteid};
     }
 
-    my $cachekey = 'statschart_'.$siteid.'_'.$pid;
-    my $cacheval = $self->app->chi->get($cachekey);
-
-    unless($cacheval){
-
-        $self->app->log->debug("[cache miss] $cachekey");
+    my $retval;
 
         my $pidnum = $pid;
         $pidnum =~ s/://g;
@@ -171,17 +156,13 @@ sub chart {
         }
     
         if(defined($detail_page) || defined($downloads)){
-            $cacheval = { downloads => $downloads, detail_page => $detail_page };        
-            $self->app->chi->set($cachekey, $cacheval, '1 day');
+            $retval = { downloads => $downloads, detail_page => $detail_page };        
         }
-    }else{
-        $self->app->log->debug("[cache hit] $cachekey");
-    }
 
     if(defined($key)){
-        $self->render(text => $cacheval->{$key}, status => 200);
+        $self->render(text => $retval->{$key}, status => 200);
     }else{
-        $self->render(json => { stats => $cacheval }, status => 200);
+        $self->render(json => { stats => $retval }, status => 200);
     }
     
 }
