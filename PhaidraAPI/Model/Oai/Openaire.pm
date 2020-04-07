@@ -858,6 +858,27 @@ sub get_metadata_openaire {
   for my $ref (@{$fundRefsFun}) {
     push @refs, $ref;
   }
+  if (exists($rec->{uwm_funding})) {
+    for my $funding (@{$rec->{uwm_funding}}) {
+      my @fundarr = split(':', $funding);
+      if (scalar @fundarr > 1) {
+        my $num = $fundarr[1];
+        $num =~ s/^\s//g;
+        my $ref = {
+          funderName => $fundarr[0],
+          awardNumber => $num
+        };
+        push @refs, $ref;
+      } else {
+        if ($fundarr[0]) {
+          my $ref = {
+            awardNumber => $fundarr[0]
+          };
+          push @refs, $ref;
+        }
+      }
+    }
+  }
   for my $ref (@refs) {
     my %refNode;
     $refNode{name} = 'fundingReference';
