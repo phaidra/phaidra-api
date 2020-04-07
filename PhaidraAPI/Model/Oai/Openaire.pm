@@ -1040,6 +1040,19 @@ sub get_metadata_openaire {
           ]
         };
       }
+      if (rindex($id, 'ISBN:', 0) == 0) {
+        $id =~ s/^ISBN:\s+//g;
+        push @ids, {
+          name => 'datacite:alternateIdentifier',
+          value => $id,
+          attributes => [
+            {
+              name => 'alternateIdentifierType',
+              value => 'ISBN'
+            }
+          ]
+        };
+      }
     }
     if (scalar @ids > 0) {
       push @metadata, {

@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use v5.10;
 use utf8;
+use Switch;
 use Time::HiRes qw/tv_interval gettimeofday/;
 use Mojo::ByteStream qw(b);
 use Mojo::Util qw(xml_escape encode decode trim);
@@ -380,6 +381,22 @@ our %uwm_2_mods_roles = (
 
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557138" => "aus" # remove this from objects, it's a duplicate
 
+);
+
+our %uwm_funder = (
+  "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0/voc_25/1556222" => "European Union (all programmes)",
+  "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0/voc_25/1557091" => "Bundesministerium für Wissenschaft und Forschung (BMWF)",
+  "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0/voc_25/1557093" => "European Science Foundation (ESF)",
+  "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0/voc_25/1557094" => "Austrian Science Fund (FWF)",
+  "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0/voc_25/1557095" => "Jubiläumsfonds der Österreichischen Nationalbank",
+  "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0/voc_25/1557096" => "Österreichische Forschungsförderungsgesellschaft mbH (FFG)",
+  "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0/voc_25/1557097" => "Vienna Science and Technology Fund (WWTF)",
+  "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0/voc_25/1562635" => "Österreichischer Austauschdienst (OeAD)",
+  "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0/voc_25/1562636" => "Österreichische Akademie der Wissenschaften (ÖAW)",
+  "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0/voc_25/1562637" => "Österreichischer Nationalfonds für Opfer des Nationalsozialismus",
+  "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0/voc_25/1562638" => "Zukunftsfonds der Republik Österreich",
+  "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0/voc_25/1562639" => "Österreichische Forschungsgemeinschaft (ÖFG)",
+  "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0/voc_25/1562640" => "University of Vienna"
 );
 
 sub getDoc {
@@ -1951,6 +1968,35 @@ sub _add_uwm_index {
       for my $orgch (@{$org->{children}}){
         if($orgch->{xmlname} eq 'hoschtyp'){
           $index->{"oer"} = '1' if $orgch->{ui_value} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_17/1562801'; 
+        }
+      }
+    }
+  }
+
+  # reference numbers -> get grants
+  my $histkult = $self->_find_first_uwm_node_rec($c, "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0", "histkult", $uwm);
+  if($histkult){
+    if($histkult->{children}){
+      for my $histkultch (@{$histkult->{children}}){
+        if($histkultch->{xmlname} eq 'reference_number'){
+          if($histkultch->{children}){
+            my $reference = '';
+            my $number = '';
+            for my $refnumch (@{$histkultch->{children}}){
+              if($refnumch->{xmlname} eq 'reference'){
+                $reference = $refnumch->{ui_value};
+              }
+              if($refnumch->{xmlname} eq 'number'){
+                $number = $refnumch->{ui_value};
+              }
+            }
+            my $referenceLabel = $uwm_funder{$reference};
+            if ($referenceLabel) {
+              $index->{"uwm_funding"} = $referenceLabel . ': ' . $number; 
+            } elsif ($reference eq '1557233') { # unspecified grant number
+              $index->{"uwm_funding"} = $number; 
+            }
+          }
         }
       }
     }
