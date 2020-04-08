@@ -85,7 +85,7 @@ sub _get_uwm_classifications {
 
     my $tid = $idnode->find($doc_uwns->{'classification'}.'\:taxon')->last;
     if(defined($tid)){
-      $tid = $tid->text;      
+      $tid = $tid->text;
     }
 
     my $terms_model = PhaidraAPI::Model::Terms->new;
@@ -93,7 +93,12 @@ sub _get_uwm_classifications {
 
     my $labels = $terms_model->_get_taxon_labels($c, $cid, $tid);
     for my $lang (keys %{$labels->{labels}}){
-      push @classifications, { value => $cls_labels->{$lang}.", ".$labels->{labels}->{$lang}, lang => $lang };
+      if ($cid eq '14' || $cid eq '15') {
+        # show upstream ID for BIC (request from OAPEN/Atmire, issue #22457)
+        push @classifications, { value => $cls_labels->{$lang}.", ".$labels->{labels}->{$lang}.' ('.$labels->{upstream_identifier}.')', lang => $lang };
+      } else {
+        push @classifications, { value => $cls_labels->{$lang}.", ".$labels->{labels}->{$lang}, lang => $lang };
+      }
     }
 
   }
