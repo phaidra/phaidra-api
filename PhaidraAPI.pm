@@ -521,6 +521,8 @@ sub startup {
     $check_auth->route('ir/:pid/accept')                                  ->via('post')     ->to('ir#accept');
     $check_auth->route('ir/:pid/reject')                                  ->via('post')     ->to('ir#reject');
     $check_auth->route('ir/:pid/approve')                                 ->via('post')     ->to('ir#approve');
+
+    $check_auth->route('feedback')                                        ->via('post')     ->to('feedback#feedback');
   }
 
 	return $self;
