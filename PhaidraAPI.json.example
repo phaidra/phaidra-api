@@ -22,10 +22,6 @@
 
     "inactivity_timeout":"7200",
 
-    "log_path":"/var/log/phaidra/PhaidraAPI.log",
-
-    "log_level":"debug",
-
     "readonly": "0",
 
     "allow_userdata_queries": "0",
