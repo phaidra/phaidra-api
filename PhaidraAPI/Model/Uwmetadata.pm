@@ -3,6 +3,7 @@ package PhaidraAPI::Model::Uwmetadata;
 use strict;
 use warnings;
 use v5.10;
+use utf8;
 use base qw/Mojo::Base/;
 use Storable qw(dclone);
 use POSIX qw/strftime/;
