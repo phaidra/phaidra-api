@@ -18,7 +18,6 @@ use PhaidraAPI::Model::Uwmetadata;
 use PhaidraAPI::Model::Mods;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Dc;
-use PhaidraAPI::Model::Relationships;
 use PhaidraAPI::Model::Annotations;
 use PhaidraAPI::Model::Membersorder;
 
@@ -439,7 +438,7 @@ sub getDoc {
 }
 
 sub update {
-  my ($self, $c, $pid, $dc_model, $search_model, $rel_model, $object_model, $ignorestatus) = @_;
+  my ($self, $c, $pid, $dc_model, $search_model, $object_model, $ignorestatus) = @_;
 
   my $res = { status => 200 };    
 
@@ -484,7 +483,7 @@ sub update {
     if($cmodel_res->{cmodel} && $cmodel_res->{cmodel} ne 'Page'){
 
       my $t0 = [gettimeofday];
-      my $r = $self->_get($c, $pid, $dc_model, $search_model, $rel_model, $object_model, $ignorestatus);
+      my $r = $self->_get($c, $pid, $dc_model, $search_model, $object_model, $ignorestatus);
       $c->app->log->debug("indexing took ".tv_interval($t0));
       $res = $r;
 
@@ -952,15 +951,14 @@ sub get {
 
   my $dc_model = PhaidraAPI::Model::Dc->new;
   my $search_model = PhaidraAPI::Model::Search->new;
-  my $rel_model = PhaidraAPI::Model::Relationships->new;
   my $object_model = PhaidraAPI::Model::Object->new;
 
-  return $self->_get($c, $pid, $dc_model, $search_model, $rel_model, $object_model, $ignorestatus);
+  return $self->_get($c, $pid, $dc_model, $search_model, $object_model, $ignorestatus);
 }
 
 sub _get {
 
-  my ($self, $c, $pid, $dc_model, $search_model, $rel_model, $object_model, $ignorestatus) = @_;
+  my ($self, $c, $pid, $dc_model, $search_model, $object_model, $ignorestatus) = @_;
 
   my $res = { status => 200 };
 

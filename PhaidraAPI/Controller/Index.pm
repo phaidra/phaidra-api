@@ -9,7 +9,6 @@ use Mojo::Util qw(xml_escape html_unescape);
 use Mojo::JSON qw(encode_json decode_json);
 use PhaidraAPI::Model::Index;
 use PhaidraAPI::Model::Object;
-use PhaidraAPI::Model::Relationships;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Dc;
 
@@ -23,6 +22,135 @@ sub get {
   my $r = $index_model->get($self, $pid, $ignorestatus);
 
   $self->render(json => $r, status => $r->{status});
+}
+
+sub get_relationships {
+  my ($self) = @_;
+
+  my $res = { alerts => [], status => 200 };
+
+  my $pid = $self->stash('pid');
+
+  my $ua = Mojo::UserAgent->new;
+  my $urlget = Mojo::URL->new;
+  $urlget->scheme($self->app->config->{solr}->{scheme});
+  $urlget->host($self->app->config->{solr}->{host});
+  $urlget->port($self->app->config->{solr}->{port});
+  if($self->app->config->{solr}->{path}){
+    $urlget->path("/".$self->app->config->{solr}->{path}."/solr/".$self->app->config->{solr}->{core}."/select");
+  }else{
+    $urlget->path("/solr/".$self->app->config->{solr}->{core}."/select");
+  }
+
+  $self->app->log->debug("getting doc of $pid");
+  my $idx = $self->get_doc_for_pid($ua, $urlget, $pid);
+  my $rels = {
+    # own
+    # these two are supported elswhere, not needed here
+    # hascollectionmember => [],
+    # hasmember => [],
+    references => [],
+    isbacksideof => [],
+    hassuccessor => [],
+    isalternativeformatof => [],
+    isalternativeversionof => [],
+    # reverse
+    ispartof => [],
+    ismemberof => [],
+    isreferencedby => [],
+    hasbackside => [],
+    issuccesorof => [],
+    haslaternativeformat => [],
+    haslaternativeversion => [],
+    # sets
+    versions => [],
+    alternativeversions => [],
+    alternativeformats => []
+  };
+
+  # reverse only
+  #'info:fedora/fedora-system:def/relations-external#hasCollectionMember'
+  if ($idx->{ispartof}) {
+    for my $relpid (@{$idx->{ispartof}}) {
+      $self->app->log->debug("reverse: getting doc of $relpid (of which $pid is ispartof)");
+      my $d = $self->get_doc_for_pid($ua, $urlget, $relpid);
+      push $rels->{ispartof}, $d if $d;
+    }
+  }
+
+  # reverse only
+  #'http://pcdm.org/models#hasMember'
+  if ($idx->{ismemberof}) {
+    for my $relpid (@{$idx->{ismemberof}}) {
+      $self->app->log->debug("reverse: getting doc of $relpid (of which $pid is ismemberof)");
+      my $d = $self->get_doc_for_pid($ua, $urlget, $relpid);
+      push $rels->{ismemberof}, $d if $d;
+    }
+  }
+
+  #'http://purl.org/dc/terms/references'
+  $self->add_indexed_and_reverse($ua, $urlget, $idx, 'references', 'isreferencedby', $pid, $rels);
+
+  #'http://phaidra.org/XML/V1.0/relations#isBackSideOf'
+  $self->add_indexed_and_reverse($ua, $urlget, $idx, 'isbacksideof', 'hasbackside', $pid, $rels);
+
+  #'http://phaidra.org/XML/V1.0/relations#isThumbnailFor'
+  $self->add_indexed_and_reverse($ua, $urlget, $idx, 'isthumbnailfor', 'hasthumbnail', $pid, $rels);
+
+  #'http://phaidra.univie.ac.at/XML/V1.0/relations#hasSuccessor'
+  $self->add_indexed_and_reverse($ua, $urlget, $idx, 'hassuccessor', 'issuccesorof', $pid, $rels);
+
+  #'http://phaidra.org/XML/V1.0/relations#isAlternativeFormatOf'
+  $self->add_indexed_and_reverse($ua, $urlget, $idx, 'isalternativeformatof', 'haslaternativeformat', $pid, $rels);
+
+  #'http://phaidra.org/XML/V1.0/relations#isAlternativeVersionOf'
+  $self->add_indexed_and_reverse($ua, $urlget, $idx, 'isalternativeversionof', 'haslaternativeversion', $pid, $rels);
+
+  # TODO: add versions, alternativeversions, alternativeformats sets
+
+  $res->{relationships} = $rels;
+
+  $self->render(json => $res, status => 200);
+}
+
+sub add_indexed_and_reverse {
+  my ($self, $ua, $urlget, $idx, $relationfield, $reverserelation, $pid, $rels) = @_;
+
+  if ($idx->{$relationfield}) {
+    # get doc of the related document
+    for my $relpid (@{$idx->{$relationfield}}) {
+      $self->app->log->debug("getting doc of $relpid ($relationfield of $pid)");
+      my $d = $self->get_doc_for_pid($ua, $urlget, $relpid);
+      push $rels->{$relationfield}, $d if $d;
+    }
+  }
+
+  # get reverse relationships
+  $self->app->log->debug("reverse: getting docs where $pid is $relationfield");
+  $urlget->query(q => "$relationfield:\"$pid\"", rows => "1000", wt => "json");
+  my $r = $ua->get($urlget)->result;
+  if ($r->is_success) {
+    for my $d (@{$r->json->{response}->{docs}}) {
+      push $rels->{$reverserelation}, $d;
+    }
+  }else{
+    $self->app->log->error("[$pid] error getting solr query[$relationfield:\"$pid\"]: ".$r->code." ".$r->message);
+  }
+  return undef;
+}
+
+sub get_doc_for_pid {
+  my ($self, $ua, $urlget, $pid) = @_;
+
+  $urlget->query(q => "pid:\"$pid\"", rows => "1", wt => "json");
+  my $r = $ua->get($urlget)->result;
+  if ($r->is_success) {
+    for my $d (@{$r->json->{response}->{docs}}) {
+      return $d;
+    }
+  }else{
+    $self->app->log->error("[$pid] error getting solr doc for object[$pid]: ".$r->code." ".$r->message);
+  }
 }
 
 sub get_dc {
@@ -119,7 +247,6 @@ sub update {
   my $index_model = PhaidraAPI::Model::Index->new;
   my $dc_model = PhaidraAPI::Model::Dc->new;
   my $search_model = PhaidraAPI::Model::Search->new;
-  my $rel_model = PhaidraAPI::Model::Relationships->new;
   my $object_model = PhaidraAPI::Model::Object->new;
   my @res;
   my $pidscount = scalar @pidsarr;
@@ -131,7 +258,7 @@ sub update {
 
     eval {
 
-	    my $r = $index_model->update($self, $pid, $dc_model, $search_model, $rel_model, $object_model, $ignorestatus);  
+	    my $r = $index_model->update($self, $pid, $dc_model, $search_model, $object_model, $ignorestatus);  
 	    if($r->{status} eq 200 && $pidscount > 1){      
 	      push @res, { pid => $pid, status => 200 };
 	    }else{

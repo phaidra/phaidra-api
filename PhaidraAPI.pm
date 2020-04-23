@@ -376,10 +376,11 @@ sub startup {
   $r->route('object/:pid/oai_dc')                 ->via('get')    ->to('dc#get', dsid => 'DC_OAI');
   $r->route('object/:pid/index')                  ->via('get')    ->to('index#get');
   $r->route('object/:pid/index/dc')               ->via('get')    ->to('index#get_dc');
+  $r->route('object/:pid/index/relationships')    ->via('get')    ->to('index#get_relationships');
   $r->route('object/:pid/datacite')               ->via('get')    ->to('datacite#get');
   $r->route('object/:pid/state')                  ->via('get')    ->to('object#get_state');
   $r->route('object/:pid/cmodel')                 ->via('get')    ->to('object#get_cmodel');
-  $r->route('object/:pid/relationships')          ->via('get')    ->to('relationships#get_rels_ext');
+  $r->route('object/:pid/relationships')          ->via('get')    ->to('relationships#get');
 
   $r->route('object/:pid/id')                     ->via('get')    ->to('search#id');
 
@@ -435,12 +436,14 @@ sub startup {
 
   $proxyauth_optional->route('imageserver')                               ->via('get')      ->to('imageserver#get');
 
-  $proxyauth_optional->route('object/:pid/octets')                        ->via('get')      ->to('octets#get');
   $proxyauth_optional->route('object/:pid/diss/:bdef/:method')            ->via('get')      ->to('object#diss');
   $proxyauth_optional->route('object/:pid/fulltext')                      ->via('get')      ->to('fulltext#get');
   $proxyauth_optional->route('object/:pid/metadata')                      ->via('get')      ->to('object#get_metadata');
   $proxyauth_optional->route('object/:pid/info')                          ->via('get')      ->to('object#info');
   $proxyauth_optional->route('object/:pid/md5')                           ->via('get')      ->to('inventory#get_md5');
+  $proxyauth_optional->route('object/:pid/octets')                        ->via('get')      ->to('octets#get');
+  #$proxyauth_optional->route('object/:pid/download')                      ->via('get')      ->to('data#download');
+  #$proxyauth_optional->route('object/:pid/view')                          ->via('get')      ->to('data#view');
 
   $proxyauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
   
