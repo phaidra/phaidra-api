@@ -106,11 +106,138 @@ sub get_relationships {
   #'http://phaidra.org/XML/V1.0/relations#isAlternativeVersionOf'
   $self->add_indexed_and_reverse($ua, $urlget, $idx, 'isalternativeversionof', 'haslaternativeversion', $pid, $rels);
 
-  # TODO: add versions, alternativeversions, alternativeformats sets
+  my @versions;
+  my $versionsCheck = {
+    $pid => {
+      loaded => 1,
+      checked => 1
+    }
+  };
+  for my $v (@{$rels->{hassuccessor}}) {
+    push @versions, $v;
+    $versionsCheck->{$v->{pid}} = {
+      loaded => 1,
+      checked => 0
+    }
+  }
+  for my $v (@{$rels->{issuccesorof}}) {
+    push @versions, $v;
+    $versionsCheck->{$v->{pid}} = {
+      loaded => 1,
+      checked => 0
+    }
+  }
+  $self->add_set_rec($ua, $urlget, 'hassuccessor', $pid, \@versions, $versionsCheck);
+  $res->{versions} = \@versions;
+
+  my @altformats;
+  my $altformatsCheck = {
+    $pid => {
+      loaded => 1,
+      checked => 1
+    }
+  };
+  for my $v (@{$rels->{isalternativeformatof}}) {
+    push @altformats, $v;
+    $altformatsCheck->{$v->{pid}} = {
+      loaded => 1,
+      checked => 0
+    }
+  }
+  for my $v (@{$rels->{haslaternativeversion}}) {
+    push @altformats, $v;
+    $altformatsCheck->{$v->{pid}} = {
+      loaded => 1,
+      checked => 0
+    }
+  }
+  $self->add_set_rec($ua, $urlget, 'isalternativeformatof', $pid, \@altformats, $altformatsCheck);
+  $res->{alternativeformats} = \@altformats;
+
+  my @altversions;
+  my $altversionsCheck = {
+    $pid => {
+      loaded => 1,
+      checked => 1
+    }
+  };
+  for my $v (@{$rels->{isalternativeversionof}}) {
+    push @altversions, $v;
+    $altversionsCheck->{$v->{pid}} = {
+      loaded => 1,
+      checked => 0
+    }
+  }
+  for my $v (@{$rels->{isalternativeversionof}}) {
+    push @altversions, $v;
+    $altversionsCheck->{$v->{pid}} = {
+      loaded => 1,
+      checked => 0
+    }
+  }
+  $self->add_set_rec($ua, $urlget, 'isalternativeversionof', $pid, \@altversions, $altversionsCheck);
+  $res->{alternativeversions} = \@altversions;
 
   $res->{relationships} = $rels;
 
   $self->render(json => $res, status => 200);
+}
+
+sub add_set_rec {
+  my ($self, $ua, $urlget, $relationfield, $pid, $related, $relatedCheck) = @_;
+
+  for my $pid (keys %{$relatedCheck}) {
+    unless ($relatedCheck->{$pid}->{loaded}) {
+      # load
+      $self->app->log->debug("getting doc of $pid ($relationfield)");
+      my $d = $self->get_doc_for_pid($ua, $urlget, $pid);
+      push @{$related}, $d;
+      $relatedCheck->{$pid}->{loaded} = 1;
+      # add found relationships
+      if ($d->{$relationfield}) {
+        for my $r (@{$d->{$relationfield}}) {
+          unless ($relatedCheck->{$pid}) {
+            $relatedCheck->{$pid} = {
+              loaded => 0,
+              checked => 0
+            };
+          }
+        }
+      }
+    }
+    
+    # add reverse relationships
+    $self->app->log->debug("reverse: getting docs where $pid is $relationfield");
+    $urlget->query(q => "$relationfield:\"$pid\"", rows => "1000", wt => "json");
+    my $r = $ua->get($urlget)->result;
+    if ($r->is_success) {
+      for my $d (@{$r->json->{response}->{docs}}) {
+        if ($relatedCheck->{$d->{pid}}) {
+          unless ($relatedCheck->{$d->{pid}}->{loaded}) {
+            push @{$related}, $d;
+            $relatedCheck->{$d->{pid}}->{loaded} = 1;
+          }
+        } else {
+          push @{$related}, $d;
+          $relatedCheck->{$pid} = {
+            loaded => 1,
+            checked => 0
+          };
+        }
+      }
+    } else {
+      $self->app->log->error("[$pid] error getting solr query[$relationfield:\"$pid\"]: ".$r->code." ".$r->message);
+    }
+    $relatedCheck->{$pid}->{checked} = 1;
+  }
+
+  $self->app->log->debug("relatedCheck: ".$self->app->dumper($relatedCheck));
+
+  for my $pid (keys %{$relatedCheck}) {
+    unless ($relatedCheck->{$pid}->{checked}) {
+      $self->add_set_rec($ua, $urlget, 'hassuccessor', $pid, $related, $relatedCheck);
+    }
+  }
 }
 
 sub add_indexed_and_reverse {
@@ -121,7 +248,7 @@ sub add_indexed_and_reverse {
     for my $relpid (@{$idx->{$relationfield}}) {
       $self->app->log->debug("getting doc of $relpid ($relationfield of $pid)");
       my $d = $self->get_doc_for_pid($ua, $urlget, $relpid);
-      push $rels->{$relationfield}, $d if $d;
+      push @{$rels->{$relationfield}}, $d if $d;
     }
   }
 
