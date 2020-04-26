@@ -2328,7 +2328,7 @@ sub get_relationships {
     for my $relpid (@{$idx->{ispartof}}) {
       # $c->app->log->debug("reverse: getting doc of $relpid (of which $pid is ispartof)");
       my $d = $self->get_doc_from_ua($c, $ua, $urlget, $relpid);
-      push $rels->{ispartof}, $d if $d;
+      push @{$rels->{ispartof}}, $d if $d;
     }
   }
 
@@ -2338,7 +2338,7 @@ sub get_relationships {
     for my $relpid (@{$idx->{ismemberof}}) {
       # $c->app->log->debug("reverse: getting doc of $relpid (of which $pid is ismemberof)");
       my $d = $self->get_doc_from_ua($c, $ua, $urlget, $relpid);
-      push $rels->{ismemberof}, $d if $d;
+      push @{$rels->{ismemberof}}, $d if $d;
     }
   }
 
