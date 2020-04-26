@@ -2513,7 +2513,7 @@ sub add_indexed_and_reverse {
   my $r = $ua->get($urlget)->result;
   if ($r->is_success) {
     for my $d (@{$r->json->{response}->{docs}}) {
-      push $rels->{$reverserelation}, $d;
+      push @{$rels->{$reverserelation}}, $d;
     }
   }else{
     $c->app->log->error("[$pid] error getting solr query[$relationfield:\"$pid\"]: ".$r->code." ".$r->message);
