@@ -830,7 +830,7 @@ sub stats_topdownloads {
     my $index_model = PhaidraAPI::Model::Index->new;
     my @topdownloads;
     for my $pid (@tops) {
-      my $docres = $index_model->getDoc($self, $pid);
+      my $docres = $index_model->get_doc($self, $pid);
       if ($docres->{status} eq 200) {
         push @topdownloads, $docres->{doc};
       }

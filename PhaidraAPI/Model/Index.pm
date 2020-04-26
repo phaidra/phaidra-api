@@ -398,7 +398,7 @@ our %uwm_funder = (
   "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0/voc_25/1562640" => "University of Vienna"
 );
 
-sub getDoc {
+sub get_doc {
   my ($self, $c, $pid) = @_;
 
   my $res = { alerts => [], status => 200 };
@@ -2218,6 +2218,318 @@ sub _find_first_uwm_node_rec {
   }
 
   return $ret;
+}
+
+sub get_haspart_size {
+  my ($self, $c, $pid) = @_;
+  my $res = { alerts => [], status => 200 };
+
+  my $urlget = Mojo::URL->new;
+  $urlget->scheme($c->app->config->{solr}->{scheme});
+  $urlget->host($c->app->config->{solr}->{host});
+  $urlget->port($c->app->config->{solr}->{port});
+  if($c->app->config->{solr}->{path}){
+    $urlget->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/select");
+  }else{
+    $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
+  }
+
+  $urlget->query(q => "ispartof:\"$pid\"", fl => "pid", rows => "0", wt => "json");
+
+  my $ua = Mojo::UserAgent->new;
+
+  my $r_num = $ua->get($urlget)->result;
+  my $numFound;
+  if ($r_num->is_success) {
+    $res->{haspartsize} = $r_num->json->{response}->{numFound};
+  }else{
+    $c->app->log->error("[$pid] error getting haspart size: ".$r_num->code." ".$r_num->message);
+    unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting haspart size: ".$r_num->code." ".$r_num->message};
+  }
+
+  return $res;
+}
+
+sub get_object_members {
+  my ($self, $c, $pid) = @_;
+  my $res = { alerts => [], status => 200 };
+
+  my $urlget = Mojo::URL->new;
+  $urlget->scheme($c->app->config->{solr}->{scheme});
+  $urlget->host($c->app->config->{solr}->{host});
+  $urlget->port($c->app->config->{solr}->{port});
+  if($c->app->config->{solr}->{path}){
+    $urlget->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/select");
+  }else{
+    $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
+  }
+
+  my $pidunderscore = $pid;
+  $pidunderscore =~ s/:/_/;
+  $urlget->query(q => "ismemberof:\"$pid\"", rows => "100", sort => "pos_in_$pidunderscore asc", wt => "json");
+
+  my $ua = Mojo::UserAgent->new;
+
+  my $r_num = $ua->get($urlget)->result;
+  $c->app->log->error($c->app->dumper($r_num));
+  my $numFound;
+  if ($r_num->is_success) {
+    $res->{members} = $r_num->json->{response}->{docs};
+  }else{
+    $c->app->log->error("[$pid] error getting object members: ".$r_num->code." ".$r_num->message);
+    unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting object members: ".$r_num->code." ".$r_num->message};
+  }
+
+  return $res;
+}
+
+sub get_relationships {
+  my ($self, $c, $pid) = @_;
+  my $res = { alerts => [], status => 200 };
+
+  my $ua = Mojo::UserAgent->new;
+  my $urlget = Mojo::URL->new;
+  $urlget->scheme($c->app->config->{solr}->{scheme});
+  $urlget->host($c->app->config->{solr}->{host});
+  $urlget->port($c->app->config->{solr}->{port});
+  if($c->app->config->{solr}->{path}){
+    $urlget->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/select");
+  }else{
+    $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
+  }
+
+  # $c->app->log->debug("getting doc of $pid");
+  my $idx = $self->get_doc_from_ua($c, $ua, $urlget, $pid);
+  my $rels = {
+    # own
+    # these two are supported elswhere, not needed here
+    # hascollectionmember => [],
+    # hasmember => [],
+    references => [],
+    isbacksideof => [],
+    hassuccessor => [],
+    isalternativeformatof => [],
+    isalternativeversionof => [],
+    # reverse
+    ispartof => [],
+    ismemberof => [],
+    isreferencedby => [],
+    hasbackside => [],
+    issuccesorof => [],
+    haslaternativeformat => [],
+    haslaternativeversion => []
+  };
+
+  # reverse only
+  #'info:fedora/fedora-system:def/relations-external#hasCollectionMember'
+  if ($idx->{ispartof}) {
+    for my $relpid (@{$idx->{ispartof}}) {
+      # $c->app->log->debug("reverse: getting doc of $relpid (of which $pid is ispartof)");
+      my $d = $self->get_doc_from_ua($c, $ua, $urlget, $relpid);
+      push $rels->{ispartof}, $d if $d;
+    }
+  }
+
+  # reverse only
+  #'http://pcdm.org/models#hasMember'
+  if ($idx->{ismemberof}) {
+    for my $relpid (@{$idx->{ismemberof}}) {
+      # $c->app->log->debug("reverse: getting doc of $relpid (of which $pid is ismemberof)");
+      my $d = $self->get_doc_from_ua($c, $ua, $urlget, $relpid);
+      push $rels->{ismemberof}, $d if $d;
+    }
+  }
+
+  #'http://purl.org/dc/terms/references'
+  $self->add_indexed_and_reverse($c, $ua, $urlget, $idx, 'references', 'isreferencedby', $pid, $rels);
+
+  #'http://phaidra.org/XML/V1.0/relations#isBackSideOf'
+  $self->add_indexed_and_reverse($c, $ua, $urlget, $idx, 'isbacksideof', 'hasbackside', $pid, $rels);
+
+  #'http://phaidra.org/XML/V1.0/relations#isThumbnailFor'
+  $self->add_indexed_and_reverse($c, $ua, $urlget, $idx, 'isthumbnailfor', 'hasthumbnail', $pid, $rels);
+
+  #'http://phaidra.univie.ac.at/XML/V1.0/relations#hasSuccessor'
+  $self->add_indexed_and_reverse($c, $ua, $urlget, $idx, 'hassuccessor', 'issuccesorof', $pid, $rels);
+
+  #'http://phaidra.org/XML/V1.0/relations#isAlternativeFormatOf'
+  $self->add_indexed_and_reverse($c, $ua, $urlget, $idx, 'isalternativeformatof', 'haslaternativeformat', $pid, $rels);
+
+  #'http://phaidra.org/XML/V1.0/relations#isAlternativeVersionOf'
+  $self->add_indexed_and_reverse($c, $ua, $urlget, $idx, 'isalternativeversionof', 'haslaternativeversion', $pid, $rels);
+
+  my @versions;
+  my $versionsCheck = {
+    $pid => {
+      loaded => 1,
+      checked => 1
+    }
+  };
+  for my $v (@{$rels->{hassuccessor}}) {
+    push @versions, $v;
+    $versionsCheck->{$v->{pid}} = {
+      loaded => 1,
+      checked => 0
+    }
+  }
+  for my $v (@{$rels->{issuccesorof}}) {
+    push @versions, $v;
+    $versionsCheck->{$v->{pid}} = {
+      loaded => 1,
+      checked => 0
+    }
+  }
+  $self->add_set_rec($c, $ua, $urlget, 'hassuccessor', $pid, \@versions, $versionsCheck);
+  $res->{versions} = \@versions;
+
+  my @altformats;
+  my $altformatsCheck = {
+    $pid => {
+      loaded => 1,
+      checked => 1
+    }
+  };
+  for my $v (@{$rels->{isalternativeformatof}}) {
+    push @altformats, $v;
+    $altformatsCheck->{$v->{pid}} = {
+      loaded => 1,
+      checked => 0
+    }
+  }
+  for my $v (@{$rels->{haslaternativeversion}}) {
+    push @altformats, $v;
+    $altformatsCheck->{$v->{pid}} = {
+      loaded => 1,
+      checked => 0
+    }
+  }
+  $self->add_set_rec($c, $ua, $urlget, 'isalternativeformatof', $pid, \@altformats, $altformatsCheck);
+  $res->{alternativeformats} = \@altformats;
+
+  my @altversions;
+  my $altversionsCheck = {
+    $pid => {
+      loaded => 1,
+      checked => 1
+    }
+  };
+  for my $v (@{$rels->{isalternativeversionof}}) {
+    push @altversions, $v;
+    $altversionsCheck->{$v->{pid}} = {
+      loaded => 1,
+      checked => 0
+    }
+  }
+  for my $v (@{$rels->{isalternativeversionof}}) {
+    push @altversions, $v;
+    $altversionsCheck->{$v->{pid}} = {
+      loaded => 1,
+      checked => 0
+    }
+  }
+  $self->add_set_rec($c, $ua, $urlget, 'isalternativeversionof', $pid, \@altversions, $altversionsCheck);
+  $res->{alternativeversions} = \@altversions;
+
+  $res->{relationships} = $rels;
+
+  return $res;
+}
+
+sub add_set_rec {
+  my ($self, $c, $ua, $urlget, $relationfield, $pid, $related, $relatedCheck) = @_;
+
+  for my $pid (keys %{$relatedCheck}) {
+    unless ($relatedCheck->{$pid}->{loaded}) {
+      # load
+      # $c->app->log->debug("getting doc of $pid ($relationfield)");
+      my $d = $self->get_doc_from_ua($c, $ua, $urlget, $pid);
+      push @{$related}, $d;
+      $relatedCheck->{$pid}->{loaded} = 1;
+      # add found relationships
+      if ($d->{$relationfield}) {
+        for my $r (@{$d->{$relationfield}}) {
+          unless ($relatedCheck->{$pid}) {
+            $relatedCheck->{$pid} = {
+              loaded => 0,
+              checked => 0
+            };
+          }
+        }
+      }
+    }
+    
+    # add reverse relationships
+    # $c->app->log->debug("reverse: getting docs where $pid is $relationfield");
+    $urlget->query(q => "$relationfield:\"$pid\"", rows => "1000", wt => "json");
+    my $r = $ua->get($urlget)->result;
+    if ($r->is_success) {
+      for my $d (@{$r->json->{response}->{docs}}) {
+        if ($relatedCheck->{$d->{pid}}) {
+          unless ($relatedCheck->{$d->{pid}}->{loaded}) {
+            push @{$related}, $d;
+            $relatedCheck->{$d->{pid}}->{loaded} = 1;
+          }
+        } else {
+          push @{$related}, $d;
+          $relatedCheck->{$pid} = {
+            loaded => 1,
+            checked => 0
+          };
+        }
+      }
+    } else {
+      $c->app->log->error("[$pid] error getting solr query[$relationfield:\"$pid\"]: ".$r->code." ".$r->message);
+    }
+    $relatedCheck->{$pid}->{checked} = 1;
+  }
+
+  # $c->app->log->debug("relatedCheck: ".$c->app->dumper($relatedCheck));
+
+  for my $pid (keys %{$relatedCheck}) {
+    unless ($relatedCheck->{$pid}->{checked}) {
+      $self->add_set_rec($c, $ua, $urlget, 'hassuccessor', $pid, $related, $relatedCheck);
+    }
+  }
+}
+
+sub add_indexed_and_reverse {
+  my ($self, $c, $ua, $urlget, $idx, $relationfield, $reverserelation, $pid, $rels) = @_;
+
+  if ($idx->{$relationfield}) {
+    # get doc of the related document
+    for my $relpid (@{$idx->{$relationfield}}) {
+      # $c->app->log->debug("getting doc of $relpid ($relationfield of $pid)");
+      my $d = $self->get_doc_from_ua($c, $ua, $urlget, $relpid);
+      push @{$rels->{$relationfield}}, $d if $d;
+    }
+  }
+
+  # get reverse relationships
+  # $c->app->log->debug("reverse: getting docs where $pid is $relationfield");
+  $urlget->query(q => "$relationfield:\"$pid\"", rows => "1000", wt => "json");
+  my $r = $ua->get($urlget)->result;
+  if ($r->is_success) {
+    for my $d (@{$r->json->{response}->{docs}}) {
+      push $rels->{$reverserelation}, $d;
+    }
+  }else{
+    $c->app->log->error("[$pid] error getting solr query[$relationfield:\"$pid\"]: ".$r->code." ".$r->message);
+  }
+  return undef;
+}
+
+sub get_doc_from_ua {
+  my ($self, $c, $ua, $urlget, $pid) = @_;
+
+  $urlget->query(q => "pid:\"$pid\"", rows => "1", wt => "json");
+  my $r = $ua->get($urlget)->result;
+  if ($r->is_success) {
+    for my $d (@{$r->json->{response}->{docs}}) {
+      return $d;
+    }
+  }else{
+    $c->app->log->error("[$pid] error getting solr doc for object[$pid]: ".$r->code." ".$r->message);
+  }
 }
 
 1;

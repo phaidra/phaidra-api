@@ -83,7 +83,7 @@ sub info {
   my $info;
 
   my $index_model = PhaidraAPI::Model::Index->new;
-  my $docres = $index_model->getDoc($c, $pid);
+  my $docres = $index_model->get_doc($c, $pid);
   if ($docres->{status} != 200) {
     return $docres;
   } else {
@@ -91,28 +91,34 @@ sub info {
   }
 
   if ($info->{cmodel} eq 'Collection') {
-    my $urlget = Mojo::URL->new;
-    $urlget->scheme($c->app->config->{solr}->{scheme});
-    $urlget->host($c->app->config->{solr}->{host});
-    $urlget->port($c->app->config->{solr}->{port});
-    if($c->app->config->{solr}->{path}){
-      $urlget->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/select");
+    my $r_hps = $index_model->get_haspart_size($c, $pid);
+    if($r_hps->{status} ne 200){
+      push @{$res->{alerts}}, @{$r_hps->{alerts}} if scalar @{$r_hps->{alerts}} > 0;
+      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting JSON-LD' };
     }else{
-      $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
+      $info->{haspartsize} = $r_hps->{haspartsize};
     }
+  }
 
-    $urlget->query(q => "ispartof:\"$pid\"", fl => "pid", rows => "0", wt => "json");
-
-    my $ua = Mojo::UserAgent->new;
-
-    my $r_num = $ua->get($urlget)->result;
-    my $numFound;
-    if ($r_num->is_success) {
-      $info->{haspartsize} = $r_num->json->{response}->{numFound};
+  if ($info->{cmodel} eq 'Container') {
+    my $r_mmbrs = $index_model->get_object_members($c, $pid);
+    if($r_mmbrs->{status} ne 200){
+      push @{$res->{alerts}}, @{$r_mmbrs->{alerts}} if scalar @{$r_mmbrs->{alerts}} > 0;
+      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting JSON-LD' };
     }else{
-      $c->app->log->error("[$pid] error getting object collection size: ".$r_num->code." ".$r_num->message);
-      unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting collection size: ".$r_num->code." ".$r_num->message};
+      $info->{members} = $r_mmbrs->{members};
     }
+  }
+
+  my $r_rels = $index_model->get_relationships($c, $pid);
+  if($r_rels->{status} ne 200){
+    push @{$res->{alerts}}, @{$r_rels->{alerts}} if scalar @{$r_rels->{alerts}} > 0;
+    push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting JSON-LD' };
+  }else{
+    $info->{relationships} = $r_rels->{relationships};
+    $info->{versions} = $r_rels->{versions};
+    $info->{alternativeversions} = $r_rels->{alternativeversions};
+    $info->{alternativeformats} = $r_rels->{alternativeformats};
   }
 
   if (exists($info->{uwm_roles_json})) {
