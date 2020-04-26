@@ -61,11 +61,7 @@ sub get_relationships {
     hasbackside => [],
     issuccesorof => [],
     haslaternativeformat => [],
-    haslaternativeversion => [],
-    # sets
-    versions => [],
-    alternativeversions => [],
-    alternativeformats => []
+    haslaternativeversion => []
   };
 
   # reverse only
