@@ -832,7 +832,9 @@ sub stats_topdownloads {
     for my $pid (@tops) {
       my $docres = $index_model->get_doc($self, $pid);
       if ($docres->{status} eq 200) {
-        push @topdownloads, $docres->{doc};
+        if ($docres->{doc}) {
+          push @topdownloads, $docres->{doc};
+        }
       }
     }
 
