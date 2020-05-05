@@ -28,7 +28,8 @@ our %indexed_datastreams = (
   "GEO" => 1,
   "RELS-EXT" => 1,
   "JSON-LD" => 1,
-  "COLLECTIONORDER" => 1
+  "COLLECTIONORDER" => 1,
+  "RIGHTS" => 1
 );
 
 our %cmodel_2_resourcetype = (
@@ -1188,6 +1189,32 @@ sub _get {
 
     # for fast annotation access, add them as json as well
     $index{annotations_json} = b(encode_json($r_ann->{annotations}))->decode('UTF-8');
+  }
+
+  if(exists($datastreams{'RIGHTS'})){
+
+    my $rights_model = PhaidraAPI::Model::Rights->new;
+    my $r_rights = $rights_model->xml_2_json($c, $datastreams{'RIGHTS'}->find('foxml\:xmlContent')->first);
+    if($r_rights->{status} ne 200){      
+      push @{$res->{alerts}}, { type => 'danger', msg => "Error indexing RIGHTS from $pid" };
+      push @{$res->{alerts}}, @{$r_rights->{alerts}} if scalar @{$r_rights->{alerts}} > 0;
+    }else{
+      my @expires;
+      for my $id (keys %{$r_rights->{rights}}) {
+        if (exists($r_rights->{rights}->{$id})) {
+          for my $rule (@{$r_rights->{rights}->{$id}}) {
+            if (exists($rule->{expires})) {
+              push @expires, $rule->{expires};
+            }
+          }
+        }
+      }
+      my $nrExpires = scalar @expires;
+      if ($nrExpires > 0) {
+        my @sorted_expires = sort @expires;
+        $index{checkafter} = $sorted_expires[0];
+      }
+    }
   }
   
   if(exists($datastreams{'COLLECTIONORDER'})){
