@@ -1195,7 +1195,7 @@ sub _get {
 
     my $rights_model = PhaidraAPI::Model::Rights->new;
     my $r_rights = $rights_model->xml_2_json($c, $datastreams{'RIGHTS'}->find('foxml\:xmlContent')->first);
-    if($r_rights->{status} ne 200){      
+    if($r_rights->{status} ne 200){
       push @{$res->{alerts}}, { type => 'danger', msg => "Error indexing RIGHTS from $pid" };
       push @{$res->{alerts}}, @{$r_rights->{alerts}} if scalar @{$r_rights->{alerts}} > 0;
     }else{
@@ -1203,8 +1203,10 @@ sub _get {
       for my $id (keys %{$r_rights->{rights}}) {
         if (exists($r_rights->{rights}->{$id})) {
           for my $rule (@{$r_rights->{rights}->{$id}}) {
-            if (exists($rule->{expires})) {
-              push @expires, $rule->{expires};
+            if (ref $rule eq ref {}) {
+              if (exists($rule->{expires})) {
+                push @expires, $rule->{expires};
+              }
             }
           }
         }
