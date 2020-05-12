@@ -902,12 +902,12 @@ sub stats {
     $irsiteid = $fr->{stats}->{siteid};
   }
 
-  my $cachekey = 'stats_'.$irsiteid.'_'.$pid;
-  my $cacheval = $self->app->chi->get($cachekey);
+  #my $cachekey = 'stats_'.$irsiteid.'_'.$pid;
+  #my $cacheval = $self->app->chi->get($cachekey);
+  my $stats;
+  #unless($cacheval){
 
-  unless($cacheval){
-
-    $self->app->log->debug("[cache miss] $cachekey");
+    #$self->app->log->debug("[cache miss] $cachekey");
 
     my $pidnum = $pid;
     $pidnum =~ s/://g;
@@ -915,6 +915,8 @@ sub stats {
     my $sth = $self->app->db_stats_phaidra_catalyst->prepare("CREATE TEMPORARY TABLE pid_visits_idsite_downloads_$pidnum AS (SELECT piwik_log_link_visit_action.idsite FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE piwik_log_action.name like '%download/$pid%');");
     $sth->execute();
     my $downloads = $self->app->db_stats_phaidra_catalyst->selectrow_array("SELECT count(*) FROM pid_visits_idsite_downloads_$pidnum WHERE idsite = $irsiteid;");
+    $sth = $self->app->db_stats_phaidra_catalyst->prepare("DROP TEMPORARY TABLE IF EXISTS pid_visits_idsite_downloads_$pidnum;");
+    $sth->execute();
 
     unless(defined($downloads)){
       $self->app->log->error("Error querying piwik database for download stats:".$self->app->db_stats_phaidra_catalyst->errstr);
@@ -924,24 +926,28 @@ sub stats {
     my $sth = $self->app->db_stats_phaidra_catalyst->prepare("CREATE TEMPORARY TABLE pid_visits_idsite_detail_$pidnum AS (SELECT piwik_log_link_visit_action.idsite FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE piwik_log_action.name like '%detail/$pid%');");
     $sth->execute();
     my $detail_page = $self->app->db_stats_phaidra_catalyst->selectrow_array("SELECT count(*) FROM pid_visits_idsite_detail_$pidnum WHERE idsite = $irsiteid;");
-  
+    $sth = $self->app->db_stats_phaidra_catalyst->prepare("DROP TEMPORARY TABLE IF EXISTS pid_visits_idsite_detail_$pidnum;");
+    $sth->execute();
+
     unless(defined($detail_page)){
       $self->app->log->error("Error querying piwik database for detail stats:".$self->app->db_stats_phaidra_catalyst->errstr);
     }
 
     if(defined($detail_page) || defined($downloads)){
-      $cacheval = { downloads => $downloads, detail_page => $detail_page };
-      $self->app->chi->set($cachekey, $cacheval, '1 day');
+      #$cacheval = { downloads => $downloads, detail_page => $detail_page };
+      #$self->app->chi->set($cachekey, $cacheval, '1 day');
+      $stats = { downloads => $downloads, detail_page => $detail_page };
     }
-  }else{
-    $self->app->log->debug("[cache hit] $cachekey");
-  }
+  #}else{
+  #  $self->app->log->debug("[cache hit] $cachekey");
+  #}
 
-  if(defined($key)){
-    $self->render(text => $cacheval->{$key}, status => 200);
-  }else{
-    $self->render(json => { stats => $cacheval }, status => 200);
-  }
+  # if(defined($key)){
+  #   $self->render(text => $cacheval->{$key}, status => 200);
+  # }else{
+  #   $self->render(json => { stats => $cacheval }, status => 200);
+  # }
+  $self->render(json => { stats => $stats }, status => 200);
 }
 
 sub stats_chart {
@@ -1006,20 +1012,33 @@ sub stats_chart {
     $pidnum =~ s/://g;
 
     my $downloads;
-    my $sth = $self->app->db_stats_phaidra_catalyst->prepare("SELECT DATE_FORMAT(server_time,'%Y-%m-%d') FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE idsite = $irsiteid AND (piwik_log_action.name like '%download/$pid%')") or $self->app->log->error("Error querying piwik database for download stats chart:".$self->app->db_stats_phaidra_catalyst->errstr);
+    my $sth = $self->app->db_stats_phaidra_catalyst->prepare("SELECT DATE_FORMAT(server_time,'%Y-%m-%d'), location_country FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url INNER JOIN piwik_log_visit on piwik_log_visit.idvisit = piwik_log_link_visit_action.idvisit WHERE piwik_log_link_visit_action.idsite = $irsiteid AND (piwik_log_action.name like '%download/$pid%')") or $self->app->log->error("Error querying piwik database for download stats chart:".$self->app->db_stats_phaidra_catalyst->errstr);
     $sth->execute() or $self->app->log->error("Error querying piwik database for download stats chart:".$self->app->db_stats_phaidra_catalyst->errstr);
     my $date;
-    $sth->bind_columns(undef, \$date);
+    my $country;
+    $sth->bind_columns(undef, \$date, \$country);
     while($sth->fetch) {
-      $downloads->{$date}++;
+      if ($downloads->{$country}) {
+        $downloads->{$country}->{$date}++;
+      } else {
+        $downloads->{$country} = {
+          $date => 1
+        }
+      }
     }
 
     my $detail_page;
-    $sth = $self->app->db_stats_phaidra_catalyst->prepare("SELECT DATE_FORMAT(server_time,'%Y-%m-%d') FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE idsite = $irsiteid AND (piwik_log_action.name like '%download/$pid%')") or $self->app->log->error("Error querying piwik database for detail stats chart:".$self->app->db_stats_phaidra_catalyst->errstr);
+    $sth = $self->app->db_stats_phaidra_catalyst->prepare("SELECT DATE_FORMAT(server_time,'%Y-%m-%d'), location_country FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url INNER JOIN piwik_log_visit on piwik_log_visit.idvisit = piwik_log_link_visit_action.idvisit WHERE piwik_log_link_visit_action.idsite = $irsiteid AND (piwik_log_action.name like '%detail/$pid%')") or $self->app->log->error("Error querying piwik database for detail stats chart:".$self->app->db_stats_phaidra_catalyst->errstr);
     $sth->execute() or $self->app->log->error("Error querying piwik database for detail stats chart:".$self->app->db_stats_phaidra_catalyst->errstr);
-    $sth->bind_columns(undef, \$date);
+    $sth->bind_columns(undef, \$date, \$country);
     while($sth->fetch) {
-      $detail_page->{$date}++;
+      if ($detail_page->{$country}) {
+        $detail_page->{$country}->{$date}++;
+      } else {
+        $detail_page->{$country} = {
+          $date => 1
+        }
+      }
     }
 
     if(defined($detail_page) || defined($downloads)){
