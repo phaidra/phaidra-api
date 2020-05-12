@@ -69,7 +69,9 @@ sub stats {
         my $sth = $self->app->db_stats_phaidra_catalyst->prepare("CREATE TEMPORARY TABLE pid_visits_idsite_$pidnum AS (SELECT piwik_log_link_visit_action.idsite FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE piwik_log_action.name like '%view/$pid%' OR piwik_log_action.name like '%detail_object/$pid%' OR piwik_log_action.name like '%detail/$pid%');");
         $sth->execute();
         my $detail_page = $self->app->db_stats_phaidra_catalyst->selectrow_array("SELECT count(*) FROM pid_visits_idsite_$pidnum WHERE idsite = $siteid;");
-        
+        $sth = $self->app->db_stats_phaidra_catalyst->prepare("DROP TEMPORARY TABLE IF EXISTS pid_visits_idsite_$pidnum;");
+        $sth->execute();
+
         if(defined($detail_page)){
             $retval = { downloads => $downloads, detail_page => $detail_page };        
         }else{
