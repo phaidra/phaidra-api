@@ -337,7 +337,7 @@ sub events {
   }
 
   my @events;
-  my $ss = qq/SELECT event_type, user_id, gmtimestamp FROM event WHERE pid = ?;/;
+  my $ss = qq/SELECT event_type, user_id, gmtimestamp FROM event WHERE pid = ? ORDER BY gmtimestamp DESC;/;
   my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
   $sth->execute($pid) or $self->app->log->error($self->app->db_ir->errstr);
   my ($event, $username, $ts);
@@ -833,7 +833,15 @@ sub stats_topdownloads {
       my $docres = $index_model->get_doc($self, $pid);
       if ($docres->{status} eq 200) {
         if ($docres->{doc}) {
-          push @topdownloads, $docres->{doc};
+          my $isapproved = 0;
+          if ($docres->{doc}->{ispartof}) {
+            for my $col (@{$docres->{doc}->{ispartof}}) {
+              if ($col eq $self->config->{ir}->{ircollection}) {
+               $isapproved = 1;
+              }
+            }
+          }
+          push @topdownloads, $docres->{doc} if $isapproved;
         }
       }
     }
