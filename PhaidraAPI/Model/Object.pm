@@ -576,14 +576,36 @@ sub create_simple {
     return $res;
   }
 
+  if(exists($metadata->{metadata}->{'relationships'})){
+    $c->app->log->debug("Found relationships: ".$c->app->dumper($metadata->{metadata}->{'relationships'}));
+    foreach my $rel (@{$metadata->{metadata}->{'relationships'}}){
+      if($rel->{'s'} eq "self"){
+        $rel->{'s'} = $pid;
+      }
+      if($rel->{'o'} eq "self"){
+        $rel->{'o'} = "info:fedora/".$pid;
+      }
+    }
+    for my $rel (@{$metadata->{metadata}->{'relationships'}}){
+      $c->app->log->debug("Adding relationship s[".$rel->{'s'}."] p[".$rel->{'p'}."] o[".$rel->{'o'}."]");
+      $r = $self->add_relationship($c, $rel->{'s'}, $rel->{'p'}, $rel->{'o'}, $username, $password);
+      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+      $res->{status} = $r->{status};
+      if($r->{status} ne 200){
+        $c->app->log->error("Error adding relationship[".$c->app->dumper($rel)."] res[".$c->app->dumper($res)."]");
+        return $res;
+      }
+    }
+  }
+
   # activate
   $r = $self->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
   if($r->{status} ne 200){
     $res->{status} = $r->{status};
-  foreach my $a (@{$r->{alerts}}){
-    unshift @{$res->{alerts}}, $a;
-  }
-  unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error activating object'};
+    foreach my $a (@{$r->{alerts}}){
+      unshift @{$res->{alerts}}, $a;
+    }
+    unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error activating object'};
     return $res;
   }else{
     $c->app->log->info("Object successfully created pid[$pid]");
@@ -770,7 +792,7 @@ sub create_container {
       }
     }
     for my $rel (@{$metadata->{metadata}->{'relationships'}}){
-      $c->app->log->debug("Adding relationship s[".$rel->{'s'}."] p[".$rel->{'s'}."] o[".$rel->{'o'}."]");
+      $c->app->log->debug("Adding relationship s[".$rel->{'s'}."] p[".$rel->{'p'}."] o[".$rel->{'o'}."]");
       $r = $self->add_relationship($c, $rel->{'s'}, $rel->{'p'}, $rel->{'o'}, $username, $password);
       push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
       $res->{status} = $r->{status};

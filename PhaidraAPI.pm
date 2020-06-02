@@ -359,7 +359,9 @@ sub startup {
   $r->route('signout')                            ->via('get')    ->to('authentication#signout');
   $r->route('keepalive')                          ->via('get')    ->to('authentication#keepalive');
 
-	$r->route('collection/:pid/members')            ->via('get')    ->to('collection#get_collection_members');
+  $r->route('collection/:pid/members')            ->via('get')    ->to('collection#get_collection_members');
+  $r->route('collection/:pid/descendants')        ->via('get')    ->to('collection#descendants');
+
 	# does not show inactive objects, not specific to collection (but does ordering)
   $r->route('object/:pid/related')                ->via('get')    ->to('search#related');
 

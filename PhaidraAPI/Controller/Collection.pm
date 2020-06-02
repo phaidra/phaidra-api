@@ -11,6 +11,75 @@ use PhaidraAPI::Model::Collection;
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Membersorder;
 
+sub descendants {
+
+  my $self = shift;
+
+  my $res = { alerts => [], status => 200 };
+
+  unless(defined($self->stash('pid'))){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
+    return;
+  }
+
+  my $pid = $self->stash('pid');
+
+  my $ua = Mojo::UserAgent->new;
+
+  my $urlget = Mojo::URL->new;
+  $urlget->scheme($self->app->config->{solr}->{scheme});
+  $urlget->host($self->app->config->{solr}->{host});
+  $urlget->port($self->app->config->{solr}->{port});
+  if($self->app->config->{solr}->{path}){
+    $urlget->path("/".$self->app->config->{solr}->{path}."/solr/".$self->app->config->{solr}->{core}."/select");
+  }else{
+    $urlget->path("/solr/".$self->app->config->{solr}->{core}."/select");
+  }
+
+  my $root;
+  $urlget->query(q => "*:*", fq => "pid:\"$pid\"", rows => "1", wt => "json");
+  my $getres = $ua->get($urlget)->result;
+  if ($getres->is_success) {
+    for my $d (@{$getres->json->{response}->{docs}}){
+      $self->app->log->debug("[$pid] got root doc");
+      $root = $d;
+      last;
+    }
+  }else{
+    my $err = "[$pid] error getting root doc from solr: ".$getres->code." ".$getres->message;
+    $self->app->log->error($err);
+    unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+    $res->{status} =  $getres->code ? $getres->code : 500;
+    return $res;
+  }
+
+  $self->descendants_rec($ua, $urlget, $root, $pid);
+
+  $res->{descendants} = {
+     root => $root
+  };
+
+  $self->render(json => $res, status => $res->{status});
+}
+
+sub descendants_rec {
+  my ($self, $ua, $urlget, $currentNode, $path) = @_;
+
+  $self->app->log->debug("[$path] querying children of $currentNode->{pid}");
+  $currentNode->{children} = [];
+  # we're only looking for collections, so it's not necessary to query numFound first (shouldn't be too many)
+  $urlget->query(q => "*:*", fq => "ispartof:\"$currentNode->{pid}\" AND cmodel:\"Collection\"", rows => "1000000", wt => "json");
+  my $getres = $ua->get($urlget)->result;
+  if ($getres->is_success) {
+    for my $d (@{$getres->json->{response}->{docs}}){
+      push @{$currentNode->{children}}, $d;
+      $self->descendants_rec($ua, $urlget, $d, $path . ' > ' . $d->{pid});
+    }
+  }else{
+    $self->app->log->error("[$path] [$currentNode->{pid}] error getting children from solr: ".$getres->code." ".$getres->message);
+  }
+}
+
 sub add_collection_members {
 
 	my $self = shift;
