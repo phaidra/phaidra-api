@@ -41,7 +41,7 @@ sub descendants {
   my $getres = $ua->get($urlget)->result;
   if ($getres->is_success) {
     for my $d (@{$getres->json->{response}->{docs}}){
-      $self->app->log->debug("[$pid] got root doc");
+      # $self->app->log->debug("[$pid] got root doc");
       $root = $d;
       last;
     }
@@ -65,7 +65,7 @@ sub descendants {
 sub descendants_rec {
   my ($self, $ua, $urlget, $currentNode, $path) = @_;
 
-  $self->app->log->debug("[$path] querying children of $currentNode->{pid}");
+  # $self->app->log->debug("[$path] querying children of $currentNode->{pid}");
   $currentNode->{children} = [];
   # we're only looking for collections, so it's not necessary to query numFound first (shouldn't be too many)
   $urlget->query(q => "*:*", fq => "ispartof:\"$currentNode->{pid}\" AND cmodel:\"Collection\"", rows => "1000000", wt => "json");
