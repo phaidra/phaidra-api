@@ -28,12 +28,12 @@ our %jsonld_creator_roles =
 our %jsonld_identifiers =
 (
   'schema:url' => 'url',
-  'identifiers:urn' => 'urn',
-  'identifiers:hdl' => 'hdl',
-  'identifiers:doi' => 'doi',
-  'identifiers:isbn' => 'isbn',
-  'identifiers:issn' => 'issn',
-  'identifiers:local' => 'local'
+  'ids:urn' => 'urn',
+  'ids:hdl' => 'hdl',
+  'ids:doi' => 'doi',
+  'ids:isbn' => 'isbn',
+  'ids:issn' => 'issn',
+  'ids:local' => 'local'
 );
 
 sub _get_jsonld_titles {
@@ -77,8 +77,8 @@ sub _get_jsonld_sources {
         $new->{lang} = $o->{'dce:title'}[0]->{'bf:mainTitle'}[0]->{'@language'};
       }
       push @dcsources, $new;
-      if (exists($o->{'identifiers:issn'}) && $o->{'identifiers:issn'} ne ''){
-        push @dcsources, { value => 'issn:'.$o->{'identifiers:issn'}[0] };
+      if (exists($o->{'ids:issn'}) && $o->{'ids:issn'} ne ''){
+        push @dcsources, { value => 'issn:'.$o->{'ids:issn'}[0] };
       }
     }
   }
@@ -189,8 +189,8 @@ sub _get_jsonld_roles {
   for my $pred (keys %{$jsonld}){
     if($pred =~ m/role:(\w+)/g){
       my $role = $1;
-      my $name;
       for my $contr (@{$jsonld->{$pred}}){
+        my $name;
         if($contr->{'@type'} eq 'schema:Person'){
           if($contr->{'schema:givenName'} || $contr->{'schema:familyName'}) {
             $name = $contr->{'schema:givenName'}[0]->{'@value'}." ".$contr->{'schema:familyName'}[0]->{'@value'};
@@ -202,16 +202,102 @@ sub _get_jsonld_roles {
         }else{
           $c->app->log->error("_get_jsonld_roles: Unknown contributor type in jsonld");
         }
-      }
-      if($jsonld_creator_roles{$role}){
-        push @creators, { value => $name };
-      }else{
-        push @contributors, { value => $name };
+        if($contr->{'schema:affiliation'}) {
+            for my $aff (@{$contr->{'schema:affiliation'}}) {
+              if ($aff->{'skos:exactMatch'}) {
+                for my $id (@{$aff->{'skos:exactMatch'}}) {
+                  my $pp = $c->app->directory->org_get_parentpath($c, $id);
+                  if ($pp->{status} eq 200) {
+                    my @parentpathlabels;
+                    for my $parent (@{$pp->{parentpath}}) {
+                      if ($parent->{'@id'} ne 'https://pid.phaidra.org/univie-org/1DVY-S9TG') {
+                        if (exists($parent->{'skos:prefLabel'})) {
+                          if (exists($parent->{'skos:prefLabel'}->{'eng'})) {
+                            push @parentpathlabels, $parent->{'skos:prefLabel'}->{'eng'};
+                          }
+                        }
+                      }
+                    }
+                    if (scalar @parentpathlabels > 0) {
+                      $name .= ' ('.join(', ', @parentpathlabels).')';
+                    }
+                  }
+                }
+              } elsif (exists($aff->{'schema:name'})) {
+                for my $affname (@{$aff->{'schema:name'}}) {
+                  $name .= ' ('.$affname->{'@value'}.')';
+                }
+              }
+            }
+          }
+        if($jsonld_creator_roles{$role}){
+          push @creators, { value => $name };
+        }else{
+          if ($role ne 'uploader') {
+            push @contributors, { value => $name };
+          }
+        }
       }
     }
   }
 
   return (\@creators, \@contributors);
+}
+
+sub _get_jsonld_publishers {
+  my ($self, $c, $jsonld) = @_;
+
+  my @arr;
+  if(exists($jsonld->{'bf:provisionActivity'})){
+    for my $pa (@{$jsonld->{'bf:provisionActivity'}}) {
+      if (exists($pa->{'bf:agent'})) {
+        for my $ag (@{$pa->{'bf:agent'}}) {
+          if (exists($ag->{'schema:name'})) {
+            my %publisherNames;
+            for my $pn (@{$ag->{'schema:name'}}) {
+              if (exists($pn->{'@language'}) && ($pn->{'@language'} ne 'xxx')) {
+                $publisherNames{$pn->{'@language'}} = $pn->{'@value'};
+              } else {
+                $publisherNames{'nolang'} = $pn->{'@value'};
+              }
+            }
+            my $publisher;
+            my $addInstitutionName = 0;
+            if (exists($ag->{'skos:exactMatch'})) {
+              for my $pubId (@{$ag->{'skos:exactMatch'}}) {
+                if (rindex($pubId, 'https://pid.phaidra.org/', 0) == 0) {
+                  $addInstitutionName = 1;
+                  last;
+                }
+              }
+            }
+            if (exists($publisherNames{'nolang'})) {
+              $publisher = $publisherNames{'nolang'} if $publisherNames{'nolang'} ne '';
+            } else {
+              if (exists($publisherNames{'eng'})) {
+                $publisher = $publisherNames{'eng'} if $publisherNames{'eng'} ne '';
+              } else {
+                for my $pubNameLang (keys %publisherNames) {
+                  $publisher = $publisherNames{$pubNameLang} if $publisherNames{$pubNameLang} ne '';
+                  last;
+                }
+              }
+            }
+            if ($addInstitutionName) {
+              my $institutionName = $c->app->directory->get_org_name($c, 'eng');
+              if ($institutionName) {
+                if ((index($publisher, $institutionName) == -1)) {
+                  $publisher = "$institutionName. $publisher";
+                }
+              }
+            }
+            push @arr, { value => $publisher };
+          }
+        }
+      }
+    }
+  }
+  return \@arr;
 }
 
 sub _get_jsonld_langvalues {

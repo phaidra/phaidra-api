@@ -248,7 +248,8 @@ sub approve
     $self->render(json => { alerts => [{ type => 'danger', msg => 'No pid sent.' }]}, status => 400);
     return;
   }
-
+  
+  $self->app->log->debug("ir: approve: adding [$pid] to collection [".$self->config->{ir}->{ircollection}."]...");
   my $object_model = PhaidraAPI::Model::Object->new;
   my $r = $object_model->add_relationship($self, $self->config->{ir}->{ircollection}, "info:fedora/fedora-system:def/relations-external#hasCollectionMember", "info:fedora/".$pid, $username, $password, 0);
   if($r->{status} ne 200){
@@ -258,6 +259,7 @@ sub approve
     $self->render(json => $res, status => $res->{status});
     return;
   }
+  $self->app->log->debug("ir: approve: adding [$pid] to collection [".$self->config->{ir}->{ircollection}."]...finished");
 
   my @pids = ($pid);
   $self->addEvent('approve', \@pids, $username);
