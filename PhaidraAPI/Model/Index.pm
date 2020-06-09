@@ -422,6 +422,13 @@ sub get_doc {
   my $getres = $ua->get($urlget)->result;
 
   if ($getres->is_success) {
+    if ($getres->json->{response}->{numFound} eq 0) {
+      my $err = "[$pid] object not found in index";
+      $c->app->log->error($err);
+      unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+      $res->{status} = 404;
+      return $res;
+    }
     for my $d (@{$getres->json->{response}->{docs}}){
       $doc = $d;
       last;
@@ -430,7 +437,7 @@ sub get_doc {
     my $err = "[$pid] error getting object info from solr: ".$res->code." ".$res->message;
     $c->app->log->error($err);
     unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-    $res->{status} =  $res->code ? $res->code : 500;
+    $res->{status} = $res->code ? $res->code : 500;
     return $res;
   }
 
