@@ -422,6 +422,13 @@ sub get_doc {
   my $getres = $ua->get($urlget)->result;
 
   if ($getres->is_success) {
+    if ($getres->json->{response}->{numFound} eq 0) {
+      my $err = "[$pid] object not found in index";
+      $c->app->log->error($err);
+      unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+      $res->{status} = 404;
+      return $res;
+    }
     for my $d (@{$getres->json->{response}->{docs}}){
       $doc = $d;
       last;
@@ -430,7 +437,7 @@ sub get_doc {
     my $err = "[$pid] error getting object info from solr: ".$res->code." ".$res->message;
     $c->app->log->error($err);
     unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-    $res->{status} =  $res->code ? $res->code : 500;
+    $res->{status} = $res->code ? $res->code : 500;
     return $res;
   }
 
@@ -1055,34 +1062,6 @@ sub _get {
     }
   } 
 
-  if(exists($datastreams{'UWMETADATA'})){
-
-    my $tadduwmindex = [gettimeofday];
-    my $r_add_uwm = $self->_add_uwm_index($c, $pid, $datastreams{'UWMETADATA'}->find('foxml\:xmlContent')->first, \%index);
-    $c->app->log->debug("_add_uwm_index took ".tv_interval($tadduwmindex));
-    if($r_add_uwm->{status} ne 200){
-      push @{$res->{alerts}}, { type => 'danger', msg => "Error adding UWMETADATA fields for $pid" };
-      push @{$res->{alerts}}, @{$r_add_uwm->{alerts}} if scalar @{$r_add_uwm->{alerts}} > 0;
-    }
-        
-    my $uw_model = PhaidraAPI::Model::Uwmetadata->new;
-
-    my $tgetuwmtree = [gettimeofday];
-    my $r0 = $uw_model->metadata_tree($c);
-    $c->app->log->debug("getting metadata_tree took ".tv_interval($tgetuwmtree));
-
-    if($r0->{status} ne 200){
-      push @{$res->{alerts}}, { type => 'danger', msg => "Error getting UWMETADATA tree for $pid" };
-      push @{$res->{alerts}}, @{$r0->{alerts}} if scalar @{$r0->{alerts}} > 0;
-    }else{
-      my $tmapuwmdc = [gettimeofday];
-      my ($dc_p, $dc_oai) = $dc_model->map_uwmetadata_2_dc_hash($c, $pid, $index{cmodel}, $datastreams{'UWMETADATA'}->find('foxml\:xmlContent')->first, $r0->{metadata_tree}, $uw_model, 1);
-      $c->app->log->debug("mapping uwm to dc took ".tv_interval($tmapuwmdc));
-      #$c->app->log->debug("XXXXXXXXXXXXXXXXX ".$c->app->dumper($dc_p));
-      $self->_add_dc_index($c, $dc_p, \%index);
-    }
-  }
- 
   if(exists($datastreams{'GEO'})){
 
     my $geo_model = PhaidraAPI::Model::Geo->new;
@@ -1166,7 +1145,31 @@ sub _get {
         $self->_add_dc_index($c, $dc_p, \%index);
       }
     }
+  } elsif(exists($datastreams{'UWMETADATA'})){ # keep in else to avoid overwriting index fields for objects which have both JSON-LD and uwmetadata
+    my $tadduwmindex = [gettimeofday];
+    my $r_add_uwm = $self->_add_uwm_index($c, $pid, $datastreams{'UWMETADATA'}->find('foxml\:xmlContent')->first, \%index);
+    $c->app->log->debug("_add_uwm_index took ".tv_interval($tadduwmindex));
+    if($r_add_uwm->{status} ne 200){
+      push @{$res->{alerts}}, { type => 'danger', msg => "Error adding UWMETADATA fields for $pid" };
+      push @{$res->{alerts}}, @{$r_add_uwm->{alerts}} if scalar @{$r_add_uwm->{alerts}} > 0;
+    }
+        
+    my $uw_model = PhaidraAPI::Model::Uwmetadata->new;
 
+    my $tgetuwmtree = [gettimeofday];
+    my $r0 = $uw_model->metadata_tree($c);
+    $c->app->log->debug("getting metadata_tree took ".tv_interval($tgetuwmtree));
+
+    if($r0->{status} ne 200){
+      push @{$res->{alerts}}, { type => 'danger', msg => "Error getting UWMETADATA tree for $pid" };
+      push @{$res->{alerts}}, @{$r0->{alerts}} if scalar @{$r0->{alerts}} > 0;
+    }else{
+      my $tmapuwmdc = [gettimeofday];
+      my ($dc_p, $dc_oai) = $dc_model->map_uwmetadata_2_dc_hash($c, $pid, $index{cmodel}, $datastreams{'UWMETADATA'}->find('foxml\:xmlContent')->first, $r0->{metadata_tree}, $uw_model, 1);
+      $c->app->log->debug("mapping uwm to dc took ".tv_interval($tmapuwmdc));
+      #$c->app->log->debug("XXXXXXXXXXXXXXXXX ".$c->app->dumper($dc_p));
+      $self->_add_dc_index($c, $dc_p, \%index);
+    }
   }
 
   if(exists($datastreams{'ANNOTATIONS'})){

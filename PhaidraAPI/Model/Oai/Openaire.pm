@@ -152,7 +152,7 @@ sub _get_roles {
   my @roles;
 
   my $arr = decode_json(b($str)->encode('UTF-8'));
-  $c->app->log->debug("XXXXXXXXXXX arr:\n".$c->app->dumper($arr));
+  # $c->app->log->debug("XXXXXXXXXXX arr:\n".$c->app->dumper($arr));
   for my $hash (@{$arr}) {
     for my $rolePredicate (keys %{$hash}) {
       for my $e (@{$hash->{$rolePredicate}}) {
@@ -337,7 +337,7 @@ sub _get_roles {
       }
     }
   }
-$c->app->log->debug("XXXXXXXXXXX roles:\n".$c->app->dumper(\@roles));
+#$c->app->log->debug("XXXXXXXXXXX roles:\n".$c->app->dumper(\@roles));
   return \@roles;
 }
 

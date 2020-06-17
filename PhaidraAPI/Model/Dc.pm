@@ -249,13 +249,16 @@ sub map_jsonld_2_dc_hash {
   $dc_p{description} = [];
   $dc_p{coverage} = [];
   $dc_p{subject} = [];
+  $dc_p{date} = [];
 
   $dc_p{type} = $ext->_get_jsonld_objectlabels($c, $jsonld, 'dcterms:type');
 
   $dc_p{title} = $ext->_get_jsonld_titles($c, $jsonld);
 
   $dc_p{source} = $ext->_get_jsonld_sources($c, $jsonld);
-  
+
+  $dc_p{publisher} = $ext->_get_jsonld_publishers($c, $jsonld);
+
   for my $d (@{$ext->_get_jsonld_descriptions($c, $jsonld)}){
     push @{$dc_p{description}}, $d;
   }
@@ -312,8 +315,32 @@ sub map_jsonld_2_dc_hash {
   }
 
   $dc_p{language} = $ext->_get_jsonld_values($c, $jsonld, 'dcterms:language');
-  $dc_p{date} = $ext->_get_jsonld_values($c, $jsonld, 'dcterms:created');
-  
+
+  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:date')}){
+    push @{$dc_p{date}}, $d;
+  }
+  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:created')}){
+    push @{$dc_p{date}}, $d;
+  }
+  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:modified')}){
+    push @{$dc_p{date}}, $d;
+  }
+  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:issued')}){
+    push @{$dc_p{date}}, $d;
+  }
+  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:dateAccepted')}){
+    push @{$dc_p{date}}, $d;
+  }
+  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:dateCopyrighted')}){
+    push @{$dc_p{date}}, $d;
+  }
+  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:dateSubmitted')}){
+    push @{$dc_p{date}}, $d;
+  }
+  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'rdau:P60071')}){
+    push @{$dc_p{date}}, $d;
+  }
+
   my $tcs = $ext->_get_jsonld_langvalues($c, $jsonld, 'schema:temporalCoverage');
   for my $tc (@{$tcs}){
     push @{$dc_p{coverage}}, $tc;

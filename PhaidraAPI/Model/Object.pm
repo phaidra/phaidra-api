@@ -94,7 +94,7 @@ sub info {
     my $r_hps = $index_model->get_haspart_size($c, $pid);
     if($r_hps->{status} ne 200){
       push @{$res->{alerts}}, @{$r_hps->{alerts}} if scalar @{$r_hps->{alerts}} > 0;
-      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting JSON-LD' };
+      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting haspart size' };
     }else{
       $info->{haspartsize} = $r_hps->{haspartsize};
     }
@@ -104,7 +104,7 @@ sub info {
     my $r_mmbrs = $index_model->get_object_members($c, $pid);
     if($r_mmbrs->{status} ne 200){
       push @{$res->{alerts}}, @{$r_mmbrs->{alerts}} if scalar @{$r_mmbrs->{alerts}} > 0;
-      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting JSON-LD' };
+      push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting object members' };
     }else{
       $info->{members} = $r_mmbrs->{members};
     }
@@ -113,7 +113,7 @@ sub info {
   my $r_rels = $index_model->get_relationships($c, $pid);
   if($r_rels->{status} ne 200){
     push @{$res->{alerts}}, @{$r_rels->{alerts}} if scalar @{$r_rels->{alerts}} > 0;
-    push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting JSON-LD' };
+    push @{$res->{alerts}}, { type => 'danger', msg => 'Error getting relationships' };
   }else{
     $info->{relationships} = $r_rels->{relationships};
     $info->{versions} = $r_rels->{versions};
