@@ -599,7 +599,7 @@ sub get_cmodel {
 			}
 		}
 
-		$c->app->chi->set($cachekey, $cmodel, '1 day');	    
+		$c->app->chi->set($cachekey, $cmodel, '1 day');
   	}else{
   		$c->app->log->debug("[cache hit] $cachekey");
   	}
