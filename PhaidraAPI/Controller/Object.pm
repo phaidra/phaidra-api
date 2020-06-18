@@ -7,6 +7,8 @@ use base 'Mojolicious::Controller';
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::Util qw(encode decode);
 use Mojo::ByteStream qw(b);
+use Mojo::Upload;
+use Mojo::Path;
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Collection;
 use PhaidraAPI::Model::Search;
@@ -125,6 +127,8 @@ sub create_simple {
 
 	my $res = { alerts => [], status => 200 };
 
+  my $object_model = PhaidraAPI::Model::Object->new;
+
 	if($self->req->is_limit_exceeded){
         $self->app->log->debug("Size limit exceeded. Current max_message_size:".$self->req->max_message_size);
     	$self->render(json => { alerts => [{ type => 'danger', msg => 'File is too big' }]}, status => 400);
@@ -160,10 +164,42 @@ sub create_simple {
 
 	my $mimetype = $self->param('mimetype');
 	my $upload = $self->req->upload('file');
+  unless ($upload) {
+    my $pullupload = $self->param('pullupload');
+    if ($pullupload) {
+      if (!$self->app->config->{'pullupload_folder'}) {
+        $self->app->log->error("Error: pullupload sent [$pullupload] but pullupload_folder [".$self->app->config->{'pullupload_folder'}."] was not configured.");
+        unshift @{$res->{alerts}}, { type => 'danger', msg => $@ };
+        $res->{status} = 400;
+        $self->render(json => $res , status => $res->{status});
+        return;
+      }
+      $pullupload = $self->app->config->{'pullupload_folder'}.'/'.$pullupload;
+      if (-r $pullupload) {
+        my $fileAssset = Mojo::Asset::File->new(path => $pullupload);
+        $upload = Mojo::Upload->new;
+        $upload->asset($fileAssset);
+        my $pulluploadPath = Mojo::Path->new($pullupload);
+        my @parts = @{$pulluploadPath->parts};
+        my $filename = $parts[-1];
+        $upload->filename($filename);
+      } else {
+        $self->app->log->error("Error: pullupload [$pullupload] not readable.");
+        unshift @{$res->{alerts}}, { type => 'danger', msg => $@ };
+        $res->{status} = 400;
+        $self->render(json => $res , status => $res->{status});
+        return;
+      }
+      unless ($mimetype) {
+        $mimetype = $object_model->get_mimetype($self, $upload->asset);
+        $self->app->log->info("Undefined mimetype, using magic: $mimetype");
+      }
+    }
+  }
   my $checksumtype = $self->param('checksumtype');
 	my $checksum = $self->param('checksum');
 
-	my $object_model = PhaidraAPI::Model::Object->new;
+	
     my $r = $object_model->create_simple($self, $self->stash('cmodel'), $metadata, $mimetype, $upload, $checksumtype, $checksum, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
    	if($r->{status} ne 200){
    		$res->{status} = $r->{status};

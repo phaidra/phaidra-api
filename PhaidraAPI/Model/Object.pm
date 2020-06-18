@@ -946,6 +946,7 @@ sub save_metadata {
 	$c->app->log->debug("Adding metadata");
 	my $found = 0;
 	my $found_bib = 0;
+
 	foreach my $f (keys %{$metadata}){
 
 		if(lc($f) eq "uwmetadata") {

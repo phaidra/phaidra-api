@@ -43,7 +43,7 @@ sub save_to_object(){
   my $res = { alerts => [], status => 200 };
 
   # validate
-  my $valres = $self->validate($c, $cmodel, $metadata);
+  my $valres = $self->validate($c, $pid, $cmodel, $metadata);
   if($valres->{status} != 200){
     $res->{status} = $valres->{status};
     foreach my $a ( @{$valres->{alerts}} ){
@@ -61,15 +61,14 @@ sub save_to_object(){
 sub validate() {
   my $self = shift;
   my $c = shift;
+  my $pid = shift;
   my $cmodel = shift;
   my $metadata = shift;
 
   my $res = { alerts => [], status => 200 };
 
-  $c->app->log->debug("XXXXXXXXXXXXXX jsonld->validate cmodel [".$cmodel."]");
   $cmodel =~ s/cmodel://g;
-  $c->app->log->debug("XXXXXXXXXXXXXX jsonld->validate cmodel cleaned [".$cmodel."]");
-  $c->app->log->debug("XXXXXXXXXXXXXX jsonld->validate metadata: ".$c->app->dumper($metadata));
+  $c->app->log->debug("pid[$pid] cmodel[$cmodel] validating metadata:\n".$c->app->dumper($metadata));
   unless (($cmodel eq 'Container') || ($cmodel eq 'Collection') || ($cmodel eq 'Resource')) {
     unless (exists($metadata->{'edm:rights'})) {
       $res->{status} = 400;
