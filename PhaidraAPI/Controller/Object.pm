@@ -17,6 +17,7 @@ use PhaidraAPI::Model::Uwmetadata;
 use PhaidraAPI::Model::Geo;
 use PhaidraAPI::Model::Mods;
 use Time::HiRes qw/tv_interval gettimeofday/;
+use File::Find;
 
 sub info {
   my $self = shift;
@@ -167,32 +168,54 @@ sub create_simple {
   unless ($upload) {
     my $pullupload = $self->param('pullupload');
     if ($pullupload) {
-      if (!$self->app->config->{'pullupload_folder'}) {
-        $self->app->log->error("Error: pullupload sent [$pullupload] but pullupload_folder [".$self->app->config->{'pullupload_folder'}."] was not configured.");
+      if (!$self->app->config->{'pullupload'}) {
+        $self->app->log->error("Error: pullupload sent [$pullupload] but pullupload [".$self->app->config->{'pullupload'}."] was not configured.");
         unshift @{$res->{alerts}}, { type => 'danger', msg => $@ };
         $res->{status} = 400;
         $self->render(json => $res , status => $res->{status});
         return;
       }
-      $pullupload = $self->app->config->{'pullupload_folder'}.'/'.$pullupload;
-      if (-r $pullupload) {
-        my $fileAssset = Mojo::Asset::File->new(path => $pullupload);
-        $upload = Mojo::Upload->new;
-        $upload->asset($fileAssset);
-        my $pulluploadPath = Mojo::Path->new($pullupload);
-        my @parts = @{$pulluploadPath->parts};
-        my $filename = $parts[-1];
-        $upload->filename($filename);
-      } else {
-        $self->app->log->error("Error: pullupload [$pullupload] not readable.");
-        unshift @{$res->{alerts}}, { type => 'danger', msg => $@ };
-        $res->{status} = 400;
-        $self->render(json => $res , status => $res->{status});
-        return;
-      }
-      unless ($mimetype) {
-        $mimetype = $object_model->get_mimetype($self, $upload->asset);
-        $self->app->log->info("Undefined mimetype, using magic: $mimetype");
+
+      for my $rule (@{$self->app->config->{'pullupload'}}){
+        if ($rule->{username} eq $self->stash->{basic_auth_credentials}->{username}) {
+          $self->directory->authenticate($self, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+          my $res = $self->stash('phaidra_auth_result');
+          unless(($res->{status} eq 200)){    
+            $self->app->log->info("User ".$self->stash->{basic_auth_credentials}->{username}." not authenticated (pullupload)");	
+            $self->render(json => { status => $res->{status}, alerts => $res->{alerts} } , status => $res->{status}) ;
+            return;
+          }
+          $self->app->log->info("User ".$self->stash->{basic_auth_credentials}->{username}." successfully authenticated (pullupload)");
+
+          $pullupload = $rule->{folder}.'/'.$pullupload;
+
+          my @files;
+          my $start_dir = $rule->{folder}; 
+          find(sub { push @files, $File::Find::name unless -d; }, $start_dir);
+          for my $file (@files) {
+            if ($pullupload eq $file) {
+              if (-r $pullupload) {
+                my $fileAssset = Mojo::Asset::File->new(path => $pullupload);
+                $upload = Mojo::Upload->new;
+                $upload->asset($fileAssset);
+                my $pulluploadPath = Mojo::Path->new($pullupload);
+                my @parts = @{$pulluploadPath->parts};
+                my $filename = $parts[-1];
+                $upload->filename($filename);
+              } else {
+                $self->app->log->error("Error: pullupload [$pullupload] not readable.");
+                unshift @{$res->{alerts}}, { type => 'danger', msg => $@ };
+                $res->{status} = 400;
+                $self->render(json => $res , status => $res->{status});
+                return;
+              }
+              unless ($mimetype) {
+                $mimetype = $object_model->get_mimetype($self, $upload->asset);
+                $self->app->log->info("Undefined mimetype, using magic: $mimetype");
+              }
+            }
+          }
+        }
       }
     }
   }
