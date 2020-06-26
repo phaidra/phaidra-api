@@ -17,7 +17,7 @@ use PhaidraAPI::Model::Uwmetadata;
 use PhaidraAPI::Model::Geo;
 use PhaidraAPI::Model::Mods;
 use Time::HiRes qw/tv_interval gettimeofday/;
-use File::Find;
+use File::Find::utf8;
 
 sub info {
   my $self = shift;

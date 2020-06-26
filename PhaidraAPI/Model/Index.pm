@@ -1273,9 +1273,6 @@ sub _get {
 
   if ($c->app->config->{ir}) {
     if ($c->app->config->{ir}->{adminset}) {
-      $c->app->log->debug("XXXXXXXXXXXXX isinadminset: ".$index{isinadminset});
-      $c->app->log->debug("XXXXXXXXXXXXX conf: ".$c->app->config->{ir}->{adminset});
-      $c->app->log->debug("XXXXXXXXXXXXX dc_title: ".$c->app->dumper($index{dc_title}));
       if (exists($index{isinadminset})) {
         for my $as (@{$index{isinadminset}}) {
           if ($as eq $c->app->config->{ir}->{adminset}) {
