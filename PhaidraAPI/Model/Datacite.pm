@@ -744,7 +744,6 @@ DataCite is unhappy about this (or the ordering)
     #<dates>
     #  <date dateType="Updated">2014-10-17</date>
     #</dates>
-    my @dates_children;
     for my $d (@{$data->{dates}}){
       if ($d->{value}) {
         my $ch = {
