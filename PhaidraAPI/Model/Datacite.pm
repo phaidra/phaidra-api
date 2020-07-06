@@ -266,7 +266,7 @@ sub map_jsonld_2_datacite {
   my $index = $r->{index};
   my $ext = PhaidraAPI::Model::Jsonld::Extraction->new;
 
-  my $titles = $ext->_get_jsonld_titles($c, $jsonld);
+  my $titles = $ext->_get_jsonld_titles_subtitles($c, $jsonld);  
   my $source = $ext->_get_jsonld_sources($c, $jsonld);
   my $publishers = $ext->_get_jsonld_publishers($c, $jsonld);
   my $languages = $ext->_get_jsonld_values($c, $jsonld, 'dcterms:language');
@@ -287,7 +287,7 @@ sub map_jsonld_2_datacite {
   if($jsonld->{'dcterms:subject'}){
     for my $o (@{$jsonld->{'dcterms:subject'}}) {
       if ($o->{'@type'} eq 'phaidra:Subject') {
-        my $sub_titles = $ext->_get_jsonld_titles($c, $o);
+        my $sub_titles = $ext->_get_jsonld_titles_subtitles($c, $o);
         for my $s_t (@{$sub_titles}){
           push @{$titles}, $s_t;
         }
