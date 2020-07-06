@@ -720,11 +720,12 @@ DataCite is unhappy about this (or the ordering)
     }
   }
 
+  my @dates_children;
   if(exists($data->{uploaddates})){
     #<dates>
     #  <date dateType="Updated">2014-10-17</date>
     #</dates>
-    my @dates_children;
+    
     for my $d (@{$data->{uploaddates}}){
       my $ch = {
         xmlname => "date" ,
@@ -738,10 +739,6 @@ DataCite is unhappy about this (or the ordering)
       };
       push @dates_children, $ch;
     }
-    push @datacite, {
-      xmlname => "dates",
-      children => \@dates_children
-    };
   }
   if(exists($data->{dates})){
     #<dates>
@@ -763,6 +760,8 @@ DataCite is unhappy about this (or the ordering)
         push @dates_children, $ch;
       }
     }
+  }
+  if (scalar @dates_children > 0) {
     push @datacite, {
       xmlname => "dates",
       children => \@dates_children
