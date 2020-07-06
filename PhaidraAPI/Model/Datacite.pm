@@ -85,9 +85,21 @@ sub get {
     $res->{datacite} = $datacite;
   }
 
+  if($r->{dshash}->{'JSON-LD'}){
+
+    my $jsonld_model = PhaidraAPI::Model::Jsonld->new;  
+    my $r_jsonld = $jsonld_model->get_object_jsonld_parsed($c, $pid, $c->app->config->{phaidra}->{intcallusername}, $c->app->config->{phaidra}->{intcallpassword});
+    if($r_jsonld->{status} ne 200){
+      return $r_jsonld;
+    }else{
+      my $jsonld = $r_jsonld->{'JSON-LD'};
+      my $datacite = $self->map_jsonld_2_datacite($c, $pid, $cmodel, $jsonld);
+      $res->{datacite} = $datacite;
+    }
+  }
+
   return $res;
 }
-
 
 sub map_uwmetadata_2_datacite {
 
@@ -180,7 +192,6 @@ sub map_uwmetadata_2_datacite {
   return $self->data_2_datacite($c, $cmodel, \%data);
 }
 
-
 sub map_mods_2_datacite {
 
   my ($self, $c, $pid, $cmodel, $xml) = @_;
@@ -234,11 +245,161 @@ sub map_mods_2_datacite {
   $data{languages} = $ext->_get_mods_element_values($c, $dom, 'mods > language > languageTerm');
   $data{creators} = $ext->_get_mods_creators($c, $dom, 'p');
   $data{contributors} = $ext->_get_mods_contributors($c, $dom, 'p');
-  $data{dates} = $ext->_get_mods_element_values($c, $dom, 'mods > originInfo > dateIssued[keyDate="yes"]');
+  my $issueddates = $ext->_get_mods_element_values($c, $dom, 'mods > originInfo > dateIssued[keyDate="yes"]');
+  for my $id (@{$issueddates}) {
+    push @{$data{dates}}, { value => $id, type => 'issued'};
+  }
   $data{descriptions} = $ext->_get_mods_element_values($c, $dom, 'mods > note');
   $data{publishers} = $ext->_get_mods_element_values($c, $dom, 'mods > originInfo > publisher');
   $data{rights} = $ext->_get_mods_element_values($c, $dom, 'mods > accessCondition[type="use and reproduction"]');
   $data{filesizes} = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
+
+  return $self->data_2_datacite($c, $cmodel, \%data);
+}
+
+sub map_jsonld_2_datacite {
+
+  my ($self, $c, $pid, $cmodel, $jsonld) = @_;
+
+  my $index_model = PhaidraAPI::Model::Index->new;
+  my $r = $index_model->get($c, $pid);
+  my $index = $r->{index};
+  my $ext = PhaidraAPI::Model::Jsonld::Extraction->new;
+
+  my $titles = $ext->_get_jsonld_titles($c, $jsonld);
+  my $source = $ext->_get_jsonld_sources($c, $jsonld);
+  my $publishers = $ext->_get_jsonld_publishers($c, $jsonld);
+  my $languages = $ext->_get_jsonld_values($c, $jsonld, 'dcterms:language');
+  my $licenses = $ext->_get_jsonld_values($c, $jsonld, 'edm:rights');
+  my $formats = $ext->_get_jsonld_values($c, $jsonld, 'ebucore:hasMimeType');
+  my ($creators, $contributors) = $ext->_get_jsonld_roles($c, $jsonld);
+
+  my $descriptions = [];
+  for my $d (@{$ext->_get_jsonld_descriptions($c, $jsonld)}){
+    push @{$descriptions}, $d;
+  }
+
+  my $subjects = [];
+  for my $s (@{$ext->_get_jsonld_subjects($c, $jsonld)}){
+    push @{$subjects}, $s;
+  }
+
+  if($jsonld->{'dcterms:subject'}){
+    for my $o (@{$jsonld->{'dcterms:subject'}}) {
+      if ($o->{'@type'} eq 'phaidra:Subject') {
+        my $sub_titles = $ext->_get_jsonld_titles($c, $o);
+        for my $s_t (@{$sub_titles}){
+          push @{$titles}, $s_t;
+        }
+
+        my $sub_descriptions = $ext->_get_jsonld_descriptions($c, $o);
+        for my $s_d (@{$sub_descriptions}){
+          push @{$descriptions}, $s_d;
+        }
+
+        my ($sub_creators, $sub_contributors) = $ext->_get_jsonld_roles($c, $o);
+        for my $s_cr (@{$sub_creators}){
+          push @{$creators}, $s_cr;
+        }
+        for my $s_co (@{$sub_contributors}){
+          push @{$contributors}, $s_co;
+        }
+
+        my $sub_subjects = $ext->_get_jsonld_subjects($c, $o);
+        for my $s_s (@{$sub_subjects}){
+          push @{$subjects}, $s_s;
+        }
+      }
+    }
+  }
+
+  my $dates = [];
+  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:created')}){
+    push @{$dates}, { value => $d->{value}, type => 'created' };
+  }
+  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:modified')}){
+    push @{$dates}, { value => $d->{value}, type => 'modified' };
+  }
+  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:issued')}){
+    push @{$dates}, { value => $d->{value}, type => 'issued' };
+  }
+  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:dateAccepted')}){
+    push @{$dates}, { value => $d->{value}, type => 'accepted' };
+  }
+  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:dateCopyrighted')}){
+    push @{$dates}, { value => $d->{value}, type => 'copyrighted' };
+  }
+  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:dateSubmitted')}){
+    push @{$dates}, { value => $d->{value}, type => 'submitted' };
+  }
+  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'rdau:P60071')}){
+    push @{$dates}, { value => $d->{value}, type => 'created' };
+  }
+
+  my %data;
+  my $relids = $self->_get_relsext_identifiers($c, $pid);
+  for my $relid (@$relids){
+    if($relid->{value} =~ /hdl/i){
+      $relid->{type} = 'Handle';
+      push @{$data{identifiers}}, $relid;
+    }elsif($relid->{value} =~ /doi/i){
+      $relid->{type} = 'DOI';
+      $relid->{value} =~ s/^doi://;
+      push @{$data{identifiers}}, $relid;
+    }elsif($relid->{value} =~ /urn/i){
+      $relid->{type} = 'URN';
+      push @{$data{identifiers}}, $relid;
+    }elsif($relid->{value} =~ /issn/i){
+      $relid->{type} = 'ISSN';
+      push @{$data{identifiers}}, $relid;
+    }elsif($relid->{value} =~ /isbn/i){
+      $relid->{type} = 'ISBN';
+      push @{$data{identifiers}}, $relid;
+    }elsif($relid->{value} =~ /eissn/i){
+      $relid->{type} = 'EISSN';
+      push @{$data{identifiers}}, $relid;
+    }
+  }
+  my $ids = $ext->_get_jsonld_identifiers($c, $jsonld);
+  for my $id (@{$ids}) {
+    if($id->{'@type'} eq 'ids:hdl'){
+      push @{$data{identifiers}}, { type => 'Handle', value => $id->{'@value'}};
+    }elsif($id->{'@type'} eq 'ids:doi'){
+      push @{$data{identifiers}}, { type => 'DOI', value => $id->{'@value'}};
+    }elsif($id->{'@type'} eq 'ids:urn'){
+      push @{$data{identifiers}}, { type => 'URN', value => $id->{'@value'}};
+    }elsif($id->{'@type'} eq 'ids:isbn'){
+      push @{$data{identifiers}}, { type => 'ISBN', value => $id->{'@value'}};
+    }
+  }
+  push @{$data{identifiers}}, { value => "http://".$c->app->config->{phaidra}->{baseurl}."/".$pid, type => "URL" };
+
+  $data{titles} = $titles;
+  $data{descriptions} = $descriptions;
+  $data{creators} = $creators;
+  $data{dates} = $dates;
+  $data{subjects} = $subjects;
+  $data{formats} = $formats;
+  $data{filesizes} = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
+  $data{publishers} = $publishers;
+  $data{contributors} = $contributors;
+  push @{$data{uploaddates}}, { value => $index->{created} };
+  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:issued')}){
+    if ($d) {
+      push @{$data{publicationYear}}, { value => substr($d->{value}, 0, 4) };
+    }
+  }
+  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:available')}){
+    push @{$data{embargodates}}, $d;
+  }
+  for my $l (@{$languages}){
+    unless($l->{value} eq 'zxx'){
+      push @{$data{langs}}, { value => $l->{value} };
+    }
+  }
+  for my $lic (@{$licenses}){
+    push @{$data{licenses}}, { value => $lic->{value}, link_uri => $lic->{value} };
+  }
 
   return $self->data_2_datacite($c, $cmodel, \%data);
 }
@@ -582,6 +743,31 @@ DataCite is unhappy about this (or the ordering)
       children => \@dates_children
     };
   }
+  if(exists($data->{dates})){
+    #<dates>
+    #  <date dateType="Updated">2014-10-17</date>
+    #</dates>
+    my @dates_children;
+    for my $d (@{$data->{dates}}){
+      if ($d->{value}) {
+        my $ch = {
+          xmlname => "date" ,
+          value => $d->{value},
+          attributes => [
+            {
+              xmlname => "dateType",
+              value => $d->{type}
+            }
+          ]
+        };
+        push @dates_children, $ch;
+      }
+    }
+    push @datacite, {
+      xmlname => "dates",
+      children => \@dates_children
+    };
+  }
   
   if(exists($data->{subjects})){
     #<subjects>
@@ -621,14 +807,16 @@ DataCite is unhappy about this (or the ordering)
     #  <size>3KB</size>
     #</sizes>
     for my $fs (@{$data->{filesizes}}){
-      push @datacite, {
-        xmlname => "sizes",
-        children => [
-          {
-            xmlname => "size",
-            value => $fs->{value}.' b'
-          }
-        ]
+      if ($fs->{value}) {
+        push @datacite, {
+          xmlname => "sizes",
+          children => [
+            {
+              xmlname => "size",
+              value => $fs->{value}.' b'
+            }
+          ]
+        }
       }
     }
   }
@@ -659,7 +847,7 @@ DataCite is unhappy about this (or the ordering)
     if(exists($data->{licenses})){
       for my $v (@{$data->{licenses}})
       { 
-        $c->app->log->debug("rights: ". Dumper($v));
+        #$c->app->log->debug("rights: ". Dumper($v));
 
         my $rights= { xmlname => "rights", value => $v->{value} };
 	$rights->{attributes}= [ { xmlname => 'rightsURI', value => $v->{link_uri} } ] if (exists ($v->{link_uri}));

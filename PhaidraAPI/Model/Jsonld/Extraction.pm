@@ -107,6 +107,19 @@ sub _get_jsonld_descriptions {
   return \@dcdescriptions;
 }
 
+sub _get_jsonld_identifiers {
+
+  my ($self, $c, $jsonld) = @_;
+
+  my @ids;
+  if ($jsonld->{'rdam:P30004'}) {
+    for my $id (@{$jsonld->{'rdam:P30004'}}) {
+      push @ids, $id;
+    }
+  }
+  return \@ids;
+}
+
 sub _get_jsonld_objectlabels {
 
   my ($self, $c, $jsonld, $predicate) = @_;
@@ -197,7 +210,7 @@ sub _get_jsonld_roles {
           } else {
             $name = $contr->{'schema:name'}[0]->{'@value'};
           }
-        }elsif($contr->{'@type'} eq 'schema:Organisation'){
+        }elsif($contr->{'@type'} eq 'schema:Organization'){
           $name = $contr->{'schema:name'}[0]->{'@value'};
         }else{
           $c->app->log->error("_get_jsonld_roles: Unknown contributor type in jsonld");

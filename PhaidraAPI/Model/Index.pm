@@ -1941,7 +1941,7 @@ sub _add_jsonld_roles {
               }
             }
           }
-        }elsif($contr->{'@type'} eq 'schema:Organisation'){
+        }elsif($contr->{'@type'} eq 'schema:Organization'){
           unless (exists($foundAss->{$name})) {
             $name = $contr->{'schema:name'}[0]->{'@value'};
             push @{$index->{"association"}}, $name;

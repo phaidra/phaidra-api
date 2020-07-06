@@ -45,7 +45,7 @@ sub add_list {
   my $blid = $uuid->create();
   my $lid = $uuid->to_string($blid);
   my @members = ();
-  $self->mongo->get_collection('lists')->insert({
+  $self->mongo->get_collection('lists')->insert_one({
     "listid" => $lid,
     "owner" => $self->stash->{basic_auth_credentials}->{username},
     "name" => $name,
