@@ -315,25 +315,25 @@ sub map_jsonld_2_datacite {
 
   my $dates = [];
   for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:created')}){
-    push @{$dates}, { value => $d->{value}, type => 'created' };
+    push @{$dates}, { value => $d->{value}, type => 'Created' };
   }
   for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:modified')}){
-    push @{$dates}, { value => $d->{value}, type => 'modified' };
+    push @{$dates}, { value => $d->{value}, type => 'Modified' };
   }
   for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:issued')}){
-    push @{$dates}, { value => $d->{value}, type => 'issued' };
+    push @{$dates}, { value => $d->{value}, type => 'Issued' };
   }
   for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:dateAccepted')}){
-    push @{$dates}, { value => $d->{value}, type => 'accepted' };
+    push @{$dates}, { value => $d->{value}, type => 'Accepted' };
   }
   for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:dateCopyrighted')}){
-    push @{$dates}, { value => $d->{value}, type => 'copyrighted' };
+    push @{$dates}, { value => $d->{value}, type => 'Copyrighted' };
   }
   for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:dateSubmitted')}){
-    push @{$dates}, { value => $d->{value}, type => 'submitted' };
+    push @{$dates}, { value => $d->{value}, type => 'Submitted' };
   }
   for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'rdau:P60071')}){
-    push @{$dates}, { value => $d->{value}, type => 'created' };
+    push @{$dates}, { value => $d->{value}, type => 'Created' };
   }
 
   my %data;
