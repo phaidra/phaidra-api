@@ -642,11 +642,10 @@ DataCite is unhappy about this (or the ordering)
     {
       for my $av (@{$data->{$an}})
       {
-        push @publication_year, $av->{value};
+        push @publication_year, $av->{value} if $av->{value};
       }
     }
   }
-
   if (@publication_year)
   {
     # @publication_year= sort { $a <=> $b } @publication_year; # no sorting, data is priorized
