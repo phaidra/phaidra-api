@@ -313,30 +313,35 @@ sub map_jsonld_2_datacite {
     }
   }
 
-  my $dates = [];
+  my %data;
   for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:created')}){
-    push @{$dates}, { value => $d->{value}, type => 'Created' };
+    push @{$data{dates}}, { value => $d->{value}, type => 'Created' };
   }
   for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:modified')}){
-    push @{$dates}, { value => $d->{value}, type => 'Modified' };
+    push @{$data{dates}}, { value => $d->{value}, type => 'Modified' };
   }
   for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:issued')}){
-    push @{$dates}, { value => $d->{value}, type => 'Issued' };
+    push @{$data{dates}}, { value => $d->{value}, type => 'Issued' };
+    if ($d->{value}) {
+      push @{$data{publicationYear}}, { value => substr($d->{value}, 0, 4) };
+    }
   }
   for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:dateAccepted')}){
-    push @{$dates}, { value => $d->{value}, type => 'Accepted' };
+    push @{$data{dates}}, { value => $d->{value}, type => 'Accepted' };
   }
   for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:dateCopyrighted')}){
-    push @{$dates}, { value => $d->{value}, type => 'Copyrighted' };
+    push @{$data{dates}}, { value => $d->{value}, type => 'Copyrighted' };
   }
   for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:dateSubmitted')}){
-    push @{$dates}, { value => $d->{value}, type => 'Submitted' };
+    push @{$data{dates}}, { value => $d->{value}, type => 'Submitted' };
   }
   for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'rdau:P60071')}){
-    push @{$dates}, { value => $d->{value}, type => 'Created' };
+    push @{$data{dates}}, { value => $d->{value}, type => 'Created' };
+  }
+  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:available')}){
+    push @{$data{embargodates}}, $d;
   }
 
-  my %data;
   my $relids = $self->_get_relsext_identifiers($c, $pid);
   for my $relid (@$relids){
     if($relid->{value} =~ /hdl/i){
@@ -377,21 +382,12 @@ sub map_jsonld_2_datacite {
   $data{titles} = $titles;
   $data{descriptions} = $descriptions;
   $data{creators} = $creators;
-  $data{dates} = $dates;
   $data{subjects} = $subjects;
   $data{formats} = $formats;
   $data{filesizes} = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
   $data{publishers} = $publishers;
   $data{contributors} = $contributors;
   push @{$data{uploaddates}}, { value => $index->{created} };
-  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:issued')}){
-    if ($d) {
-      push @{$data{publicationYear}}, { value => substr($d->{value}, 0, 4) };
-    }
-  }
-  for my $d (@{$ext->_get_jsonld_values($c, $jsonld, 'dcterms:available')}){
-    push @{$data{embargodates}}, $d;
-  }
   for my $l (@{$languages}){
     unless($l->{value} eq 'zxx'){
       push @{$data{langs}}, { value => $l->{value} };
@@ -400,6 +396,8 @@ sub map_jsonld_2_datacite {
   for my $lic (@{$licenses}){
     push @{$data{licenses}}, { value => $lic->{value}, link_uri => $lic->{value} };
   }
+
+  $c->app->log->debug("XXXXXXXXXXXXXX datacite data:".$c->app->dumper(\%data));
 
   return $self->data_2_datacite($c, $cmodel, \%data);
 }

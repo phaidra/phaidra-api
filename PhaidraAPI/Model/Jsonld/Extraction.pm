@@ -228,9 +228,13 @@ sub _get_jsonld_roles {
       my $role = $1;
       for my $contr (@{$jsonld->{$pred}}){
         my $name;
+        my $givenName;
+        my $familyName;
         if($contr->{'@type'} eq 'schema:Person'){
           if($contr->{'schema:givenName'} || $contr->{'schema:familyName'}) {
             $name = $contr->{'schema:givenName'}[0]->{'@value'}." ".$contr->{'schema:familyName'}[0]->{'@value'};
+            $givenName = $contr->{'schema:givenName'}[0]->{'@value'};
+            $familyName = $contr->{'schema:familyName'}[0]->{'@value'};
           } else {
             $name = $contr->{'schema:name'}[0]->{'@value'};
           }
@@ -268,10 +272,10 @@ sub _get_jsonld_roles {
             }
           }
         if($jsonld_creator_roles{$role}){
-          push @creators, { value => $name };
+          push @creators, { value => $name, firstname => $givenName, lastname => $familyName };
         }else{
           if ($role ne 'uploader') {
-            push @contributors, { value => $name };
+            push @contributors, { value => $name, firstname => $givenName, lastname => $familyName };
           }
         }
       }
