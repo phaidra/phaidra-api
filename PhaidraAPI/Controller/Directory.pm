@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use v5.10;
 use PhaidraAPI::Model::Uwmetadata;
+use PhaidraAPI::Model::Terms;
 use base 'Mojolicious::Controller';
 
 # [begin] new methods
@@ -67,6 +68,15 @@ sub get_study {
 	my $terms = $metadata_model->get_study_terms($self, $spl, $ids, $values_namespace);
 
     $self->render(json => { status => 200, terms => $terms }, status => 200);
+}
+
+sub get_study_plans {
+  my $self = shift;  	
+
+	my $metadata_model = PhaidraAPI::Model::Terms->new;	
+	my $terms = $metadata_model->get_study_plans($self);
+
+  $self->render(json => { status => 200, terms => $terms->{study_plans} }, status => 200);
 }
 
 sub get_study_name {

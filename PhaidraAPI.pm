@@ -321,6 +321,7 @@ sub startup {
 	$r->route('help/tooltip')                       ->via('get')    ->to('help#tooltip');
 
 	$r->route('directory/get_study')                ->via('get')    ->to('directory#get_study');
+  $r->route('directory/get_study_plans')          ->via('get')    ->to('directory#get_study_plans');
 	$r->route('directory/get_study_name')           ->via('get')    ->to('directory#get_study_name');
   # old
   $r->route('directory/get_org_units')            ->via('get')    ->to('directory#get_org_units');

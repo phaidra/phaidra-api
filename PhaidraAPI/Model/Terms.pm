@@ -151,6 +151,7 @@ sub get_study_plans {
 			}
 		}else{
 			$dirres->{status} = 200;
+      $res = $dirres;
 		}
 
     	$c->app->chi->set($cachekey, $dirres, '1 day');
