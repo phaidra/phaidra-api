@@ -1751,14 +1751,28 @@ sub _add_jsonld_index {
 
   if(exists($jsonld->{'frapo:isOutputOf'})){
     for my $proj (@{$jsonld->{'frapo:isOutputOf'}}) {
-      if(exists($proj->{'skos:exactMatch'})){
-        for my $projId (@{$proj->{'skos:exactMatch'}}) {
-          push @{$index->{"project_id"}}, $projId;
+      if ($proj->{'@type'} eq 'foaf:Project') {
+        if(exists($proj->{'skos:exactMatch'})){
+          for my $projId (@{$proj->{'skos:exactMatch'}}) {
+            push @{$index->{"project_id"}}, $projId;
+          }
+        }
+        if(exists($proj->{'skos:prefLabel'})){
+          for my $l (@{$proj->{'skos:prefLabel'}}) {
+            push @{$index->{"project"}}, $l->{'@value'};
+          }
         }
       }
-      if(exists($proj->{'skos:prefLabel'})){
-        for my $l (@{$proj->{'skos:prefLabel'}}) {
-          push @{$index->{"project"}}, $l->{'@value'};
+      if ($proj->{'@type'} eq 'aaiso:Programme') {
+        if(exists($proj->{'skos:exactMatch'})){
+          for my $projId (@{$proj->{'skos:exactMatch'}}) {
+            push @{$index->{"programme_id"}}, $projId;
+          }
+        }
+        if(exists($proj->{'skos:prefLabel'})){
+          for my $l (@{$proj->{'skos:prefLabel'}}) {
+            push @{$index->{"programme"}}, $l->{'@value'};
+          }
         }
       }
       if(exists($proj->{'frapo:hasFundingAgency'})){
@@ -2015,6 +2029,19 @@ sub _add_uwm_index {
       for my $orgch (@{$org->{children}}){
         if($orgch->{xmlname} eq 'hoschtyp'){
           $index->{"oer"} = '1' if $orgch->{ui_value} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_17/1562801'; 
+        }
+      }
+    }
+  }
+
+  my $curr = $self->_find_first_uwm_node_rec($c, "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization", "curriculum", $uwm);
+  if ($curr) {
+    if($curr->{children}){
+      for my $currch (@{$curr->{children}}){
+        if($currch->{xmlname} eq 'spl'){
+          my $spl = $currch->{ui_value};
+          $spl =~ s/http:\/\/phaidra\.univie\.ac\.at\/XML\/metadata\/lom\/V1\.0\/organization\/voc_spl\///g;
+          push @{$index->{"programme_id"}}, $spl if $spl ne '';
         }
       }
     }
