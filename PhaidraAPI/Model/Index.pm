@@ -523,6 +523,9 @@ sub update {
           $c->app->log->debug("posting index took ".tv_interval($t0));
           if (my $r = $post->success) {
             $c->app->log->debug("[$pid] solr document updated");
+            # log solr response, on 8.1.1 if there's an error 200 is returned and commit is skipped
+            # while the error is only sent back to client (not in solr log)
+            $c->app->log->debug("[$pid] solr result:\n".$c->app->dumper($post->result->json));
           }else {
             my ($err, $code) = $post->error;
             unshift @{$res->{alerts}}, { type => 'danger', msg => "[$pid] Error updating solr: ".$c->app->dumper($err) };
