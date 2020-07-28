@@ -2478,7 +2478,7 @@ sub get_relationships {
       checked => 0
     }
   }
-  for my $v (@{$rels->{haslaternativeversion}}) {
+  for my $v (@{$rels->{hasalternativeformat}}) {
     push @altformats, $v;
     $altformatsCheck->{$v->{pid}} = {
       loaded => 1,
@@ -2502,7 +2502,7 @@ sub get_relationships {
       checked => 0
     }
   }
-  for my $v (@{$rels->{isalternativeversionof}}) {
+  for my $v (@{$rels->{hasalternativeversion}}) {
     push @altversions, $v;
     $altversionsCheck->{$v->{pid}} = {
       loaded => 1,
