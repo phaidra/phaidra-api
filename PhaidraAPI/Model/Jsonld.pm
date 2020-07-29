@@ -11,6 +11,17 @@ use base qw/Mojo::Base/;
 use XML::LibXML;
 use PhaidraAPI::Model::Object;
 
+our %resourcetypes = (
+  "https://pid.phaidra.org/vocabulary/44TN-P1S0" => [ 'Picture' ],
+  "https://pid.phaidra.org/vocabulary/69ZZ-2KGX" => [ 'PDFDocument', 'LaTeXDocument' ],
+  "https://pid.phaidra.org/vocabulary/GXS7-ENXJ" => [ 'Collection' ],
+  "https://pid.phaidra.org/vocabulary/B0Y6-GYT8" => [ 'Video' ],
+  "https://pid.phaidra.org/vocabulary/7AVS-Y482" => [ 'Asset' ],
+  "https://pid.phaidra.org/vocabulary/8YB5-1M0J" => [ 'Audio' ],
+  "https://pid.phaidra.org/vocabulary/8MY0-BQDQ" => [ 'Container' ],
+  "https://pid.phaidra.org/vocabulary/T8GH-F4V8" => [ 'Resource' ]
+);
+
 sub get_object_jsonld_parsed {
 
   my ($self, $c, $pid, $username, $password) = @_;
@@ -74,6 +85,36 @@ sub validate() {
       $res->{status} = 400;
       push @{$res->{alerts}}, { type => 'danger', msg => "Missing edm:rights" };
       return $res;
+    }
+  }
+  unless (exists($metadata->{'dcterms:type'})) {
+    $res->{status} = 400;
+    push @{$res->{alerts}}, { type => 'danger', msg => "Missing dcterms:type" };
+    return $res;
+  }
+  for my $type (@{$metadata->{'dcterms:type'}}) {
+    unless (exists($type->{'skos:exactMatch'})) {
+      $res->{status} = 400;
+      push @{$res->{alerts}}, { type => 'danger', msg => "Missing dcterms:type -> skos:exactMatch" };
+      return $res;
+    }
+    for my $typeId (@{$type->{'skos:exactMatch'}}) {
+      unless (exists($resourcetypes{$typeId})) {
+        $res->{status} = 400;
+        push @{$res->{alerts}}, { type => 'danger', msg => "Unknown dcterms:type[$typeId]" };
+        return $res;
+      }
+      my $cmMatch = 0;
+      for my $cm (@{$resourcetypes{$typeId}}) {
+        if ($cm eq $cmodel) {
+          $cmMatch = 1;
+        }
+      }
+      unless ($cmMatch) {
+        $res->{status} = 400;
+        push @{$res->{alerts}}, { type => 'danger', msg => "dcterms:type[$typeId] cmodel[$cmodel] mismatch" };
+        return $res;
+      }
     }
   }
 
