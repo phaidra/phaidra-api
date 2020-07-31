@@ -11,15 +11,16 @@ use base qw/Mojo::Base/;
 use XML::LibXML;
 use PhaidraAPI::Model::Object;
 
-our %resourcetypes = (
-  "https://pid.phaidra.org/vocabulary/44TN-P1S0" => [ 'Picture' ],
-  "https://pid.phaidra.org/vocabulary/69ZZ-2KGX" => [ 'PDFDocument', 'LaTeXDocument' ],
-  "https://pid.phaidra.org/vocabulary/GXS7-ENXJ" => [ 'Collection' ],
-  "https://pid.phaidra.org/vocabulary/B0Y6-GYT8" => [ 'Video' ],
-  "https://pid.phaidra.org/vocabulary/7AVS-Y482" => [ 'Asset' ],
-  "https://pid.phaidra.org/vocabulary/8YB5-1M0J" => [ 'Audio' ],
-  "https://pid.phaidra.org/vocabulary/8MY0-BQDQ" => [ 'Container' ],
-  "https://pid.phaidra.org/vocabulary/T8GH-F4V8" => [ 'Resource' ]
+our %cm2rt = (
+  'Picture' => { '@id' => 'https://pid.phaidra.org/vocabulary/44TN-P1S0', 'skos:prefLabel' => { 'eng' => 'image' } },
+  'PDFDocument' => { '@id' => 'https://pid.phaidra.org/vocabulary/69ZZ-2KGX', 'skos:prefLabel' => { 'eng' => 'text' } },
+  'LaTeXDocument' => { '@id' => 'https://pid.phaidra.org/vocabulary/69ZZ-2KGX', 'skos:prefLabel' => { 'eng' => 'text' } },
+  'Collection' => { '@id' => 'https://pid.phaidra.org/vocabulary/GXS7-ENXJ', 'skos:prefLabel' => { 'eng' => 'collection' } },
+  'Video' => { '@id' => 'https://pid.phaidra.org/vocabulary/B0Y6-GYT8', 'skos:prefLabel' => { 'eng' => 'video' } },
+  'Asset' => { '@id' => 'https://pid.phaidra.org/vocabulary/7AVS-Y482', 'skos:prefLabel' => { 'eng' => 'data' } },
+  'Audio' => { '@id' => 'https://pid.phaidra.org/vocabulary/8YB5-1M0J', 'skos:prefLabel' => { 'eng' => 'sound' } },
+  'Container' => { '@id' => 'https://pid.phaidra.org/vocabulary/8MY0-BQDQ', 'skos:prefLabel' => { 'eng' => 'container' } },
+  'Resource' => { '@id' => 'https://pid.phaidra.org/vocabulary/T8GH-F4V8', 'skos:prefLabel' => { 'eng' => 'resource' } }
 );
 
 sub get_object_jsonld_parsed {
@@ -53,6 +54,8 @@ sub save_to_object(){
 
   my $res = { alerts => [], status => 200 };
 
+  $self->fix($c, $pid, $cmodel, $metadata);
+
   # validate
   my $valres = $self->validate($c, $pid, $cmodel, $metadata);
   if($valres->{status} != 200){
@@ -69,6 +72,25 @@ sub save_to_object(){
   return $object_model->add_or_modify_datastream($c, $pid, "JSON-LD", "application/json", undef, $c->app->config->{phaidra}->{defaultlabel}, $json, "M", undef, undef, $username, $password);
 }
 
+sub fix() {
+  my $self = shift;
+  my $c = shift;
+  my $pid = shift;
+  my $cmodel = shift;
+  my $metadata = shift;
+
+  unless (exists($metadata->{'dcterms:type'})) {
+    my $rt = $cm2rt{$cmodel};
+    $metadata->{'dcterms:type'} = [ 
+      {
+        '@type' => 'skos:Concept',
+        'skos:prefLabel' => [ $rt->{'skos:prefLabel'} ],
+        'skos:exactMatch' => [ $rt->{'@id'} ]
+      }
+    ];
+  }
+}
+
 sub validate() {
   my $self = shift;
   my $c = shift;
@@ -79,7 +101,7 @@ sub validate() {
   my $res = { alerts => [], status => 200 };
 
   $cmodel =~ s/cmodel://g;
-  $c->app->log->debug("pid[$pid] cmodel[$cmodel] validating metadata:\n".$c->app->dumper($metadata));
+  $c->app->log->debug("pid[$pid] cmodel[$cmodel] validating metadata");
   unless (($cmodel eq 'Container') || ($cmodel eq 'Collection') || ($cmodel eq 'Resource')) {
     unless (exists($metadata->{'edm:rights'})) {
       $res->{status} = 400;
@@ -99,18 +121,13 @@ sub validate() {
       return $res;
     }
     for my $typeId (@{$type->{'skos:exactMatch'}}) {
-      unless (exists($resourcetypes{$typeId})) {
+      my $rt = $cm2rt{$cmodel};
+      unless ($rt) {
         $res->{status} = 400;
-        push @{$res->{alerts}}, { type => 'danger', msg => "Unknown dcterms:type[$typeId]" };
+        push @{$res->{alerts}}, { type => 'danger', msg => "Internal error: no resource type defined for cmodel[$cmodel]" };
         return $res;
       }
-      my $cmMatch = 0;
-      for my $cm (@{$resourcetypes{$typeId}}) {
-        if ($cm eq $cmodel) {
-          $cmMatch = 1;
-        }
-      }
-      unless ($cmMatch) {
+      if ($typeId ne $rt->{'@id'}) {
         $res->{status} = 400;
         push @{$res->{alerts}}, { type => 'danger', msg => "dcterms:type[$typeId] cmodel[$cmodel] mismatch" };
         return $res;

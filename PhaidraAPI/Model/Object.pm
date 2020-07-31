@@ -576,28 +576,6 @@ sub create_simple {
     return $res;
   }
 
-  if(exists($metadata->{metadata}->{'relationships'})){
-    $c->app->log->debug("Found relationships: ".$c->app->dumper($metadata->{metadata}->{'relationships'}));
-    foreach my $rel (@{$metadata->{metadata}->{'relationships'}}){
-      if($rel->{'s'} eq "self"){
-        $rel->{'s'} = $pid;
-      }
-      if($rel->{'o'} eq "self"){
-        $rel->{'o'} = "info:fedora/".$pid;
-      }
-    }
-    for my $rel (@{$metadata->{metadata}->{'relationships'}}){
-      $c->app->log->debug("Adding relationship s[".$rel->{'s'}."] p[".$rel->{'p'}."] o[".$rel->{'o'}."]");
-      $r = $self->add_relationship($c, $rel->{'s'}, $rel->{'p'}, $rel->{'o'}, $username, $password);
-      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-      $res->{status} = $r->{status};
-      if($r->{status} ne 200){
-        $c->app->log->error("Error adding relationship[".$c->app->dumper($rel)."] res[".$c->app->dumper($res)."]");
-        return $res;
-      }
-    }
-  }
-
   # activate
   $r = $self->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
   if($r->{status} ne 200){
@@ -722,6 +700,27 @@ sub create_container {
     $container_metadata = $metadata->{metadata};
   }
 
+  # translate member_ in relationships to pids
+  if(exists($container_metadata->{'relationships'})){
+    $c->app->log->debug("Translating relationships: ".$c->app->dumper($container_metadata->{'relationships'}));
+    foreach my $rel (@{$container_metadata->{'relationships'}}){
+      if($rel->{'s'} =~ m/member_/g){
+        for my $ch (@children) {
+          if($ch->{memberkey} eq $rel->{'s'}){
+            $rel->{'s'} = $ch->{pid};
+          }
+        }
+      }
+      if($rel->{'o'} =~ m/member_/g){
+        for my $ch (@children) {
+          if($ch->{memberkey} eq $rel->{'o'}){
+            $rel->{'o'} = "info:fedora/".$ch->{pid};
+          }
+        }
+      }
+    }
+  }
+
   $c->app->log->debug("Creating container with metadata:".$c->app->dumper($container_metadata));
   # create parent object
   my $r = $self->create($c, 'cmodel:Container', $username, $password);
@@ -738,12 +737,12 @@ sub create_container {
   # save metadata	
   $r = $self->save_metadata($c, $pid, 'Container', $container_metadata, $username, $password, 1);
   if($r->{status} ne 200){
-      $res->{status} = $r->{status};
-  foreach my $a (@{$r->{alerts}}){
-        unshift @{$res->{alerts}}, $a;
-  }
-      unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving metadata'};
-      return $res;
+    $res->{status} = $r->{status};
+    foreach my $a (@{$r->{alerts}}){
+      unshift @{$res->{alerts}}, $a;
+    }
+    unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving metadata'};
+    return $res;
   }
 
   #$c->app->log->info("XXX Metadata saved, adding relationships");
@@ -761,45 +760,6 @@ sub create_container {
     if($r->{status} ne 200){
     $c->app->log->error("Error adding relationships[".$c->app->dumper(\@relationships)."] pid[$pid] res[".$c->app->dumper($res)."]");
       return $res;
-    }
-  }
-
-  # add members rels (eg isthumbnailfor)
-  if(exists($metadata->{metadata}->{'relationships'})){
-    $c->app->log->debug("Found relationships: ".$c->app->dumper($metadata->{metadata}->{'relationships'}));
-    foreach my $rel (@{$metadata->{metadata}->{'relationships'}}){
-      if($rel->{'s'} eq "container"){
-        $rel->{'s'} = $pid;
-      }
-      if($rel->{'o'} eq "container"){
-        $rel->{'o'} = "info:fedora/".$pid;
-      }
-      
-      if($rel->{'s'} =~ m/member_/g){
-        for my $ch (@children) {
-          if($ch->{memberkey} eq $rel->{'s'}){
-            $rel->{'s'} = $ch->{pid};
-          }
-        }
-      }
-      
-      if($rel->{'o'} =~ m/member_/g){
-        for my $ch (@children) {
-          if($ch->{memberkey} eq $rel->{'o'}){
-            $rel->{'o'} = "info:fedora/".$ch->{pid};
-          }
-        }
-      }
-    }
-    for my $rel (@{$metadata->{metadata}->{'relationships'}}){
-      $c->app->log->debug("Adding relationship s[".$rel->{'s'}."] p[".$rel->{'p'}."] o[".$rel->{'o'}."]");
-      $r = $self->add_relationship($c, $rel->{'s'}, $rel->{'p'}, $rel->{'o'}, $username, $password);
-      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-      $res->{status} = $r->{status};
-      if($r->{status} ne 200){
-        $c->app->log->error("Error adding relationship[".$c->app->dumper($rel)."] res[".$c->app->dumper($res)."]");
-        return $res;
-      }
     }
   }
 
@@ -933,122 +893,122 @@ sub add_octets {
 
 sub save_metadata {
 
-	my $self = shift;
-	my $c = shift;
-	my $pid = shift;
+  my $self = shift;
+  my $c = shift;
+  my $pid = shift;
   my $cmodel = shift;
-	my $metadata = shift;
-	my $username = shift;
-	my $password = shift;
-	my $check_bib = shift;
+  my $metadata = shift;
+  my $username = shift;
+  my $password = shift;
+  my $check_bib = shift;
 
-	my $res = { alerts => [], status => 200 };
-	$c->app->log->debug("Adding metadata");
-	my $found = 0;
-	my $found_bib = 0;
+  my $res = { alerts => [], status => 200 };
+  $c->app->log->debug("Adding metadata");
+  $c->app->log->debug($c->app->dumper($metadata));
+  my $found = 0;
+  my $found_bib = 0;
 
-	foreach my $f (keys %{$metadata}){
+  foreach my $f (keys %{$metadata}){
 
-		if(lc($f) eq "uwmetadata") {
-			
-			$c->app->log->debug("Adding uwmetadata");
-			my $uwmetadata = $metadata->{uwmetadata};
-			my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
-			my $r = $metadata_model->save_to_object($c, $pid, $uwmetadata, $username, $password);
-			if($r->{status} ne 200){
-		   		$res->{status} = $r->{status};
-					foreach my $a (@{$r->{alerts}}){
-						unshift @{$res->{alerts}}, $a;
-					}
-					unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving uwmetadata'};
-		  }
-		  $found = 1;
-		  $found_bib = 1;
+    if(lc($f) eq "uwmetadata") {
+      $c->app->log->debug("Adding uwmetadata");
+      my $uwmetadata = $metadata->{uwmetadata};
+      my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
+      my $r = $metadata_model->save_to_object($c, $pid, $uwmetadata, $username, $password);
+      if($r->{status} ne 200){
+        $res->{status} = $r->{status};
+        foreach my $a (@{$r->{alerts}}){
+          unshift @{$res->{alerts}}, $a;
+        }
+        unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving uwmetadata'};
+      }
+      $found = 1;
+      $found_bib = 1;
 
-		} elsif (lc($f) eq "mods"){
-			
-			$c->app->log->debug("Saving MODS for $pid");
-			my $mods = $metadata->{mods};
-			my $mods_model = PhaidraAPI::Model::Mods->new;
-			my $xml = $mods_model->json_2_xml($c, $mods);
-			my $r = $mods_model->save_to_object($c, $pid, $mods, $username, $password);
-			if($r->{status} ne 200){
-					$res->{status} = $r->{status};
-					foreach my $a (@{$r->{alerts}}){
-						unshift @{$res->{alerts}}, $a;
-					}
-					unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving MODS'};
-			}
-			$found = 1;
-			$found_bib = 1;
+    } elsif (lc($f) eq "mods"){
+      
+      $c->app->log->debug("Saving MODS for $pid");
+      my $mods = $metadata->{mods};
+      my $mods_model = PhaidraAPI::Model::Mods->new;
+      my $xml = $mods_model->json_2_xml($c, $mods);
+      my $r = $mods_model->save_to_object($c, $pid, $mods, $username, $password);
+      if($r->{status} ne 200){
+        $res->{status} = $r->{status};
+        foreach my $a (@{$r->{alerts}}){
+          unshift @{$res->{alerts}}, $a;
+        }
+        unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving MODS'};
+      }
+      $found = 1;
+      $found_bib = 1;
 
-		} elsif (lc($f) eq "rights"){
+    } elsif (lc($f) eq "rights"){
 
-			$c->app->log->debug("Saving RIGHTS for $pid");
-			my $rights = $metadata->{rights};
-			my $rights_model = PhaidraAPI::Model::Rights->new;
-			#my $xml = $rights_model->json_2_xml($c, $rights);
-			#my $r = $self->add_datastream($c, $pid, "RIGHTS", "text/xml", undef, "Phaidra Permissions", $xml, "X", undef, undef, $username, $password);
-			my $r = $rights_model->save_to_object($c, $pid, $rights, $username, $password);
-		    if($r->{status} ne 200){
-					$res->{status} = $r->{status};
-					push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-			    unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving RGHTS datastream'};
-		    }
-			$found = 1;
+      $c->app->log->debug("Saving RIGHTS for $pid");
+      my $rights = $metadata->{rights};
+      my $rights_model = PhaidraAPI::Model::Rights->new;
+      #my $xml = $rights_model->json_2_xml($c, $rights);
+      #my $r = $self->add_datastream($c, $pid, "RIGHTS", "text/xml", undef, "Phaidra Permissions", $xml, "X", undef, undef, $username, $password);
+      my $r = $rights_model->save_to_object($c, $pid, $rights, $username, $password);
+      if($r->{status} ne 200){
+        $res->{status} = $r->{status};
+        push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+        unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving RGHTS datastream'};
+      }
+      $found = 1;
 
-		} elsif (lc($f) eq "geo"){
+    } elsif (lc($f) eq "geo"){
 
-			$c->app->log->debug("Saving GEO for $pid");
-			my $geo = $metadata->{geo};
-			my $geo_model = PhaidraAPI::Model::Geo->new;
-			#my $xml = $geo_model->json_2_xml($c, $geo);				
-			#my $r = $self->add_datastream($c, $pid, "GEO", "text/xml", undef, "Georeferencing", $xml, "X", undef, undef, $username, $password);
-			my $r = $geo_model->save_to_object($c, $pid, $geo, $username, $password);
-			if($r->{status} ne 200){
-				$res->{status} = $r->{status};
-				push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-				unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving geo'};
-			}
-			$found = 1;
+      $c->app->log->debug("Saving GEO for $pid");
+      my $geo = $metadata->{geo};
+      my $geo_model = PhaidraAPI::Model::Geo->new;
+      #my $xml = $geo_model->json_2_xml($c, $geo);				
+      #my $r = $self->add_datastream($c, $pid, "GEO", "text/xml", undef, "Georeferencing", $xml, "X", undef, undef, $username, $password);
+      my $r = $geo_model->save_to_object($c, $pid, $geo, $username, $password);
+      if($r->{status} ne 200){
+        $res->{status} = $r->{status};
+        push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+        unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving geo'};
+      }
+      $found = 1;
 
-		} elsif (lc($f) eq "json-ld"){
+    } elsif (lc($f) eq "json-ld"){
 
-			$c->app->log->debug("Saving JSON-LD for $pid");
+      $c->app->log->debug("Saving JSON-LD for $pid");
       my $jsonld;
       if (defined($metadata->{'json-ld'})) {
         $jsonld = $metadata->{'json-ld'}
       } else {
         $jsonld = $metadata->{'JSON-LD'}
       }
-			my $jsonld_model = PhaidraAPI::Model::Jsonld->new;
-			my $r = $jsonld_model->save_to_object($c, $pid, $cmodel, $jsonld, $username, $password);
-			if($r->{status} ne 200){
-				$res->{status} = $r->{status};
-				push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-				unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving json-ld'};
-			}
-			$found = 1;
-			$found_bib = 1;
+      my $jsonld_model = PhaidraAPI::Model::Jsonld->new;
+      my $r = $jsonld_model->save_to_object($c, $pid, $cmodel, $jsonld, $username, $password);
+      if($r->{status} ne 200){
+        $res->{status} = $r->{status};
+        push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+        unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving json-ld'};
+      }
+      $found = 1;
+      $found_bib = 1;
 
-		} elsif (lc($f) eq "json-ld-private"){
+    } elsif (lc($f) eq "json-ld-private"){
 
-			$c->app->log->debug("Saving JSON-LD-PRIVATE for $pid");
+      $c->app->log->debug("Saving JSON-LD-PRIVATE for $pid");
       my $jsonldprivate;
       if (defined($metadata->{'json-ld-private'})) {
         $jsonldprivate = $metadata->{'json-ld-private'}
       } else {
         $jsonldprivate = $metadata->{'JSON-LD-PRIVATE'}
       }
-			my $jsonldprivate_model = PhaidraAPI::Model::Jsonldprivate->new;
-			my $r = $jsonldprivate_model->save_to_object($c, $pid, $jsonldprivate, $username, $password);
-			if ($r->{status} ne 200) {
-				$res->{status} = $r->{status};
-				push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-				unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving json-ld-private'};
-			}
-			$found = 1;
-			$found_bib = 1;
+      my $jsonldprivate_model = PhaidraAPI::Model::Jsonldprivate->new;
+      my $r = $jsonldprivate_model->save_to_object($c, $pid, $jsonldprivate, $username, $password);
+      if ($r->{status} ne 200) {
+        $res->{status} = $r->{status};
+        push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+        unshift @{$res->{alerts}}, { type => 'danger', msg => 'Error saving json-ld-private'};
+      }
+      $found = 1;
+      $found_bib = 1;
 
     } elsif (lc($f) eq "members") {
       $found = 1;
@@ -1058,29 +1018,49 @@ sub save_metadata {
       # noop - this is handled by create_container
     } elsif (lc($f) eq "relationships") {
       $found = 1;
-      # noop - this is handled elswhere
+      if(exists($metadata->{'relationships'})){
+        $c->app->log->debug("Found relationships: ".$c->app->dumper($metadata->{'relationships'}));
+        foreach my $rel (@{$metadata->{'relationships'}}){
+          if($rel->{'s'} eq "self"){
+            $rel->{'s'} = $pid;
+          }
+          if($rel->{'o'} eq "self"){
+            $rel->{'o'} = "info:fedora/".$pid;
+          }
+        }
+        for my $rel (@{$metadata->{'relationships'}}){
+          $c->app->log->debug("Adding relationship s[".$rel->{'s'}."] p[".$rel->{'p'}."] o[".$rel->{'o'}."]");
+          my $r = $self->add_relationship($c, $rel->{'s'}, $rel->{'p'}, $rel->{'o'}, $username, $password);
+          push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+          $res->{status} = $r->{status};
+          if($r->{status} ne 200){
+            $c->app->log->error("Error adding relationship[".$c->app->dumper($rel)."] res[".$c->app->dumper($res)."]");
+            return $res;
+          }
+        }
+      }
     } elsif (lc($f) eq "ownerid") {
       $found = 1;
       # noop - this is handled later because it's the last step (after activating object)
     } else {
-			$c->app->log->error("Unknown or unsupported metadata format: $f");
-			$found = 1;
-			unshift @{$res->{alerts}}, { type => 'danger', msg => "Unknown or unsupported metadata format: $f" };
-		}
-		
-	}
+      $c->app->log->error("Unknown or unsupported metadata format: $f");
+      $found = 1;
+      unshift @{$res->{alerts}}, { type => 'danger', msg => "Unknown or unsupported metadata format: $f" };
+    }
+    
+  }
 
-	unless($found){
-		unshift @{$res->{alerts}}, { type => 'danger', msg => 'No metadata provided' };
-		$res->{status} = 400;
-	}
+  unless($found){
+    unshift @{$res->{alerts}}, { type => 'danger', msg => 'No metadata provided' };
+    $res->{status} = 400;
+  }
 
-	if(!$found_bib && $check_bib){
-		unshift @{$res->{alerts}}, { type => 'danger', msg => 'No bibliographical metadata provided' };
-		$res->{status} = 400;
-	}
+  if(!$found_bib && $check_bib){
+    unshift @{$res->{alerts}}, { type => 'danger', msg => 'No bibliographical metadata provided' };
+    $res->{status} = 400;
+  }
 
-	return $res;
+  return $res;
 }
 
 sub get_dissemination {
