@@ -487,7 +487,7 @@ sub create_simple {
   }
 
   my $pid = '';
-  unless (exists($metadata->{target-pid})) {
+  unless (exists($metadata->{'target-pid'})) {
     # create object
     my $r = $self->create($c, $cmodel, $username, $password);
     if($r->{status} ne 200){
@@ -502,29 +502,29 @@ sub create_simple {
     my $currCmodel;
     my $state;
     my $search_model = PhaidraAPI::Model::Search->new;
-    my $res_cmodel = $search_model->get_cmodel($c, $metadata->{target-pid});
+    my $res_cmodel = $search_model->get_cmodel($c, $metadata->{'target-pid'});
     if($res_cmodel->{status} ne 200){
-      $c->app->log->error("ERROR creating cmodel[$cmodel] target-pid[".$metadata->{target-pid}."], could not get currCmodel:".$c->app->dumper($res_cmodel));
+      $c->app->log->error("ERROR creating cmodel[$cmodel] target-pid[".$metadata->{'target-pid'}."], could not get currCmodel:".$c->app->dumper($res_cmodel));
       return;
     }else{
       $currCmodel = $res_cmodel->{cmodel};
     }
     if ($cmodel ne $currCmodel) {
-      $c->app->log->error("ERROR creating cmodel[$cmodel] target-pid[".$metadata->{target-pid}."] currCmodel[$currCmodel] vs cmodel[$cmodel] mismatch");
+      $c->app->log->error("ERROR creating cmodel[$cmodel] target-pid[".$metadata->{'target-pid'}."] currCmodel[$currCmodel] vs cmodel[$cmodel] mismatch");
       return;
     }
-    my $res_state = $search_model->get_cmodel($c, $metadata->{target-pid});
+    my $res_state = $search_model->get_cmodel($c, $metadata->{'target-pid'});
     if($res_state->{status} ne 200){
-      $c->app->log->error("ERROR creating cmodel[$cmodel] target-pid[".$metadata->{target-pid}."], could not get state:".$c->app->dumper($res_cmodel));
+      $c->app->log->error("ERROR creating cmodel[$cmodel] target-pid[".$metadata->{'target-pid'}."], could not get state:".$c->app->dumper($res_cmodel));
       return;
     }else{
       $state = $res_cmodel->{state};
     }
     if ($state ne 'Inactive') {
-      $c->app->log->error("ERROR creating cmodel[$cmodel] target-pid[".$metadata->{target-pid}."] state[$cmodel] is not Inactive");
+      $c->app->log->error("ERROR creating cmodel[$cmodel] target-pid[".$metadata->{'target-pid'}."] state[$cmodel] is not Inactive");
       return;
     }
-    $pid = $metadata->{target-pid};
+    $pid = $metadata->{'target-pid'};
   }
 
   if ($cmodel eq 'cmodel:Resource') {
@@ -753,7 +753,7 @@ sub create_container {
   $c->app->log->debug("Creating container with metadata:".$c->app->dumper($container_metadata));
 
   my $pid = '';
-  unless (exists($container_metadata->{target-pid})) {
+  unless (exists($container_metadata->{'target-pid'})) {
     # create parent object
     my $r = $self->create($c, 'cmodel:Container', $username, $password);
     if($r->{status} ne 200){
@@ -768,29 +768,29 @@ sub create_container {
     my $currCmodel;
     my $state;
     my $search_model = PhaidraAPI::Model::Search->new;
-    my $res_cmodel = $search_model->get_cmodel($c, $container_metadata->{target-pid});
+    my $res_cmodel = $search_model->get_cmodel($c, $container_metadata->{'target-pid'});
     if($res_cmodel->{status} ne 200){
-      $c->app->log->error("ERROR creating container target-pid[".$container_metadata->{target-pid}."], could not get cmodel:".$c->app->dumper($res_cmodel));
+      $c->app->log->error("ERROR creating container target-pid[".$container_metadata->{'target-pid'}."], could not get cmodel:".$c->app->dumper($res_cmodel));
       return;
     }else{
       $currCmodel = $res_cmodel->{cmodel};
     }
     if ($currCmodel ne 'Container') {
-      $c->app->log->error("ERROR creating container target-pid[".$container_metadata->{target-pid}."] cmodel[$currCmodel] is not Container");
+      $c->app->log->error("ERROR creating container target-pid[".$container_metadata->{'target-pid'}."] cmodel[$currCmodel] is not Container");
       return;
     }
-    my $res_state = $search_model->get_cmodel($c, $container_metadata->{target-pid});
+    my $res_state = $search_model->get_cmodel($c, $container_metadata->{'target-pid'});
     if($res_state->{status} ne 200){
-      $c->app->log->error("ERROR creating container target-pid[".$container_metadata->{target-pid}."], could not get state:".$c->app->dumper($res_cmodel));
+      $c->app->log->error("ERROR creating container target-pid[".$container_metadata->{'target-pid'}."], could not get state:".$c->app->dumper($res_cmodel));
       return;
     }else{
       $state = $res_cmodel->{state};
     }
     if ($state ne 'Inactive') {
-      $c->app->log->error("ERROR creating container target-pid[".$container_metadata->{target-pid}."] state[$state] is not Inactive");
+      $c->app->log->error("ERROR creating container target-pid[".$container_metadata->{'target-pid'}."] state[$state] is not Inactive");
       return;
     }
-    $pid = $container_metadata->{target-pid};
+    $pid = $container_metadata->{'target-pid'};
   }
 
   # save metadata
