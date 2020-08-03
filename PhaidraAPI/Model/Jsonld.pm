@@ -31,7 +31,7 @@ sub get_object_jsonld_parsed {
 
   my $object_model = PhaidraAPI::Model::Object->new;
   
-  my $r =  $object_model->get_datastream($c, $pid, 'JSON-LD', $username, $password, 1);
+  my $r = $object_model->get_datastream($c, $pid, 'JSON-LD', $username, $password, 1);
 
   if($r->{status} ne 200){
     return $r;
@@ -53,6 +53,8 @@ sub save_to_object(){
   my $password = shift;
 
   my $res = { alerts => [], status => 200 };
+
+  $cmodel =~ s/cmodel://g;
 
   $self->fix($c, $pid, $cmodel, $metadata);
 
@@ -81,6 +83,7 @@ sub fix() {
 
   unless (exists($metadata->{'dcterms:type'})) {
     my $rt = $cm2rt{$cmodel};
+    $c->app->log->debug("pid[$pid] cmodel[$cmodel] json-ld fix: adding dcterms:type");
     $metadata->{'dcterms:type'} = [ 
       {
         '@type' => 'skos:Concept',
@@ -100,8 +103,7 @@ sub validate() {
 
   my $res = { alerts => [], status => 200 };
 
-  $cmodel =~ s/cmodel://g;
-  $c->app->log->debug("pid[$pid] cmodel[$cmodel] validating metadata");
+  $c->app->log->debug("pid[$pid] cmodel[$cmodel] validating metadata\n".$c->app->dumper($metadata));
   unless (($cmodel eq 'Container') || ($cmodel eq 'Collection') || ($cmodel eq 'Resource')) {
     unless (exists($metadata->{'edm:rights'})) {
       $res->{status} = 400;
