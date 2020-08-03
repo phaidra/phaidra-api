@@ -12,6 +12,7 @@ use MIME::Base64 qw(encode_base64url decode_base64url);
 use DateTime;
 use DateTime::Format::ISO8601;
 use DateTime::Format::Strptime;
+use BSON::Types qw(:all);
 use Clone qw(clone);
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::ByteStream qw(b);
@@ -250,7 +251,7 @@ sub handler {
     return;
 
   } elsif ($verb eq 'Identify') {
-    my $earliestDatestamp = '1970-01-01T00:00:01Z';
+    my $earliestDatestamp = bson_time(0); # 1970-01-01T00:00:01Z
     my $rec = $self->mongo->get_collection('oai_records')->find()->sort({ "updated" => 1 })->next;
     if ($rec) {
       $earliestDatestamp = $rec->{created};
