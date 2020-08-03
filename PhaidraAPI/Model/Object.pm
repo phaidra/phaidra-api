@@ -487,9 +487,10 @@ sub create_simple {
   }
 
   my $pid = '';
+  my $r;
   unless (exists($metadata->{'target-pid'})) {
     # create object
-    my $r = $self->create($c, $cmodel, $username, $password);
+    $r = $self->create($c, $cmodel, $username, $password);
     if($r->{status} ne 200){
       $res->{status} = 500;
       unshift @{$res->{alerts}}, @{$r->{alerts}};
@@ -534,7 +535,7 @@ sub create_simple {
       return $res;
     }
     # save link
-    my $r = $self->add_datastream($c, $pid, "LINK", "text/html", $metadata->{metadata}->{resourcelink}, "Link to external resource", undef, "R", undef, undef, $username, $password);
+    $r = $self->add_datastream($c, $pid, "LINK", "text/html", $metadata->{metadata}->{resourcelink}, "Link to external resource", undef, "R", undef, undef, $username, $password);
     if($r->{status} ne 200){
       $res->{status} = $r->{status};
       foreach my $a (@{$r->{alerts}}){
@@ -753,9 +754,10 @@ sub create_container {
   $c->app->log->debug("Creating container with metadata:".$c->app->dumper($container_metadata));
 
   my $pid = '';
+  my $r;
   unless (exists($container_metadata->{'target-pid'})) {
     # create parent object
-    my $r = $self->create($c, 'cmodel:Container', $username, $password);
+    $r = $self->create($c, 'cmodel:Container', $username, $password);
     if($r->{status} ne 200){
       $res->{status} = 500;
       unshift @{$res->{alerts}}, @{$r->{alerts}};
