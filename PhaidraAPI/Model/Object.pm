@@ -498,7 +498,6 @@ sub create_simple {
       return $res;
     }
     $pid = $r->{pid};
-    $res->{pid} = $pid;
   } else {
     my $currCmodel;
     my $state;
@@ -527,6 +526,7 @@ sub create_simple {
     }
     $pid = $metadata->{'target-pid'};
   }
+  $res->{pid} = $pid;
 
   if ($cmodel eq 'cmodel:Resource') {
     unless (exists($metadata->{metadata}->{resourcelink})) {
@@ -765,7 +765,6 @@ sub create_container {
       return $res;
     }
     $pid = $r->{pid};
-    $res->{pid} = $pid;
   } else {
     my $currCmodel;
     my $state;
@@ -781,12 +780,12 @@ sub create_container {
       $c->app->log->error("ERROR creating container target-pid[".$container_metadata->{'target-pid'}."] cmodel[$currCmodel] is not Container");
       return;
     }
-    my $res_state = $search_model->get_cmodel($c, $container_metadata->{'target-pid'});
+    my $res_state = $search_model->get_state($c, $container_metadata->{'target-pid'});
     if($res_state->{status} ne 200){
       $c->app->log->error("ERROR creating container target-pid[".$container_metadata->{'target-pid'}."], could not get state:".$c->app->dumper($res_cmodel));
       return;
     }else{
-      $state = $res_cmodel->{state};
+      $state = $res_state->{state};
     }
     if ($state ne 'Inactive') {
       $c->app->log->error("ERROR creating container target-pid[".$container_metadata->{'target-pid'}."] state[$state] is not Inactive");
@@ -794,6 +793,7 @@ sub create_container {
     }
     $pid = $container_metadata->{'target-pid'};
   }
+  $res->{pid} = $pid;
 
   # save metadata
   $r = $self->save_metadata($c, $pid, 'Container', $container_metadata, $username, $password, 1);
