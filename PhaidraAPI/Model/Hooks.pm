@@ -37,7 +37,7 @@ sub add_or_modify_datastream_hooks {
       my $object_model = PhaidraAPI::Model::Object->new;
       my $r = $index_model->update($c, $pid, $dc_model, $search_model, $object_model);
       if($r->{status} ne 200){
-        $res->{status} = $r->{status};
+        # just log but don't change status, this isn't fatal
         push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
       }
     }
@@ -56,7 +56,6 @@ sub add_or_modify_relationships_hooks {
   my $search_model = PhaidraAPI::Model::Search->new;
 
   my $object_model = PhaidraAPI::Model::Object->new;
-  
 
   if(exists($c->app->config->{hooks})){
     if(exists($c->app->config->{hooks}->{updatedc}) && $c->app->config->{hooks}->{updatedc}){
@@ -91,7 +90,7 @@ sub add_or_modify_relationships_hooks {
       my $index_model = PhaidraAPI::Model::Index->new;  
       my $r = $index_model->update($c, $pid, $dc_model, $search_model, $object_model);
       if($r->{status} ne 200){
-        $res->{status} = $r->{status};
+        # just log but don't change status, this isn't fatal
         push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
       }
     }
@@ -114,7 +113,7 @@ sub modify_object_hooks {
       my $object_model = PhaidraAPI::Model::Object->new;
       my $r = $index_model->update($c, $pid, $dc_model, $search_model, $object_model);
       if($r->{status} ne 200){
-        $res->{status} = $r->{status};
+        # just log but don't change status, this isn't fatal
         push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
       }
     }
