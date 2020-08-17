@@ -703,20 +703,31 @@ sub diss {
   $url->userinfo($self->stash->{basic_auth_credentials}->{username}.":".$self->stash->{basic_auth_credentials}->{password}) if $self->stash->{basic_auth_credentials}->{username};
   $url->path("/fedora/get/$pid/bdef:$bdef/$method");
 
-  $self->app->log->info("user[".$self->stash->{basic_auth_credentials}->{username}."] proxying $url");
-
-  if (Mojo::IOLoop->is_running) {
-    $self->render_later;
-    $self->ua->get(
-      $url,
-      sub {
-        my ($c, $tx) = @_;
-        _proxy_tx($self, $tx);
-      }
-    );
-  }else {
-    my $tx = $self->ua->get($url);
-    _proxy_tx($self, $tx);
+  if (($bdef eq 'Resource') && ($method eq 'get')) {
+    my $redres = $self->ua->get($url)->result;
+    if ($redres->code == 302) { 
+      $self->res->headers->location($redres->headers->location);
+      $self->rendered(302);
+      return;
+    } else {
+      $self->render(json => { alerts => [{ type => 'danger', msg => $redres->message }]} , status => $redres->code);
+      return;
+    }
+  } else {
+    $self->app->log->info("user[".$self->stash->{basic_auth_credentials}->{username}."] proxying $url");
+    if (Mojo::IOLoop->is_running) {
+      $self->render_later;
+      $self->ua->get(
+        $url,
+        sub {
+          my ($c, $tx) = @_;
+          _proxy_tx($self, $tx);
+        }
+      );
+    }else {
+      my $tx = $self->ua->get($url);
+      _proxy_tx($self, $tx);
+    }
   }
 }
 

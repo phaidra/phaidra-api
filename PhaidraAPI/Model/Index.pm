@@ -29,7 +29,8 @@ our %indexed_datastreams = (
   "RELS-EXT" => 1,
   "JSON-LD" => 1,
   "COLLECTIONORDER" => 1,
-  "RIGHTS" => 1
+  "RIGHTS" => 1,
+  "BOOKINFO" => 1
 );
 
 our %cmodel_2_resourcetype = (
@@ -1063,7 +1064,11 @@ sub _get {
       }
 
     }
-  } 
+  }
+
+  if(exists($datastreams{'BOOKINFO'})){
+    $index{firstpagepid} = $datastreams{'BOOKINFO'}->find('book\:page[abspagenum="1"]')->first->attr('pid');
+  }
 
   if(exists($datastreams{'GEO'})){
 
