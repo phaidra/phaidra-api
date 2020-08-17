@@ -493,7 +493,7 @@ sub update {
 
       my $t0 = [gettimeofday];
       my $r = $self->_get($c, $pid, $dc_model, $search_model, $object_model, $ignorestatus);
-      $c->app->log->debug("indexing took ".tv_interval($t0));
+      $c->app->log->debug("update indexing took ".tv_interval($t0));
       $res = $r;
 
       my $collectionMembers = $r->{index}->{haspart} if exists $r->{index}->{haspart};
@@ -509,7 +509,7 @@ sub update {
       delete $r->{index}->{membersorder};
 
       my $getStatus = $r->{status};
-
+      $c->app->log->debug("[$pid] index get status $getStatus");
       if($getStatus eq 200){
 
         if(exists($c->app->config->{index_mongodb})){
@@ -520,17 +520,16 @@ sub update {
         if(exists($c->app->config->{solr})){
           $t0 = [gettimeofday];
           my @docs = ($r->{index});
-          my $post = $ua->post($updateurl => json => \@docs);
+          my $post = $ua->post($updateurl => json => \@docs)->result;
           $c->app->log->debug("posting index took ".tv_interval($t0));
-          if (my $r = $post->success) {
+          # log solr response, on 8.1.1 if there's an error 200 is returned and commit is skipped
+          # while the error is only sent back to client (not in solr log)
+          $c->app->log->debug("[$pid] solr result code[".$post->code."] message [".$post->message."] json:\n".$c->app->dumper($post->json));
+          if ($post->is_success) {
             $c->app->log->debug("[$pid] solr document updated");
-            # log solr response, on 8.1.1 if there's an error 200 is returned and commit is skipped
-            # while the error is only sent back to client (not in solr log)
-            $c->app->log->debug("[$pid] solr result:\n".$c->app->dumper($post->result->json));
           }else {
-            my ($err, $code) = $post->error;
-            unshift @{$res->{alerts}}, { type => 'danger', msg => "[$pid] Error updating solr: ".$c->app->dumper($err) };
-            $res->{status} =  $code ? $code : 500;
+            unshift @{$res->{alerts}}, { type => 'danger', msg => "[$pid] Error updating solr code[".$post->code."] message [".$post->message."]"};
+            $res->{status} =  $post->code ? $post->code : 500;
           }
           
         }
@@ -1294,12 +1293,12 @@ sub _get {
       }
     }
   }
-  $c->app->log->debug("XXXXXXXXXXXXX title_suggest_ir: ".$c->app->dumper($index{title_suggest_ir}));
+  # $c->app->log->debug("XXXXXXXXXXXXX title_suggest_ir: ".$c->app->dumper($index{title_suggest_ir}));
 
   # ts
   $index{_updated} = time; 
 
-  #$c->app->log->debug("XXXXXXX indexing took ".tv_interval($t0));
+  $c->app->log->debug("_get indexing took ".tv_interval($t0));
   return $res;
 }
 
