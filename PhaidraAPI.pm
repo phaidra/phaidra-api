@@ -4,6 +4,7 @@ use strict;
 use warnings;
 use Mojo::Base 'Mojolicious';
 use Log::Log4perl;
+use Mojolicious::Static;
 use Mojolicious::Plugin::I18N;
 use Mojolicious::Plugin::Session;
 use Mojo::Loader qw(load_class);
@@ -57,6 +58,7 @@ sub startup {
 	$self->config($config);
 	$self->mode($config->{mode});
   $self->secrets([$config->{secret}]);
+  push @{$self->static->paths} => 'public';
 
   Log::Log4perl::init('log4perl.conf');
   my $log = Log::Log4perl::get_logger("PhaidraAPI");
@@ -444,6 +446,8 @@ sub startup {
   $proxyauth_optional->route('object/:pid/fulltext')                      ->via('get')      ->to('fulltext#get');
   $proxyauth_optional->route('object/:pid/metadata')                      ->via('get')      ->to('object#get_metadata');
   $proxyauth_optional->route('object/:pid/info')                          ->via('get')      ->to('object#info');
+  $proxyauth_optional->route('object/:pid/thumbnail')                     ->via('get')      ->to('object#thumbnail');
+  $proxyauth_optional->route('object/:pid/preview')                       ->via('get')      ->to('object#preview');
   $proxyauth_optional->route('object/:pid/md5')                           ->via('get')      ->to('inventory#get_md5');
   $proxyauth_optional->route('object/:pid/octets')                        ->via('get')      ->to('octets#get');
   #$proxyauth_optional->route('object/:pid/download')                      ->via('get')      ->to('data#download');

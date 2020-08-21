@@ -3,6 +3,7 @@ package PhaidraAPI::Controller::Object;
 use strict;
 use warnings;
 use v5.10;
+use Switch;
 use base 'Mojolicious::Controller';
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::Util qw(encode decode);
@@ -16,6 +17,9 @@ use PhaidraAPI::Model::Rights;
 use PhaidraAPI::Model::Uwmetadata;
 use PhaidraAPI::Model::Geo;
 use PhaidraAPI::Model::Mods;
+use PhaidraAPI::Model::Imageserver;
+use PhaidraAPI::Model::Util;
+use PhaidraAPI::Model::Authorization;
 use Time::HiRes qw/tv_interval gettimeofday/;
 use File::Find::utf8;
 
@@ -33,7 +37,294 @@ sub info {
 	my $object_model = PhaidraAPI::Model::Object->new;
   my $r = $object_model->info($self, $self->stash('pid'), $username, $password);
 
-  $self->render(json => $r, status => $r->{status}) ;
+  $self->render(json => $r, status => $r->{status});
+}
+
+sub imageserver_job_status {
+  my $self = shift;
+  my $pid = shift;
+
+  if(exists($self->app->config->{paf_mongodb})){
+    my $jobs_coll = $self->paf_mongo->db->collection('jobs');
+    if($jobs_coll){
+      my $job_record = $jobs_coll->find({pid => $pid, agent => 'pige'})->sort({ 'created' => -1})->next;
+      return $job_record->{status};
+    }
+  }
+
+  return 'job not found';
+}
+
+sub thumbnail {
+  my $self = shift;
+
+  my $username = $self->stash->{basic_auth_credentials}->{username};
+  my $password = $self->stash->{basic_auth_credentials}->{password};
+
+  unless(defined($self->stash('pid'))){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
+    return;
+  }
+  my $pid = $self->stash('pid');
+
+  my $w = $self->param('w');
+  unless ($w) {
+    $w = 120;
+  }
+  my $h = $self->param('h');
+  unless ($h) {
+    $h = 120;
+  }
+
+  my $urlget = Mojo::URL->new;
+  $urlget->scheme($self->app->config->{solr}->{scheme});
+  $urlget->host($self->app->config->{solr}->{host});
+  $urlget->port($self->app->config->{solr}->{port});
+  if($self->app->config->{solr}->{path}){
+    $urlget->path("/".$self->app->config->{solr}->{path}."/solr/".$self->app->config->{solr}->{core}."/select");
+  }else{
+    $urlget->path("/solr/".$self->app->config->{solr}->{core}."/select");
+  }
+  $urlget->query(q => "*:*", fq => "isthumbnailfor:\"$pid\"", rows => "1", wt => "json");
+  my $ua = Mojo::UserAgent->new;
+  my $getres = $ua->get($urlget)->result;
+  if ($getres->is_success) {
+    for my $d (@{$getres->json->{response}->{docs}}){
+      $self->app->log->info($d->{pid}." is thumbnail for $pid");
+      $pid = $d->{pid};
+    }
+  }else{
+    $self->app->log->debug("error searching for isthumbnailfor: ".$getres->code." ".$getres->message);
+  }
+
+  my $authz_model = PhaidraAPI::Model::Authorization->new;
+  my $res = $authz_model->check_rights($self, $pid, 'ro');
+  unless($res->{status} eq '200'){
+    $self->reply->static('images/locked.png');
+    return;
+  }
+
+  my $search_model = PhaidraAPI::Model::Search->new;
+  my $cmodelr = $search_model->get_cmodel($self, $pid);
+  if ($cmodelr->{status} ne 200) {
+    $self->app->log->info("pid[$pid] could not get cmodel");
+    $self->reply->exception("pid[$pid] could not get cmodel");
+    return;
+  }
+
+  switch ($cmodelr->{cmodel}) {
+    case ['Picture', 'Page', 'PDFDocument'] {
+      if ($self->imageserver_job_status($pid) eq 'finished') {
+        # use imageserver
+        my $size = "!$w,$h";
+        my $isrv_model = PhaidraAPI::Model::Imageserver->new;
+        my $res = $isrv_model->get_url($self, Mojo::Parameters->new(IIIF => "$pid.tif/full/$size/0/default.jpg"), 0);
+        if ($res->{status} ne 200) {
+          $self->render(json => $res, status => $res->{status});
+          return;
+        }
+        $self->render_later;
+        $self->ua->get( $res->{url} => sub { my ($ua, $tx) = @_; $self->tx->res($tx->res); $self->rendered; } );
+        return;
+      } else {
+        switch ($cmodelr->{cmodel}) {
+          case 'Picture' {
+            $self->reply->static('images/book.png');
+            return;
+          }
+          case 'Page' { 
+            $self->reply->static('images/document.png');
+            return;
+          }
+          case 'PDFDocument' {
+            $self->reply->static('images/document.png');
+            return;
+          }
+        }
+      }
+    }
+    case 'Book' {
+      my $index_model = PhaidraAPI::Model::Index->new;
+      my $docres = $index_model->get_doc($self, $pid);
+      if ($docres->{status} ne 200) {
+        $self->app->log->error("error searching for firstpage: ".$self->app->dumper($docres));
+        $self->reply->static('images/book.png');
+        return;
+      }
+      my $firstpage;
+      if (exists($docres->{doc}->{firstpage})) {
+        $firstpage = $docres->{doc}->{firstpage};
+      }
+      if ($firstpage) {
+        if ($self->imageserver_job_status($firstpage) eq 'finished') {
+          my $size = "!$w,$h";
+          my $isrv_model = PhaidraAPI::Model::Imageserver->new;
+          my $res = $isrv_model->get_url($self, Mojo::Parameters->new(IIIF => "$firstpage.tif/full/$size/0/default.jpg"), 0);
+          if ($res->{status} ne 200) {
+            $self->render(json => $res, status => $res->{status});
+            return;
+          }
+          $self->render_later;
+          $self->ua->get( $res->{url} => sub { my ($ua, $tx) = @_; $self->tx->res($tx->res); $self->rendered; } );
+          return;
+        } else {
+          $self->reply->static('images/book.png');
+          return;
+        }
+      } else {
+        $self->reply->static('images/book.png');
+        return;
+      }
+    }
+    case 'Video' {
+      $self->reply->static('images/video.png');
+      return;
+    }
+    case 'Audio' {
+      $self->reply->static('images/audio.png');
+      return;
+    }
+    case 'Container' {
+      $self->reply->static('images/container.png');
+      return;
+    }
+    case 'Collection' {
+      $self->reply->static('images/collection.png');
+      return;
+    }
+    case 'Resource' {
+      $self->reply->static('images/resource.png');
+      return;
+    }
+    case 'Asset' {
+      $self->reply->static('images/asset.png');
+      return;
+    }
+  }
+
+  $self->reply->exception("pid[$pid] internal error");
+}
+
+sub preview {
+  my $self = shift;
+
+  my $username = $self->stash->{basic_auth_credentials}->{username};
+  my $password = $self->stash->{basic_auth_credentials}->{password};
+
+  unless(defined($self->stash('pid'))){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
+    return;
+  }
+  my $pid = $self->stash('pid');
+
+  my $authz_model = PhaidraAPI::Model::Authorization->new;
+  my $res = $authz_model->check_rights($self, $pid, 'ro');
+  unless($res->{status} eq '200'){
+    $self->reply->static('images/locked.png');
+    return;
+  }
+
+  my $search_model = PhaidraAPI::Model::Search->new;
+  my $cmodelr = $search_model->get_cmodel($self, $self->stash('pid'));
+  if ($cmodelr->{status} ne 200) {
+    $self->app->log->info("pid[$pid] could not get cmodel");
+    $self->reply->exception("pid[$pid] could not get cmodel");
+    return;
+  }
+
+  switch ($cmodelr->{cmodel}) {
+    case ['Picture', 'Page'] {
+      my $imgsrvjobstatus = $self->imageserver_job_status($pid);
+      if ($imgsrvjobstatus eq 'finished') {
+        my $index_model = PhaidraAPI::Model::Index->new;
+        my $docres = $index_model->get_doc($self, $pid);
+        if ($docres->{status} ne 200) {
+          $self->app->log->error("error searching for firstpage: ".$self->app->dumper($docres));
+          $self->reply->static('images/picture.png');
+          return;
+        }
+        my $license;
+        for my $l (@{$docres->{doc}->{dc_license}}) {
+          $license = $l;
+        }
+        $self->stash( baseurl => $self->config->{baseurl} );
+        $self->stash( basepath => $self->config->{basepath} );
+        $self->stash( pid => $pid );
+        $self->stash( license => $license );
+        $self->render(template => 'utils/imageviewer', format => 'html');
+        return;
+      } else {
+        $self->render(text => "imageserver job status: " . $imgsrvjobstatus, status => 503);
+      }
+    }
+    case 'PDFDocument' {
+      $self->stash( baseurl => $self->config->{baseurl} );
+      $self->stash( basepath => $self->config->{basepath} );
+      $self->stash( pid => $pid );
+      $self->render(template => 'utils/pdfviewer', format => 'html');
+      return;
+    }
+    case 'Video' {
+      if($self->config->{streaming}){
+        my $u_model = PhaidraAPI::Model::Util->new;
+        my $r = $u_model->get_video_key($self, $pid);
+        if ($r->{status} eq 200) {
+          $self->stash( video_key => $r->{video_key} );
+          $self->stash( errormsg => $r->{errormsq} );
+          $self->stash( server => $self->config->{streaming}->{server} );
+          $self->stash( server_rtmp => $self->config->{streaming}->{server_rtmp} );
+          $self->stash( server_cd => $self->config->{streaming}->{server_cd} );
+          $self->stash( basepath => $self->config->{streaming}->{basepath} );
+          $self->render(template => 'utils/streamingplayer', format => 'html');
+          return;
+        } else {
+          $self->app->log->error("Video key not available: ".$self->app->dumper($r));
+          $self->render(text => $self->app->dumper($r), status => $r->{status});
+        }
+      }else{
+        $self->render(text => "stremaing not configured", status => 503);
+      }
+      return;
+    }
+    case 'Audio' {
+      my $index_model = PhaidraAPI::Model::Index->new;
+      my $docres = $index_model->get_doc($self, $pid);
+      if ($docres->{status} ne 200) {
+        $self->app->log->error("error searching for firstpage: ".$self->app->dumper($docres));
+        $self->reply->static('images/audio.png');
+        return;
+      }
+      my $mimetype;
+      for my $format (@{$docres->{doc}->{dc_format}}) {
+        if ($format =~ /\//) {
+          $mimetype = $format;
+        }
+      }
+      $self->stash( fedorabaseurl => $self->config->{phaidra}->{fedorabaseurl} );
+      $self->stash( fedorabasepath => $self->config->{phaidra}->{fedorabasepath} );
+      $self->stash( mimetype => $mimetype );
+      $self->stash( pid => $pid );
+      $self->render(template => 'utils/audioplayer', format => 'html');
+      return;
+    }
+    case 'Container' {
+      $self->reply->static('images/container.png');
+      return;
+    }
+    case 'Collection' {
+      $self->reply->static('images/collection.png');
+      return;
+    }
+    case 'Resource' {
+      $self->reply->static('images/resource.png');
+      return;
+    }
+    case 'Asset' {
+      $self->reply->static('images/asset.png');
+      return;
+    }
+  }
+  $self->reply->exception("pid[$pid] internal error");
 }
 
 sub delete {
