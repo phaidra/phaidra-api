@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <!-- Basic example style for a 100% view -->
+  <style type="text/css">
+    body{
+      height: 100%;
+      padding: 0;
+      margin: 0;
+    }
+    div#viewer{
+      height: 100%;
+      min-height: 100%;
+      width: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      margin: 0;
+      padding: 0;
+    }	
+  </style>
+  <link rel="stylesheet" type="text/css" media="all" href="https://<%= $baseurl %>/<%= $basepath %>/iipmooviewer/iip.min.css" />
+  <script type="text/javascript" src="https://<%= $baseurl %>/<%= $basepath %>/iipmooviewer/mootools-core-1.6.0-compressed.js"></script>
+  <script type="text/javascript" src="https://<%= $baseurl %>/<%= $basepath %>/iipmooviewer/iipmooviewer-2.0-min.js"></script>
+  <script type="text/javascript">
+    var server = 'https://<%= $baseurl %>/<%= $basepath %>/imageserver';
+    var image = "<%= $pid %>.tif";
+    var credit = "<%= $license %>";
+    var prefix = '/api/iipmooviewer/';
+    var iipmooviewer =  new IIPMooViewer( "viewer", { server: server, image: image, prefix: prefix, credit: credit });
+  </script>
+ </head>
+ <body>
+   <div id="viewer"></div>
+ </body>
+</html>
