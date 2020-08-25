@@ -4,7 +4,7 @@
  </head>
  <body>
   <audio controls>
-    <source src="https://<%= $fedorabaseurl %>/<%= $fedorabasepath %>/objects/<%= $pid %>/methods/bdef:Content/get" type="<%= $mimetype %>">
+    <source src="https://<%= $baseurl %>/<%= $basepath %>/object/<%= $pid %>/get" type="<%= $mimetype %>">
     Your browser does not support the audio element.
   </audio>
  </body>

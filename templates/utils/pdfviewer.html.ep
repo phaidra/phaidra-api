@@ -391,14 +391,14 @@ See https://github.com/adobe-type-tools/cmap-resources
     <script>
       function docReady(fn) {
         if (document.readyState === "complete" || document.readyState === "interactive") {
-          setTimeout(fn, 100);
+          setTimeout(fn, 1000);
         } else {
           document.addEventListener("DOMContentLoaded", fn);
         }
       }
       // TODO viewer.js: PDFViewerApplication\.open\(file\), try to use X-XSRF-TOKEN
       docReady(function() {
-        PDFViewerApplication.open("https://<%= $baseurl %>/<%= $basepath %>/object/<%= $pid %>/diss/Content/get")
+        PDFViewerApplication.open("https://<%= $baseurl %>/<%= $basepath %>/object/<%= $pid %>/get")
       });
     </script>
   </body>

@@ -120,6 +120,15 @@ sub startup {
     };
   }
 
+  if($config->{fedora}->{fedora_db}){
+    $databases{'db_fedora'} = {
+      dsn  => $config->{fedora}->{fedora_db}->{dsn},
+      username => $config->{fedora}->{fedora_db}->{username},
+      password => $config->{fedora}->{fedora_db}->{password},
+      options  => { mysql_auto_reconnect => 1}
+    };
+  }
+
   if($config->{ir}){
     $databases{'db_ir'} = {
       dsn  => $config->{ir}->{'db'}->{dsn},
@@ -449,9 +458,9 @@ sub startup {
   $proxyauth_optional->route('object/:pid/thumbnail')                     ->via('get')      ->to('object#thumbnail');
   $proxyauth_optional->route('object/:pid/preview')                       ->via('get')      ->to('object#preview');
   $proxyauth_optional->route('object/:pid/md5')                           ->via('get')      ->to('inventory#get_md5');
-  $proxyauth_optional->route('object/:pid/octets')                        ->via('get')      ->to('octets#get');
-  #$proxyauth_optional->route('object/:pid/download')                      ->via('get')      ->to('data#download');
-  #$proxyauth_optional->route('object/:pid/view')                          ->via('get')      ->to('data#view');
+  $proxyauth_optional->route('object/:pid/octets')                        ->via('get')      ->to('octets#proxy');
+  $proxyauth_optional->route('object/:pid/download')                      ->via('get')      ->to('octets#get', operation => 'download');
+  $proxyauth_optional->route('object/:pid/get')                           ->via('get')      ->to('octets#get', operation => 'get');
 
   $proxyauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
   

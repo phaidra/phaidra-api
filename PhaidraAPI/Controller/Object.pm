@@ -55,6 +55,32 @@ sub imageserver_job_status {
   return 'job not found';
 }
 
+sub get_is_thumbnail_for {
+  my $self = shift;
+  my $pid = shift;
+
+  my $urlget = Mojo::URL->new;
+  $urlget->scheme($self->app->config->{solr}->{scheme});
+  $urlget->host($self->app->config->{solr}->{host});
+  $urlget->port($self->app->config->{solr}->{port});
+  if($self->app->config->{solr}->{path}){
+    $urlget->path("/".$self->app->config->{solr}->{path}."/solr/".$self->app->config->{solr}->{core}."/select");
+  }else{
+    $urlget->path("/solr/".$self->app->config->{solr}->{core}."/select");
+  }
+  $urlget->query(q => "*:*", fq => "isthumbnailfor:\"$pid\"", rows => "1", wt => "json");
+  my $ua = Mojo::UserAgent->new;
+  my $getres = $ua->get($urlget)->result;
+  if ($getres->is_success) {
+    for my $d (@{$getres->json->{response}->{docs}}){
+      $self->app->log->info($d->{pid}." is thumbnail for $pid");
+      return $d->{pid};
+    }
+  }else{
+    $self->app->log->debug("error searching for isthumbnailfor: ".$getres->code." ".$getres->message);
+  }
+}
+
 sub thumbnail {
   my $self = shift;
 
@@ -76,25 +102,9 @@ sub thumbnail {
     $h = 120;
   }
 
-  my $urlget = Mojo::URL->new;
-  $urlget->scheme($self->app->config->{solr}->{scheme});
-  $urlget->host($self->app->config->{solr}->{host});
-  $urlget->port($self->app->config->{solr}->{port});
-  if($self->app->config->{solr}->{path}){
-    $urlget->path("/".$self->app->config->{solr}->{path}."/solr/".$self->app->config->{solr}->{core}."/select");
-  }else{
-    $urlget->path("/solr/".$self->app->config->{solr}->{core}."/select");
-  }
-  $urlget->query(q => "*:*", fq => "isthumbnailfor:\"$pid\"", rows => "1", wt => "json");
-  my $ua = Mojo::UserAgent->new;
-  my $getres = $ua->get($urlget)->result;
-  if ($getres->is_success) {
-    for my $d (@{$getres->json->{response}->{docs}}){
-      $self->app->log->info($d->{pid}." is thumbnail for $pid");
-      $pid = $d->{pid};
-    }
-  }else{
-    $self->app->log->debug("error searching for isthumbnailfor: ".$getres->code." ".$getres->message);
+  my $thumbPid = $self->get_is_thumbnail_for($pid);
+  if ($thumbPid) {
+    $pid = $thumbPid;
   }
 
   my $authz_model = PhaidraAPI::Model::Authorization->new;
@@ -232,6 +242,11 @@ sub preview {
     return;
   }
 
+  # TODO: use webversion if available
+  # imageserver: this is already supported using the 'ds' parameter, should be noop here
+  # streaming: for instances where there is no streaming (so use html player with webversion url instead)
+  # audioplayer: pass webversion url
+
   switch ($cmodelr->{cmodel}) {
     case ['Picture', 'Page'] {
       my $imgsrvjobstatus = $self->imageserver_job_status($pid);
@@ -282,7 +297,23 @@ sub preview {
           $self->render(text => $self->app->dumper($r), status => $r->{status});
         }
       }else{
-        $self->render(text => "stremaing not configured", status => 503);
+        my $thumbPid = $self->get_is_thumbnail_for($pid);
+        if ($thumbPid) {
+          if ($self->imageserver_job_status($pid) eq 'finished') {
+            my $size = "!480,480";
+            my $isrv_model = PhaidraAPI::Model::Imageserver->new;
+            my $res = $isrv_model->get_url($self, Mojo::Parameters->new(IIIF => "$pid.tif/full/$size/0/default.jpg"), 0);
+            if ($res->{status} ne 200) {
+              $self->render(json => $res, status => $res->{status});
+              return;
+            }
+            $self->render_later;
+            $self->ua->get( $res->{url} => sub { my ($ua, $tx) = @_; $self->tx->res($tx->res); $self->rendered; } );
+            return;
+          }
+        } else {
+          $self->render(text => "stremaing not configured", status => 503);
+        }
       }
       return;
     }
@@ -300,12 +331,52 @@ sub preview {
           $mimetype = $format;
         }
       }
-      $self->stash( fedorabaseurl => $self->config->{phaidra}->{fedorabaseurl} );
-      $self->stash( fedorabasepath => $self->config->{phaidra}->{fedorabasepath} );
+      $self->stash( baseurl => $self->config->{baseurl} );
+      $self->stash( basepath => $self->config->{basepath} );
       $self->stash( mimetype => $mimetype );
       $self->stash( pid => $pid );
+      my $thumbPid = $self->get_is_thumbnail_for($pid);
+      if ($thumbPid) {
+        $self->stash( thumbpid => $pid );
+      }
       $self->render(template => 'utils/audioplayer', format => 'html');
       return;
+    }
+    else {
+      my $thumbPid = $self->get_is_thumbnail_for($pid);
+      if ($thumbPid) {
+        if ($self->imageserver_job_status($pid) eq 'finished') {
+          my $size = "!480,480";
+          my $isrv_model = PhaidraAPI::Model::Imageserver->new;
+          my $res = $isrv_model->get_url($self, Mojo::Parameters->new(IIIF => "$pid.tif/full/$size/0/default.jpg"), 0);
+          if ($res->{status} ne 200) {
+            $self->render(json => $res, status => $res->{status});
+            return;
+          }
+          $self->render_later;
+          $self->ua->get( $res->{url} => sub { my ($ua, $tx) = @_; $self->tx->res($tx->res); $self->rendered; } );
+          return;
+        }
+      } else {
+        switch ($cmodelr->{cmodel}) {
+          case 'Container' {
+            $self->reply->static('images/container.png');
+            return;
+          }
+          case 'Collection' {
+            $self->reply->static('images/collection.png');
+            return;
+          }
+          case 'Resource' {
+            $self->reply->static('images/resource.png');
+            return;
+          }
+          case 'Asset' {
+            $self->reply->static('images/asset.png');
+            return;
+          }
+        }
+      }
     }
     case 'Container' {
       $self->reply->static('images/container.png');

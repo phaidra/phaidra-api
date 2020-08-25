@@ -10,14 +10,26 @@ __PACKAGE__->attr('name');
 __PACKAGE__->attr('log');
 
 sub get {
-    my ($self) = @_;
-    #$self->log->debug("Loading header=".$self->name.": ".$self->tx->req->headers->header($self->name));
-    return $self->tx->req->headers->header($self->name);	
+  my ($self) = @_;
+  #$self->log->debug("Loading header=".$self->name.": ".$self->tx->req->headers->header($self->name));
+  my $token = $self->tx->req->headers->header($self->name);
+  if ($token) {
+    # $self->log->debug("Found token in ".$self->name." header");
+  } else {
+    my $cookies = $self->tx->req->cookies;
+    for my $cookie (@{$cookies}) {
+      if ($cookie->name eq $self->name) {
+        # $self->log->debug("Found token in ".$self->name." cookie");
+        $token = $cookie->value;
+      }
+    }
+  }
+  return $token;
 }
 
 # we don't set anything, the token is sent via cookie only on login and then kept on client side
 sub set {
-    my ($self, $sid, $expires) = @_;
+  my ($self, $sid, $expires) = @_;
 }
 
 1;
