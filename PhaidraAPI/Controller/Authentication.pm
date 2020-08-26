@@ -209,7 +209,7 @@ sub signin {
 	my $cookie = Mojo::Cookie::Response->new;
     $cookie->name($self->app->config->{authentication}->{token_cookie})->value($session->sid);
     $cookie->secure(1);
-    $cookie->samesite('None');
+    $cookie->samesite('Strict');
     $cookie->domain($self->app->config->{phaidra}->{baseurl});
     $self->tx->res->cookies($cookie);
     
