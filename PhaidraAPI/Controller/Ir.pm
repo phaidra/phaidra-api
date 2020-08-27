@@ -353,7 +353,7 @@ sub events {
   $self->render(json => $res, status => $res->{status});
 }
 
-sub requestedlicenses {
+sub adminlistdata {
 
   my $self = shift;
 
@@ -404,6 +404,27 @@ sub requestedlicenses {
   }
 
   $res->{requestedlicenses} = \@licenses;
+
+  my @submits;
+  $ss = "SELECT pid, user_id FROM event WHERE event_type = 'submit' AND pid IN ($pidsparam)";
+  $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
+  $sth->execute() or $self->app->log->error($self->app->db_ir->errstr);
+  my $username;
+  $sth->bind_columns(undef, \$pid, \$username) or $self->app->log->error($self->app->db_ir->errstr);
+  while($sth->fetch())
+  {
+    push @submits, {pid => $pid, user => { username => $username }};
+  }
+
+  my $namesCache;
+  for my $submit (@submits) {
+    unless (exists($namesCache->{$submit->{user}->{username}})) {
+      $namesCache->{$submit->{user}->{username}} = $self->app->directory->get_name($self, $submit->{user}->{username});
+    }
+    $submit->{user}->{name} = $namesCache->{$submit->{user}->{username}};
+  }
+
+  $res->{submits} = \@submits;
 
   $self->render(json => $res, status => $res->{status});
 }

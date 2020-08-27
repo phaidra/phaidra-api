@@ -469,7 +469,8 @@ sub startup {
   $proxyauth->route('object/:pid/jsonldprivate')                          ->via('get')      ->to('jsonldprivate#get');
   $proxyauth->route('object/:pid/rights')                                 ->via('get')      ->to('rights#get');
 
-  $check_auth->route('ir/requestedlicenses')                              ->via('post')     ->to('ir#requestedlicenses');
+  $check_auth->route('ir/requestedlicenses')                              ->via('post')     ->to('ir#adminlistdata'); # remove
+  $check_auth->route('ir/adminlistdata')                                  ->via('post')     ->to('ir#adminlistdata');
   $check_auth->route('ir/:pid/events')                                    ->via('get')      ->to('ir#events');
   $check_auth->route('ir/allowsubmit')                                    ->via('get')      ->to('ir#allowsubmit');
 
