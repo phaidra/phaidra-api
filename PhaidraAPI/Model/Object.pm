@@ -199,6 +199,15 @@ sub info {
     email => $user_data->{email}
   };
 
+  if ($info->{readrights}) {
+    my $pido = $pid =~ s/\:/_/r;
+    my $cursor = $c->paf_mongo->db->collection('octets.catalog')->find({ 'path' => qr/$pido\+/ }, { path => 1, md5 => 1 });
+    $info->{md5} = [];
+    while (my $doc = $cursor->next) {
+      push @{$info->{md5}}, $doc;
+    }
+  }
+
   # $c->app->log->debug("XXXXXXXXXXXXXX ".$c->app->dumper($info));
 
   $res->{info} = $info;
