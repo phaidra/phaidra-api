@@ -29,13 +29,15 @@ sub info {
   my $username = $self->stash->{basic_auth_credentials}->{username};
   my $password = $self->stash->{basic_auth_credentials}->{password};
 
-	unless(defined($self->stash('pid'))){
-		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
-		return;
-	}
+  unless(defined($self->stash('pid'))){
+    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
+    return;
+  }
 
-	my $object_model = PhaidraAPI::Model::Object->new;
-  my $r = $object_model->info($self, $self->stash('pid'), $username, $password);
+  my $mode = $self->param('mode');
+
+  my $object_model = PhaidraAPI::Model::Object->new;
+  my $r = $object_model->info($self, $self->stash('pid'), $mode, $username, $password);
 
   $self->render(json => $r, status => $r->{status});
 }

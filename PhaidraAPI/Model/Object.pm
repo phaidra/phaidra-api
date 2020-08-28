@@ -20,6 +20,7 @@ use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Hooks;
 use PhaidraAPI::Model::Membersorder;
 use PhaidraAPI::Model::Index;
+use PhaidraAPI::Model::Stats;
 use IO::Scalar;
 use File::MimeInfo;
 use File::Temp 'tempfile';
@@ -76,6 +77,7 @@ sub info {
   my $self = shift;
   my $c = shift;
   my $pid = shift;
+  my $mode = shift;
   my $username = shift;
   my $password = shift;
 
@@ -199,12 +201,23 @@ sub info {
     email => $user_data->{email}
   };
 
-  if ($info->{readrights}) {
-    my $pido = $pid =~ s/\:/_/r;
-    my $cursor = $c->paf_mongo->db->collection('octets.catalog')->find({ 'path' => qr/$pido\+/ }, { path => 1, md5 => 1 });
-    $info->{md5} = [];
-    while (my $doc = $cursor->next) {
-      push @{$info->{md5}}, $doc;
+  if ($mode eq 'full') {
+    my $stats_model = PhaidraAPI::Model::Stats->new;
+    my $statsres = $stats_model->stats($c, $pid, undef, 'stats');
+    if ($statsres->{status} eq 200) {
+      $info->{stats} = {
+        downloads => $statsres->{downloads},
+        detail_page => $statsres->{detail_page}
+      };
+    }
+
+    if ($info->{readrights}) {
+      my $pido = $pid =~ s/\:/_/r;
+      my $cursor = $c->paf_mongo->db->collection('octets.catalog')->find({ 'path' => qr/$pido\+/ }, { path => 1, md5 => 1 });
+      $info->{md5} = [];
+      while (my $doc = $cursor->next) {
+        push @{$info->{md5}}, $doc;
+      }
     }
   }
 
