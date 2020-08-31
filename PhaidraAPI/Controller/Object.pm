@@ -247,7 +247,8 @@ sub preview {
   # TODO: use webversion if available
   # imageserver: this is already supported using the 'ds' parameter, should be noop here
   # streaming: for instances where there is no streaming (so use html player with webversion url instead)
-  # audioplayer: pass webversion url
+  # audioplayer: pass webversion url, check if not too loarge before loading
+  # pdf: pass webversion url, if no webversion, check if not too loarge before loading
 
   switch ($cmodelr->{cmodel}) {
     case ['Picture', 'Page'] {
