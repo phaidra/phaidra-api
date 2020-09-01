@@ -341,11 +341,16 @@ sub map_jsonld_2_dc_hash {
     push @{$dc_p{date}}, $d;
   }
 
+  my $pds = $ext->_get_jsonld_publisheddates($c, $jsonld);
+  for my $pd (@{$pds}){
+    push @{$dc_p{date}}, $pd;
+  }
+
   my $tcs = $ext->_get_jsonld_langvalues($c, $jsonld, 'schema:temporalCoverage');
   for my $tc (@{$tcs}){
     push @{$dc_p{coverage}}, $tc;
   }
-  
+
   $dc_p{rights} = $ext->_get_jsonld_values($c, $jsonld, 'edm:rights');
   my $rights_sentences = $ext->_get_jsonld_langvalues($c, $jsonld, 'dce:rights');
   for my $rs (@$rights_sentences){
