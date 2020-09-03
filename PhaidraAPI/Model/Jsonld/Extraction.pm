@@ -285,6 +285,35 @@ sub _get_jsonld_roles {
   return (\@creators, \@contributors);
 }
 
+sub _get_jsonld_publisheddates {
+  my ($self, $c, $jsonld) = @_;
+
+  my @arr;
+  if(exists($jsonld->{'bf:provisionActivity'})){
+    for my $pa (@{$jsonld->{'bf:provisionActivity'}}) {
+      if (exists($pa->{'bf:date'})) {
+        for my $date (@{$pa->{'bf:date'}}) {
+          push @arr, { value => $date };
+        }
+      }
+    }
+  }
+  if(exists($jsonld->{'rdau:P60101'})){
+    for my $ci (@{$jsonld->{'rdau:P60101'}}) {
+      if (exists($ci->{'bf:provisionActivity'})) {
+        for my $pa (@{$ci->{'bf:provisionActivity'}}) {
+          if (exists($pa->{'bf:date'})) {
+            for my $date (@{$pa->{'bf:date'}}) {
+              push @arr, { value => $date };
+            }
+          }
+        }
+      }
+    }
+  }
+  return \@arr;
+}
+
 sub _get_jsonld_publishers {
   my ($self, $c, $jsonld) = @_;
 

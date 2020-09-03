@@ -63,7 +63,7 @@ sub remove_list {
   my $lid = $self->stash('lid');
   my $owner = $self->stash->{basic_auth_credentials}->{username};
 
-  $self->mongo->get_collection('lists')->remove({ "listid" => $lid, "owner" => $owner });
+  $self->mongo->get_collection('lists')->delete_one({ "listid" => $lid, "owner" => $owner });
 
   $self->render(json => { alerts => [] }, status => 200 );
 }
@@ -92,7 +92,10 @@ sub add_members {
     }
   };
 
-  my $r = $self->mongo->get_collection('lists')->update({"listid" => $lid, "owner" => $owner}, {'$addToSet' => {'members' => { '$each' => $members->{members} } }, '$set' => {"updated" => time}});
+  my $r;
+  for my $m (@{$members->{members}}){
+    $r = $self->mongo->get_collection('lists')->update_one({"listid" => $lid, "owner" => $owner}, {'$push' => {'members' => $m }, '$set' => {"updated" => time}});
+  }
 
   if ($r->{ok}){
     $self->render(json => { status => 200, alerts => [] }, status => 200 );
@@ -125,9 +128,12 @@ sub remove_members {
     }
   };
 
-  my $r = $self->mongo->get_collection('lists')->update({"listid" => $lid, "owner" => $owner}, {'$pullAll' => {'members' => $members->{members} }, '$set' => {"updated" => time}});
+  my $r;
+  for my $pid (@{$members->{members}}){
+    $r = $self->mongo->get_collection('lists')->update_one({"listid" => $lid, "owner" => $owner}, {'$pull' => {'members' => { pid => $pid } }, '$set' => {"updated" => time}});
+  }
 
-  if ($r->{ok}){
+  if ($r->{modified_count}){
     $self->render(json => { status => 200, alerts => [] }, status => 200 );
   } else {
     $self->render(json => { alerts => [{ type => 'danger', msg => $r->{err} }]} , status => 500) ;
