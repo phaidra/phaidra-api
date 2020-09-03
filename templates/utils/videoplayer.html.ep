@@ -3,9 +3,9 @@
  <head>
  </head>
  <body>
-  <audio controls>
+  <audio video width="320" height="240" controls>
     <source src="https://<%= $baseurl %>/<%= $basepath %>/object/<%= $pid %>/get?trywebversion=1" type="<%= $mimetype %>">
-    Your browser does not support the audio element.
+    Your browser does not support the video element.
   </audio>
  </body>
 </html>

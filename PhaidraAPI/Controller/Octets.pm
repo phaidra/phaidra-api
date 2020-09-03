@@ -48,18 +48,42 @@ sub get {
     return;
   }
 
-  my $octets_model = PhaidraAPI::Model::Octets->new;
-  my $parthres = $octets_model->_get_octets_path($self, $pid);
-  if ($parthres->{status} != 200) {
-    $res->{status} = $parthres->{status};
-    push @{$res->{alerts}}, @{$parthres->{alerts}} if scalar @{$parthres->{alerts}} > 0;
-    $self->render(json => $res, status => $res->{status});
+  my $object_model = PhaidraAPI::Model::Object->new;
+  my $r_oxml = $object_model->get_foxml($self, $pid);
+  if($r_oxml->{status} ne 200){
+    $self->render(json => $r_oxml, status => $r_oxml->{status});
     return;
   }
+  my $dom = Mojo::DOM->new();
+  $dom->xml(1);
+  $dom->parse($r_oxml->{foxml});
 
-  my ($filename, $mimetype) = $self->get_filename_mimetype($pid);
+  my ($filename, $mimetype, $size, $path);
+  my $octets_model = PhaidraAPI::Model::Octets->new;
 
-  $self->app->log->debug("operation[$operation] pid[$pid] path[".$parthres->{path}."] mimetype[$mimetype] filename[$filename]");
+  my $trywebversion = $self->param('trywebversion');
+  if ($trywebversion) {
+    my $parthres = $octets_model->_get_ds_path($self, $pid, 'WEBVERSION');
+    if ($parthres->{status} == 200) {
+      $path = $parthres->{path};
+      ($filename, $mimetype, $size) = $octets_model->_get_ds_attributes($self, $pid, 'WEBVERSION', $dom);
+    }
+  }
+
+  unless ($path) {
+    my $parthres = $octets_model->_get_ds_path($self, $pid, 'OCTETS');
+    if ($parthres->{status} != 200) {
+      $res->{status} = $parthres->{status};
+      push @{$res->{alerts}}, @{$parthres->{alerts}} if scalar @{$parthres->{alerts}} > 0;
+      $self->render(json => $res, status => $res->{status});
+      return;
+    } else {
+      $path = $parthres->{path};
+    }
+    ($filename, $mimetype, $size) = $octets_model->_get_ds_attributes($self, $pid, 'OCTETS', $dom);
+  }
+
+  $self->app->log->debug("operation[$operation] trywebversion[$trywebversion] pid[$pid] path[$path] mimetype[$mimetype] filename[$filename] size[$size]");
 
   if ($operation eq 'download') {
     $self->res->headers->content_disposition("attachment;filename=$filename");
@@ -67,37 +91,10 @@ sub get {
     $self->res->headers->content_disposition("filename=$filename");
   }
   $self->res->headers->content_type($mimetype);
-  $self->res->content->asset(Mojo::Asset::File->new(path => $parthres->{path}));
+  $self->res->content->asset(Mojo::Asset::File->new(path => $path));
   $self->rendered(200);
 }
 
-sub get_filename_mimetype {
-  my $self = shift;
-  my $pid = shift;
 
-  my $res = { alerts => [], status => 200 };
-
-  my $object_model = PhaidraAPI::Model::Object->new;
-  my $r_oxml = $object_model->get_foxml($self, $pid);
-  if($r_oxml->{status} ne 200){
-    $self->app->log->error("pid[$pid] could not determine filename and mimetype from OCTETS->LABEL, failed reading foxml: ".$self->app->dumper($r_oxml));
-    return ($pid, 'application/octet-stream');
-  }
-  my $dom = Mojo::DOM->new();
-  $dom->xml(1);
-  $dom->parse($r_oxml->{foxml});
-  for my $e ($dom->find('foxml\:datastream[ID="OCTETS"]')->each){
-    my $latestVersion = $e->find('foxml\:datastreamVersion')->first;
-    for my $e1 ($e->find('foxml\:datastreamVersion')->each){
-      if($e1->attr('CREATED') gt $latestVersion->attr('CREATED')){
-        $latestVersion = $e1;
-      }
-    }
-    return ($latestVersion->attr('LABEL'), $latestVersion->attr('MIMETYPE'));
-  }
-
-  $self->app->log->error("pid[$pid] could not determine filename and mimetype from OCTETS->LABEL");
-  return ($pid, 'application/octet-stream');
-}
 
 1;

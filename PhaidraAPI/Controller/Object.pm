@@ -14,6 +14,7 @@ use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Collection;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Rights;
+use PhaidraAPI::Model::Octets;
 use PhaidraAPI::Model::Uwmetadata;
 use PhaidraAPI::Model::Geo;
 use PhaidraAPI::Model::Mods;
@@ -120,7 +121,7 @@ sub thumbnail {
   my $cmodelr = $search_model->get_cmodel($self, $pid);
   if ($cmodelr->{status} ne 200) {
     $self->app->log->info("pid[$pid] could not get cmodel");
-    $self->reply->exception("pid[$pid] could not get cmodel");
+    $self->reply->static('images/error.png');
     return;
   }
 
@@ -141,7 +142,7 @@ sub thumbnail {
       } else {
         switch ($cmodelr->{cmodel}) {
           case 'Picture' {
-            $self->reply->static('images/book.png');
+            $self->reply->static('images/image.png');
             return;
           }
           case 'Page' { 
@@ -159,8 +160,8 @@ sub thumbnail {
       my $index_model = PhaidraAPI::Model::Index->new;
       my $docres = $index_model->get_doc($self, $pid);
       if ($docres->{status} ne 200) {
-        $self->app->log->error("error searching for firstpage: ".$self->app->dumper($docres));
-        $self->reply->static('images/book.png');
+        $self->app->log->error("pid [$pid] error searching for firstpage: ".$self->app->dumper($docres));
+        $self->reply->static('images/error.png');
         return;
       }
       my $firstpage;
@@ -214,7 +215,8 @@ sub thumbnail {
     }
   }
 
-  $self->reply->exception("pid[$pid] internal error");
+  $self->app->log->error("pid[$pid] oops!");
+  $self->reply->static('images/error.png');
 }
 
 sub preview {
@@ -229,6 +231,8 @@ sub preview {
   }
   my $pid = $self->stash('pid');
 
+  my $force = $self->param('force');
+
   my $authz_model = PhaidraAPI::Model::Authorization->new;
   my $res = $authz_model->check_rights($self, $pid, 'ro');
   unless($res->{status} eq '200'){
@@ -236,34 +240,71 @@ sub preview {
     return;
   }
 
-  my $search_model = PhaidraAPI::Model::Search->new;
-  my $cmodelr = $search_model->get_cmodel($self, $self->stash('pid'));
-  if ($cmodelr->{status} ne 200) {
-    $self->app->log->info("pid[$pid] could not get cmodel");
-    $self->reply->exception("pid[$pid] could not get cmodel");
+  my $object_model = PhaidraAPI::Model::Object->new;
+  my $r_oxml = $object_model->get_foxml($self, $pid);
+  if($r_oxml->{status} ne 200){
+    $self->render(json => $r_oxml, status => $r_oxml->{status});
     return;
   }
+  my $foxmldom = Mojo::DOM->new();
+  $foxmldom->xml(1);
+  $foxmldom->parse($r_oxml->{foxml});
 
-  # TODO: use webversion if available
-  # imageserver: this is already supported using the 'ds' parameter, should be noop here
-  # streaming: for instances where there is no streaming (so use html player with webversion url instead)
-  # audioplayer: pass webversion url
+  my $relsext;
+  for my $e ($foxmldom->find('foxml\:datastream[ID="RELS-EXT"]')->each){
+    $relsext = $e->find('foxml\:datastreamVersion')->first;
+    for my $e1 ($e->find('foxml\:datastreamVersion')->each){
+      if($e1->attr('CREATED') gt $relsext->attr('CREATED')){
+        $relsext = $e1;
+      }
+    }
+  }
+  my $cmodel = $relsext->find('foxml\:xmlContent')->first->find('hasModel')->first->attr('rdf:resource');
+  $cmodel =~ s/^info:fedora\/cmodel:(.*)$/$1/;
 
-  switch ($cmodelr->{cmodel}) {
+  # we need mimetype for the audio/viedo player and size (either octets or webversion) to know if to use load button
+  my $octets_model = PhaidraAPI::Model::Octets->new;
+  my ($filename, $mimetype, $size);
+
+  my $trywebversion = 0;
+  if ($foxmldom->find('foxml\:datastream[ID="WEBVERSION"]')->first) {
+    $trywebversion = 1;
+    ($filename, $mimetype, $size) = $octets_model->_get_ds_attributes($self, $pid, 'WEBVERSION', $foxmldom);
+  } else {
+    ($filename, $mimetype, $size) = $octets_model->_get_ds_attributes($self, $pid, 'OCTETS', $foxmldom);
+  }
+
+  my $showloadbutton = 0;
+  unless ($force) {
+    if ($size) {
+      my $limit = 10000000;
+      if (exists($self->config->{preview_size_limit})) {
+        $limit = $self->config->{preview_size_limit};
+      }
+      if ($size > $limit) {
+        $showloadbutton = 1;
+      }
+    }
+  }
+
+  $self->app->log->info("preview pid[$pid] force[$force] cmodel[$cmodel] mimetype[$mimetype] size[$size] showloadbutton[$showloadbutton]");
+
+  switch ($cmodel) {
     case ['Picture', 'Page'] {
       my $imgsrvjobstatus = $self->imageserver_job_status($pid);
       if ($imgsrvjobstatus eq 'finished') {
+        my $license = '';
         my $index_model = PhaidraAPI::Model::Index->new;
         my $docres = $index_model->get_doc($self, $pid);
         if ($docres->{status} ne 200) {
-          $self->app->log->error("error searching for firstpage: ".$self->app->dumper($docres));
-          $self->reply->static('images/picture.png');
+          $self->app->log->error("pid[$pid] error searching for doc: ".$self->app->dumper($docres));
+          $self->reply->static('images/error.png');
           return;
         }
-        my $license;
         for my $l (@{$docres->{doc}->{dc_license}}) {
           $license = $l;
         }
+
         $self->stash( baseurl => $self->config->{baseurl} );
         $self->stash( basepath => $self->config->{basepath} );
         $self->stash( pid => $pid );
@@ -275,8 +316,13 @@ sub preview {
       }
     }
     case 'PDFDocument' {
+      if ($showloadbutton) {
+        $self->render(template => 'utils/loadbutton', format => 'html');
+        return;
+      }
       $self->stash( baseurl => $self->config->{baseurl} );
       $self->stash( basepath => $self->config->{basepath} );
+      $self->stash( trywebversion => $trywebversion );
       $self->stash( pid => $pid );
       $self->render(template => 'utils/pdfviewer', format => 'html');
       return;
@@ -299,42 +345,32 @@ sub preview {
           $self->render(text => $self->app->dumper($r), status => $r->{status});
         }
       }else{
+        if ($showloadbutton) {
+          $self->render(template => 'utils/loadbutton', format => 'html');
+          return;
+        }
+        $self->stash( baseurl => $self->config->{baseurl} );
+        $self->stash( basepath => $self->config->{basepath} );
+        $self->stash( trywebversion => $trywebversion );
+        $self->stash( mimetype => $mimetype );
+        $self->stash( pid => $pid );
         my $thumbPid = $self->get_is_thumbnail_for($pid);
         if ($thumbPid) {
-          if ($self->imageserver_job_status($pid) eq 'finished') {
-            my $size = "!480,480";
-            my $isrv_model = PhaidraAPI::Model::Imageserver->new;
-            my $res = $isrv_model->get_url($self, Mojo::Parameters->new(IIIF => "$pid.tif/full/$size/0/default.jpg"), 0);
-            if ($res->{status} ne 200) {
-              $self->render(json => $res, status => $res->{status});
-              return;
-            }
-            $self->render_later;
-            $self->ua->get( $res->{url} => sub { my ($ua, $tx) = @_; $self->tx->res($tx->res); $self->rendered; } );
-            return;
-          }
-        } else {
-          $self->render(text => "stremaing not configured", status => 503);
+          $self->stash( thumbpid => $pid );
         }
+        $self->render(template => 'utils/videoplayer', format => 'html');
+        return;
       }
       return;
     }
     case 'Audio' {
-      my $index_model = PhaidraAPI::Model::Index->new;
-      my $docres = $index_model->get_doc($self, $pid);
-      if ($docres->{status} ne 200) {
-        $self->app->log->error("error searching for firstpage: ".$self->app->dumper($docres));
-        $self->reply->static('images/audio.png');
+      if ($showloadbutton) {
+        $self->render(template => 'utils/loadbutton', format => 'html');
         return;
-      }
-      my $mimetype;
-      for my $format (@{$docres->{doc}->{dc_format}}) {
-        if ($format =~ /\//) {
-          $mimetype = $format;
-        }
       }
       $self->stash( baseurl => $self->config->{baseurl} );
       $self->stash( basepath => $self->config->{basepath} );
+      $self->stash( trywebversion => $trywebversion );
       $self->stash( mimetype => $mimetype );
       $self->stash( pid => $pid );
       my $thumbPid = $self->get_is_thumbnail_for($pid);
@@ -360,7 +396,7 @@ sub preview {
           return;
         }
       } else {
-        switch ($cmodelr->{cmodel}) {
+        switch ($cmodel) {
           case 'Container' {
             $self->reply->static('images/container.png');
             return;

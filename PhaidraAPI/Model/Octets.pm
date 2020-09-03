@@ -6,14 +6,16 @@ use v5.10;
 use XML::LibXML;
 use base qw/Mojo::Base/;
 
-sub _get_octets_path(){
+
+sub _get_ds_path(){
   my $self = shift;
   my $c = shift;
   my $pid = shift;
+  my $ds = shift;
 
   my $res = { alerts => [], status => 200 };
 
-  my $ss = "SELECT token, path FROM datastreamPaths WHERE token like '$pid+OCTETS%';";
+  my $ss = "SELECT token, path FROM datastreamPaths WHERE token like '$pid+$ds%';";
   my $sth = $c->app->db_fedora->prepare($ss);
   unless ($sth) {
     my $msg = $c->app->db_fedora->errstr;
@@ -37,7 +39,7 @@ sub _get_octets_path(){
   my $latestPath;
   $sth->bind_columns(undef, \$token, \$path);
   while($sth->fetch) {
-    $token =~ /OCTETS\.(\d+)/;
+    $token =~ /$ds\.(\d+)/;
     if ($1 gt $latestVersion) {
       $latestVersion = $1;
       $latestPath = $path
@@ -48,10 +50,33 @@ sub _get_octets_path(){
     $res->{path} = $latestPath;
   } else {
     $res->{status} = 404;
-    unshift @{$res->{alerts}}, { type => 'danger', msg => 'OCTETS datastream path not found'};
+    unshift @{$res->{alerts}}, { type => 'danger', msg => $ds.' datastream path not found'};
   }
 
   return $res;
+}
+
+sub _get_ds_attributes {
+  my $self = shift;
+  my $c = shift;
+  my $pid = shift;
+  my $ds = shift;
+  my $foxmldom = shift;
+
+  my $res = { alerts => [], status => 200 };
+
+  for my $e ($foxmldom->find('foxml\:datastream[ID="'.$ds.'"]')->each){
+    my $latestVersion = $e->find('foxml\:datastreamVersion')->first;
+    for my $e1 ($e->find('foxml\:datastreamVersion')->each){
+      if($e1->attr('CREATED') gt $latestVersion->attr('CREATED')){
+        $latestVersion = $e1;
+      }
+    }
+    return ($latestVersion->attr('LABEL'), $latestVersion->attr('MIMETYPE'), $latestVersion->attr('SIZE'));
+  }
+
+  $c->app->log->error("pid[$pid] could not determine filename, mimetype and size of $ds");
+  return ($pid, 'application/octet-stream', undef);
 }
 
 1;

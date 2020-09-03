@@ -396,9 +396,8 @@ See https://github.com/adobe-type-tools/cmap-resources
           document.addEventListener("DOMContentLoaded", fn);
         }
       }
-      // TODO viewer.js: PDFViewerApplication\.open\(file\), try to use X-XSRF-TOKEN
       docReady(function() {
-        PDFViewerApplication.open("https://<%= $baseurl %>/<%= $basepath %>/object/<%= $pid %>/get")
+        PDFViewerApplication.open("https://<%= $baseurl %>/<%= $basepath %>/object/<%= $pid %>/get?trywebversion=1")
       });
     </script>
   </body>

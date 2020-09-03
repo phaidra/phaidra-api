@@ -1259,10 +1259,10 @@ sub _get {
   }
 
   # pid
-  $index{pid} = $pid;    
+  $index{pid} = $pid;
 
   my $resourcetype;
-  $resourcetype = $cmodel_2_resourcetype{$index{cmodel}};    
+  $resourcetype = $cmodel_2_resourcetype{$index{cmodel}};
   if($index{"bib_ir"} eq "yes"){
     $resourcetype = "journalarticle";
   }  
