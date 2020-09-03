@@ -178,42 +178,42 @@ sub authenticate_admin {
 }
 
 sub signin {
-	
-	my $self = shift;
-		
-	# get credentials
-	my $auth_header = $self->req->headers->authorization;    
-    unless($auth_header)
-    {
-    	$self->res->headers->www_authenticate('Basic "'.$self->app->config->{authentication}->{realm}.'"');
-    	$self->render(json => { status => 401, alerts => [{ type => 'danger', msg => 'please authenticate' }]} , status => 401);
-    	return;
-    }    
-    my ($method, $str) = split(/ /,$auth_header);
-    my ($username, $password) = split(/:/, b($str)->b64_decode);
-    # authenticate, return 401 if authentication failed
-    $self->directory->authenticate($self, $username, $password);
-    my $res = $self->stash('phaidra_auth_result');
-    unless(($res->{status} eq 200)){    
-    	$self->app->log->info("User $username not authenticated");	
-    	$self->render(json => { status => $res->{status}, alerts => $res->{alerts}} , status => $res->{status});
-    	return;    		
-    }    
-    $self->app->log->info("User $username successfully authenticated");
-    
-	# init session, save credentials
-	$self->save_cred($username, $password);
-	my $session = $self->stash('mojox-session');
 
-	# sent token cookie	
-	my $cookie = Mojo::Cookie::Response->new;
-    $cookie->name($self->app->config->{authentication}->{token_cookie})->value($session->sid);
-    $cookie->secure(1);
-    $cookie->samesite('Strict');
-    $cookie->domain($self->app->config->{phaidra}->{baseurl});
-    $self->tx->res->cookies($cookie);
-    
-    $self->render(json => { status => $res->{status}, alerts => [], $self->app->config->{authentication}->{token_cookie} => $session->sid} , status => $res->{status}) ;    
+  my $self = shift;
+
+  # get credentials
+  my $auth_header = $self->req->headers->authorization;
+  unless($auth_header)
+  {
+    $self->res->headers->www_authenticate('Basic "'.$self->app->config->{authentication}->{realm}.'"');
+    $self->render(json => { status => 401, alerts => [{ type => 'danger', msg => 'please authenticate' }]}, status => 401);
+    return;
+  }
+  my ($method, $str) = split(/ /,$auth_header);
+  my ($username, $password) = split(/:/, b($str)->b64_decode);
+  # authenticate, return 401 if authentication failed
+  $self->directory->authenticate($self, $username, $password);
+  my $res = $self->stash('phaidra_auth_result');
+  unless(($res->{status} eq 200)){
+    $self->app->log->info("User $username not authenticated");
+    $self->render(json => { status => $res->{status}, alerts => $res->{alerts}} , status => $res->{status});
+    return;
+  }
+  $self->app->log->info("User $username successfully authenticated");
+
+  # init session, save credentials
+  $self->save_cred($username, $password);
+  my $session = $self->stash('mojox-session');
+
+  # sent token cookie
+  my $cookie = Mojo::Cookie::Response->new;
+  $cookie->name($self->app->config->{authentication}->{token_cookie})->value($session->sid);
+  $cookie->secure(1);
+  $cookie->samesite('Strict');
+  $cookie->domain($self->app->config->{phaidra}->{baseurl});
+  $self->tx->res->cookies($cookie);
+  
+  $self->render(json => { status => $res->{status}, alerts => [], $self->app->config->{authentication}->{token_cookie} => $session->sid}, status => $res->{status}) ;    
 }
 
 sub signout {

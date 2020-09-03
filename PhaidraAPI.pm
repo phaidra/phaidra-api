@@ -111,6 +111,15 @@ sub startup {
     options  => { mysql_auto_reconnect => 1}
   };
 
+  if($config->{phaidra_user_db}){
+    $databases{'db_user'} = {
+      dsn => $config->{phaidra_user_db}->{dsn},
+      username => $config->{phaidra_user_db}->{username},
+      password => $config->{phaidra_user_db}->{password},
+      options  => { mysql_auto_reconnect => 1}
+    };
+  }
+
   if($config->{phaidra}->{triplestore} eq 'localMysqlMPTTriplestore'){
     $databases{'db_triplestore'} = {
       dsn  => $config->{localMysqlMPTTriplestore}->{dsn},
@@ -419,6 +428,8 @@ sub startup {
   $r->route('oai')                                ->via('get')    ->to('oai#handler');
   $r->route('oai')                                ->via('post')   ->to('oai#handler');
 
+  $r->route('termsofuse')                         ->via('get')   ->to('termsofuse#get');
+
   # this just extracts the credentials - authentication will be done by fedora
 	my $proxyauth = $r->under('/')->to('authentication#extract_credentials', must_be_present => 1);
   my $proxyauth_optional = $r->under('/')->to('authentication#extract_credentials', must_be_present => 0);  
@@ -473,6 +484,8 @@ sub startup {
   $check_auth->route('ir/adminlistdata')                                  ->via('post')     ->to('ir#adminlistdata');
   $check_auth->route('ir/:pid/events')                                    ->via('get')      ->to('ir#events');
   $check_auth->route('ir/allowsubmit')                                    ->via('get')      ->to('ir#allowsubmit');
+
+  $check_auth->route('termsofuse/getagreed')                              ->via('get')      ->to('termsofuse#getagreed');
 
   unless($self->app->config->{readonly}){
 
@@ -544,6 +557,8 @@ sub startup {
     $check_auth->route('ir/:pid/approve')                                 ->via('post')     ->to('ir#approve');
 
     $check_auth->route('feedback')                                        ->via('post')     ->to('feedback#feedback');
+
+    $check_auth->route('termsofuse/agree/:version')                       ->via('post')     ->to('termsofuse#agree');
   }
 
 	return $self;

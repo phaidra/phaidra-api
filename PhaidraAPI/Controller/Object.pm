@@ -87,9 +87,6 @@ sub get_is_thumbnail_for {
 sub thumbnail {
   my $self = shift;
 
-  my $username = $self->stash->{basic_auth_credentials}->{username};
-  my $password = $self->stash->{basic_auth_credentials}->{password};
-
   unless(defined($self->stash('pid'))){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
     return;
@@ -221,9 +218,6 @@ sub thumbnail {
 
 sub preview {
   my $self = shift;
-
-  my $username = $self->stash->{basic_auth_credentials}->{username};
-  my $password = $self->stash->{basic_auth_credentials}->{password};
 
   unless(defined($self->stash('pid'))){
     $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
