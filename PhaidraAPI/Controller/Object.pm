@@ -306,7 +306,8 @@ sub preview {
         $self->render(template => 'utils/imageviewer', format => 'html');
         return;
       } else {
-        $self->render(text => "imageserver job status: " . $imgsrvjobstatus, status => 503);
+        $self->render(text => "imageserver job status: " . $imgsrvjobstatus, status => 200);
+        return;
       }
     }
     case 'PDFDocument' {
@@ -337,6 +338,7 @@ sub preview {
         } else {
           $self->app->log->error("Video key not available: ".$self->app->dumper($r));
           $self->render(text => $self->app->dumper($r), status => $r->{status});
+          return;
         }
       }else{
         if ($showloadbutton) {
