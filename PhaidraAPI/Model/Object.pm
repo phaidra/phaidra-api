@@ -88,15 +88,15 @@ sub info {
   my $docres = $index_model->get_doc($c, $pid);
   if ($docres->{status} != 200) {
     my $search_model = PhaidraAPI::Model::Search->new;
-    my $cmodelr = $search_model->get_cmodel($self, $pid);
+    my $cmodelr = $search_model->get_cmodel($c, $pid);
     if ($cmodelr->{status} ne 200) {
-      $self->app->log->error("pid[$pid] could not get cmodel");
+      $c->app->log->error("pid[$pid] could not get cmodel");
       return $cmodelr;
     }
     $info->{cmodel} = $cmodelr->{cmodel};
     if ($info->{cmodel} eq 'Page') {
       my $search_model = PhaidraAPI::Model::Search->new;
-      my $bookpidr = $search_model->get_cmodel($c, $pid);
+      my $bookpidr = $search_model->get_book_for_page($c, $pid);
       if ($bookpidr->{status} ne 200) {
         $c->app->log->error("pid[$pid] could not get book pid");
         return $bookpidr;
