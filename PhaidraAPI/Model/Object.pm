@@ -96,9 +96,9 @@ sub info {
     $info->{cmodel} = $cmodelr->{cmodel};
     if ($info->{cmodel} eq 'Page') {
       my $search_model = PhaidraAPI::Model::Search->new;
-      my $bookpidr = $search_model->get_cmodel($self, $pid);
+      my $bookpidr = $search_model->get_cmodel($c, $pid);
       if ($bookpidr->{status} ne 200) {
-        $self->app->log->error("pid[$pid] could not get book pid");
+        $c->app->log->error("pid[$pid] could not get book pid");
         return $bookpidr;
       }
       $info->{bookpid} = $bookpidr->{bookpid};
