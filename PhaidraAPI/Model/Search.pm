@@ -608,6 +608,39 @@ sub get_cmodel {
 	return $res;
 }
 
+sub get_book_for_page {
+  my $self = shift;
+  my $c = shift;
+  my $pagepid = shift;
+
+  my $res = { alerts => [], status => 200 };
+
+  my $bookpid;
+  my $cachekey = 'bookforpage_'.$pagepid;
+  unless($bookpid = $c->app->chi->get($cachekey)) {
+    $c->app->log->debug("[cache miss] $cachekey");
+
+    my $search_model = PhaidraAPI::Model::Search->new;
+    my $r = $search_model->triples($c, "* <info:fedora/fedora-system:def/relations-external#hasCollectionMember> <info:fedora/$pagepid>");
+    if($r->{status} ne 200){
+      return $r;
+    }
+
+    for my $t (@{$r->{result}}){
+      next if(@{$t}[0] =~ m/fedora-system/g);
+      @{$t}[0] =~ m/<(info:fedora\/)(\w+:[0-9]+)>/g;
+      $bookpid = $2;
+    }
+
+    $c->app->chi->set($cachekey, $bookpid, '1 day');
+  }else{
+    $c->app->log->debug("[cache hit] $cachekey");
+  }
+
+  $res->{bookpid} = $bookpid;
+  return $res;
+}
+
 sub datastreams_hash {
 	my $self = shift;
 	my $c = shift;

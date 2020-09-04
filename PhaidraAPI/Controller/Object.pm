@@ -117,7 +117,7 @@ sub thumbnail {
   my $search_model = PhaidraAPI::Model::Search->new;
   my $cmodelr = $search_model->get_cmodel($self, $pid);
   if ($cmodelr->{status} ne 200) {
-    $self->app->log->info("pid[$pid] could not get cmodel");
+    $self->app->log->error("pid[$pid] could not get cmodel");
     $self->reply->static('images/error.png');
     return;
   }

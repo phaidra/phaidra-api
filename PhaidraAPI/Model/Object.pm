@@ -92,6 +92,26 @@ sub info {
     $info = $docres->{doc};
   }
 
+  unless ($info->{cmodel}) {
+    my $search_model = PhaidraAPI::Model::Search->new;
+    my $cmodelr = $search_model->get_cmodel($self, $pid);
+    if ($cmodelr->{status} ne 200) {
+      $self->app->log->error("pid[$pid] could not get cmodel");
+      return $cmodelr;
+    }
+    $info->{cmodel} = $cmodelr->{cmodel};
+  }
+
+  if ($info->{cmodel} eq 'Page') {
+    my $search_model = PhaidraAPI::Model::Search->new;
+    my $bookpidr = $search_model->get_cmodel($self, $pid);
+    if ($bookpidr->{status} ne 200) {
+      $self->app->log->error("pid[$pid] could not get book pid");
+      return $bookpidr;
+    }
+    $info->{bookpid} = $bookpidr->{bookpid};
+  }
+
   if ($info->{cmodel} eq 'Collection') {
     my $r_hps = $index_model->get_haspart_size($c, $pid);
     if($r_hps->{status} ne 200){
@@ -133,10 +153,10 @@ sub info {
     $dshash{$ds} = 1
   }
   $info->{dshash} = \%dshash;
-  
+
   $info->{metadata} = undef;
 
-  if($dshash{'JSON-LD'}){   
+  if($dshash{'JSON-LD'}){
     my $jsonld_model = PhaidraAPI::Model::Jsonld->new;  
     my $r_jsonld = $jsonld_model->get_object_jsonld_parsed($c, $pid, $username, $password);
     if($r_jsonld->{status} ne 200){
@@ -147,7 +167,7 @@ sub info {
     }
   }
 
-  if($dshash{'MODS'}){   
+  if($dshash{'MODS'}){
     my $mods_model = PhaidraAPI::Model::Mods->new;
     my $r = $mods_model->get_object_mods_json($c, $pid, 'basic', $username, $password);
     if($r->{status} ne 200){
@@ -158,7 +178,7 @@ sub info {
     }
   }
 
-  if($dshash{'UWMETADATA'}){   
+  if($dshash{'UWMETADATA'}){
     my $uwmetadata_model = PhaidraAPI::Model::Uwmetadata->new;
     my $r = $uwmetadata_model->get_object_metadata($c, $pid, 'resolved', $username, $password);
     if($r->{status} ne 200){
