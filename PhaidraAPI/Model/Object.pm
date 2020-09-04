@@ -87,12 +87,6 @@ sub info {
   my $index_model = PhaidraAPI::Model::Index->new;
   my $docres = $index_model->get_doc($c, $pid);
   if ($docres->{status} != 200) {
-    return $docres;
-  } else {
-    $info = $docres->{doc};
-  }
-
-  unless ($info->{cmodel}) {
     my $search_model = PhaidraAPI::Model::Search->new;
     my $cmodelr = $search_model->get_cmodel($self, $pid);
     if ($cmodelr->{status} ne 200) {
@@ -100,16 +94,19 @@ sub info {
       return $cmodelr;
     }
     $info->{cmodel} = $cmodelr->{cmodel};
-  }
-
-  if ($info->{cmodel} eq 'Page') {
-    my $search_model = PhaidraAPI::Model::Search->new;
-    my $bookpidr = $search_model->get_cmodel($self, $pid);
-    if ($bookpidr->{status} ne 200) {
-      $self->app->log->error("pid[$pid] could not get book pid");
-      return $bookpidr;
+    if ($info->{cmodel} eq 'Page') {
+      my $search_model = PhaidraAPI::Model::Search->new;
+      my $bookpidr = $search_model->get_cmodel($self, $pid);
+      if ($bookpidr->{status} ne 200) {
+        $self->app->log->error("pid[$pid] could not get book pid");
+        return $bookpidr;
+      }
+      $info->{bookpid} = $bookpidr->{bookpid};
+    } else {
+      return $docres;
     }
-    $info->{bookpid} = $bookpidr->{bookpid};
+  } else {
+    $info = $docres->{doc};
   }
 
   if ($info->{cmodel} eq 'Collection') {
