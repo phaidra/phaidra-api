@@ -318,8 +318,19 @@ sub _get_jsonld_publishers {
   my ($self, $c, $jsonld) = @_;
 
   my @arr;
+  my $provisionActivity;
+  if(exists($jsonld->{'rdau:P60101'})){
+    for my $ci (@{$jsonld->{'rdau:P60101'}}) {
+      if (exists($ci->{'bf:provisionActivity'})) {
+        $provisionActivity = $ci->{'bf:provisionActivity'};
+      }
+    }
+  }
   if(exists($jsonld->{'bf:provisionActivity'})){
-    for my $pa (@{$jsonld->{'bf:provisionActivity'}}) {
+    $provisionActivity = $jsonld->{'bf:provisionActivity'};
+  }
+  if($provisionActivity){
+    for my $pa (@{$provisionActivity}) {
       if (exists($pa->{'bf:agent'})) {
         for my $ag (@{$pa->{'bf:agent'}}) {
           if (exists($ag->{'schema:name'})) {
