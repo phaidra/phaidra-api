@@ -2385,7 +2385,7 @@ sub get_relationships {
   my $idx = $self->get_doc_from_ua($c, $ua, $urlget, $pid);
   my $rels = {
     # own
-    # these two are supported elswhere, not needed here
+    # these two are supported elsewhere, not needed here
     # hascollectionmember => [],
     # hasmember => [],
     references => [],
@@ -2400,9 +2400,9 @@ sub get_relationships {
     ismemberof => [],
     isreferencedby => [],
     hasbackside => [],
-    issuccesorof => [],
-    haslaternativeformat => [],
-    haslaternativeversion => []
+    issuccessorof => [],
+    hasalternativeformat => [],
+    hasalternativeversion => []
   };
 
   # reverse only
@@ -2435,13 +2435,13 @@ sub get_relationships {
   $self->add_indexed_and_reverse($c, $ua, $urlget, $idx, 'isthumbnailfor', 'hasthumbnail', $pid, $rels);
 
   #'http://phaidra.univie.ac.at/XML/V1.0/relations#hasSuccessor'
-  $self->add_indexed_and_reverse($c, $ua, $urlget, $idx, 'hassuccessor', 'issuccesorof', $pid, $rels);
+  $self->add_indexed_and_reverse($c, $ua, $urlget, $idx, 'hassuccessor', 'issuccessorof', $pid, $rels);
 
   #'http://phaidra.org/XML/V1.0/relations#isAlternativeFormatOf'
-  $self->add_indexed_and_reverse($c, $ua, $urlget, $idx, 'isalternativeformatof', 'haslaternativeformat', $pid, $rels);
+  $self->add_indexed_and_reverse($c, $ua, $urlget, $idx, 'isalternativeformatof', 'hasalternativeformat', $pid, $rels);
 
   #'http://phaidra.org/XML/V1.0/relations#isAlternativeVersionOf'
-  $self->add_indexed_and_reverse($c, $ua, $urlget, $idx, 'isalternativeversionof', 'haslaternativeversion', $pid, $rels);
+  $self->add_indexed_and_reverse($c, $ua, $urlget, $idx, 'isalternativeversionof', 'hasalternativeversion', $pid, $rels);
 
   my @versions;
   my $versionsCheck = {
@@ -2457,7 +2457,7 @@ sub get_relationships {
       checked => 0
     }
   }
-  for my $v (@{$rels->{issuccesorof}}) {
+  for my $v (@{$rels->{issuccessorof}}) {
     push @versions, $v;
     $versionsCheck->{$v->{pid}} = {
       loaded => 1,
