@@ -244,8 +244,7 @@ sub startup {
     }
 
 		$self->res->headers->add('Access-Control-Allow-Headers' => $allow_headers);
-    # comes from prototype's Ajax.Updater
-    $self->res->headers->add('Access-Control-Expose-Headers' => 'x-json');
+    $self->res->headers->add('Access-Control-Expose-Headers' => 'x-json, Content-Disposition');
 	});
 
     $self->helper(save_cred => sub {
