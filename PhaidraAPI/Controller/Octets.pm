@@ -14,8 +14,8 @@ sub proxy {
 
   my $pid = $self->stash('pid');
 
-  unless(defined($pid)){
-    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400);
+  unless (defined($pid)) {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -26,21 +26,21 @@ sub proxy {
 sub get {
   my $self = shift;
 
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
 
   my $pid = $self->stash('pid');
-  unless(defined($pid)){
-    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400);
+  unless (defined($pid)) {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
   my $operation = $self->stash('operation');
-  unless(defined($operation)){
-    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined operation' }]} , status => 400);
+  unless (defined($operation)) {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined operation'}]}, status => 400);
     return;
   }
 
   my $authz_model = PhaidraAPI::Model::Authorization->new;
-  my $authzres = $authz_model->check_rights($self, $pid, 'ro');
+  my $authzres    = $authz_model->check_rights($self, $pid, 'ro');
   if ($authzres->{status} != 200) {
     $res->{status} = $authzres->{status};
     push @{$res->{alerts}}, @{$authzres->{alerts}} if scalar @{$authzres->{alerts}} > 0;
@@ -49,8 +49,8 @@ sub get {
   }
 
   my $object_model = PhaidraAPI::Model::Object->new;
-  my $r_oxml = $object_model->get_foxml($self, $pid);
-  if($r_oxml->{status} ne 200){
+  my $r_oxml       = $object_model->get_foxml($self, $pid);
+  if ($r_oxml->{status} ne 200) {
     $self->render(json => $r_oxml, status => $r_oxml->{status});
     return;
   }
@@ -77,7 +77,8 @@ sub get {
       push @{$res->{alerts}}, @{$parthres->{alerts}} if scalar @{$parthres->{alerts}} > 0;
       $self->render(json => $res, status => $res->{status});
       return;
-    } else {
+    }
+    else {
       $path = $parthres->{path};
     }
     ($filename, $mimetype, $size) = $octets_model->_get_ds_attributes($self, $pid, 'OCTETS', $dom);
@@ -87,14 +88,13 @@ sub get {
 
   if ($operation eq 'download') {
     $self->res->headers->content_disposition("attachment;filename=$filename");
-  } else {
+  }
+  else {
     $self->res->headers->content_disposition("filename=$filename");
   }
   $self->res->headers->content_type($mimetype);
   $self->res->content->asset(Mojo::Asset::File->new(path => $path));
   $self->rendered(200);
 }
-
-
 
 1;

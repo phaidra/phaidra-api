@@ -15,11 +15,11 @@ use PhaidraAPI::Model::Dc;
 sub get {
   my ($self) = @_;
 
-  my $pid = $self->stash('pid');
+  my $pid          = $self->stash('pid');
   my $ignorestatus = $self->param('ignorestatus');
-  
+
   my $index_model = PhaidraAPI::Model::Index->new;
-  my $r = $index_model->get($self, $pid, $ignorestatus);
+  my $r           = $index_model->get($self, $pid, $ignorestatus);
 
   $self->render(json => $r, status => $r->{status});
 }
@@ -27,12 +27,12 @@ sub get {
 sub get_relationships {
   my ($self) = @_;
 
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
 
   my $pid = $self->stash('pid');
 
   my $index_model = PhaidraAPI::Model::Index->new;
-  my $r = $index_model->get_relationships($self, $pid);
+  my $r           = $index_model->get_relationships($self, $pid);
 
   $self->render(json => $r, status => $r->{status});
 }
@@ -40,12 +40,12 @@ sub get_relationships {
 sub get_object_members {
   my ($self) = @_;
 
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
 
   my $pid = $self->stash('pid');
 
   my $index_model = PhaidraAPI::Model::Index->new;
-  my $r = $index_model->get_object_members($self, $pid);
+  my $r           = $index_model->get_object_members($self, $pid);
 
   $self->render(json => $r, status => $r->{status});
 }
@@ -53,39 +53,41 @@ sub get_object_members {
 sub get_dc {
   my ($self) = @_;
 
-  my $pid = $self->stash('pid');
+  my $pid          = $self->stash('pid');
   my $ignorestatus = $self->param('ignorestatus');
-  
-  my $index_model = PhaidraAPI::Model::Index->new;
-  my $r = $index_model->get($self, $pid, $ignorestatus);
 
-  if($r->{status} ne 200){
+  my $index_model = PhaidraAPI::Model::Index->new;
+  my $r           = $index_model->get($self, $pid, $ignorestatus);
+
+  if ($r->{status} ne 200) {
     $self->render(json => $r, status => $r->{status});
     return;
   }
 
   my $dc = '<oai_dc:dc xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:oai_dc="http://www.openarchives.org/OAI/2.0/oai_dc/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.openarchives.org/OAI/2.0/oai_dc/ http://www.openarchives.org/OAI/2.0/oai_dc.xsd">';
   my %have_lang_field;
-  
-  for my $field (keys %{$r->{index}}){
-    if($field =~ m/^dc_(\w+)_(\w+)/){
-      $have_lang_field{$1} = 1
+
+  for my $field (keys %{$r->{index}}) {
+    if ($field =~ m/^dc_(\w+)_(\w+)/) {
+      $have_lang_field{$1} = 1;
     }
   }
-  for my $field (keys %{$r->{index}}){
-    if($field =~ m/^dc_(\w+)_(\w+)/){
-      for my $value (@{$r->{index}->{$field}}){
-        $dc .= "\n  <dc:$1 xml:lang=\"$2\">". xml_escape(html_unescape($value)) ."</dc:$1>"
+  for my $field (keys %{$r->{index}}) {
+    if ($field =~ m/^dc_(\w+)_(\w+)/) {
+      for my $value (@{$r->{index}->{$field}}) {
+        $dc .= "\n  <dc:$1 xml:lang=\"$2\">" . xml_escape(html_unescape($value)) . "</dc:$1>";
       }
-    }elsif($field =~ m/^dc_(\w+)/){
+    }
+    elsif ($field =~ m/^dc_(\w+)/) {
+
       # if there is eg dc_title_deu do not add dc_title too, except for authors and contributors (where institutions have language but names do not)
       next if ($have_lang_field{$1}) && ($field ne 'dc_creator') && ($field ne 'dc_contributor');
-      
-      for my $value (@{$r->{index}->{$field}}){
-        $dc .= "\n  <dc:$1>". xml_escape(html_unescape($value)) ."</dc:$1>"
+
+      for my $value (@{$r->{index}->{$field}}) {
+        $dc .= "\n  <dc:$1>" . xml_escape(html_unescape($value)) . "</dc:$1>";
       }
-      
-    }    
+
+    }
   }
 
   $dc .= "\n</oai_dc:dc>";
@@ -93,87 +95,90 @@ sub get_dc {
   $self->render(text => $dc, format => 'xml', status => 200);
 }
 
-
 sub update {
 
-  my $self = shift;
-  my $pid_param = $self->stash('pid');
+  my $self         = shift;
+  my $pid_param    = $self->stash('pid');
   my $ignorestatus = $self->param('ignorestatus');
 
   my $username = $self->stash->{basic_auth_credentials}->{username};
   my $password = $self->stash->{basic_auth_credentials}->{password};
 
   my @pidsarr;
-  if(defined($pid_param)){
+  if (defined($pid_param)) {
     push @pidsarr, $pid_param;
-  }else{
+  }
+  else {
 
     my $pids = $self->param('pids');
 
-    unless(defined($pids)){
-      $self->render(json => { alerts => [{ type => 'danger', msg => 'No pids sent' }]} , status => 400) ;
+    unless (defined($pids)) {
+      $self->render(json => {alerts => [{type => 'danger', msg => 'No pids sent'}]}, status => 400);
       return;
     }
 
     eval {
-      if(ref $pids eq 'Mojo::Upload'){
+      if (ref $pids eq 'Mojo::Upload') {
         $self->app->log->debug("Pids sent as file param");
         $pids = $pids->asset->slurp;
         $self->app->log->debug("parsing json");
         $pids = decode_json($pids);
-      }else{
+      }
+      else {
         $self->app->log->debug("parsing json");
         $pids = decode_json(b($pids)->encode('UTF-8'));
       }
     };
 
-    if($@){
+    if ($@) {
       $self->app->log->error("Error: $@");
-      $self->render(json => { alerts => [{ type => 'danger', msg => $@ }]} , status => 400);
+      $self->render(json => {alerts => [{type => 'danger', msg => $@}]}, status => 400);
       return;
     }
 
-    unless(defined($pids->{pids})){
-      $self->render(json => { alerts => [{ type => 'danger', msg => 'No pids found' }]} , status => 400) ;
+    unless (defined($pids->{pids})) {
+      $self->render(json => {alerts => [{type => 'danger', msg => 'No pids found'}]}, status => 400);
       return;
     }
 
     @pidsarr = @{$pids->{pids}};
   }
-  
-  my $index_model = PhaidraAPI::Model::Index->new;
-  my $dc_model = PhaidraAPI::Model::Dc->new;
+
+  my $index_model  = PhaidraAPI::Model::Index->new;
+  my $dc_model     = PhaidraAPI::Model::Dc->new;
   my $search_model = PhaidraAPI::Model::Search->new;
   my $object_model = PhaidraAPI::Model::Object->new;
   my @res;
   my $pidscount = scalar @pidsarr;
-  my $i = 0;
-  for my $pid (@pidsarr){
+  my $i         = 0;
+  for my $pid (@pidsarr) {
 
     $i++;
     $self->app->log->info("Processing $pid [$i/$pidscount]");
 
     eval {
 
-	    my $r = $index_model->update($self, $pid, $dc_model, $search_model, $object_model, $ignorestatus);  
-	    if($r->{status} eq 200 && $pidscount > 1){      
-	      push @res, { pid => $pid, status => 200 };
-	    }else{
-	      $r->{pid} = $pid;
-	      push @res, $r;
-	    }
-	  };
+      my $r = $index_model->update($self, $pid, $dc_model, $search_model, $object_model, $ignorestatus);
+      if ($r->{status} eq 200 && $pidscount > 1) {
+        push @res, {pid => $pid, status => 200};
+      }
+      else {
+        $r->{pid} = $pid;
+        push @res, $r;
+      }
+    };
 
-	  if($@){
-      $self->app->log->error("pid $pid Error: $@");         
+    if ($@) {
+      $self->app->log->error("pid $pid Error: $@");
     }
-    
+
   }
-  
-  if(scalar @res == 1){
-    $self->render(json => { result => $res[0] }, status => 200);
-  }else{
-    $self->render(json => { results => \@res }, status => 200);
+
+  if (scalar @res == 1) {
+    $self->render(json => {result => $res[0]}, status => 200);
+  }
+  else {
+    $self->render(json => {results => \@res}, status => 200);
   }
 }
 

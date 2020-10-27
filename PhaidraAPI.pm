@@ -20,8 +20,7 @@ use Crypt::URandom          (qw/urandom/);
 use Digest::SHA             (qw/hmac_sha256/);
 use Math::Random::ISAAC::XS ();
 
-BEGIN
-{
+BEGIN {
   # that's what we want:
   # use MIME::Base64 3.12 (qw/encode_base64url decode_base64url/);
 
@@ -46,17 +45,18 @@ BEGIN
 use PhaidraAPI::Model::Session::Transport::Header;
 use PhaidraAPI::Model::Session::Store::Mongo;
 
-$ENV{MOJO_MAX_MESSAGE_SIZE} = 20737418240;
+$ENV{MOJO_MAX_MESSAGE_SIZE}   = 20737418240;
 $ENV{MOJO_INACTIVITY_TIMEOUT} = 1209600;
-$ENV{MOJO_HEARTBEAT_TIMEOUT} = 1209600;
+$ENV{MOJO_HEARTBEAT_TIMEOUT}  = 1209600;
+
 #$ENV{MOJO_TMPDIR} = '/usr/local/fedora/imagemanipulator/tmp';
 
 # This method will run once at server start
 sub startup {
-  my $self = shift;
-  my $config = $self->plugin( 'JSONConfig' => { file => 'PhaidraAPI.json' } );
-	$self->config($config);
-	$self->mode($config->{mode});
+  my $self   = shift;
+  my $config = $self->plugin('JSONConfig' => {file => 'PhaidraAPI.json'});
+  $self->config($config);
+  $self->mode($config->{mode});
   $self->secrets([$config->{secret}]);
   push @{$self->static->paths} => 'public';
 
@@ -64,249 +64,260 @@ sub startup {
   my $log = Log::Log4perl::get_logger("PhaidraAPI");
   $self->log($log);
 
-  if($config->{tmpdir}){
-    $self->app->log->debug("Setting MOJO_TMPDIR: ".$config->{tmpdir});
+  if ($config->{tmpdir}) {
+    $self->app->log->debug("Setting MOJO_TMPDIR: " . $config->{tmpdir});
     $ENV{MOJO_TMPDIR} = $config->{tmpdir};
   }
 
-  if($config->{ssl_ca_path}) {
-    $self->app->log->debug("Setting SSL_ca_path: ".$config->{ssl_ca_path});
-    IO::Socket::SSL::set_defaults(
-        SSL_ca_path => $config->{ssl_ca_path},
-    );
+  if ($config->{ssl_ca_path}) {
+    $self->app->log->debug("Setting SSL_ca_path: " . $config->{ssl_ca_path});
+    IO::Socket::SSL::set_defaults(SSL_ca_path => $config->{ssl_ca_path},);
   }
 
-	my $directory_impl = $config->{directory_class};
+  my $directory_impl = $config->{directory_class};
   $self->app->log->debug("Loading directory implementation $directory_impl");
-	my $e = load_class $directory_impl;
-  if(ref $e){
-    $self->app->log->error("Loading $directory_impl failed: $e") ;
- #   next;
+  my $e = load_class $directory_impl;
+  if (ref $e) {
+    $self->app->log->error("Loading $directory_impl failed: $e");
+
+    #   next;
   }
-    my $directory = $directory_impl->new($self, $config);
+  my $directory = $directory_impl->new($self, $config);
 
-    $self->helper( directory => sub { return $directory; } );
+  $self->helper(directory => sub {return $directory;});
 
-  	# init I18N
-  	$self->plugin(I18N => {namespace => 'PhaidraAPI::I18N', support_url_langs => [qw(en de it sr)]});
+  # init I18N
+  $self->plugin(I18N => {namespace => 'PhaidraAPI::I18N', support_url_langs => [qw(en de it sr)]});
 
-  	# init cache
-  	$self->plugin(CHI => {
-	    default => {
-	      	driver     => 'Memory',
-	    	#driver     => 'File', # FastMmap seems to have problems saving the metadata structure (it won't save anything)
-	    	#root_dir   => '/tmp/phaidra-api-cache',
-	    	#cache_size => '20m',
-	      	global => 1,
-	      	#serializer => 'Storable',
-    	},
-  	});
+  # init cache
+  $self->plugin(
+    CHI => {
+      default => {
+        driver => 'Memory',
+
+        #driver     => 'File', # FastMmap seems to have problems saving the metadata structure (it won't save anything)
+        #root_dir   => '/tmp/phaidra-api-cache',
+        #cache_size => '20m',
+        global => 1,
+
+        #serializer => 'Storable',
+      },
+    }
+  );
 
   # init databases
   my %databases;
   $databases{'db_metadata'} = {
-    dsn => $config->{phaidra_db}->{dsn},
+    dsn      => $config->{phaidra_db}->{dsn},
     username => $config->{phaidra_db}->{username},
     password => $config->{phaidra_db}->{password},
-    options  => { mysql_auto_reconnect => 1}
+    options  => {mysql_auto_reconnect => 1}
   };
 
-  if($config->{phaidra_user_db}){
+  if ($config->{phaidra_user_db}) {
     $databases{'db_user'} = {
-      dsn => $config->{phaidra_user_db}->{dsn},
+      dsn      => $config->{phaidra_user_db}->{dsn},
       username => $config->{phaidra_user_db}->{username},
       password => $config->{phaidra_user_db}->{password},
-      options  => { mysql_auto_reconnect => 1}
+      options  => {mysql_auto_reconnect => 1}
     };
   }
 
-  if($config->{phaidra}->{triplestore} eq 'localMysqlMPTTriplestore'){
+  if ($config->{phaidra}->{triplestore} eq 'localMysqlMPTTriplestore') {
     $databases{'db_triplestore'} = {
-      dsn  => $config->{localMysqlMPTTriplestore}->{dsn},
+      dsn      => $config->{localMysqlMPTTriplestore}->{dsn},
       username => $config->{localMysqlMPTTriplestore}->{username},
       password => $config->{localMysqlMPTTriplestore}->{password},
-      options  => { mysql_auto_reconnect => 1}
+      options  => {mysql_auto_reconnect => 1}
     };
   }
 
-  if($config->{fedora}->{fedora_db}){
+  if ($config->{fedora}->{fedora_db}) {
     $databases{'db_fedora'} = {
-      dsn  => $config->{fedora}->{fedora_db}->{dsn},
+      dsn      => $config->{fedora}->{fedora_db}->{dsn},
       username => $config->{fedora}->{fedora_db}->{username},
       password => $config->{fedora}->{fedora_db}->{password},
-      options  => { mysql_auto_reconnect => 1}
+      options  => {mysql_auto_reconnect => 1}
     };
   }
 
-  if($config->{ir}){
+  if ($config->{ir}) {
     $databases{'db_ir'} = {
-      dsn  => $config->{ir}->{'db'}->{dsn},
+      dsn      => $config->{ir}->{'db'}->{dsn},
       username => $config->{ir}->{'db'}->{username},
       password => $config->{ir}->{'db'}->{password},
-      options  => { mysql_auto_reconnect => 1}
+      options  => {mysql_auto_reconnect => 1}
     };
   }
 
-  if(exists($config->{frontends})){
-    for my $f (@{$config->{frontends}}){
-      if(exists($f->{stats})){
-        if($f->{stats}->{type} eq 'piwik'){
-          $databases{'db_stats_'.$f->{frontend_id}} = {
+  if (exists($config->{frontends})) {
+    for my $f (@{$config->{frontends}}) {
+      if (exists($f->{stats})) {
+        if ($f->{stats}->{type} eq 'piwik') {
+          $databases{'db_stats_' . $f->{frontend_id}} = {
             dsn      => $f->{stats}->{db_piwik}->{dsn},
             username => $f->{stats}->{db_piwik}->{username},
             password => $f->{stats}->{db_piwik}->{password},
-            options  => { mysql_auto_reconnect => 1, RaiseError => 1}
+            options  => {mysql_auto_reconnect => 1, RaiseError => 1}
           };
-        }   
+        }
       }
-    }  
+    }
   }
 
-  $self->plugin('database', { databases => \%databases } );
+  $self->plugin('database', {databases => \%databases});
 
   # Mango driver
-	$self->helper(mango => sub { state $mango = Mango->new('mongodb://'.$config->{mongodb}->{username}.':'.$config->{mongodb}->{password}.'@'.$config->{mongodb}->{host}.'/'.$config->{mongodb}->{database}) });
+  $self->helper(mango => sub {state $mango = Mango->new('mongodb://' . $config->{mongodb}->{username} . ':' . $config->{mongodb}->{password} . '@' . $config->{mongodb}->{host} . '/' . $config->{mongodb}->{database})});
 
   # MongoDB driver
-  $self->helper(mongo => sub { 
-    state $mongo = MongoDB::MongoClient->new(
-    	host => $config->{mongodb}->{host}, 
-    	port => $config->{mongodb}->{port},
-    	username => $config->{mongodb}->{username},
-    	password => $config->{mongodb}->{password},
-    	db_name => $config->{mongodb}->{database},
-      connect_timeout_ms => 300000,
-      socket_timeout_ms => 300000,
-    )->get_database($config->{mongodb}->{database});
-  });
+  $self->helper(
+    mongo => sub {
+      state $mongo = MongoDB::MongoClient->new(
+        host               => $config->{mongodb}->{host},
+        port               => $config->{mongodb}->{port},
+        username           => $config->{mongodb}->{username},
+        password           => $config->{mongodb}->{password},
+        db_name            => $config->{mongodb}->{database},
+        connect_timeout_ms => 300000,
+        socket_timeout_ms  => 300000,
+      )->get_database($config->{mongodb}->{database});
+    }
+  );
 
-  if(exists($config->{paf_mongodb})){
-    $self->helper(paf_mongo => sub { state $paf_mongo = Mango->new('mongodb://'.$config->{paf_mongodb}->{username}.':'.$config->{paf_mongodb}->{password}.'@'.$config->{paf_mongodb}->{host}.'/'.$config->{paf_mongodb}->{database}) });
+  if (exists($config->{paf_mongodb})) {
+    $self->helper(paf_mongo => sub {state $paf_mongo = Mango->new('mongodb://' . $config->{paf_mongodb}->{username} . ':' . $config->{paf_mongodb}->{password} . '@' . $config->{paf_mongodb}->{host} . '/' . $config->{paf_mongodb}->{database})});
   }
 
-    # we might possibly save a lot of data to session
-    # so we are not going to use cookies, but a database instead
-    $self->plugin(
-        session => {
-          stash_key     => 'mojox-session',
-	    	  store  => PhaidraAPI::Model::Session::Store::Mongo->new(
-	    		  mango => $self->mango,
-	    		  'log' => $self->log
-	    	  ),
-	    	  transport => PhaidraAPI::Model::Session::Transport::Header->new(
-	    		  name => $config->{authentication}->{token_header},
-	    		  'log' => $self->log
-	    		),
-          expires_delta => $config->{session_expiration},
-	    	  ip_match      => $config->{session_ip_match}
-        }
-    );
+  # we might possibly save a lot of data to session
+  # so we are not going to use cookies, but a database instead
+  $self->plugin(
+    session => {
+      stash_key => 'mojox-session',
+      store     => PhaidraAPI::Model::Session::Store::Mongo->new(
+        mango => $self->mango,
+        'log' => $self->log
+      ),
+      transport => PhaidraAPI::Model::Session::Transport::Header->new(
+        name  => $config->{authentication}->{token_header},
+        'log' => $self->log
+      ),
+      expires_delta => $config->{session_expiration},
+      ip_match      => $config->{session_ip_match}
+    }
+  );
 
-    $self->hook('before_dispatch' => sub {
-		my $self = shift;
+  $self->hook(
+    'before_dispatch' => sub {
+      my $self = shift;
 
-		my $session = $self->stash('mojox-session');
-		$session->load;
-		if($session->sid){
-			$session->extend_expires;
-			$session->flush;
-		}
-	});
-
-	$self->hook('after_dispatch' => sub {
-		my $self = shift;
-		my $json = $self->res->json;
-		if($json){
-      if (ref $json eq ref {}) { # only if json is really a hash
-  			if($json->{alerts}){
-  				if(scalar(@{$json->{alerts}}) > 0){
-  					$self->app->log->debug("Alerts:\n".$self->dumper($json->{alerts}));
-  				}
-  			}
+      my $session = $self->stash('mojox-session');
+      $session->load;
+      if ($session->sid) {
+        $session->extend_expires;
+        $session->flush;
       }
-		}
-
-		# CORS
-    unless($self->res->headers->header('Access-Control-Allow-Origin')){
-  		if($self->req->headers->header('Origin')){
-  			$self->res->headers->add('Access-Control-Allow-Origin' => $self->req->headers->header('Origin'));
-  		}else{
-  			$self->res->headers->add('Access-Control-Allow-Origin' => $config->{authentication}->{'Access-Control-Allow-Origin'});
-  		}
     }
-		$self->res->headers->add('Access-Control-Allow-Credentials' => 'true');
-		$self->res->headers->add('Access-Control-Allow-Methods' => 'GET, POST, PUT, DELETE, OPTIONS');
-    # X-Prototype-Version, X-Requested-With - comes from prototype's Ajax.Updater
-    my $allow_headers = 'Authorization, Content-Type, X-Prototype-Version, X-Requested-With, '.$config->{authentication}->{token_header};
-    if($config->{authentication}->{upstream}->{principalheader}){
-      $allow_headers .= ', '.$config->{authentication}->{upstream}->{principalheader};
+  );
+
+  $self->hook(
+    'after_dispatch' => sub {
+      my $self = shift;
+      my $json = $self->res->json;
+      if ($json) {
+        if (ref $json eq ref {}) {    # only if json is really a hash
+          if ($json->{alerts}) {
+            if (scalar(@{$json->{alerts}}) > 0) {
+              $self->app->log->debug("Alerts:\n" . $self->dumper($json->{alerts}));
+            }
+          }
+        }
+      }
+
+      # CORS
+      unless ($self->res->headers->header('Access-Control-Allow-Origin')) {
+        if ($self->req->headers->header('Origin')) {
+          $self->res->headers->add('Access-Control-Allow-Origin' => $self->req->headers->header('Origin'));
+        }
+        else {
+          $self->res->headers->add('Access-Control-Allow-Origin' => $config->{authentication}->{'Access-Control-Allow-Origin'});
+        }
+      }
+      $self->res->headers->add('Access-Control-Allow-Credentials' => 'true');
+      $self->res->headers->add('Access-Control-Allow-Methods'     => 'GET, POST, PUT, DELETE, OPTIONS');
+
+      # X-Prototype-Version, X-Requested-With - comes from prototype's Ajax.Updater
+      my $allow_headers = 'Authorization, Content-Type, X-Prototype-Version, X-Requested-With, ' . $config->{authentication}->{token_header};
+      if ($config->{authentication}->{upstream}->{principalheader}) {
+        $allow_headers .= ', ' . $config->{authentication}->{upstream}->{principalheader};
+      }
+      if ($config->{authentication}->{upstream}->{affiliationheader}) {
+        $allow_headers .= ', ' . $config->{authentication}->{upstream}->{affiliationheader};
+      }
+
+      $self->res->headers->add('Access-Control-Allow-Headers'  => $allow_headers);
+      $self->res->headers->add('Access-Control-Expose-Headers' => 'x-json, Content-Disposition');
     }
-    if($config->{authentication}->{upstream}->{affiliationheader}){
-      $allow_headers .= ', '.$config->{authentication}->{upstream}->{affiliationheader};
-    }
+  );
 
-		$self->res->headers->add('Access-Control-Allow-Headers' => $allow_headers);
-    $self->res->headers->add('Access-Control-Expose-Headers' => 'x-json, Content-Disposition');
-	});
+  $self->helper(
+    save_cred => sub {
+      my $self = shift;
+      my $u    = shift;
+      my $p    = shift;
 
-    $self->helper(save_cred => sub {
-    	my $self = shift;
-		my $u = shift;
-		my $p = shift;
+      my $ciphertext;
 
-		my $ciphertext;
+      my $session = $self->stash('mojox-session');
+      $session->load;
+      unless ($session->sid) {
+        $session->create;
+      }
+      my $ba   = encode_sereal({username => $u, password => $p});
+      my $salt = Math::Random::ISAAC::XS->new(map {unpack("N", urandom(4))} 1 .. 256)->irand();
+      my $key  = hmac_sha256($salt, $self->app->config->{enc_key});
+      my $cbc  = Crypt::CBC->new(-key => $key, -cipher => 'Rijndael');
 
-		my $session = $self->stash('mojox-session');
-		$session->load;
-		unless($session->sid){
-			$session->create;
-		}
-		my $ba = encode_sereal({ username => $u, password => $p });
-	    my $salt = Math::Random::ISAAC::XS->new( map { unpack( "N", urandom(4) ) } 1 .. 256 )->irand();
-	    my $key = hmac_sha256( $salt, $self->app->config->{enc_key} );
-	    my $cbc = Crypt::CBC->new( -key => $key, -cipher => 'Rijndael' );
-
-	    eval {
-	        $ciphertext = encode_base64url( $cbc->encrypt( $ba ) );
-	    };
-	    $self->app->log->error("Encoding error: $@") if $@;
-		  $session->data(cred => $ciphertext, salt => $salt);
+      eval {$ciphertext = encode_base64url($cbc->encrypt($ba));};
+      $self->app->log->error("Encoding error: $@") if $@;
+      $session->data(cred => $ciphertext, salt => $salt);
 
       #$self->app->log->debug("Created session: ".$session->sid);
-    });
+    }
+  );
 
-    $self->helper(load_cred => sub {
-    	my $self = shift;
+  $self->helper(
+    load_cred => sub {
+      my $self = shift;
 
-    	my $session = $self->stash('mojox-session');
-		$session->load;
-		unless($session->sid){
-			return undef;
-		}
-    #$self->app->log->debug("Loaded session: ".$session->sid);
+      my $session = $self->stash('mojox-session');
+      $session->load;
+      unless ($session->sid) {
+        return undef;
+      }
 
-		my $salt = $session->data('salt');
-		my $ciphertext = $session->data('cred');
-	    my $key = hmac_sha256( $salt, $self->app->config->{enc_key} );
-	    my $cbc = Crypt::CBC->new( -key => $key, -cipher => 'Rijndael' );
-	    my $data;
-	    eval {
-	    	$data = decode_sereal($cbc->decrypt( decode_base64url($ciphertext) ))
-	   	};
-	    $self->app->log->error("Decoding error: $@") if $@;
+      #$self->app->log->debug("Loaded session: ".$session->sid);
 
-	    return $data;
-    });
+      my $salt       = $session->data('salt');
+      my $ciphertext = $session->data('cred');
+      my $key        = hmac_sha256($salt, $self->app->config->{enc_key});
+      my $cbc        = Crypt::CBC->new(-key => $key, -cipher => 'Rijndael');
+      my $data;
+      eval {$data = decode_sereal($cbc->decrypt(decode_base64url($ciphertext)))};
+      $self->app->log->error("Decoding error: $@") if $@;
 
-    my $r = $self->routes;
-    $r->namespaces(['PhaidraAPI::Controller']);
+      return $data;
+    }
+  );
 
-    # PUT vs POST in this API: PUT should be idempotent
+  my $r = $self->routes;
+  $r->namespaces(['PhaidraAPI::Controller']);
 
+  #<<< perltidy ignore
   $r->route('languages')                          ->via('get')    ->to('languages#get_languages');
   $r->route('licenses')                           ->via('get')    ->to('licenses#get_licenses');
 
-	$r->route('uwmetadata/tree')                    ->via('get')    ->to('uwmetadata#tree');
+  $r->route('uwmetadata/tree')                    ->via('get')    ->to('uwmetadata#tree');
   $r->route('uwmetadata/json2xml')                ->via('post')   ->to('uwmetadata#json2xml');
   $r->route('uwmetadata/xml2json')                ->via('post')   ->to('uwmetadata#xml2json');
   $r->route('uwmetadata/validate')                ->via('post')   ->to('uwmetadata#validate');
@@ -339,11 +350,11 @@ sub startup {
   $r->route('annotations/validate')               ->via('post')   ->to('annotations#validate');
   $r->route('annotations/json2xml_validate')      ->via('post')   ->to('annotations#json2xml_validate');
 
-	$r->route('help/tooltip')                       ->via('get')    ->to('help#tooltip');
+  $r->route('help/tooltip')                       ->via('get')    ->to('help#tooltip');
 
-	$r->route('directory/get_study')                ->via('get')    ->to('directory#get_study');
+  $r->route('directory/get_study')                ->via('get')    ->to('directory#get_study');
   $r->route('directory/get_study_plans')          ->via('get')    ->to('directory#get_study_plans');
-	$r->route('directory/get_study_name')           ->via('get')    ->to('directory#get_study_name');
+  $r->route('directory/get_study_name')           ->via('get')    ->to('directory#get_study_name');
   # old
   $r->route('directory/get_org_units')            ->via('get')    ->to('directory#get_org_units');
   $r->route('directory/get_parent_org_unit_id')   ->via('get')    ->to('directory#get_parent_org_unit_id');
@@ -353,10 +364,10 @@ sub startup {
   $r->route('directory/org_get_parentpath')       ->via('get')    ->to('directory#org_get_parentpath');
   $r->route('directory/org_get_units')            ->via('get')    ->to('directory#org_get_units');
 
-	$r->route('search/owner/#username')             ->via('get')    ->to('search#owner');
-	$r->route('search/collections/owner/#username') ->via('get')    ->to('search#collections_owner');
-	$r->route('search/triples')                     ->via('get')    ->to('search#triples');  
-	$r->route('search')                             ->via('get')    ->to('search#search');  
+  $r->route('search/owner/#username')             ->via('get')    ->to('search#owner');
+  $r->route('search/collections/owner/#username') ->via('get')    ->to('search#collections_owner');
+  $r->route('search/triples')                     ->via('get')    ->to('search#triples');
+  $r->route('search')                             ->via('get')    ->to('search#search');
   # lucene query can be long -> post
   $r->route('search/lucene')                      ->via('post')   ->to('search#search_lucene');
 
@@ -366,25 +377,25 @@ sub startup {
 
   $r->route('vocabulary')                         ->via('get')    ->to('vocabulary#get_vocabulary');
 
-	$r->route('terms/label')                   		  ->via('get')    ->to('terms#label');
-	$r->route('terms/children')                	    ->via('get')    ->to('terms#children');
-	$r->route('terms/search')                       ->via('get')    ->to('terms#search');
-	$r->route('terms/taxonpath')                    ->via('get')    ->to('terms#taxonpath');
-	$r->route('terms/parent')                       ->via('get')    ->to('terms#parent');
+  $r->route('terms/label')                   		  ->via('get')    ->to('terms#label');
+  $r->route('terms/children')                	    ->via('get')    ->to('terms#children');
+  $r->route('terms/search')                       ->via('get')    ->to('terms#search');
+  $r->route('terms/taxonpath')                    ->via('get')    ->to('terms#taxonpath');
+  $r->route('terms/parent')                       ->via('get')    ->to('terms#parent');
 
   $r->route('resolve')                            ->via('get')    ->to('resolve#resolve');
 
-	# CORS
-	$r->any('*')                                    ->via('options')->to('authentication#cors_preflight');
+  # CORS
+  $r->any('*')                                    ->via('options')->to('authentication#cors_preflight');
 
-	$r->route('signin')                             ->via('get')    ->to('authentication#signin');
+  $r->route('signin')                             ->via('get')    ->to('authentication#signin');
   $r->route('signout')                            ->via('get')    ->to('authentication#signout');
   $r->route('keepalive')                          ->via('get')    ->to('authentication#keepalive');
 
   $r->route('collection/:pid/members')            ->via('get')    ->to('collection#get_collection_members');
   $r->route('collection/:pid/descendants')        ->via('get')    ->to('collection#descendants');
 
-	# does not show inactive objects, not specific to collection (but does ordering)
+  # does not show inactive objects, not specific to collection (but does ordering)
   $r->route('object/:pid/related')                ->via('get')    ->to('search#related');
 
   # we will get this datastreams by using intcall credentials
@@ -432,8 +443,8 @@ sub startup {
   $r->route('termsofuse')                         ->via('get')   ->to('termsofuse#get');
 
   # this just extracts the credentials - authentication will be done by fedora
-	my $proxyauth = $r->under('/')->to('authentication#extract_credentials', must_be_present => 1);
-  my $proxyauth_optional = $r->under('/')->to('authentication#extract_credentials', must_be_present => 0);  
+  my $proxyauth = $r->under('/')->to('authentication#extract_credentials', must_be_present => 1);
+  my $proxyauth_optional = $r->under('/')->to('authentication#extract_credentials', must_be_present => 0);
 
   # we authenticate the user, because we are not going to call fedora
   my $check_auth = $proxyauth->under('/')->to('authentication#authenticate');
@@ -441,7 +452,7 @@ sub startup {
   # check the user sends phaidra admin credentials
   my $check_admin_auth = $proxyauth->under('/')->to('authentication#authenticate_admin');
 
-	if($self->app->config->{allow_userdata_queries}){
+  if($self->app->config->{allow_userdata_queries}){
     $check_auth->route('directory/user/search')                           ->via('get')      ->to('directory#search_user');
   }
 
@@ -456,7 +467,7 @@ sub startup {
   $check_auth->route('jsonld/templates')                                  ->via('get')      ->to('jsonld#get_users_templates');
   $check_auth->route('jsonld/template/:tid')                              ->via('get')      ->to('jsonld#get_template');
 
-  $proxyauth_optional->route('authz/check/:pid/:op')                      ->via('get')      ->to('authorization#check_rights'); 
+  $proxyauth_optional->route('authz/check/:pid/:op')                      ->via('get')      ->to('authorization#check_rights');
 
   $proxyauth_optional->route('streaming/:pid')                            ->via('get')      ->to('utils#streamingplayer');
   $proxyauth_optional->route('streaming/:pid/key')                        ->via('get')      ->to('utils#streamingplayer_key');
@@ -475,7 +486,7 @@ sub startup {
   $proxyauth_optional->route('object/:pid/get')                           ->via('get')      ->to('octets#get', operation => 'get');
 
   $proxyauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
-  
+
   $proxyauth->route('imageserver/:pid/status')                            ->via('get')      ->to('imageserver#status');
 
   $proxyauth->route('object/:pid/jsonldprivate')                          ->via('get')      ->to('jsonldprivate#get');
@@ -520,7 +531,7 @@ sub startup {
     $proxyauth->route('object/:pid/id/remove')                            ->via('post')     ->to('object#add_or_remove_identifier', operation => 'remove');
     $proxyauth->route('object/:pid/datastream/:dsid')                     ->via('post')     ->to('object#add_or_modify_datastream');
     $proxyauth->route('object/:pid/data')                                 ->via('post')     ->to('object#add_octets');
- 
+
     $proxyauth->route('picture/create')                                   ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Picture');
     $proxyauth->route('document/create')                                  ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:PDFDocument');
     $proxyauth->route('video/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Video');
@@ -561,8 +572,9 @@ sub startup {
 
     $check_auth->route('termsofuse/agree/:version')                       ->via('post')     ->to('termsofuse#agree');
   }
+  #>>>
 
-	return $self;
+  return $self;
 }
 
 1;

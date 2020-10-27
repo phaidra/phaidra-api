@@ -22,29 +22,29 @@ use PhaidraAPI::Model::Annotations;
 use PhaidraAPI::Model::Membersorder;
 
 our %indexed_datastreams = (
-  "UWMETADATA" => 1,
-  "MODS" => 1,
-  "ANNOTATIONS" => 1,
-  "GEO" => 1,
-  "RELS-EXT" => 1,
-  "JSON-LD" => 1,
+  "UWMETADATA"      => 1,
+  "MODS"            => 1,
+  "ANNOTATIONS"     => 1,
+  "GEO"             => 1,
+  "RELS-EXT"        => 1,
+  "JSON-LD"         => 1,
   "COLLECTIONORDER" => 1,
-  "RIGHTS" => 1,
-  "BOOKINFO" => 1
+  "RIGHTS"          => 1,
+  "BOOKINFO"        => 1
 );
 
 our %cmodel_2_resourcetype = (
-  "Asset" => "other",
-  "Audio" => "sound",
-  "Book" => "book",
-  "Collection" => "collection",
-  "Container" => "dataset",
+  "Asset"         => "other",
+  "Audio"         => "sound",
+  "Book"          => "book",
+  "Collection"    => "collection",
+  "Container"     => "dataset",
   "LaTeXDocument" => "text",
-  "PDFDocument" => "text",
-  "Page" => "bookpart",
-  "Picture" => "image",
-  "Resource" => "interactiveresource",
-  "Video" => "video"
+  "PDFDocument"   => "text",
+  "Page"          => "bookpart",
+  "Picture"       => "image",
+  "Resource"      => "interactiveresource",
+  "Video"         => "video"
 );
 
 our %uwm_metadataqualitycheck = (
@@ -88,6 +88,7 @@ our %uwm_2_mods_roles = (
 
   # author digital
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/46" => "aut",
+
   # author analogue
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1552095" => "aut",
 
@@ -106,7 +107,7 @@ our %uwm_2_mods_roles = (
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557101" => "arr",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561109" => "acp",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561110" => "adi",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/10867" => "art",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/10867"   => "art",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557115" => "ard",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562799" => "assessor",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561111" => "asg",
@@ -177,7 +178,7 @@ our %uwm_2_mods_roles = (
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561167" => "dnc",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561168" => "dtc",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561169" => "dtm",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/55" => "datasupplier",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/55"      => "datasupplier",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557114" => "dte",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557113" => "dto",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561170" => "dfd",
@@ -194,12 +195,12 @@ our %uwm_2_mods_roles = (
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557143" => "dis",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561180" => "dbp",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561181" => "dst",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/60" => "domainexpert",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/10868" => "dnr",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/60"      => "domainexpert",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/10868"   => "dnr",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561182" => "drm",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562797" => "dramaticadvisor",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557104" => "dub",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/52" => "edt",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/52"      => "edt",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561183" => "edc",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561184" => "edm",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561185" => "elg",
@@ -208,7 +209,7 @@ our %uwm_2_mods_roles = (
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557121" => "eng",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557120" => "egr",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557098" => "etr",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/51" => "evaluator",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/51"      => "evaluator",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561189" => "exp",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561190" => "fac",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561191" => "fld",
@@ -223,16 +224,16 @@ our %uwm_2_mods_roles = (
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562634" => "founder",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561198" => "fnd",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561199" => "gis",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/53" => "graphicdesigner",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/53"      => "graphicdesigner",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561200" => "hnr",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561201" => "hst",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561202" => "his",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557126" => "ilu",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557119" => "ill",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/49" => "initiator",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/49"      => "initiator",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561203" => "ins",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561204" => "itr",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/61" => "interpreter",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/61"      => "interpreter",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557122" => "ive",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557123" => "ivr",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561205" => "inv",
@@ -275,17 +276,17 @@ our %uwm_2_mods_roles = (
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557111" => "opn",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561235" => "orm",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561236" => "org",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/63" => "oth",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/63"      => "oth",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557134" => "own",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561237" => "pan",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561238" => "ppm",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561239" => "pta",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561240" => "pth",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561241" => "pat",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/59" => "pedagogicexpert",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/59"      => "pedagogicexpert",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557130" => "prf",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561242" => "pma",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/10869" => "pht",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/10869"   => "pht",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561243" => "ptf",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561244" => "ptt",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561245" => "pte",
@@ -305,7 +306,7 @@ our %uwm_2_mods_roles = (
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561258" => "pdr",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561259" => "pfr",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561260" => "prv",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/47" => "pbl",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/47"      => "pbl",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561262" => "pbd",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561263" => "ppt",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561264" => "rdd",
@@ -350,11 +351,11 @@ our %uwm_2_mods_roles = (
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561298" => "srv",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561299" => "tch",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561300" => "tcd",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/56" => "technicalinspector",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/54" => "technicaltranslator",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/56"      => "technicalinspector",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/54"      => "technicaltranslator",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561301" => "tld",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561302" => "tlp",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/58" => "textprocessor",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/58"      => "textprocessor",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557136" => "ths",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561303" => "trc",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562795" => "trl",
@@ -378,9 +379,9 @@ our %uwm_2_mods_roles = (
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562631" => "edc",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562630" => "trc",
 
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562796" => "mfr", # remove this from objects, it's a duplicate
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562796" => "mfr",    # remove this from objects, it's a duplicate
 
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557138" => "aus" # remove this from objects, it's a duplicate
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557138" => "aus"     # remove this from objects, it's a duplicate
 
 );
 
@@ -403,17 +404,18 @@ our %uwm_funder = (
 sub get_doc {
   my ($self, $c, $pid) = @_;
 
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
   my $doc;
 
   my $urlget = Mojo::URL->new;
   $urlget->scheme($c->app->config->{solr}->{scheme});
   $urlget->host($c->app->config->{solr}->{host});
   $urlget->port($c->app->config->{solr}->{port});
-  if($c->app->config->{solr}->{path}){
-    $urlget->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/select");
-  }else{
-    $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
+  if ($c->app->config->{solr}->{path}) {
+    $urlget->path("/" . $c->app->config->{solr}->{path} . "/solr/" . $c->app->config->{solr}->{core} . "/select");
+  }
+  else {
+    $urlget->path("/solr/" . $c->app->config->{solr}->{core} . "/select");
   }
 
   $urlget->query(q => "pid:\"$pid\"", rows => "1", wt => "json");
@@ -426,18 +428,19 @@ sub get_doc {
     if ($getres->json->{response}->{numFound} eq 0) {
       my $err = "[$pid] object not found in index";
       $c->app->log->error($err);
-      unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+      unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
       $res->{status} = 404;
       return $res;
     }
-    for my $d (@{$getres->json->{response}->{docs}}){
+    for my $d (@{$getres->json->{response}->{docs}}) {
       $doc = $d;
       last;
     }
-  }else{
-    my $err = "[$pid] error getting object info from solr: ".$res->code." ".$res->message;
+  }
+  else {
+    my $err = "[$pid] error getting object info from solr: " . $res->code . " " . $res->message;
     $c->app->log->error($err);
-    unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
+    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
     $res->{status} = $res->code ? $res->code : 500;
     return $res;
   }
@@ -449,160 +452,176 @@ sub get_doc {
 sub update {
   my ($self, $c, $pid, $dc_model, $search_model, $object_model, $ignorestatus) = @_;
 
-  my $res = { status => 200 };    
+  my $res = {status => 200};
 
-  if( exists($c->app->config->{index_mongodb}) || exists($c->app->config->{solr})){
+  if (exists($c->app->config->{index_mongodb}) || exists($c->app->config->{solr})) {
 
     my $updateurl = Mojo::URL->new;
     $updateurl->scheme($c->app->config->{solr}->{scheme});
-    $updateurl->userinfo($c->app->config->{solr}->{username}.":".$c->app->config->{solr}->{password});
+    $updateurl->userinfo($c->app->config->{solr}->{username} . ":" . $c->app->config->{solr}->{password});
     $updateurl->host($c->app->config->{solr}->{host});
     $updateurl->port($c->app->config->{solr}->{port});
-    if($c->app->config->{solr}->{path}){
-      $updateurl->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/update");
-    }else{
-      $updateurl->path("/solr/".$c->app->config->{solr}->{core}."/update");
+    if ($c->app->config->{solr}->{path}) {
+      $updateurl->path("/" . $c->app->config->{solr}->{path} . "/solr/" . $c->app->config->{solr}->{core} . "/update");
+    }
+    else {
+      $updateurl->path("/solr/" . $c->app->config->{solr}->{core} . "/update");
     }
     $updateurl->query(commit => 'true');
 
     my $ua = Mojo::UserAgent->new;
 
-    my $tcm = [gettimeofday];
+    my $tcm        = [gettimeofday];
     my $cmodel_res = $search_model->get_cmodel($c, $pid);
-    $c->app->log->debug("getting cmodel took ".tv_interval($tcm));
-    if($cmodel_res->{status} ne 200){
+    $c->app->log->debug("getting cmodel took " . tv_interval($tcm));
+    if ($cmodel_res->{status} ne 200) {
       return $cmodel_res;
-    }elsif($cmodel_res->{cmodel} eq ''){
+    }
+    elsif ($cmodel_res->{cmodel} eq '') {
+
       # triplestore works but returns nothing for this object -> it was probably deleted -> remove from index
       $c->app->log->debug("[$pid] no cmodel found, deleting from index");
-      if(exists($c->app->config->{solr})){
-          my $post = $ua->post($updateurl => json => { delete => $pid });
-          if (my $r = $post->success) {
-            $c->app->log->debug("[$pid] solr document deleted (not found in triplestore)");
-          }else {
-            my ($err, $code) = $post->error;
-            unshift @{$res->{alerts}}, { type => 'danger', msg => "[$pid] Error deleting document from solr: ".$c->app->dumper($err) };
-            $res->{status} =  $code ? $code : 500;
-          }
+      if (exists($c->app->config->{solr})) {
+        my $post = $ua->post($updateurl => json => {delete => $pid});
+        if (my $r = $post->success) {
+          $c->app->log->debug("[$pid] solr document deleted (not found in triplestore)");
         }
-        $res->{status} = 200;
-        return $res;
+        else {
+          my ($err, $code) = $post->error;
+          unshift @{$res->{alerts}}, {type => 'danger', msg => "[$pid] Error deleting document from solr: " . $c->app->dumper($err)};
+          $res->{status} = $code ? $code : 500;
+        }
+      }
+      $res->{status} = 200;
+      return $res;
     }
 
-    if($cmodel_res->{cmodel} && $cmodel_res->{cmodel} ne 'Page'){
+    if ($cmodel_res->{cmodel} && $cmodel_res->{cmodel} ne 'Page') {
 
       my $t0 = [gettimeofday];
-      my $r = $self->_get($c, $pid, $dc_model, $search_model, $object_model, $ignorestatus);
-      $c->app->log->debug("update indexing took ".tv_interval($t0));
+      my $r  = $self->_get($c, $pid, $dc_model, $search_model, $object_model, $ignorestatus);
+      $c->app->log->debug("update indexing took " . tv_interval($t0));
       $res = $r;
 
       my $collectionMembers = $r->{index}->{haspart} if exists $r->{index}->{haspart};
+
       # don't save this
       delete $r->{index}->{haspart};
 
       my $members = $r->{index}->{hasmember} if exists $r->{index}->{hasmember};
+
       # don't save this
       delete $r->{index}->{hasmember};
 
       my $membersorder = $r->{index}->{membersorder} if exists $r->{index}->{membersorder};
+
       # don't save this
       delete $r->{index}->{membersorder};
 
       my $getStatus = $r->{status};
       $c->app->log->debug("[$pid] index get status $getStatus");
-      if($getStatus eq 200){
+      if ($getStatus eq 200) {
 
-        if(exists($c->app->config->{index_mongodb})){
-          $c->index_mongo->db->collection($c->app->config->{index_mongodb}->{collection})->update({pid => $pid}, $r->{index}, { upsert => 1 });
+        if (exists($c->app->config->{index_mongodb})) {
+          $c->index_mongo->db->collection($c->app->config->{index_mongodb}->{collection})->update({pid => $pid}, $r->{index}, {upsert => 1});
           $c->app->log->debug("[$pid] mongo index updated");
         }
 
-        if(exists($c->app->config->{solr})){
+        if (exists($c->app->config->{solr})) {
           $t0 = [gettimeofday];
           my @docs = ($r->{index});
           my $post = $ua->post($updateurl => json => \@docs)->result;
-          $c->app->log->debug("posting index took ".tv_interval($t0));
+          $c->app->log->debug("posting index took " . tv_interval($t0));
+
           # log solr response, on 8.1.1 if there's an error 200 is returned and commit is skipped
           # while the error is only sent back to client (not in solr log)
-          $c->app->log->debug("[$pid] solr result code[".$post->code."] message [".$post->message."] json:\n".$c->app->dumper($post->json));
+          $c->app->log->debug("[$pid] solr result code[" . $post->code . "] message [" . $post->message . "] json:\n" . $c->app->dumper($post->json));
           if ($post->is_success) {
             $c->app->log->debug("[$pid] solr document updated");
-          }else {
-            unshift @{$res->{alerts}}, { type => 'danger', msg => "[$pid] Error updating solr code[".$post->code."] message [".$post->message."]"};
-            $res->{status} =  $post->code ? $post->code : 500;
           }
-          
+          else {
+            unshift @{$res->{alerts}}, {type => 'danger', msg => "[$pid] Error updating solr code[" . $post->code . "] message [" . $post->message . "]"};
+            $res->{status} = $post->code ? $post->code : 500;
+          }
+
         }
-      }elsif(($getStatus eq 301) || ($getStatus eq 302)){
-        
+      }
+      elsif (($getStatus eq 301) || ($getStatus eq 302)) {
+
         # 301 - object is in state Deleted
         # 302 - object is in state Inactive
-        if(exists($c->app->config->{solr})){
-          my $post = $ua->post($updateurl => json => { delete => $pid });
+        if (exists($c->app->config->{solr})) {
+          my $post = $ua->post($updateurl => json => {delete => $pid});
           if (my $r = $post->success) {
             $c->app->log->debug("[$pid] solr document deleted getStatus[$getStatus]");
-          }else {
+          }
+          else {
             my ($err, $code) = $post->error;
-            unshift @{$res->{alerts}}, { type => 'danger', msg => "[$pid] Error deleting document from solr: ".$c->app->dumper($err) };
-            $res->{status} =  $code ? $code : 500;
+            unshift @{$res->{alerts}}, {type => 'danger', msg => "[$pid] Error deleting document from solr: " . $c->app->dumper($err)};
+            $res->{status} = $code ? $code : 500;
           }
         }
+
         # change back to 200, deleting an Inactive or Deleted object from index is ok
         $res->{status} = 200;
       }
 
-      if($cmodel_res->{cmodel} eq 'Collection'){
+      if ($cmodel_res->{cmodel} eq 'Collection') {
+
         # if this collection is Inactive or Deleted, set collectionMembers to 0
         # so that the ispartof is removed from members
         if (($getStatus eq 301) || ($getStatus eq 302)) {
           @{$collectionMembers} = ();
         }
-        unless(defined($collectionMembers)){
+        unless (defined($collectionMembers)) {
           @{$collectionMembers} = ();
         }
         my $umr = $self->_update_members($c, $pid, $updateurl, $collectionMembers, 'ispartof');
-        if($umr->{status} ne 200){
+        if ($umr->{status} ne 200) {
           $res->{status} = $umr->{status};
           push @{$res->{alerts}}, @{$umr->{alerts}} if scalar @{$umr->{alerts}} > 0;
         }
       }
 
-      if($cmodel_res->{cmodel} eq 'Container'){
+      if ($cmodel_res->{cmodel} eq 'Container') {
+
         # if this container is Inactive or Deleted, set members to 0
         # so that the ismemberof is removed from members
         if (($getStatus eq 301) || ($getStatus eq 302)) {
           @{$collectionMembers} = ();
         }
-        unless(defined($members)){
+        unless (defined($members)) {
           @{$members} = ();
         }
         my $umr = $self->_update_members($c, $pid, $updateurl, $members, 'ismemberof');
-        if($umr->{status} ne 200){
+        if ($umr->{status} ne 200) {
           $res->{status} = $umr->{status};
           push @{$res->{alerts}}, @{$umr->{alerts}} if scalar @{$umr->{alerts}} > 0;
         }
       }
 
-      if(($cmodel_res->{cmodel} eq 'Collection') || ($cmodel_res->{cmodel} eq 'Container')){
+      if (($cmodel_res->{cmodel} eq 'Collection') || ($cmodel_res->{cmodel} eq 'Container')) {
+
         # if this container or collection is Inactive or Deleted, set membersorder to 0
         # so that the pos_in_<pid> is removed from members
         if (($getStatus eq 301) || ($getStatus eq 302)) {
           @{$collectionMembers} = ();
         }
-        unless(defined($membersorder)){
+        unless (defined($membersorder)) {
           @{$membersorder} = ();
         }
         my $umr = $self->_update_membersorder($c, $pid, $updateurl, $membersorder);
-        if($umr->{status} ne 200){
+        if ($umr->{status} ne 200) {
           $res->{status} = $umr->{status};
           push @{$res->{alerts}}, @{$umr->{alerts}} if scalar @{$umr->{alerts}} > 0;
         }
       }
 
-    }else{
-      my $msg = "[$pid] cmodel: ".$cmodel_res->{cmodel}.", skipping update";
-      $c->app->log->debug($msg); 
-      unshift @{$res->{alerts}}, { type => 'info', msg => $msg };
+    }
+    else {
+      my $msg = "[$pid] cmodel: " . $cmodel_res->{cmodel} . ", skipping update";
+      $c->app->log->debug($msg);
+      unshift @{$res->{alerts}}, {type => 'info', msg => $msg};
     }
 
   }
@@ -615,19 +634,20 @@ sub _update_membersorder {
 
   my $pidunderscore = $pid;
   $pidunderscore =~ s/:/_/;
-  my $field = 'pos_in_'.$pidunderscore;
+  my $field = 'pos_in_' . $pidunderscore;
 
-  my $res = { status => 200 };
+  my $res = {status => 200};
 
   # get current order
   my $urlget = Mojo::URL->new;
   $urlget->scheme($c->app->config->{solr}->{scheme});
   $urlget->host($c->app->config->{solr}->{host});
   $urlget->port($c->app->config->{solr}->{port});
-  if($c->app->config->{solr}->{path}){
-    $urlget->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/select");
-  }else{
-    $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
+  if ($c->app->config->{solr}->{path}) {
+    $urlget->path("/" . $c->app->config->{solr}->{path} . "/solr/" . $c->app->config->{solr}->{core} . "/select");
+  }
+  else {
+    $urlget->path("/solr/" . $c->app->config->{solr}->{core} . "/select");
   }
 
   $urlget->query(q => "$field:*", fl => "pid,$field", rows => "0", wt => "json");
@@ -638,88 +658,90 @@ sub _update_membersorder {
   my $numFound;
   if (my $r_num = $get->success) {
     $numFound = $r_num->json->{response}->{numFound};
-  }else{
+  }
+  else {
     my ($err, $code) = $get->error;
-    $c->app->log->error("[$pid] error getting object $field relations count ".$c->app->dumper($err));
-    unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting object $field relations count" };
-    unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-    $res->{status} =  $code ? $code : 500;
+    $c->app->log->error("[$pid] error getting object $field relations count " . $c->app->dumper($err));
+    unshift @{$res->{alerts}}, {type => 'danger', msg => "error getting object $field relations count"};
+    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+    $res->{status} = $code ? $code : 500;
     return $res;
   }
 
-  $urlget->query(q => "$field:*", fl => "pid,$field", rows => $numFound, wt => "json"); 
+  $urlget->query(q => "$field:*", fl => "pid,$field", rows => $numFound, wt => "json");
 
   $get = $ua->get($urlget);
 
   my @curr_membersorder;
   if (my $r_mem = $get->success) {
-    for my $c_m (@{$r_mem->json->{response}->{docs}}){
-      push @curr_membersorder, { 'pid' => $c_m->{pid}, 'pos' => $c_m->{$field} };
+    for my $c_m (@{$r_mem->json->{response}->{docs}}) {
+      push @curr_membersorder, {'pid' => $c_m->{pid}, 'pos' => $c_m->{$field}};
     }
-  }else{
+  }
+  else {
     my ($err, $code) = $get->error;
     $c->app->log->error($urlget);
-    $c->app->log->error("[$pid] error getting object $field relations ".$c->app->dumper($err));
-    unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting object $field relations" };
-    unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-    $res->{status} =  $code ? $code : 500;
+    $c->app->log->error("[$pid] error getting object $field relations " . $c->app->dumper($err));
+    unshift @{$res->{alerts}}, {type => 'danger', msg => "error getting object $field relations"};
+    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+    $res->{status} = $code ? $code : 500;
     return $res;
   }
 
-  $c->app->log->debug("[$pid] there are ".(scalar @curr_membersorder)." docs currently having $field relation");
+  $c->app->log->debug("[$pid] there are " . (scalar @curr_membersorder) . " docs currently having $field relation");
 
   my @add_to;
   my @remove_from;
   my @update;
-  for my $m (@{$membersorder}){
+  for my $m (@{$membersorder}) {
     my $found = 0;
-    for my $mc (@curr_membersorder){
+    for my $mc (@curr_membersorder) {
       if ($m->{pid} eq $mc->{pid}) {
         $found = 1;
         if ($m->{pos} ne $mc->{pos}) {
-          push @update, { pid => $m->{pid}, value => $m->{pos} };
+          push @update, {pid => $m->{pid}, value => $m->{pos}};
         }
       }
     }
-    unless($found){
-      push  @add_to, { pid => $m->{pid}, value => $m->{pos} };
+    unless ($found) {
+      push @add_to, {pid => $m->{pid}, value => $m->{pos}};
     }
-  } 
-  $c->app->log->debug("[$pid] found ".(scalar @add_to)." $field relations to add");
-  $c->app->log->debug("[$pid] found ".(scalar @update)." $field relations to update");
+  }
+  $c->app->log->debug("[$pid] found " . (scalar @add_to) . " $field relations to add");
+  $c->app->log->debug("[$pid] found " . (scalar @update) . " $field relations to update");
 
-  for my $mc (@curr_membersorder){
+  for my $mc (@curr_membersorder) {
     my $found = 0;
-    for my $m (@{$membersorder}){
+    for my $m (@{$membersorder}) {
       if ($m->{pid} eq $mc->{pid}) {
         $found = 1;
       }
     }
-    unless($found){
-      push  @remove_from, { pid => $mc->{pid}, value => $mc->{pos} };
+    unless ($found) {
+      push @remove_from, {pid => $mc->{pid}, value => $mc->{pos}};
     }
   }
-  $c->app->log->debug("[$pid] found ".(scalar @remove_from)." $field relations to remove");
+  $c->app->log->debug("[$pid] found " . (scalar @remove_from) . " $field relations to remove");
 
-  if(scalar @add_to > 0){
+  if (scalar @add_to > 0) {
     my $r_add = $self->_update_value($c, $pid, $field, \@add_to, $updateurl, 'add');
-    if($r_add->{status} ne 200){
+    if ($r_add->{status} ne 200) {
       $res->{status} = $r_add->{status};
       push @{$res->{alerts}}, @{$r_add->{alerts}} if scalar @{$r_add->{alerts}} > 0;
     }
   }
 
-  if(scalar @update > 0){
+  if (scalar @update > 0) {
     my $r_update = $self->_update_value($c, $pid, $field, \@update, $updateurl, 'set');
-    if($r_update->{status} ne 200){
+    if ($r_update->{status} ne 200) {
       $res->{status} = $r_update->{status};
       push @{$res->{alerts}}, @{$r_update->{alerts}} if scalar @{$r_update->{alerts}} > 0;
     }
   }
 
-  if(scalar @remove_from > 0){
+  if (scalar @remove_from > 0) {
     my $r_remove = $self->_update_value($c, $pid, $field, \@remove_from, $updateurl, 'remove');
-    if($r_remove->{status} ne 200){
+    if ($r_remove->{status} ne 200) {
       $res->{status} = $r_remove->{status};
       push @{$res->{alerts}}, @{$r_remove->{alerts}} if scalar @{$r_remove->{alerts}} > 0;
     }
@@ -731,19 +753,20 @@ sub _update_value {
 
   my ($self, $c, $pid, $field, $docsvalues, $updateurl, $action) = @_;
 
-  my $res = { status => 200 };
+  my $res = {status => 200};
 
   #$c->app->log->debug("[$pid] updating ".(scalar @{$members})." members");
 
-  if(scalar @{$docsvalues} <= 500){
+  if (scalar @{$docsvalues} <= 500) {
     return $self->_update_value_post($c, $pid, $field, $docsvalues, $updateurl, $action);
-  }else{
+  }
+  else {
     my @batch;
-    for my $m (@{$docsvalues}){
+    for my $m (@{$docsvalues}) {
       push @batch, $m;
-      if(scalar @batch >= 500){
+      if (scalar @batch >= 500) {
         my $r = $self->_update_value_post($c, $pid, $field, \@batch, $updateurl, $action);
-        if($r->{status} ne 200){
+        if ($r->{status} ne 200) {
           push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
           $res->{status} = $r->{status};
         }
@@ -751,12 +774,12 @@ sub _update_value {
       }
     }
     my $r = $self->_update_value_post($c, $pid, $field, \@batch, $updateurl, $action);
-    if($r->{status} ne 200){
+    if ($r->{status} ne 200) {
       push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
       $res->{status} = $r->{status};
     }
   }
-  
+
   return $res;
 }
 
@@ -764,14 +787,15 @@ sub _update_value_post {
 
   my ($self, $c, $pid, $field, $docsvalues, $updateurl, $action) = @_;
 
-  my $res = { status => 200 };
+  my $res = {status => 200};
 
   my @update;
-  for my $dv (@{$docsvalues}){
-    push @update, {
-      pid => $dv->{pid},
-      $field => { $action => $dv->{value} }
-    };
+  for my $dv (@{$docsvalues}) {
+    push @update,
+      {
+      pid    => $dv->{pid},
+      $field => {$action => $dv->{value}}
+      };
   }
 
   my $ua = Mojo::UserAgent->new;
@@ -784,11 +808,12 @@ sub _update_value_post {
   my $post = $ua->post($updateurl => json => \@update);
 
   if (my $r = $post->success) {
-    $c->app->log->debug("[$pid] updated ".(scalar @{$docsvalues})." documents");
-  }else{
+    $c->app->log->debug("[$pid] updated " . (scalar @{$docsvalues}) . " documents");
+  }
+  else {
     my ($err, $code) = $post->error;
-    unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-    $res->{status} =  $code ? $code : 500;
+    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+    $res->{status} = $code ? $code : 500;
   }
 
   return $res;
@@ -798,9 +823,10 @@ sub _update_members {
 
   my ($self, $c, $pid, $updateurl, $members, $relation) = @_;
 
-  my $res = { status => 200 }; 
+  my $res = {status => 200};
 
-  $c->app->log->debug("[$pid] this object should have ".(scalar @{$members})." $relation relations");
+  $c->app->log->debug("[$pid] this object should have " . (scalar @{$members}) . " $relation relations");
+
   #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($members));
 
   # get current members
@@ -808,10 +834,11 @@ sub _update_members {
   $urlget->scheme($c->app->config->{solr}->{scheme});
   $urlget->host($c->app->config->{solr}->{host});
   $urlget->port($c->app->config->{solr}->{port});
-  if($c->app->config->{solr}->{path}){
-    $urlget->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/select");
-  }else{
-    $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
+  if ($c->app->config->{solr}->{path}) {
+    $urlget->path("/" . $c->app->config->{solr}->{path} . "/solr/" . $c->app->config->{solr}->{core} . "/select");
+  }
+  else {
+    $urlget->path("/solr/" . $c->app->config->{solr}->{core} . "/select");
   }
 
   $urlget->query(q => "$relation:\"$pid\"", fl => "pid", rows => "0", wt => "json");
@@ -822,66 +849,71 @@ sub _update_members {
   my $numFound;
   if (my $r_num = $get->success) {
     $numFound = $r_num->json->{response}->{numFound};
-  }else{
+  }
+  else {
     my ($err, $code) = $get->error;
-    $c->app->log->error("[$pid] error getting object $relation relations count ".$c->app->dumper($err));
-    unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting object $relation relations count" };
-    unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-    $res->{status} =  $code ? $code : 500;
+    $c->app->log->error("[$pid] error getting object $relation relations count " . $c->app->dumper($err));
+    unshift @{$res->{alerts}}, {type => 'danger', msg => "error getting object $relation relations count"};
+    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+    $res->{status} = $code ? $code : 500;
     return $res;
   }
 
-  $urlget->query(q => "$relation:\"$pid\"", fl => "pid", rows => $numFound, wt => "json"); 
+  $urlget->query(q => "$relation:\"$pid\"", fl => "pid", rows => $numFound, wt => "json");
 
   $get = $ua->get($urlget);
 
   my @curr_members;
   if (my $r_mem = $get->success) {
-    for my $c_m (@{$r_mem->json->{response}->{docs}}){
+    for my $c_m (@{$r_mem->json->{response}->{docs}}) {
       push @curr_members, $c_m->{pid};
     }
-  }else{
+  }
+  else {
     my ($err, $code) = $get->error;
     $c->app->log->error($urlget);
-    $c->app->log->error("[$pid] error getting object $relation relations ".$c->app->dumper($err));
-    unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting object $relation relations" };
-    unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-    $res->{status} =  $code ? $code : 500;
+    $c->app->log->error("[$pid] error getting object $relation relations " . $c->app->dumper($err));
+    unshift @{$res->{alerts}}, {type => 'danger', msg => "error getting object $relation relations"};
+    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+    $res->{status} = $code ? $code : 500;
     return $res;
-  }       
+  }
 
-  $c->app->log->debug("[$pid] this object currently has ".(scalar @curr_members)." $relation relations");
+  $c->app->log->debug("[$pid] this object currently has " . (scalar @curr_members) . " $relation relations");
+
   #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper(\@curr_members));
 
   my @add_to;
   my @remove_from;
 
-  for my $m (@{$members}){
-    unless( $m ~~ @curr_members ) {
-      push  @add_to, $m;
-    }
-  } 
-  $c->app->log->debug("[$pid] found ".(scalar @add_to)." $relation relations to add");
-  #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper(\@add_to));
-  for my $m (@curr_members){
-    unless( $m ~~ @{$members} ) {
-      push  @remove_from, $m;
+  for my $m (@{$members}) {
+    unless ($m ~~ @curr_members) {
+      push @add_to, $m;
     }
   }
-  $c->app->log->debug("[$pid] found ".(scalar @remove_from)." $relation relations to remove");
+  $c->app->log->debug("[$pid] found " . (scalar @add_to) . " $relation relations to add");
+
+  #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper(\@add_to));
+  for my $m (@curr_members) {
+    unless ($m ~~ @{$members}) {
+      push @remove_from, $m;
+    }
+  }
+  $c->app->log->debug("[$pid] found " . (scalar @remove_from) . " $relation relations to remove");
+
   #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper(\@remove_from));
 
-  if(scalar @add_to > 0){
+  if (scalar @add_to > 0) {
     my $r_add = $self->_update_relation($c, $pid, $relation, \@add_to, $updateurl, 'add');
-    if($r_add->{status} ne 200){
+    if ($r_add->{status} ne 200) {
       $res->{status} = $r_add->{status};
       push @{$res->{alerts}}, @{$r_add->{alerts}} if scalar @{$r_add->{alerts}} > 0;
     }
   }
 
-  if(scalar @remove_from > 0){
+  if (scalar @remove_from > 0) {
     my $r_remove = $self->_update_relation($c, $pid, $relation, \@remove_from, $updateurl, 'remove');
-    if($r_remove->{status} ne 200){
+    if ($r_remove->{status} ne 200) {
       $res->{status} = $r_remove->{status};
       push @{$res->{alerts}}, @{$r_remove->{alerts}} if scalar @{$r_remove->{alerts}} > 0;
     }
@@ -894,19 +926,20 @@ sub _update_relation {
 
   my ($self, $c, $pid, $relation, $members, $updateurl, $action) = @_;
 
-  my $res = { status => 200 };
+  my $res = {status => 200};
 
   #$c->app->log->debug("[$pid] updating ".(scalar @{$members})." members");
 
-  if(scalar @{$members} <= 500){
+  if (scalar @{$members} <= 500) {
     return $self->_update_relation_post($c, $pid, $relation, $members, $updateurl, $action);
-  }else{
+  }
+  else {
     my @batch;
-    for my $m (@{$members}){
+    for my $m (@{$members}) {
       push @batch, $m;
-      if(scalar @batch >= 500){
+      if (scalar @batch >= 500) {
         my $r = $self->_update_relation_post($c, $pid, $relation, \@batch, $updateurl, $action);
-        if($r->{status} ne 200){
+        if ($r->{status} ne 200) {
           push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
           $res->{status} = $r->{status};
         }
@@ -914,12 +947,12 @@ sub _update_relation {
       }
     }
     my $r = $self->_update_relation_post($c, $pid, $relation, \@batch, $updateurl, $action);
-      if($r->{status} ne 200){
-        push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-        $res->{status} = $r->{status};
+    if ($r->{status} ne 200) {
+      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+      $res->{status} = $r->{status};
     }
   }
-  
+
   return $res;
 }
 
@@ -927,14 +960,15 @@ sub _update_relation_post {
 
   my ($self, $c, $pid, $relation, $members, $updateurl, $action) = @_;
 
-  my $res = { status => 200 };
+  my $res = {status => 200};
 
   my @update;
-  for my $m (@{$members}){
-    push @update, {
-      pid => $m,
-      $relation => { $action => $pid }
-    };
+  for my $m (@{$members}) {
+    push @update,
+      {
+      pid       => $m,
+      $relation => {$action => $pid}
+      };
   }
 
   my $ua = Mojo::UserAgent->new;
@@ -947,11 +981,12 @@ sub _update_relation_post {
   my $post = $ua->post($updateurl => json => \@update);
 
   if (my $r = $post->success) {
-    $c->app->log->debug("[$pid] updated ".(scalar @{$members})." documents");
-  }else{
+    $c->app->log->debug("[$pid] updated " . (scalar @{$members}) . " documents");
+  }
+  else {
     my ($err, $code) = $post->error;
-    unshift @{$res->{alerts}}, { type => 'danger', msg => $err };
-    $res->{status} =  $code ? $code : 500;
+    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+    $res->{status} = $code ? $code : 500;
   }
 
   return $res;
@@ -960,7 +995,7 @@ sub _update_relation_post {
 sub get {
   my ($self, $c, $pid, $ignorestatus) = @_;
 
-  my $dc_model = PhaidraAPI::Model::Dc->new;
+  my $dc_model     = PhaidraAPI::Model::Dc->new;
   my $search_model = PhaidraAPI::Model::Search->new;
   my $object_model = PhaidraAPI::Model::Object->new;
 
@@ -971,7 +1006,7 @@ sub _get {
 
   my ($self, $c, $pid, $dc_model, $search_model, $object_model, $ignorestatus) = @_;
 
-  my $res = { status => 200 };
+  my $res = {status => 200};
 
   my $t0 = [gettimeofday];
 
@@ -980,31 +1015,31 @@ sub _get {
 
   $c->app->log->debug("indexing $pid: getting foxml");
   my $tgetfoxml = [gettimeofday];
-  my $r_oxml = $object_model->get_foxml($c, $pid);
-  $c->app->log->debug("getting foxml took ".tv_interval($tgetfoxml));
-  if($r_oxml->{status} ne 200){
+  my $r_oxml    = $object_model->get_foxml($c, $pid);
+  $c->app->log->debug("getting foxml took " . tv_interval($tgetfoxml));
+  if ($r_oxml->{status} ne 200) {
     return $r_oxml;
   }
   $c->app->log->debug("indexing $pid: parsing foxml");
   my $tparsefoxml = [gettimeofday];
-  my $dom = Mojo::DOM->new();
+  my $dom         = Mojo::DOM->new();
   $dom->xml(1);
   $dom->parse($r_oxml->{foxml});
-  $c->app->log->debug("parsing foxml took ".tv_interval($tparsefoxml));
+  $c->app->log->debug("parsing foxml took " . tv_interval($tparsefoxml));
   $c->app->log->debug("indexing $pid: foxml parsed!");
 
   my %datastreams;
   my %datastreamids;
-  for my $e ($dom->find('foxml\:datastream')->each){
+  for my $e ($dom->find('foxml\:datastream')->each) {
 
     my $dsid = $e->attr('ID');
 
     $datastreamids{$dsid} = 1;
 
-    if($indexed_datastreams{$dsid}){
+    if ($indexed_datastreams{$dsid}) {
       my $latestVersion = $e->find('foxml\:datastreamVersion')->first;
-      for my $e1 ($e->find('foxml\:datastreamVersion')->each){
-        if($e1->attr('CREATED') gt $latestVersion->attr('CREATED')){
+      for my $e1 ($e->find('foxml\:datastreamVersion')->each) {
+        if ($e1->attr('CREATED') gt $latestVersion->attr('CREATED')) {
           $latestVersion = $e1;
         }
       }
@@ -1016,33 +1051,34 @@ sub _get {
   push @{$index{datastreams}}, keys %datastreamids;
 
   # keep this first so that we always get the cmodel
-  if(exists($datastreams{'RELS-EXT'})){ # it should
+  if (exists($datastreams{'RELS-EXT'})) {    # it should
 
     my $r_relsext = $self->_index_relsext($c, $datastreams{'RELS-EXT'}->find('foxml\:xmlContent')->first, \%index);
-    if($r_relsext->{status} ne 200){
-      push @{$res->{alerts}}, { type => 'danger', msg => "Error indexing RELS-EXT for $pid" };
+    if ($r_relsext->{status} ne 200) {
+      push @{$res->{alerts}}, {type => 'danger', msg => "Error indexing RELS-EXT for $pid"};
       push @{$res->{alerts}}, @{$r_relsext->{alerts}} if scalar @{$r_relsext->{alerts}} > 0;
     }
 
   }
 
-  for my $e ($dom->find('foxml\:objectProperties')->each){
-    for my $e1 ($e->find('foxml\:property')->each){
+  for my $e ($dom->find('foxml\:objectProperties')->each) {
+    for my $e1 ($e->find('foxml\:property')->each) {
 
-      if($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#state'){
-        if($ignorestatus && ($ignorestatus eq '1')){
+      if ($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#state') {
+        if ($ignorestatus && ($ignorestatus eq '1')) {
           $c->app->log->debug("[_get index] ignorestatus=$ignorestatus");
-        }else{
+        }
+        else {
           # skip inactive objects
           my $state = $e1->attr('VALUE');
-          if($state ne 'Active'){
+          if ($state ne 'Active') {
             my $errmsg = "[_get index] $pid is $state, deleting from index.";
             $c->app->log->warn($errmsg);
-            push @{$res->{alerts}}, { type => 'danger', msg => $errmsg };
-            if($state eq 'Deleted'){
+            push @{$res->{alerts}}, {type => 'danger', msg => $errmsg};
+            if ($state eq 'Deleted') {
               $res->{status} = 301;
             }
-            if($state eq 'Inactive'){
+            if ($state eq 'Inactive') {
               $res->{status} = 302;
             }
             return $res;
@@ -1050,80 +1086,85 @@ sub _get {
         }
       }
 
-      if($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#ownerId'){
+      if ($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#ownerId') {
         $index{owner} = $e1->attr('VALUE');
       }
 
-      if($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#createdDate'){
+      if ($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#createdDate') {
         $index{created} = $e1->attr('VALUE');
       }
 
-      if($e1->attr('NAME') eq 'info:fedora/fedora-system:def/view#lastModifiedDate'){
+      if ($e1->attr('NAME') eq 'info:fedora/fedora-system:def/view#lastModifiedDate') {
         $index{modified} = $e1->attr('VALUE');
       }
 
     }
   }
 
-  if(exists($datastreams{'BOOKINFO'})){
+  if (exists($datastreams{'BOOKINFO'})) {
     $index{firstpagepid} = $datastreams{'BOOKINFO'}->find('book\:page[abspagenum="1"]')->first->attr('pid');
   }
 
-  if(exists($datastreams{'GEO'})){
+  if (exists($datastreams{'GEO'})) {
 
     my $geo_model = PhaidraAPI::Model::Geo->new;
-    my $r_geo = $geo_model->xml_2_json($c, $datastreams{'GEO'}->find('foxml\:xmlContent')->first);
-    if($r_geo->{status} ne 200){      
-     
-      push @{$res->{alerts}}, { type => 'danger', msg => "Error adding GEO fields from $pid" };
+    my $r_geo     = $geo_model->xml_2_json($c, $datastreams{'GEO'}->find('foxml\:xmlContent')->first);
+    if ($r_geo->{status} ne 200) {
+
+      push @{$res->{alerts}}, {type => 'danger', msg => "Error adding GEO fields from $pid"};
       push @{$res->{alerts}}, @{$r_geo->{alerts}} if scalar @{$r_geo->{alerts}} > 0;
 
-    }else{
+    }
+    else {
 
-      for my $plm (@{$r_geo->{geo}->{kml}->{document}->{placemark}}){
+      for my $plm (@{$r_geo->{geo}->{kml}->{document}->{placemark}}) {
+
         # bbox -> WKT/CQL ENVELOPE syntax. Example: ENVELOPE(-175.360000, -173.906827, -18.568055, -21.268064) which is minX, maxX, maxY, minY order
-        if(exists($plm->{polygon})){
+        if (exists($plm->{polygon})) {
           my $coords = $plm->{polygon}->{outerboundaryis}->{linearring}->{coordinates};
+
           # we have to sort them minX, maxX, maxY, minY
           my $minLat = 90;
           my $maxLat = -90;
           my $minLon = 180;
           my $maxLon = -180;
-          for my $ll (@$coords){            
+          for my $ll (@$coords) {
             $maxLon = $ll->{longitude} if $ll->{longitude} >= $maxLon;
             $minLon = $ll->{longitude} if $ll->{longitude} <= $minLon;
-            $maxLat = $ll->{latitude} if $ll->{latitude} >= $maxLat;
-            $minLat = $ll->{latitude} if $ll->{latitude} <= $minLat;
-          }          
+            $maxLat = $ll->{latitude}  if $ll->{latitude} >= $maxLat;
+            $minLat = $ll->{latitude}  if $ll->{latitude} <= $minLat;
+          }
 
           push @{$index{bbox}}, "ENVELOPE($minLon, $maxLon, $maxLat, $minLat)";
 
           # add some latlon
-          $index{latlon} = (($minLat + $maxLat)/2).','.(($minLon + $maxLon)/2);
+          $index{latlon} = (($minLat + $maxLat) / 2) . ',' . (($minLon + $maxLon) / 2);
         }
-        
+
         # latlon -> latitude,longitude
-        if(exists($plm->{point})){
-          $index{latlon} = $plm->{point}->{coordinates}->{latitude}.",".$plm->{point}->{coordinates}->{longitude};
+        if (exists($plm->{point})) {
+          $index{latlon} = $plm->{point}->{coordinates}->{latitude} . "," . $plm->{point}->{coordinates}->{longitude};
         }
       }
     }
 
   }
 
-  if(exists($datastreams{'MODS'})){
-    
-    my $mods_model = PhaidraAPI::Model::Mods->new;  
-    my $r_mods = $mods_model->xml_2_json($c, $datastreams{'MODS'}->find('foxml\:xmlContent')->first, 'basic');
-    if($r_mods->{status} ne 200){        
-      push @{$res->{alerts}}, { type => 'danger', msg => "Error converting MODS xml to json for $pid" };
-      push @{$res->{alerts}}, @{$r_mods->{alerts}} if scalar @{$r_mods->{alerts}} > 0;         
-    }else{
+  if (exists($datastreams{'MODS'})) {
+
+    my $mods_model = PhaidraAPI::Model::Mods->new;
+    my $r_mods     = $mods_model->xml_2_json($c, $datastreams{'MODS'}->find('foxml\:xmlContent')->first, 'basic');
+    if ($r_mods->{status} ne 200) {
+      push @{$res->{alerts}}, {type => 'danger', msg => "Error converting MODS xml to json for $pid"};
+      push @{$res->{alerts}}, @{$r_mods->{alerts}} if scalar @{$r_mods->{alerts}} > 0;
+    }
+    else {
       my $r_add_mods = $self->_add_mods_index($c, $pid, $r_mods->{mods}, \%index);
-      if($r_add_mods->{status} ne 200){
-        push @{$res->{alerts}}, { type => 'danger', msg => "Error adding MODS fields for $pid" };
-        push @{$res->{alerts}}, @{$r_add_mods->{alerts}} if scalar @{$r_add_mods->{alerts}} > 0;   
-      }else{
+      if ($r_add_mods->{status} ne 200) {
+        push @{$res->{alerts}}, {type => 'danger', msg => "Error adding MODS fields for $pid"};
+        push @{$res->{alerts}}, @{$r_add_mods->{alerts}} if scalar @{$r_add_mods->{alerts}} > 0;
+      }
+      else {
         my ($dc_p, $dc_oai) = $dc_model->map_mods_2_dc_hash($c, $pid, $index{cmodel}, $datastreams{'MODS'}->find('foxml\:xmlContent')->first, $mods_model, 1);
         $self->_add_dc_index($c, $dc_p, \%index);
       }
@@ -1131,66 +1172,74 @@ sub _get {
 
   }
 
-  if(exists($datastreams{'JSON-LD'})){
-    my $jsonld_model = PhaidraAPI::Model::Jsonld->new;  
-    my $r_jsonld = $jsonld_model->get_object_jsonld_parsed($c, $pid, $c->app->config->{phaidra}->{intcallusername}, $c->app->config->{phaidra}->{intcallpassword});
+  if (exists($datastreams{'JSON-LD'})) {
+    my $jsonld_model = PhaidraAPI::Model::Jsonld->new;
+    my $r_jsonld     = $jsonld_model->get_object_jsonld_parsed($c, $pid, $c->app->config->{phaidra}->{intcallusername}, $c->app->config->{phaidra}->{intcallpassword});
+
     #$c->app->log->debug("XXXXXXXXX found JSON-LD: ".$c->app->dumper($r_jsonld));
-    if($r_jsonld->{status} ne 200){
-      push @{$res->{alerts}}, { type => 'danger', msg => "Error getting JSON-LD for $pid" };
-      push @{$res->{alerts}}, @{$r_jsonld->{alerts}} if scalar @{$r_jsonld->{alerts}} > 0;          
-    }else{
+    if ($r_jsonld->{status} ne 200) {
+      push @{$res->{alerts}}, {type => 'danger', msg => "Error getting JSON-LD for $pid"};
+      push @{$res->{alerts}}, @{$r_jsonld->{alerts}} if scalar @{$r_jsonld->{alerts}} > 0;
+    }
+    else {
 
       my $jsonld = $r_jsonld->{'JSON-LD'};
 
       my $r_add_jsonld = $self->_add_jsonld_index($c, $pid, $jsonld, \%index);
-      if($r_add_jsonld->{status} ne 200){
-        push @{$res->{alerts}}, { type => 'danger', msg => "Error adding JSON-LD fields for $pid" };
-        push @{$res->{alerts}}, @{$r_add_jsonld->{alerts}} if scalar @{$r_add_jsonld->{alerts}} > 0;  
-      }else{
+      if ($r_add_jsonld->{status} ne 200) {
+        push @{$res->{alerts}}, {type => 'danger', msg => "Error adding JSON-LD fields for $pid"};
+        push @{$res->{alerts}}, @{$r_add_jsonld->{alerts}} if scalar @{$r_add_jsonld->{alerts}} > 0;
+      }
+      else {
         my ($dc_p, $dc_oai) = $dc_model->map_jsonld_2_dc_hash($c, $pid, $index{cmodel}, $jsonld, $jsonld_model, 1);
+
         # $c->app->log->debug("found JSON-LD: ".$c->app->dumper($dc_p));
         $self->_add_dc_index($c, $dc_p, \%index);
       }
     }
-  } elsif(exists($datastreams{'UWMETADATA'})){ # keep in else to avoid overwriting index fields for objects which have both JSON-LD and uwmetadata
+  }
+  elsif (exists($datastreams{'UWMETADATA'})) {    # keep in else to avoid overwriting index fields for objects which have both JSON-LD and uwmetadata
     my $tadduwmindex = [gettimeofday];
-    my $r_add_uwm = $self->_add_uwm_index($c, $pid, $datastreams{'UWMETADATA'}->find('foxml\:xmlContent')->first, \%index);
-    $c->app->log->debug("_add_uwm_index took ".tv_interval($tadduwmindex));
-    if($r_add_uwm->{status} ne 200){
-      push @{$res->{alerts}}, { type => 'danger', msg => "Error adding UWMETADATA fields for $pid" };
+    my $r_add_uwm    = $self->_add_uwm_index($c, $pid, $datastreams{'UWMETADATA'}->find('foxml\:xmlContent')->first, \%index);
+    $c->app->log->debug("_add_uwm_index took " . tv_interval($tadduwmindex));
+    if ($r_add_uwm->{status} ne 200) {
+      push @{$res->{alerts}}, {type => 'danger', msg => "Error adding UWMETADATA fields for $pid"};
       push @{$res->{alerts}}, @{$r_add_uwm->{alerts}} if scalar @{$r_add_uwm->{alerts}} > 0;
     }
-        
+
     my $uw_model = PhaidraAPI::Model::Uwmetadata->new;
 
     my $tgetuwmtree = [gettimeofday];
-    my $r0 = $uw_model->metadata_tree($c);
-    $c->app->log->debug("getting metadata_tree took ".tv_interval($tgetuwmtree));
+    my $r0          = $uw_model->metadata_tree($c);
+    $c->app->log->debug("getting metadata_tree took " . tv_interval($tgetuwmtree));
 
-    if($r0->{status} ne 200){
-      push @{$res->{alerts}}, { type => 'danger', msg => "Error getting UWMETADATA tree for $pid" };
+    if ($r0->{status} ne 200) {
+      push @{$res->{alerts}}, {type => 'danger', msg => "Error getting UWMETADATA tree for $pid"};
       push @{$res->{alerts}}, @{$r0->{alerts}} if scalar @{$r0->{alerts}} > 0;
-    }else{
+    }
+    else {
       my $tmapuwmdc = [gettimeofday];
       my ($dc_p, $dc_oai) = $dc_model->map_uwmetadata_2_dc_hash($c, $pid, $index{cmodel}, $datastreams{'UWMETADATA'}->find('foxml\:xmlContent')->first, $r0->{metadata_tree}, $uw_model, 1);
-      $c->app->log->debug("mapping uwm to dc took ".tv_interval($tmapuwmdc));
+      $c->app->log->debug("mapping uwm to dc took " . tv_interval($tmapuwmdc));
+
       #$c->app->log->debug("XXXXXXXXXXXXXXXXX ".$c->app->dumper($dc_p));
       $self->_add_dc_index($c, $dc_p, \%index);
     }
   }
 
-  if(exists($datastreams{'ANNOTATIONS'})){
+  if (exists($datastreams{'ANNOTATIONS'})) {
 
     my $ann_model = PhaidraAPI::Model::Annotations->new;
-    my $r_ann = $ann_model->xml_2_json($c, $datastreams{'ANNOTATIONS'}->find('foxml\:xmlContent')->first);
-    if($r_ann->{status} ne 200){      
-      push @{$res->{alerts}}, { type => 'danger', msg => "Error adding ANNOTATIONS from $pid" };
-      push @{$res->{alerts}}, @{$r_ann->{alerts}} if scalar @{$r_ann->{alerts}} > 0;  
-    }else{
-      for my $id (keys %{$r_ann->{annotations}}){
+    my $r_ann     = $ann_model->xml_2_json($c, $datastreams{'ANNOTATIONS'}->find('foxml\:xmlContent')->first);
+    if ($r_ann->{status} ne 200) {
+      push @{$res->{alerts}}, {type => 'danger', msg => "Error adding ANNOTATIONS from $pid"};
+      push @{$res->{alerts}}, @{$r_ann->{alerts}} if scalar @{$r_ann->{alerts}} > 0;
+    }
+    else {
+      for my $id (keys %{$r_ann->{annotations}}) {
         my $title = $r_ann->{annotations}->{$id}->{title} if exists $r_ann->{annotations}->{$id}->{title};
-        my $text = $r_ann->{annotations}->{$id}->{text} if exists $r_ann->{annotations}->{$id}->{text};
-        my $ann = "";
+        my $text  = $r_ann->{annotations}->{$id}->{text}  if exists $r_ann->{annotations}->{$id}->{text};
+        my $ann   = "";
         $ann .= $title . ": " if defined $title;
         $ann .= $text;
         push @{$index{annotations}}, $ann;
@@ -1201,14 +1250,15 @@ sub _get {
     $index{annotations_json} = b(encode_json($r_ann->{annotations}))->decode('UTF-8');
   }
 
-  if(exists($datastreams{'RIGHTS'})){
+  if (exists($datastreams{'RIGHTS'})) {
 
     my $rights_model = PhaidraAPI::Model::Rights->new;
-    my $r_rights = $rights_model->xml_2_json($c, $datastreams{'RIGHTS'}->find('foxml\:xmlContent')->first);
-    if($r_rights->{status} ne 200){
-      push @{$res->{alerts}}, { type => 'danger', msg => "Error indexing RIGHTS from $pid" };
+    my $r_rights     = $rights_model->xml_2_json($c, $datastreams{'RIGHTS'}->find('foxml\:xmlContent')->first);
+    if ($r_rights->{status} ne 200) {
+      push @{$res->{alerts}}, {type => 'danger', msg => "Error indexing RIGHTS from $pid"};
       push @{$res->{alerts}}, @{$r_rights->{alerts}} if scalar @{$r_rights->{alerts}} > 0;
-    }else{
+    }
+    else {
       my @expires;
       for my $id (keys %{$r_rights->{rights}}) {
         if (exists($r_rights->{rights}->{$id})) {
@@ -1228,15 +1278,16 @@ sub _get {
       }
     }
   }
-  
-  if(exists($datastreams{'COLLECTIONORDER'})){
+
+  if (exists($datastreams{'COLLECTIONORDER'})) {
 
     my $membersorder_model = PhaidraAPI::Model::Membersorder->new;
-    my $r_mo = $membersorder_model->xml_2_json($c, $datastreams{'COLLECTIONORDER'}->find('foxml\:xmlContent')->first);
-    if($r_mo->{status} ne 200){      
-      push @{$res->{alerts}}, { type => 'danger', msg => "Error adding COLLECTIONORDER from $pid" };
-      push @{$res->{alerts}}, @{$r_mo->{alerts}} if scalar @{$r_mo->{alerts}} > 0; 
-    }else{
+    my $r_mo               = $membersorder_model->xml_2_json($c, $datastreams{'COLLECTIONORDER'}->find('foxml\:xmlContent')->first);
+    if ($r_mo->{status} ne 200) {
+      push @{$res->{alerts}}, {type => 'danger', msg => "Error adding COLLECTIONORDER from $pid"};
+      push @{$res->{alerts}}, @{$r_mo->{alerts}} if scalar @{$r_mo->{alerts}} > 0;
+    }
+    else {
       $index{membersorder} = $r_mo->{members};
     }
 
@@ -1244,16 +1295,16 @@ sub _get {
 
   # relations
   my $r_add_rrels = $self->_add_reverse_relations($c, $pid, $search_model, \%index);
-  if($r_add_rrels->{status} ne 200){
-    push @{$res->{alerts}}, { type => 'danger', msg => "Error adding reverse relationships for $pid" };
+  if ($r_add_rrels->{status} ne 200) {
+    push @{$res->{alerts}}, {type => 'danger', msg => "Error adding reverse relationships for $pid"};
     push @{$res->{alerts}}, @{$r_add_rrels->{alerts}} if scalar @{$r_add_rrels->{alerts}} > 0;
   }
-  
+
   # inventory
-  if(exists($c->app->config->{paf_mongodb})){
+  if (exists($c->app->config->{paf_mongodb})) {
     my $inv_coll = $c->paf_mongo->db->collection('foxml.ds');
-    if($inv_coll){
-      my $ds_doc = $inv_coll->find({pid => $pid})->sort({ "updated_at" => -1})->next;
+    if ($inv_coll) {
+      my $ds_doc = $inv_coll->find({pid => $pid})->sort({"updated_at" => -1})->next;
       $index{size} = $ds_doc->{ds_sizes}->{OCTETS};
     }
   }
@@ -1263,18 +1314,18 @@ sub _get {
 
   my $resourcetype;
   $resourcetype = $cmodel_2_resourcetype{$index{cmodel}};
-  if($index{"bib_ir"} eq "yes"){
+  if ($index{"bib_ir"} eq "yes") {
     $resourcetype = "journalarticle";
-  }  
-  if($index{"owner"} eq "ubmapsp2"){
+  }
+  if ($index{"owner"} eq "ubmapsp2") {
     $resourcetype = "map";
   }
-  if(exists($index{"dc_subject"})){
-    for my $s (@{$index{"dc_subject"}}){
-      if ($s eq "Altkarte" || $s eq "Karte" || $s eq "Themakarte"){
+  if (exists($index{"dc_subject"})) {
+    for my $s (@{$index{"dc_subject"}}) {
+      if ($s eq "Altkarte" || $s eq "Karte" || $s eq "Themakarte") {
         $resourcetype = "map";
       }
-    }  
+    }
   }
   $index{resourcetype} = $resourcetype;
 
@@ -1293,12 +1344,13 @@ sub _get {
       }
     }
   }
+
   # $c->app->log->debug("XXXXXXXXXXXXX title_suggest_ir: ".$c->app->dumper($index{title_suggest_ir}));
 
   # ts
-  $index{_updated} = time; 
+  $index{_updated} = time;
 
-  $c->app->log->debug("_get indexing took ".tv_interval($t0));
+  $c->app->log->debug("_get indexing took " . tv_interval($t0));
   return $res;
 }
 
@@ -1313,64 +1365,65 @@ http://phaidra.org/XML/V1.0/relations#isAlternativeFormatOf
 http://phaidra.org/XML/V1.0/relations#isAlternativeVersionOf
 http://phaidra.org/ontology/isInAdminSet
 =cut
+
 sub _index_relsext {
   my ($self, $c, $xml, $index) = @_;
 
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
 
   my $cmodel = $xml->find('hasModel')->first->attr('rdf:resource');
   $cmodel =~ s/^info:fedora\/cmodel:(.*)$/$1/;
   $index->{cmodel} = $cmodel;
 
-  for my $e ($xml->find('identifier')->each){
+  for my $e ($xml->find('identifier')->each) {
     my $o = $e->attr('rdf:resource');
     push @{$index->{dc_identifier}}, $o;
   }
-  
-  for my $e ($xml->find('references')->each){
+
+  for my $e ($xml->find('references')->each) {
     my $o = $e->attr('rdf:resource');
     $o =~ s/^info:fedora\/(.*)$/$1/;
     push @{$index->{references}}, $o;
   }
 
-  for my $e ($xml->find('isBackSideOf')->each){
+  for my $e ($xml->find('isBackSideOf')->each) {
     my $o = $e->attr('rdf:resource');
     $o =~ s/^info:fedora\/(.*)$/$1/;
     push @{$index->{isbacksideof}}, $o;
   }
 
-  for my $e ($xml->find('isThumbnailFor')->each){
+  for my $e ($xml->find('isThumbnailFor')->each) {
     my $o = $e->attr('rdf:resource');
     $o =~ s/^info:fedora\/(.*)$/$1/;
     push @{$index->{isthumbnailfor}}, $o;
   }
 
-  for my $e ($xml->find('hasSuccessor')->each){
+  for my $e ($xml->find('hasSuccessor')->each) {
     my $o = $e->attr('rdf:resource');
     $o =~ s/^info:fedora\/(.*)$/$1/;
     push @{$index->{hassuccessor}}, $o;
   }
 
-  for my $e ($xml->find('isAlternativeFormatOf')->each){
+  for my $e ($xml->find('isAlternativeFormatOf')->each) {
     my $o = $e->attr('rdf:resource');
     $o =~ s/^info:fedora\/(.*)$/$1/;
     push @{$index->{isalternativeformatof}}, $o;
   }
 
-  for my $e ($xml->find('isAlternativeVersionOf')->each){
+  for my $e ($xml->find('isAlternativeVersionOf')->each) {
     my $o = $e->attr('rdf:resource');
     $o =~ s/^info:fedora\/(.*)$/$1/;
     push @{$index->{isalternativeversionof}}, $o;
   }
 
-  for my $e ($xml->find('isInAdminSet')->each){
+  for my $e ($xml->find('isInAdminSet')->each) {
     my $o = $e->attr('rdf:resource');
     push @{$index->{isinadminset}}, $o;
   }
 
   # we save this now as haspart but this is later removed
   # instead the array is used to create ispartof in members
-  for my $e ($xml->find('hasCollectionMember')->each){
+  for my $e ($xml->find('hasCollectionMember')->each) {
     my $o = $e->attr('rdf:resource');
     $o =~ s/^info:fedora\/(.*)$/$1/;
     push @{$index->{haspart}}, $o;
@@ -1378,7 +1431,7 @@ sub _index_relsext {
 
   # we save this now as hasmember but this is later removed
   # instead the array is used to create ismember in members
-  for my $e ($xml->find('hasMember')->each){
+  for my $e ($xml->find('hasMember')->each) {
     my $o = $e->attr('rdf:resource');
     $o =~ s/^info:fedora\/(.*)$/$1/;
     push @{$index->{hasmember}}, $o;
@@ -1391,63 +1444,64 @@ sub _add_dc_index {
 
   my ($self, $c, $dc, $index) = @_;
   while (my ($xmlname, $values) = each %{$dc}) {
-    for my $v (@{$values}){
-      if($v->{value} ne ''){
+    for my $v (@{$values}) {
+      if ($v->{value} ne '') {
 
         my $val = $v->{value};
-        if(exists($v->{lang})){
-          if (($xmlname eq 'title') || ($xmlname eq 'description')){
-            push @{$index->{'dc_'.$xmlname}}, $val;
+        if (exists($v->{lang})) {
+          if (($xmlname eq 'title') || ($xmlname eq 'description')) {
+            push @{$index->{'dc_' . $xmlname}}, $val;
           }
           my $lang = $v->{lang};
-          if(length($v->{lang}) eq 2){
+          if (length($v->{lang}) eq 2) {
             $lang = $PhaidraAPI::Model::Languages::iso639map{$v->{lang}};
           }
-          push @{$index->{'dc_'.$xmlname."_".$lang}}, $val;     
-          if($xmlname eq 'title'){
+          push @{$index->{'dc_' . $xmlname . "_" . $lang}}, $val;
+          if ($xmlname eq 'title') {
             $index->{sort_dc_title} = trim $val;
             $index->{'sort_' . $lang . '_dc_title'} = trim $val;
           }
-        }else{
-          push @{$index->{'dc_'.$xmlname}}, $val;
-          if($xmlname eq 'title'){
+        }
+        else {
+          push @{$index->{'dc_' . $xmlname}}, $val;
+          if ($xmlname eq 'title') {
             $index->{sort_dc_title} = trim $val;
           }
         }
       }
     }
   }
-     
+
 }
 
 sub _add_reverse_relations {
 
   my ($self, $c, $pid, $search_model, $index) = @_;
 
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
 
   my $r_trip = $search_model->triples($c, "* <info:fedora/fedora-system:def/relations-external#hasCollectionMember> <info:fedora/$pid>", 0);
-  if($r_trip->{status} ne 200){
+  if ($r_trip->{status} ne 200) {
     return $r_trip;
   }
-   
-  for my $triple (@{$r_trip->{result}}){
+
+  for my $triple (@{$r_trip->{result}}) {
     my $subject = @$triple[0];
-    if($subject =~ m/^<info:fedora\/(.*)>$/){
-      push @{$index->{ispartof}}, $1;        
-    }    
+    if ($subject =~ m/^<info:fedora\/(.*)>$/) {
+      push @{$index->{ispartof}}, $1;
+    }
   }
 
   my $r_trip = $search_model->triples($c, "* <http://pcdm.org/models#hasMember> <info:fedora/$pid>", 0);
-  if($r_trip->{status} ne 200){
+  if ($r_trip->{status} ne 200) {
     return $r_trip;
   }
-   
-  for my $triple (@{$r_trip->{result}}){
+
+  for my $triple (@{$r_trip->{result}}) {
     my $subject = @$triple[0];
-    if($subject =~ m/^<info:fedora\/(.*)>$/){
-      push @{$index->{ismemberof}}, $1;        
-    }    
+    if ($subject =~ m/^<info:fedora\/(.*)>$/) {
+      push @{$index->{ismemberof}}, $1;
+    }
   }
 
   return $res;
@@ -1496,45 +1550,46 @@ sub _add_triples_index {
 
 }
 =cut
+
 sub _add_mods_index {
   my ($self, $c, $pid, $modsjson, $index) = @_;
 
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
 
   my @roles;
-  for my $n (@{$modsjson}){
+  for my $n (@{$modsjson}) {
 
-    if($n->{xmlname} eq 'name'){
+    if ($n->{xmlname} eq 'name') {
       next unless exists $n->{children};
       my $firstname;
       my $lastname;
       my $institution;
       my $role;
-      for my $n1 (@{$n->{children}}){        
-        if($n1->{xmlname} eq 'namePart'){          
-          if(exists($n1->{attributes})){
-            for my $a (@{$n1->{attributes}}){
-              if($a->{xmlname} eq 'type' && $a->{ui_value} eq 'given'){
+      for my $n1 (@{$n->{children}}) {
+        if ($n1->{xmlname} eq 'namePart') {
+          if (exists($n1->{attributes})) {
+            for my $a (@{$n1->{attributes}}) {
+              if ($a->{xmlname} eq 'type' && $a->{ui_value} eq 'given') {
                 $firstname = $n1->{ui_value} if $n1->{ui_value} ne '';
               }
-              if($a->{xmlname} eq 'type' && $a->{ui_value} eq 'family'){
+              if ($a->{xmlname} eq 'type' && $a->{ui_value} eq 'family') {
                 $lastname = $n1->{ui_value} if $n1->{ui_value} ne '';
               }
-              if($a->{xmlname} eq 'type' && $a->{ui_value} eq 'corporate'){
+              if ($a->{xmlname} eq 'type' && $a->{ui_value} eq 'corporate') {
                 $institution = $n1->{ui_value} if $n1->{ui_value} ne '';
               }
             }
           }
         }
-        if($n1->{xmlname} eq 'role'){
-          if(exists($n1->{children})){
-            for my $ch (@{$n1->{children}}){
-              if($ch->{xmlname} eq 'roleTerm'){
-                if(exists($ch->{attributes})){
+        if ($n1->{xmlname} eq 'role') {
+          if (exists($n1->{children})) {
+            for my $ch (@{$n1->{children}}) {
+              if ($ch->{xmlname} eq 'roleTerm') {
+                if (exists($ch->{attributes})) {
                   my $type;
-                  for my $a (@{$ch->{attributes}}){
+                  for my $a (@{$ch->{attributes}}) {
                     if ($a->{xmlname} eq 'type') {
-                      $type = $a->{ui_value}
+                      $type = $a->{ui_value};
                     }
                   }
                   if ($type eq 'code') {
@@ -1544,32 +1599,32 @@ sub _add_mods_index {
               }
             }
           }
-        }        
+        }
       }
       my $name = "$firstname $lastname";
       push @{$index->{"bib_roles_pers_$role"}}, trim $name unless $name eq ' ';
       push @{$index->{"bib_roles_corp_$role"}}, $institution if defined $institution;
     }
 
-    if($n->{xmlname} eq 'originInfo'){
+    if ($n->{xmlname} eq 'originInfo') {
       next unless exists $n->{children};
-      for my $n1 (@{$n->{children}}){
-        if($n1->{xmlname} eq 'dateIssued'){
+      for my $n1 (@{$n->{children}}) {
+        if ($n1->{xmlname} eq 'dateIssued') {
           push @{$index->{"bib_published"}}, $n1->{ui_value} if $n1->{ui_value} ne '';
         }
-        if($n1->{xmlname} eq 'publisher'){
+        if ($n1->{xmlname} eq 'publisher') {
           push @{$index->{"bib_publisher"}}, $n1->{ui_value} if $n1->{ui_value} ne '';
         }
-        if($n1->{xmlname} eq 'place'){
-          if(exists($n1->{children})){
-            for my $n2 (@{$n1->{children}}){
-              if($n2->{xmlname} eq 'placeTerm'){
-                push @{$index->{"bib_publisherlocation"}}, $n2->{ui_value} if $n2->{ui_value} ne '';  
+        if ($n1->{xmlname} eq 'place') {
+          if (exists($n1->{children})) {
+            for my $n2 (@{$n1->{children}}) {
+              if ($n2->{xmlname} eq 'placeTerm') {
+                push @{$index->{"bib_publisherlocation"}}, $n2->{ui_value} if $n2->{ui_value} ne '';
               }
-            }            
-          }          
+            }
+          }
         }
-        if($n1->{xmlname} eq 'edition'){
+        if ($n1->{xmlname} eq 'edition') {
           push @{$index->{"bib_edition"}}, $n1->{ui_value} if $n1->{ui_value} ne '';
         }
       }
@@ -1582,13 +1637,13 @@ sub _add_mods_index {
 sub _add_jsonld_index {
   my ($self, $c, $pid, $jsonld, $index) = @_;
 
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
 
   my @roles;
 
   my @descriptions;
-  if($jsonld->{'bf:note'}){
-   for my $d (@{$jsonld->{'bf:note'}}){
+  if ($jsonld->{'bf:note'}) {
+    for my $d (@{$jsonld->{'bf:note'}}) {
       push @descriptions, $d;
     }
   }
@@ -1615,21 +1670,21 @@ sub _add_jsonld_index {
     }
   }
 
-  if($jsonld->{'dcterms:created'}){
+  if ($jsonld->{'dcterms:created'}) {
     for my $date (@{$jsonld->{'dcterms:created'}}) {
       push @{$index->{"dcterms_created_year"}}, int(substr($date, 0, 4));
       $index->{"dcterms_created_year_sort"} = int(substr($date, 0, 4));
     }
   }
 
-  if($jsonld->{'rdau:P60071'}){
+  if ($jsonld->{'rdau:P60071'}) {
     for my $date (@{$jsonld->{'rdau:P60071'}}) {
       push @{$index->{"rdau_P60071_year"}}, int(substr($date, 0, 4));
       $index->{"rdau_P60071_year_sort"} = int(substr($date, 0, 4));
     }
   }
 
-  if($jsonld->{'rdam:P30004'}){
+  if ($jsonld->{'rdam:P30004'}) {
     for my $id (@{$jsonld->{'rdam:P30004'}}) {
       my $prefix = '';
       if (exists($id->{'@type'})) {
@@ -1641,13 +1696,13 @@ sub _add_jsonld_index {
           $prefix = substr($type, 8);
         }
       }
-      push @{$index->{"dc_identifier"}}, $prefix.":".$id->{'@value'};
+      push @{$index->{"dc_identifier"}}, $prefix . ":" . $id->{'@value'};
     }
   }
 
   my %foundAss;
   my %foundAssIds;
-  if($jsonld->{'rdax:P00009'}){
+  if ($jsonld->{'rdax:P00009'}) {
     for my $ass (@{$jsonld->{'rdax:P00009'}}) {
       for my $l (@{$ass->{'skos:prefLabel'}}) {
         unless (exists($foundAssIds{$l->{'@value'}})) {
@@ -1679,11 +1734,11 @@ sub _add_jsonld_index {
 
   my $roles_res = $self->_add_jsonld_roles($c, $pid, $jsonld, $index, \%foundAss, \%foundAssIds);
   push @{$res->{alerts}}, @{$roles_res->{alerts}} if scalar @{$roles_res->{alerts}} > 0;
-  for my $r (@{$roles_res->{roles}}){
+  for my $r (@{$roles_res->{roles}}) {
     push @roles, $r;
   }
 
-  if($jsonld->{'vra:hasInscription'}){
+  if ($jsonld->{'vra:hasInscription'}) {
     for my $o (@{$jsonld->{'vra:hasInscription'}}) {
       for my $l (@{$o->{'skos:prefLabel'}}) {
         push @{$index->{"vra_inscription"}}, $l->{'@value'};
@@ -1693,11 +1748,11 @@ sub _add_jsonld_index {
 
   $index->{"roles_json"} = b(encode_json(\@roles))->decode('UTF-8');
 
-  if(scalar @descriptions){
+  if (scalar @descriptions) {
     $index->{"descriptions_json"} = b(encode_json(\@descriptions))->decode('UTF-8');
   }
 
-  if(exists($jsonld->{'dcterms:subject'})){
+  if (exists($jsonld->{'dcterms:subject'})) {
     for my $o (@{$jsonld->{'dcterms:subject'}}) {
       if ($o->{'@type'} eq 'phaidra:Subject') {
         my $rr = $self->_add_jsonld_index($c, $pid, $o, $index);
@@ -1706,7 +1761,7 @@ sub _add_jsonld_index {
     }
   }
 
-  if(exists($jsonld->{'bf:provisionActivity'})){
+  if (exists($jsonld->{'bf:provisionActivity'})) {
     for my $pa (@{$jsonld->{'bf:provisionActivity'}}) {
       if (exists($pa->{'bf:agent'})) {
         for my $ag (@{$pa->{'bf:agent'}}) {
@@ -1715,7 +1770,8 @@ sub _add_jsonld_index {
             for my $pn (@{$ag->{'schema:name'}}) {
               if (exists($pn->{'@language'}) && ($pn->{'@language'} ne 'xxx')) {
                 $publisherNames{$pn->{'@language'}} = $pn->{'@value'};
-              } else {
+              }
+              else {
                 $publisherNames{'nolang'} = $pn->{'@value'};
               }
             }
@@ -1731,10 +1787,12 @@ sub _add_jsonld_index {
             }
             if (exists($publisherNames{'nolang'})) {
               $publisher = $publisherNames{'nolang'} if $publisherNames{'nolang'} ne '';
-            } else {
+            }
+            else {
               if (exists($publisherNames{'eng'})) {
                 $publisher = $publisherNames{'eng'} if $publisherNames{'eng'} ne '';
-              } else {
+              }
+              else {
                 for my $pubNameLang (keys %publisherNames) {
                   $publisher = $publisherNames{$pubNameLang} if $publisherNames{$pubNameLang} ne '';
                   last;
@@ -1756,35 +1814,35 @@ sub _add_jsonld_index {
     }
   }
 
-  if(exists($jsonld->{'frapo:isOutputOf'})){
+  if (exists($jsonld->{'frapo:isOutputOf'})) {
     for my $proj (@{$jsonld->{'frapo:isOutputOf'}}) {
       if ($proj->{'@type'} eq 'foaf:Project') {
-        if(exists($proj->{'skos:exactMatch'})){
+        if (exists($proj->{'skos:exactMatch'})) {
           for my $projId (@{$proj->{'skos:exactMatch'}}) {
             push @{$index->{"project_id"}}, $projId;
           }
         }
-        if(exists($proj->{'skos:prefLabel'})){
+        if (exists($proj->{'skos:prefLabel'})) {
           for my $l (@{$proj->{'skos:prefLabel'}}) {
             push @{$index->{"project"}}, $l->{'@value'};
           }
         }
       }
       if ($proj->{'@type'} eq 'aaiso:Programme') {
-        if(exists($proj->{'skos:exactMatch'})){
+        if (exists($proj->{'skos:exactMatch'})) {
           for my $projId (@{$proj->{'skos:exactMatch'}}) {
             push @{$index->{"programme_id"}}, $projId;
           }
         }
-        if(exists($proj->{'skos:prefLabel'})){
+        if (exists($proj->{'skos:prefLabel'})) {
           for my $l (@{$proj->{'skos:prefLabel'}}) {
             push @{$index->{"programme"}}, $l->{'@value'};
           }
         }
       }
-      if(exists($proj->{'frapo:hasFundingAgency'})){
+      if (exists($proj->{'frapo:hasFundingAgency'})) {
         for my $funder (@{$proj->{'frapo:hasFundingAgency'}}) {
-          if(exists($funder->{'skos:prefLabel'})){
+          if (exists($funder->{'skos:prefLabel'})) {
             for my $l (@{$funder->{'skos:prefLabel'}}) {
               push @{$index->{"funder"}}, $l->{'@value'};
             }
@@ -1800,9 +1858,9 @@ sub _add_jsonld_index {
     push @{$index->{"frapo_isoutputof_json"}}, b(encode_json($jsonld->{'frapo:isOutputOf'}))->decode('UTF-8');
   }
 
-  if(exists($jsonld->{'frapo:hasFundingAgency'})){
+  if (exists($jsonld->{'frapo:hasFundingAgency'})) {
     for my $funder (@{$jsonld->{'frapo:hasFundingAgency'}}) {
-      if(exists($funder->{'skos:prefLabel'})){
+      if (exists($funder->{'skos:prefLabel'})) {
         for my $l (@{$funder->{'skos:prefLabel'}}) {
           push @{$index->{"funder"}}, $l->{'@value'};
         }
@@ -1816,11 +1874,11 @@ sub _add_jsonld_index {
     push @{$index->{"frapo_hasfundingagency_json"}}, b(encode_json($jsonld->{'frapo:hasFundingAgency'}))->decode('UTF-8');
   }
 
-  if (exists($jsonld->{'rdau:P60193'})){
+  if (exists($jsonld->{'rdau:P60193'})) {
     for my $o (@{$jsonld->{'rdau:P60193'}}) {
       if (exists($o->{'dce:title'})) {
         if ($o->{'dce:title'}[0]->{'bf:mainTitle'}[0]->{'@value'} ne '') {
-          push @{$index->{"bib_journal"}}, $o->{'dce:title'}[0]->{'bf:mainTitle'}[0]->{'@value'}
+          push @{$index->{"bib_journal"}}, $o->{'dce:title'}[0]->{'bf:mainTitle'}[0]->{'@value'};
         }
       }
       if (exists($o->{'bibo:volume'}) && $o->{'bibo:volume'} ne '') {
@@ -1832,27 +1890,27 @@ sub _add_jsonld_index {
     }
   }
 
-  if (exists($jsonld->{'dcterms:issued'}) && $jsonld->{'dcterms:issued'} ne ''){
+  if (exists($jsonld->{'dcterms:issued'}) && $jsonld->{'dcterms:issued'} ne '') {
     push @{$index->{"bib_published"}}, $jsonld->{'dcterms:issued'}[0];
   }
 
-  if (exists($jsonld->{'dcterms:dateSubmitted'}) && $jsonld->{'dcterms:dateSubmitted'} ne ''){
+  if (exists($jsonld->{'dcterms:dateSubmitted'}) && $jsonld->{'dcterms:dateSubmitted'} ne '') {
     push @{$index->{"dcterms_datesubmitted"}}, $jsonld->{'dcterms:dateSubmitted'}[0];
   }
 
-  if (exists($jsonld->{'schema:pageStart'})){
+  if (exists($jsonld->{'schema:pageStart'})) {
     for my $o (@{$jsonld->{'schema:pageStart'}}) {
       push @{$index->{"schema_pagestart"}}, $o;
     }
   }
 
-  if (exists($jsonld->{'schema:pageEnd'})){
+  if (exists($jsonld->{'schema:pageEnd'})) {
     for my $o (@{$jsonld->{'schema:pageEnd'}}) {
       push @{$index->{"schema_pageend"}}, $o;
     }
   }
 
-  if($jsonld->{'edm:hasType'}){
+  if ($jsonld->{'edm:hasType'}) {
     for my $o (@{$jsonld->{'edm:hasType'}}) {
       for my $l (@{$o->{'skos:prefLabel'}}) {
         push @{$index->{"edm_hastype"}}, $l->{'@value'};
@@ -1863,7 +1921,7 @@ sub _add_jsonld_index {
     }
   }
 
-  if($jsonld->{'schema:genre'}){
+  if ($jsonld->{'schema:genre'}) {
     for my $o (@{$jsonld->{'schema:genre'}}) {
       for my $l (@{$o->{'skos:prefLabel'}}) {
         push @{$index->{"schema_genre"}}, $l->{'@value'};
@@ -1874,7 +1932,7 @@ sub _add_jsonld_index {
     }
   }
 
-  if($jsonld->{'dcterms:accessRights'}){
+  if ($jsonld->{'dcterms:accessRights'}) {
     for my $o (@{$jsonld->{'dcterms:accessRights'}}) {
       for my $id (@{$o->{'skos:exactMatch'}}) {
         push @{$index->{"dcterms_accessrights_id"}}, $id;
@@ -1882,7 +1940,7 @@ sub _add_jsonld_index {
     }
   }
 
-  if($jsonld->{'oaire:version'}){
+  if ($jsonld->{'oaire:version'}) {
     for my $o (@{$jsonld->{'oaire:version'}}) {
       for my $id (@{$o->{'skos:exactMatch'}}) {
         push @{$index->{"oaire_version_id"}}, $id;
@@ -1890,25 +1948,25 @@ sub _add_jsonld_index {
     }
   }
 
-  if($jsonld->{'dcterms:available'}){
+  if ($jsonld->{'dcterms:available'}) {
     for my $d (@{$jsonld->{'dcterms:available'}}) {
       push @{$index->{"dcterms_available"}}, $d;
     }
   }
 
-  if($jsonld->{'bf:shelfMark'}){
+  if ($jsonld->{'bf:shelfMark'}) {
     for my $o (@{$jsonld->{'bf:shelfMark'}}) {
       push @{$index->{"bf_shelfmark"}}, $o;
     }
   }
 
-  if($jsonld->{'phaidra:systemTag'}){
+  if ($jsonld->{'phaidra:systemTag'}) {
     for my $o (@{$jsonld->{'phaidra:systemTag'}}) {
       push @{$index->{"systemtag"}}, $o;
     }
   }
 
-  if($jsonld->{'bf:physicalLocation'}){
+  if ($jsonld->{'bf:physicalLocation'}) {
     for my $o (@{$jsonld->{'bf:physicalLocation'}}) {
       push @{$index->{"bf_physicallocation"}}, $o->{'@value'};
     }
@@ -1919,21 +1977,22 @@ sub _add_jsonld_index {
 
 sub _add_jsonld_roles {
   my ($self, $c, $pid, $jsonld, $index, $foundAss, $foundAssIds) = @_;
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
   my @roles;
-  for my $pred (keys %{$jsonld}){
-    if($pred =~ m/role:(\w+)/g){
+  for my $pred (keys %{$jsonld}) {
+    if ($pred =~ m/role:(\w+)/g) {
       my $role = $1;
-      push @roles, { $pred => $jsonld->{$pred} };
+      push @roles, {$pred => $jsonld->{$pred}};
       my $name;
-      for my $contr (@{$jsonld->{$pred}}){
-        if($contr->{'@type'} eq 'schema:Person'){
-          if($contr->{'schema:givenName'} || $contr->{'schema:familyName'}) {
-            $name = $contr->{'schema:givenName'}[0]->{'@value'}." ".$contr->{'schema:familyName'}[0]->{'@value'};
-          } else {
+      for my $contr (@{$jsonld->{$pred}}) {
+        if ($contr->{'@type'} eq 'schema:Person') {
+          if ($contr->{'schema:givenName'} || $contr->{'schema:familyName'}) {
+            $name = $contr->{'schema:givenName'}[0]->{'@value'} . " " . $contr->{'schema:familyName'}[0]->{'@value'};
+          }
+          else {
             $name = $contr->{'schema:name'}[0]->{'@value'};
           }
-          if($contr->{'schema:affiliation'}) {
+          if ($contr->{'schema:affiliation'}) {
             for my $aff (@{$contr->{'schema:affiliation'}}) {
               for my $affname (@{$aff->{'schema:name'}}) {
                 unless (exists($foundAss->{$affname->{'@value'}})) {
@@ -1962,7 +2021,8 @@ sub _add_jsonld_roles {
               }
             }
           }
-        }elsif($contr->{'@type'} eq 'schema:Organization'){
+        }
+        elsif ($contr->{'@type'} eq 'schema:Organization') {
           unless (exists($foundAss->{$name})) {
             $name = $contr->{'schema:name'}[0]->{'@value'};
             push @{$index->{"association"}}, $name;
@@ -1976,9 +2036,10 @@ sub _add_jsonld_roles {
               }
             }
           }
-        }else{
+        }
+        else {
           $c->app->log->error("Unknown contributor type in jsonld for pid $pid");
-          push @{$res->{alerts}}, { type => 'danger', msg => "Unknown contributor type in jsonld for pid $pid"};
+          push @{$res->{alerts}}, {type => 'danger', msg => "Unknown contributor type in jsonld for pid $pid"};
         }
         push @{$index->{"bib_roles_pers_$role"}}, trim $name unless ($name eq '' || $name eq ' ');
       }
@@ -1991,51 +2052,53 @@ sub _add_jsonld_roles {
 sub _add_uwm_index {
   my ($self, $c, $pid, $uwmetadata, $index) = @_;
 
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
 
-  my $uwmetadata_model = PhaidraAPI::Model::Uwmetadata->new;  
-  my $r_uwm = $uwmetadata_model->uwmetadata_2_json_basic($c, $uwmetadata, 'resolved');
-  #my $r_uwm = $uwmetadata_model->get_object_metadata($c, $pid, 'resolved', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});      
-#  $c->app->log->debug("XXXXXXXXXXXXXXX".$c->app->dumper($r_uwm));
-  if($r_uwm->{status} ne 200){        
-    return $r_uwm;            
+  my $uwmetadata_model = PhaidraAPI::Model::Uwmetadata->new;
+  my $r_uwm            = $uwmetadata_model->uwmetadata_2_json_basic($c, $uwmetadata, 'resolved');
+
+  #my $r_uwm = $uwmetadata_model->get_object_metadata($c, $pid, 'resolved', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});
+  #  $c->app->log->debug("XXXXXXXXXXXXXXX".$c->app->dumper($r_uwm));
+  if ($r_uwm->{status} ne 200) {
+    return $r_uwm;
   }
 
   my $uwm = $r_uwm->{uwmetadata};
 
   # general
   my $general = $self->_find_first_uwm_node_rec($c, "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0", "general", $uwm);
-  if($general){
-    if($general->{children}){
-      for my $gf (@{$general->{children}}){
-        if($gf->{xmlname} eq 'irdata'){
-          $index->{"bib_ir"} = $gf->{ui_value} if $gf->{ui_value} ne '';  
-        }        
+  if ($general) {
+    if ($general->{children}) {
+      for my $gf (@{$general->{children}}) {
+        if ($gf->{xmlname} eq 'irdata') {
+          $index->{"bib_ir"} = $gf->{ui_value} if $gf->{ui_value} ne '';
+        }
       }
     }
   }
 
   # lifecycle -> metadataqualitycheck
   my $metadataqualitycheck = $self->_find_first_uwm_node_rec($c, "http://phaidra.univie.ac.at/XML/metadata/extended/V1.0", "metadataqualitycheck", $uwm);
-  if($metadataqualitycheck){
+  if ($metadataqualitycheck) {
     $index->{"bib_mqc"} = $uwm_metadataqualitycheck{$metadataqualitycheck->{ui_value}};
   }
 
   # roles
   my ($roles, $contributions) = $self->_get_uwm_roles($c, $uwm);
+
   # $c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($contributions));
   $index->{"uwm_roles_json"} = b(encode_json($contributions))->decode('UTF-8');
-  for my $r (@{$roles}){
-    push @{$index->{"bib_roles_pers_".$r->{role}}}, trim $r->{name} if $r->{name} ne '';   
-    push @{$index->{"bib_roles_corp_".$r->{role}}}, $r->{institution} if $r->{institution} ne '';   
+  for my $r (@{$roles}) {
+    push @{$index->{"bib_roles_pers_" . $r->{role}}}, trim $r->{name}   if $r->{name} ne '';
+    push @{$index->{"bib_roles_corp_" . $r->{role}}}, $r->{institution} if $r->{institution} ne '';
   }
 
   my $org = $self->_find_first_uwm_node_rec($c, "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0", "organization", $uwm);
-  if($org){
-    if($org->{children}){
-      for my $orgch (@{$org->{children}}){
-        if($orgch->{xmlname} eq 'hoschtyp'){
-          $index->{"oer"} = '1' if $orgch->{ui_value} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_17/1562801'; 
+  if ($org) {
+    if ($org->{children}) {
+      for my $orgch (@{$org->{children}}) {
+        if ($orgch->{xmlname} eq 'hoschtyp') {
+          $index->{"oer"} = '1' if $orgch->{ui_value} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_17/1562801';
         }
       }
     }
@@ -2043,9 +2106,9 @@ sub _add_uwm_index {
 
   my $curr = $self->_find_first_uwm_node_rec($c, "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization", "curriculum", $uwm);
   if ($curr) {
-    if($curr->{children}){
-      for my $currch (@{$curr->{children}}){
-        if($currch->{xmlname} eq 'spl'){
+    if ($curr->{children}) {
+      for my $currch (@{$curr->{children}}) {
+        if ($currch->{xmlname} eq 'spl') {
           my $spl = $currch->{ui_value};
           $spl =~ s/http:\/\/phaidra\.univie\.ac\.at\/XML\/metadata\/lom\/V1\.0\/organization\/voc_spl\///g;
           push @{$index->{"programme_id"}}, $spl if $spl ne '';
@@ -2056,26 +2119,27 @@ sub _add_uwm_index {
 
   # reference numbers -> get grants
   my $histkult = $self->_find_first_uwm_node_rec($c, "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0", "histkult", $uwm);
-  if($histkult){
-    if($histkult->{children}){
-      for my $histkultch (@{$histkult->{children}}){
-        if($histkultch->{xmlname} eq 'reference_number'){
-          if($histkultch->{children}){
+  if ($histkult) {
+    if ($histkult->{children}) {
+      for my $histkultch (@{$histkult->{children}}) {
+        if ($histkultch->{xmlname} eq 'reference_number') {
+          if ($histkultch->{children}) {
             my $reference = '';
-            my $number = '';
-            for my $refnumch (@{$histkultch->{children}}){
-              if($refnumch->{xmlname} eq 'reference'){
+            my $number    = '';
+            for my $refnumch (@{$histkultch->{children}}) {
+              if ($refnumch->{xmlname} eq 'reference') {
                 $reference = $refnumch->{ui_value};
               }
-              if($refnumch->{xmlname} eq 'number'){
+              if ($refnumch->{xmlname} eq 'number') {
                 $number = $refnumch->{ui_value};
               }
             }
             my $referenceLabel = $uwm_funder{$reference};
             if ($referenceLabel) {
-              $index->{"uwm_funding"} = $referenceLabel . ': ' . $number; 
-            } elsif ($reference eq '1557233') { # unspecified grant number
-              $index->{"uwm_funding"} = $number; 
+              $index->{"uwm_funding"} = $referenceLabel . ': ' . $number;
+            }
+            elsif ($reference eq '1557233') {    # unspecified grant number
+              $index->{"uwm_funding"} = $number;
             }
           }
         }
@@ -2085,39 +2149,39 @@ sub _add_uwm_index {
 
   # digital book stuff
   my $digbook = $self->_find_first_uwm_node_rec($c, "http://phaidra.univie.ac.at/XML/metadata/digitalbook/V1.0", "digitalbook", $uwm);
-  if($digbook){
-    if($digbook->{children}){
-      for my $dbf (@{$digbook->{children}}){
-        if($dbf->{xmlname} eq 'publisher'){
-          push @{$index->{"bib_publisher"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+  if ($digbook) {
+    if ($digbook->{children}) {
+      for my $dbf (@{$digbook->{children}}) {
+        if ($dbf->{xmlname} eq 'publisher') {
+          push @{$index->{"bib_publisher"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';
         }
-        if($dbf->{xmlname} eq 'publisherlocation'){
-          push @{$index->{"bib_publisherlocation"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+        if ($dbf->{xmlname} eq 'publisherlocation') {
+          push @{$index->{"bib_publisherlocation"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';
         }
-        if($dbf->{xmlname} eq 'name_magazine'){
-          push @{$index->{"bib_journal"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+        if ($dbf->{xmlname} eq 'name_magazine') {
+          push @{$index->{"bib_journal"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';
         }
-        if($dbf->{xmlname} eq 'volume'){
-          push @{$index->{"bib_volume"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+        if ($dbf->{xmlname} eq 'volume') {
+          push @{$index->{"bib_volume"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';
         }
-        if($dbf->{xmlname} eq 'edition'){
-          push @{$index->{"bib_edition"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+        if ($dbf->{xmlname} eq 'edition') {
+          push @{$index->{"bib_edition"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';
         }
-        if($dbf->{xmlname} eq 'booklet'){
-          push @{$index->{"bib_issue"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+        if ($dbf->{xmlname} eq 'booklet') {
+          push @{$index->{"bib_issue"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';
         }
-        if($dbf->{xmlname} eq 'from_page'){
-          push @{$index->{"schema_pagestart"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+        if ($dbf->{xmlname} eq 'from_page') {
+          push @{$index->{"schema_pagestart"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';
         }
-        if($dbf->{xmlname} eq 'to_page'){
-          push @{$index->{"schema_pageend"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+        if ($dbf->{xmlname} eq 'to_page') {
+          push @{$index->{"schema_pageend"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';
         }
-        if($dbf->{xmlname} eq 'releaseyear'){
-          push @{$index->{"bib_published"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';  
+        if ($dbf->{xmlname} eq 'releaseyear') {
+          push @{$index->{"bib_published"}}, $dbf->{ui_value} if $dbf->{ui_value} ne '';
         }
-        if($dbf->{xmlname} eq 'alephurl'){
+        if ($dbf->{xmlname} eq 'alephurl') {
           $dbf->{ui_value} =~ m/(AC\d+)/;
-          if($1){
+          if ($1) {
             push @{$index->{"dc_identifier"}}, $1;
           }
         }
@@ -2126,34 +2190,35 @@ sub _add_uwm_index {
   }
 
   my $edu = $self->_get_uwm_educational($c, $uwm);
-  for my $e (@{$edu}){
-    push @{$index->{'educational_'.$e->{xmlname}}}, $e->{ui_value} if $e->{ui_value} ne '';
+  for my $e (@{$edu}) {
+    push @{$index->{'educational_' . $e->{xmlname}}}, $e->{ui_value} if $e->{ui_value} ne '';
   }
 
   # "GPS"
   #<ns9:gps>13°3&apos;6&apos;&apos;E|47°47&apos;45&apos;&apos;N</ns9:gps>
   #<ns9:gps>23°12&apos;19&apos;&apos;E|35°27&apos;8&apos;&apos;N</ns9:gps>
   my $gps = $self->_find_first_uwm_node_rec($c, "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0", "gps", $uwm);
+
   #"ui_value": "13Â°3'6''E|47Â°47'45''N",
-  if($gps){
+  if ($gps) {
     my $coord = $gps->{ui_value};
     $coord =~ s/Â//g;
-    if($coord =~ m/(\d+)°(\d+)'(\d+)''(E|W)\|(\d+)°(\d+)'(\d+)''(N|S)/g){
-      my $lon_deg = $1;
-      my $lon_min = $2;
-      my $lon_sec = $3;
+    if ($coord =~ m/(\d+)°(\d+)'(\d+)''(E|W)\|(\d+)°(\d+)'(\d+)''(N|S)/g) {
+      my $lon_deg  = $1;
+      my $lon_min  = $2;
+      my $lon_sec  = $3;
       my $lon_sign = $4;
-      my $lat_deg = $5;
-      my $lat_min = $6;
-      my $lat_sec = $7;
+      my $lat_deg  = $5;
+      my $lat_min  = $6;
+      my $lat_sec  = $7;
       my $lat_sign = $8;
 
-      my $lon_dec = $lon_deg + ($lon_min/60) + ($lon_sec/3600);
+      my $lon_dec = $lon_deg + ($lon_min / 60) + ($lon_sec / 3600);
       $lon_dec = -$lon_dec if $lon_sign eq 'S';
 
-      my $lat_dec = $lat_deg + ($lat_min/60) + ($lat_sec/3600);
+      my $lat_dec = $lat_deg + ($lat_min / 60) + ($lat_sec / 3600);
       $lat_dec = -$lat_dec if $lat_sign eq 'W';
-      
+
       push @{$index->{latlon}}, "$lat_dec,$lon_dec";
     }
   }
@@ -2165,21 +2230,21 @@ sub _get_uwm_educational {
   my ($self, $c, $uwm) = @_;
 
   my @edu;
-  for my $n (@{$uwm}){
-    if(($n->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0') && ($n->{xmlname} eq 'educational')){
-      if(defined($n->{children})){
-        for my $n1 (@{$n->{children}}){
-          if(($n1->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0') && ($n1->{xmlname} eq 'educationals')){
-            if(defined($n1->{children})){
-              for my $n2 (@{$n1->{children}}){
-                if(($n2->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational') && ($n2->{xmlname} eq 'learningresourcetype')){
-                  push @edu, { xmlname => $n2->{xmlname}, ui_value => $educational_learningresourcetype{$n2->{ui_value}} };
+  for my $n (@{$uwm}) {
+    if (($n->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0') && ($n->{xmlname} eq 'educational')) {
+      if (defined($n->{children})) {
+        for my $n1 (@{$n->{children}}) {
+          if (($n1->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0') && ($n1->{xmlname} eq 'educationals')) {
+            if (defined($n1->{children})) {
+              for my $n2 (@{$n1->{children}}) {
+                if (($n2->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational') && ($n2->{xmlname} eq 'learningresourcetype')) {
+                  push @edu, {xmlname => $n2->{xmlname}, ui_value => $educational_learningresourcetype{$n2->{ui_value}}};
                 }
-                if(($n2->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational') && ($n2->{xmlname} eq 'enduserrole')){
-                  push @edu, { xmlname => $n2->{xmlname}, ui_value => $educational_enduserrole{$n2->{ui_value}} };
+                if (($n2->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational') && ($n2->{xmlname} eq 'enduserrole')) {
+                  push @edu, {xmlname => $n2->{xmlname}, ui_value => $educational_enduserrole{$n2->{ui_value}}};
                 }
-                if(($n2->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational') && ($n2->{xmlname} eq 'context')){
-                  push @edu, { xmlname => $n2->{xmlname}, ui_value => $educational_context{$n2->{ui_value}} };
+                if (($n2->{xmlns} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/educational') && ($n2->{xmlname} eq 'context')) {
+                  push @edu, {xmlname => $n2->{xmlname}, ui_value => $educational_context{$n2->{ui_value}}};
                 }
               }
             }
@@ -2200,36 +2265,38 @@ sub _get_uwm_roles {
 
   my @roles;
   my @contributions_json;
-  for my $ch (@{$life->{children}}){
-    if($ch->{xmlname} eq "contribute"){
+  for my $ch (@{$life->{children}}) {
+    if ($ch->{xmlname} eq "contribute") {
 
       my %contribution_json;
       my $contribution_data_order;
       my $role;
       my @names;
-      for my $n (@{$ch->{children}}){
-        if(($n->{xmlname} eq "role")){
-          if(exists($uwm_2_mods_roles{$n->{ui_value}})){
+      for my $n (@{$ch->{children}}) {
+        if (($n->{xmlname} eq "role")) {
+          if (exists($uwm_2_mods_roles{$n->{ui_value}})) {
             $role = $uwm_2_mods_roles{$n->{ui_value}};
             $contribution_json{role} = $role;
-          }else{
-            $c->app->log->error("Failed to map uwm role ".$n->{ui_value}." to a role code.");
+          }
+          else {
+            $c->app->log->error("Failed to map uwm role " . $n->{ui_value} . " to a role code.");
           }
         }
-        if($n->{xmlname} eq "date"){
+        if ($n->{xmlname} eq "date") {
           $contribution_json{date} = $n->{ui_value} if $n->{ui_value} ne '';
         }
       }
-      for my $n (@{$ch->{attributes}}){
-        if($n->{xmlname} eq 'data_order'){
+      for my $n (@{$ch->{attributes}}) {
+        if ($n->{xmlname} eq 'data_order') {
+
           # we are going to make the hierarchy flat so multiply the higher level order value
-          $contribution_data_order = $n->{ui_value}*100;
+          $contribution_data_order = $n->{ui_value} * 100;
           $contribution_json{data_order} = $n->{ui_value};
         }
       }
 
-      if($role){
-        for my $l1 (@{$ch->{children}}){
+      if ($role) {
+        for my $l1 (@{$ch->{children}}) {
 
           my %entity;
           my %entity_json;
@@ -2237,47 +2304,50 @@ sub _get_uwm_roles {
           next if $l1->{xmlname} eq "role";
           next if $l1->{xmlname} eq "date";
 
-          if($l1->{xmlname} eq "entity"){      
-            my $firstname;      
+          if ($l1->{xmlname} eq "entity") {
+            my $firstname;
             my $lastname;
             my $institution;
-            for my $l2 (@{$l1->{children}}){
+            for my $l2 (@{$l1->{children}}) {
 
               next if $l2->{xmlname} eq "type";
 
               $entity_json{$l2->{xmlname}} = $l2->{ui_value};
 
-              if($l2->{xmlname} eq "firstname"){
+              if ($l2->{xmlname} eq "firstname") {
                 $firstname = $l2->{ui_value} if $l2->{ui_value} ne '';
-              }elsif($l2->{xmlname} eq "lastname"){
+              }
+              elsif ($l2->{xmlname} eq "lastname") {
                 $lastname = $l2->{ui_value} if $l2->{ui_value} ne '';
-              }elsif($l2->{xmlname} eq "institution"){
+              }
+              elsif ($l2->{xmlname} eq "institution") {
                 $institution = $l2->{ui_value} if $l2->{ui_value} ne '';
-              }else{
+              }
+              else {
                 $entity{$l2->{xmlname}} = $l2->{ui_value} if $l2->{ui_value} ne '';
               }
             }
             my $name = "$firstname $lastname";
-            $entity{name} = $name unless $name eq ' ';
+            $entity{name}        = $name unless $name eq ' ';
             $entity{institution} = $institution if defined($institution);
-            $entity{role} = $role;
+            $entity{role}        = $role;
           }
 
-          for my $n (@{$l1->{attributes}}){
-            if($n->{xmlname} eq 'data_order'){
-              $entity{data_order} = $n->{ui_value} + $contribution_data_order;
+          for my $n (@{$l1->{attributes}}) {
+            if ($n->{xmlname} eq 'data_order') {
+              $entity{data_order}      = $n->{ui_value} + $contribution_data_order;
               $entity_json{data_order} = $n->{ui_value};
             }
           }
 
-          push @{$contribution_json{entities}}, \%entity_json;        
+          push @{$contribution_json{entities}}, \%entity_json;
 
           push @roles, \%entity if defined $role;
         }
       }
 
       push @contributions_json, \%contribution_json;
-    }    
+    }
   }
 
   return \@roles, \@contributions_json;
@@ -2287,13 +2357,14 @@ sub _find_first_uwm_node_rec {
   my ($self, $c, $xmlns, $xmlname, $uwm) = @_;
 
   my $ret;
-  for my $n (@{$uwm}){
-    if(($n->{xmlname} eq $xmlname) && ($n->{xmlns} eq $xmlns)){
+  for my $n (@{$uwm}) {
+    if (($n->{xmlname} eq $xmlname) && ($n->{xmlns} eq $xmlns)) {
       $ret = $n;
       last;
-    }else{
-      my $ch_size = defined($n->{children}) ? scalar (@{$n->{children}}) : 0;
-      if($ch_size > 0){
+    }
+    else {
+      my $ch_size = defined($n->{children}) ? scalar(@{$n->{children}}) : 0;
+      if ($ch_size > 0) {
         $ret = $self->_find_first_uwm_node_rec($c, $xmlns, $xmlname, $n->{children});
         last if $ret;
       }
@@ -2305,16 +2376,17 @@ sub _find_first_uwm_node_rec {
 
 sub get_haspart_size {
   my ($self, $c, $pid) = @_;
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
 
   my $urlget = Mojo::URL->new;
   $urlget->scheme($c->app->config->{solr}->{scheme});
   $urlget->host($c->app->config->{solr}->{host});
   $urlget->port($c->app->config->{solr}->{port});
-  if($c->app->config->{solr}->{path}){
-    $urlget->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/select");
-  }else{
-    $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
+  if ($c->app->config->{solr}->{path}) {
+    $urlget->path("/" . $c->app->config->{solr}->{path} . "/solr/" . $c->app->config->{solr}->{core} . "/select");
+  }
+  else {
+    $urlget->path("/solr/" . $c->app->config->{solr}->{core} . "/select");
   }
 
   $urlget->query(q => "ispartof:\"$pid\"", fl => "pid", rows => "0", wt => "json");
@@ -2325,9 +2397,10 @@ sub get_haspart_size {
   my $numFound;
   if ($r_num->is_success) {
     $res->{haspartsize} = $r_num->json->{response}->{numFound};
-  }else{
-    $c->app->log->error("[$pid] error getting haspart size: ".$r_num->code." ".$r_num->message);
-    unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting haspart size: ".$r_num->code." ".$r_num->message};
+  }
+  else {
+    $c->app->log->error("[$pid] error getting haspart size: " . $r_num->code . " " . $r_num->message);
+    unshift @{$res->{alerts}}, {type => 'danger', msg => "error getting haspart size: " . $r_num->code . " " . $r_num->message};
   }
 
   return $res;
@@ -2335,16 +2408,17 @@ sub get_haspart_size {
 
 sub get_object_members {
   my ($self, $c, $pid) = @_;
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
 
   my $urlget = Mojo::URL->new;
   $urlget->scheme($c->app->config->{solr}->{scheme});
   $urlget->host($c->app->config->{solr}->{host});
   $urlget->port($c->app->config->{solr}->{port});
-  if($c->app->config->{solr}->{path}){
-    $urlget->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/select");
-  }else{
-    $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
+  if ($c->app->config->{solr}->{path}) {
+    $urlget->path("/" . $c->app->config->{solr}->{path} . "/solr/" . $c->app->config->{solr}->{core} . "/select");
+  }
+  else {
+    $urlget->path("/solr/" . $c->app->config->{solr}->{core} . "/select");
   }
 
   my $pidunderscore = $pid;
@@ -2358,9 +2432,10 @@ sub get_object_members {
   my $numFound;
   if ($r_num->is_success) {
     $res->{members} = $r_num->json->{response}->{docs};
-  }else{
-    $c->app->log->error("[$pid] error getting object members: ".$r_num->code." ".$r_num->message);
-    unshift @{$res->{alerts}}, { type => 'danger', msg => "error getting object members: ".$r_num->code." ".$r_num->message};
+  }
+  else {
+    $c->app->log->error("[$pid] error getting object members: " . $r_num->code . " " . $r_num->message);
+    unshift @{$res->{alerts}}, {type => 'danger', msg => "error getting object members: " . $r_num->code . " " . $r_num->message};
   }
 
   return $res;
@@ -2368,40 +2443,43 @@ sub get_object_members {
 
 sub get_relationships {
   my ($self, $c, $pid) = @_;
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
 
-  my $ua = Mojo::UserAgent->new;
+  my $ua     = Mojo::UserAgent->new;
   my $urlget = Mojo::URL->new;
   $urlget->scheme($c->app->config->{solr}->{scheme});
   $urlget->host($c->app->config->{solr}->{host});
   $urlget->port($c->app->config->{solr}->{port});
-  if($c->app->config->{solr}->{path}){
-    $urlget->path("/".$c->app->config->{solr}->{path}."/solr/".$c->app->config->{solr}->{core}."/select");
-  }else{
-    $urlget->path("/solr/".$c->app->config->{solr}->{core}."/select");
+  if ($c->app->config->{solr}->{path}) {
+    $urlget->path("/" . $c->app->config->{solr}->{path} . "/solr/" . $c->app->config->{solr}->{core} . "/select");
+  }
+  else {
+    $urlget->path("/solr/" . $c->app->config->{solr}->{core} . "/select");
   }
 
   # $c->app->log->debug("getting doc of $pid");
-  my $idx = $self->get_doc_from_ua($c, $ua, $urlget, $pid);
+  my $idx  = $self->get_doc_from_ua($c, $ua, $urlget, $pid);
   my $rels = {
+
     # own
     # these two are supported elsewhere, not needed here
     # hascollectionmember => [],
     # hasmember => [],
-    references => [],
-    isbacksideof => [],
-    isthumbnailfor => [],
-    hasthumbnail => [],
-    hassuccessor => [],
-    isalternativeformatof => [],
+    references             => [],
+    isbacksideof           => [],
+    isthumbnailfor         => [],
+    hasthumbnail           => [],
+    hassuccessor           => [],
+    isalternativeformatof  => [],
     isalternativeversionof => [],
+
     # reverse
-    ispartof => [],
-    ismemberof => [],
-    isreferencedby => [],
-    hasbackside => [],
-    issuccessorof => [],
-    hasalternativeformat => [],
+    ispartof              => [],
+    ismemberof            => [],
+    isreferencedby        => [],
+    hasbackside           => [],
+    issuccessorof         => [],
+    hasalternativeformat  => [],
     hasalternativeversion => []
   };
 
@@ -2409,6 +2487,7 @@ sub get_relationships {
   #'info:fedora/fedora-system:def/relations-external#hasCollectionMember'
   if ($idx->{ispartof}) {
     for my $relpid (@{$idx->{ispartof}}) {
+
       # $c->app->log->debug("reverse: getting doc of $relpid (of which $pid is ispartof)");
       my $d = $self->get_doc_from_ua($c, $ua, $urlget, $relpid);
       push @{$rels->{ispartof}}, $d if $d;
@@ -2419,6 +2498,7 @@ sub get_relationships {
   #'http://pcdm.org/models#hasMember'
   if ($idx->{ismemberof}) {
     for my $relpid (@{$idx->{ismemberof}}) {
+
       # $c->app->log->debug("reverse: getting doc of $relpid (of which $pid is ismemberof)");
       my $d = $self->get_doc_from_ua($c, $ua, $urlget, $relpid);
       push @{$rels->{ismemberof}}, $d if $d;
@@ -2446,48 +2526,48 @@ sub get_relationships {
   my @versions;
   my $versionsCheck = {
     $pid => {
-      loaded => 1,
+      loaded  => 1,
       checked => 1
     }
   };
   for my $v (@{$rels->{hassuccessor}}) {
     push @versions, $v;
     $versionsCheck->{$v->{pid}} = {
-      loaded => 1,
+      loaded  => 1,
       checked => 0
-    }
+    };
   }
   for my $v (@{$rels->{issuccessorof}}) {
     push @versions, $v;
     $versionsCheck->{$v->{pid}} = {
-      loaded => 1,
+      loaded  => 1,
       checked => 0
-    }
+    };
   }
   $self->add_set_rec($c, $ua, $urlget, 'hassuccessor', $pid, \@versions, $versionsCheck);
-  @versions = sort { $a->{created} <=> $b->{created} } @versions;
+  @versions = sort {$a->{created} <=> $b->{created}} @versions;
   $res->{versions} = \@versions;
 
   my @altformats;
   my $altformatsCheck = {
     $pid => {
-      loaded => 1,
+      loaded  => 1,
       checked => 1
     }
   };
   for my $v (@{$rels->{isalternativeformatof}}) {
     push @altformats, $v;
     $altformatsCheck->{$v->{pid}} = {
-      loaded => 1,
+      loaded  => 1,
       checked => 0
-    }
+    };
   }
   for my $v (@{$rels->{hasalternativeformat}}) {
     push @altformats, $v;
     $altformatsCheck->{$v->{pid}} = {
-      loaded => 1,
+      loaded  => 1,
       checked => 0
-    }
+    };
   }
   $self->add_set_rec($c, $ua, $urlget, 'isalternativeformatof', $pid, \@altformats, $altformatsCheck);
   $res->{alternativeformats} = \@altformats;
@@ -2495,23 +2575,23 @@ sub get_relationships {
   my @altversions;
   my $altversionsCheck = {
     $pid => {
-      loaded => 1,
+      loaded  => 1,
       checked => 1
     }
   };
   for my $v (@{$rels->{isalternativeversionof}}) {
     push @altversions, $v;
     $altversionsCheck->{$v->{pid}} = {
-      loaded => 1,
+      loaded  => 1,
       checked => 0
-    }
+    };
   }
   for my $v (@{$rels->{hasalternativeversion}}) {
     push @altversions, $v;
     $altversionsCheck->{$v->{pid}} = {
-      loaded => 1,
+      loaded  => 1,
       checked => 0
-    }
+    };
   }
   $self->add_set_rec($c, $ua, $urlget, 'isalternativeversionof', $pid, \@altversions, $altversionsCheck);
   $res->{alternativeversions} = \@altversions;
@@ -2526,24 +2606,26 @@ sub add_set_rec {
 
   for my $pid (keys %{$relatedCheck}) {
     unless ($relatedCheck->{$pid}->{loaded}) {
+
       # load
       # $c->app->log->debug("getting doc of $pid ($relationfield)");
       my $d = $self->get_doc_from_ua($c, $ua, $urlget, $pid);
       push @{$related}, $d;
       $relatedCheck->{$pid}->{loaded} = 1;
+
       # add found relationships
       if ($d->{$relationfield}) {
         for my $r (@{$d->{$relationfield}}) {
           unless ($relatedCheck->{$pid}) {
             $relatedCheck->{$pid} = {
-              loaded => 0,
+              loaded  => 0,
               checked => 0
             };
           }
         }
       }
     }
-    
+
     # add reverse relationships
     # $c->app->log->debug("reverse: getting docs where $pid is $relationfield");
     $urlget->query(q => "$relationfield:\"$pid\"", rows => "1000", wt => "json");
@@ -2555,16 +2637,18 @@ sub add_set_rec {
             push @{$related}, $d;
             $relatedCheck->{$d->{pid}}->{loaded} = 1;
           }
-        } else {
+        }
+        else {
           push @{$related}, $d;
           $relatedCheck->{$pid} = {
-            loaded => 1,
+            loaded  => 1,
             checked => 0
           };
         }
       }
-    } else {
-      $c->app->log->error("[$pid] error getting solr query[$relationfield:\"$pid\"]: ".$r->code." ".$r->message);
+    }
+    else {
+      $c->app->log->error("[$pid] error getting solr query[$relationfield:\"$pid\"]: " . $r->code . " " . $r->message);
     }
     $relatedCheck->{$pid}->{checked} = 1;
   }
@@ -2582,8 +2666,10 @@ sub add_indexed_and_reverse {
   my ($self, $c, $ua, $urlget, $idx, $relationfield, $reverserelation, $pid, $rels) = @_;
 
   if ($idx->{$relationfield}) {
+
     # get doc of the related document
     for my $relpid (@{$idx->{$relationfield}}) {
+
       # $c->app->log->debug("getting doc of $relpid ($relationfield of $pid)");
       my $d = $self->get_doc_from_ua($c, $ua, $urlget, $relpid);
       push @{$rels->{$relationfield}}, $d if $d;
@@ -2598,8 +2684,9 @@ sub add_indexed_and_reverse {
     for my $d (@{$r->json->{response}->{docs}}) {
       push @{$rels->{$reverserelation}}, $d;
     }
-  }else{
-    $c->app->log->error("[$pid] error getting solr query[$relationfield:\"$pid\"]: ".$r->code." ".$r->message);
+  }
+  else {
+    $c->app->log->error("[$pid] error getting solr query[$relationfield:\"$pid\"]: " . $r->code . " " . $r->message);
   }
   return undef;
 }
@@ -2613,8 +2700,9 @@ sub get_doc_from_ua {
     for my $d (@{$r->json->{response}->{docs}}) {
       return $d;
     }
-  }else{
-    $c->app->log->error("[$pid] error getting solr doc for object[$pid]: ".$r->code." ".$r->message);
+  }
+  else {
+    $c->app->log->error("[$pid] error getting solr doc for object[$pid]: " . $r->code . " " . $r->message);
   }
 }
 

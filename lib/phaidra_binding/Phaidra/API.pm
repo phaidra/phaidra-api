@@ -39,56 +39,53 @@ use Time::HiRes qw/tv_interval gettimeofday/;
 # Hugh Barnard October 2014, below is a disgrace really, means that the webapps
 # must always use the /fedora/ context because this is hardwired here. Hence the hack
 # below that needs to be moved back into the configuration file.
-our $context ;
+our $context;
 
-sub new
-{
-	my ($class, $fedorabaseurl, $staticbaseurl, $fedorastylesheeturl, $oaiidentifier, $username, $password) = @_;
-	die("API-ERROR: undefined fedorabaseurl") if(!defined($fedorabaseurl));
-	die("API-ERROR: undefiend staticbaseurl") if(!defined($staticbaseurl));
-	die("API-ERROR: undefined stylesheeturl") if(!defined($fedorastylesheeturl));
-	die("API-ERROR: undefined OAI identifier") if(!defined($oaiidentifier));
+sub new {
+  my ($class, $fedorabaseurl, $staticbaseurl, $fedorastylesheeturl, $oaiidentifier, $username, $password) = @_;
+  die("API-ERROR: undefined fedorabaseurl")  if (!defined($fedorabaseurl));
+  die("API-ERROR: undefiend staticbaseurl")  if (!defined($staticbaseurl));
+  die("API-ERROR: undefined stylesheeturl")  if (!defined($fedorastylesheeturl));
+  die("API-ERROR: undefined OAI identifier") if (!defined($oaiidentifier));
 
-	my $self = {};
-        my $cred = "";
+  my $self = {};
+  my $cred = "";
 
-    # set it, if blank, default to /fedora context
-    $context = $self->{config}->{fedoracontext} || 'fedora' ; 
+  # set it, if blank, default to /fedora context
+  $context = $self->{config}->{fedoracontext} || 'fedora';
 
-	#Config Values
-	$self->{config}->{staticbaseurl} = $staticbaseurl;
-	$self->{config}->{fedorabaseurl} = $fedorabaseurl;
-	$self->{config}->{fedorastylesheeturl} = $fedorastylesheeturl;
-	$self->{config}->{proaiRepositoryIdentifier} = $oaiidentifier;
+  #Config Values
+  $self->{config}->{staticbaseurl}             = $staticbaseurl;
+  $self->{config}->{fedorabaseurl}             = $fedorabaseurl;
+  $self->{config}->{fedorastylesheeturl}       = $fedorastylesheeturl;
+  $self->{config}->{proaiRepositoryIdentifier} = $oaiidentifier;
 
-	#Default Values
-	$self->{config}->{uwmetadatalabel} = "University of Vienna metadata";
-	$self->{config}->{fedoraurlgetinternal} = "https://$fedorabaseurl/$context/objects";
-	$self->{uploadurl} = "https://$fedorabaseurl/$context/management/upload";
+  #Default Values
+  $self->{config}->{uwmetadatalabel}      = "University of Vienna metadata";
+  $self->{config}->{fedoraurlgetinternal} = "https://$fedorabaseurl/$context/objects";
+  $self->{uploadurl}                      = "https://$fedorabaseurl/$context/management/upload";
 
-	if(defined($password))
-	{
-		$self->{username} = $username;
-		$self->{password} = $password;
-		$username = uri_escape($username);
-		$password = uri_escape($password);
-		$cred = "$username:$password\@";
-	}
-	else
-	{
-		# Anonym is also ok
-		$cred = "";
-	}
+  if (defined($password)) {
+    $self->{username} = $username;
+    $self->{password} = $password;
+    $username         = uri_escape($username);
+    $password         = uri_escape($password);
+    $cred             = "$username:$password\@";
+  }
+  else {
+    # Anonym is also ok
+    $cred = "";
+  }
 
-	# SOAP- and REST-Endpoints of Fedora
-        $self->{config}->{fedorafindobject} = "https://$fedorabaseurl/$context/search?";
-        $self->{config}->{fedorarisearch} = "https://$fedorabaseurl/$context/risearch?";	
-	    $self->{apim}->{uri} = "https://$cred".$self->{config}->{fedorabaseurl}."/$context/services/management";
-        $self->{apim}->{proxy} = "https://$cred".$self->{config}->{fedorabaseurl}."/$context/services/management";
-        $self->{apia}->{uri} = "https://$cred".$self->{config}->{fedorabaseurl}."/$context/services/access";
-        $self->{apia}->{proxy} = "https://$cred".$self->{config}->{fedorabaseurl}."/$context/services/access";
-	bless($self, $class);
-	return $self;
+  # SOAP- and REST-Endpoints of Fedora
+  $self->{config}->{fedorafindobject} = "https://$fedorabaseurl/$context/search?";
+  $self->{config}->{fedorarisearch}   = "https://$fedorabaseurl/$context/risearch?";
+  $self->{apim}->{uri}                = "https://$cred" . $self->{config}->{fedorabaseurl} . "/$context/services/management";
+  $self->{apim}->{proxy}              = "https://$cred" . $self->{config}->{fedorabaseurl} . "/$context/services/management";
+  $self->{apia}->{uri}                = "https://$cred" . $self->{config}->{fedorabaseurl} . "/$context/services/access";
+  $self->{apia}->{proxy}              = "https://$cred" . $self->{config}->{fedorabaseurl} . "/$context/services/access";
+  bless($self, $class);
+  return $self;
 }
 
 # ======================================================================
@@ -98,225 +95,204 @@ sub new
 # createPicture
 #
 # Create a picture object (ingest!) and return it
-sub createPicture
-{
-	my ($self, $label) = @_;
+sub createPicture {
+  my ($self, $label) = @_;
 
-	my $object = Phaidra::API::Objekt::Picture->new($self);
-	$object->ingest($label);
+  my $object = Phaidra::API::Objekt::Picture->new($self);
+  $object->ingest($label);
 
-	return $object;
+  return $object;
 }
 
 # loadPicture
 #
 # load existing picture
-sub loadPicture
-{
-	my ($self, $pid) = @_;
-	my $object = Phaidra::API::Objekt::Picture->new($self);
-	$object->load($pid);
+sub loadPicture {
+  my ($self, $pid) = @_;
+  my $object = Phaidra::API::Objekt::Picture->new($self);
+  $object->load($pid);
 
-	return $object;
+  return $object;
 }
 
 # createBook
 #
 # Create a book object (ingest!) and return it
-sub createBook
-{
-	my ($self, $label) = @_;
+sub createBook {
+  my ($self, $label) = @_;
 
-	my $object = Phaidra::API::Objekt::Book->new($self);
-	$object->ingest($label);
+  my $object = Phaidra::API::Objekt::Book->new($self);
+  $object->ingest($label);
 
-	return $object;
+  return $object;
 }
 
 # createPage
 #
 # Create a page object (ingest!) and return it
-sub createPage
-{
-	my ($self, $label, $book, $abspagenum, $pagenum, $structure, $startpage) = @_;
+sub createPage {
+  my ($self, $label, $book, $abspagenum, $pagenum, $structure, $startpage) = @_;
 
-	my $object = Phaidra::API::Objekt::Page->new($self);
-	$object->ingest($label, $book->{PID}, $abspagenum, $pagenum, $structure, $startpage);
+  my $object = Phaidra::API::Objekt::Page->new($self);
+  $object->ingest($label, $book->{PID}, $abspagenum, $pagenum, $structure, $startpage);
 
-	return $object;
+  return $object;
 }
 
 # createDocument
 #
 #Create a document object (ingest!) and return it
-sub createDocument
-{
-	my ($self, $label) = @_;
+sub createDocument {
+  my ($self, $label) = @_;
 
-	my $object = Phaidra::API::Objekt::Document->new($self);
-	$object->ingest($label);
+  my $object = Phaidra::API::Objekt::Document->new($self);
+  $object->ingest($label);
 
-	return $object;
+  return $object;
 }
 
 # loadDocument
 #
 # load existing document
-sub loadDocument
-{
-	my ($self, $pid) = @_;
-	my $object = Phaidra::API::Objekt::Document->new($self);
-	$object->load($pid);
+sub loadDocument {
+  my ($self, $pid) = @_;
+  my $object = Phaidra::API::Objekt::Document->new($self);
+  $object->load($pid);
 
-	return $object;
+  return $object;
 }
 
 # Create a paper object (ingest!) and return it
-sub createPaper
-{
-        my ($self, $label) = @_;
+sub createPaper {
+  my ($self, $label) = @_;
 
-        my $object = Phaidra::API::Objekt::Paper->new($self);
-        $object->ingest($label);
+  my $object = Phaidra::API::Objekt::Paper->new($self);
+  $object->ingest($label);
 
-        return $object;
+  return $object;
 }
 
 # Load Paper object
-sub loadPaper
-{
-        my ($self, $pid) = @_;
-        my $object = Phaidra::API::Objekt::Paper->new($self);
-        $object->load($pid);
-        return $object;
+sub loadPaper {
+  my ($self, $pid) = @_;
+  my $object = Phaidra::API::Objekt::Paper->new($self);
+  $object->load($pid);
+  return $object;
 }
 
-
 # Create a container object (ingest!) and return it
-sub createContainer
-{
-        my ($self, $label) = @_;
+sub createContainer {
+  my ($self, $label) = @_;
 
-        my $object = Phaidra::API::Objekt::Container->new($self);
-        $object->ingest($label);
+  my $object = Phaidra::API::Objekt::Container->new($self);
+  $object->ingest($label);
 
-        return $object;
+  return $object;
 }
 
 # Load Container object
-sub loadContainer
-{
-        my ($self, $pid) = @_;
-        my $object = Phaidra::API::Objekt::Container->new($self);
-        $object->load($pid);
-        return $object;
+sub loadContainer {
+  my ($self, $pid) = @_;
+  my $object = Phaidra::API::Objekt::Container->new($self);
+  $object->load($pid);
+  return $object;
 }
 
 # Create a general object (ingest!) and return it
-sub createOther
-{
-        my ($self, $label) = @_;
+sub createOther {
+  my ($self, $label) = @_;
 
-        my $object = Phaidra::API::Objekt::Other->new($self);
-        $object->ingest($label);
+  my $object = Phaidra::API::Objekt::Other->new($self);
+  $object->ingest($label);
 
-        return $object;
+  return $object;
 }
 
 # loadOther
 #
 # load existing general object
-sub loadOther
-{
-        my ($self, $pid) = @_;
-        my $object = Phaidra::API::Objekt::Other->new($self);
-        $object->load($pid);
+sub loadOther {
+  my ($self, $pid) = @_;
+  my $object = Phaidra::API::Objekt::Other->new($self);
+  $object->load($pid);
 
-        return $object;
+  return $object;
 }
 
 #Create an audio object (ingest!) and return it
-sub createAudio
-{
-        my ($self, $label) = @_;
+sub createAudio {
+  my ($self, $label) = @_;
 
-        my $object = Phaidra::API::Objekt::Audio->new($self);
-        $object->ingest($label);
+  my $object = Phaidra::API::Objekt::Audio->new($self);
+  $object->ingest($label);
 
-        return $object;
+  return $object;
 }
 
 # loadAudio
 #
 # load existing audio
-sub loadAudio
-{
-        my ($self, $pid) = @_;
-        my $object = Phaidra::API::Objekt::Audio->new($self);
-        $object->load($pid);
+sub loadAudio {
+  my ($self, $pid) = @_;
+  my $object = Phaidra::API::Objekt::Audio->new($self);
+  $object->load($pid);
 
-        return $object;
+  return $object;
 }
 
 #Create a video object (ingest!) and return it
-sub createVideo
-{
-        my ($self, $label) = @_;
+sub createVideo {
+  my ($self, $label) = @_;
 
-        my $object = Phaidra::API::Objekt::Video->new($self);
-        $object->ingest($label);
+  my $object = Phaidra::API::Objekt::Video->new($self);
+  $object->ingest($label);
 
-        return $object;
+  return $object;
 }
 
 # loadVideo
 #
 # load existing video
-sub loadVideo
-{
-        my ($self, $pid) = @_;
-        my $object = Phaidra::API::Objekt::Video->new($self);
-        $object->load($pid);
+sub loadVideo {
+  my ($self, $pid) = @_;
+  my $object = Phaidra::API::Objekt::Video->new($self);
+  $object->load($pid);
 
-        return $object;
+  return $object;
 }
-
 
 # createCollection
 #
 # Create a collection object (ingest!) and return it
-sub createCollection
-{
-	my ($self, $label) = @_;
+sub createCollection {
+  my ($self, $label) = @_;
 
-	my $object = Phaidra::API::Objekt::Collection->new($self);
-	$object->ingest($label);
+  my $object = Phaidra::API::Objekt::Collection->new($self);
+  $object->ingest($label);
 
-	return $object;
+  return $object;
 }
 
 # loadCollection
 #
 # load existing collection
-sub loadCollection
-{
-	my ($self, $pid) = @_;
-	my $object = Phaidra::API::Objekt::Collection->new($self);
-	$object->load($pid);
+sub loadCollection {
+  my ($self, $pid) = @_;
+  my $object = Phaidra::API::Objekt::Collection->new($self);
+  $object->load($pid);
 
-	return $object;
+  return $object;
 }
 
 # loadObject
 #
 # load generic object
-sub loadObject
-{
-	my ($self, $pid) = @_;
-	my $object = Phaidra::API::Objekt->new($self);
-	$object->load($pid);
+sub loadObject {
+  my ($self, $pid) = @_;
+  my $object = Phaidra::API::Objekt->new($self);
+  $object->load($pid);
 
-	return $object;
+  return $object;
 }
 
 # ======================================================================
@@ -326,108 +302,94 @@ sub loadObject
 # search
 #
 # Search objects using pfindObjects. Returns an array of hashes
-sub search
-{
-	my ($self, $query, $fieldlist,$p_from,$p_chunksize) = @_;
+sub search {
+  my ($self, $query, $fieldlist, $p_from, $p_chunksize) = @_;
 
-	my $log = get_logger();
+  my $log = get_logger();
 
-	if(!defined($fieldlist))
-	{
-		$fieldlist = ['PID'];
-	}
-	if(defined($p_from))
-	{
-		$log->logdie("page has to be > 0") if($p_from < 1);
-	}
-	if(defined($p_chunksize))
-	{
-		$log->logdie("number of search results per page has to be > 1") if($p_chunksize < 1);
-	}
+  if (!defined($fieldlist)) {
+    $fieldlist = ['PID'];
+  }
+  if (defined($p_from)) {
+    $log->logdie("page has to be > 0") if ($p_from < 1);
+  }
+  if (defined($p_chunksize)) {
+    $log->logdie("number of search results per page has to be > 1") if ($p_chunksize < 1);
+  }
 
-	my $chunksize = 100;
-        my $from = 1;
-        my $to = $from+$chunksize;
-	my @userchunks = ();
+  my $chunksize  = 100;
+  my $from       = 1;
+  my $to         = $from + $chunksize;
+  my @userchunks = ();
 
-	#A requester is able to submit the page from where to start search and the chunksize
-	#If only page is submitted, chunksize == DEFAULT-CHUNKSIZE
-	if(defined($p_chunksize))
-	{
-		if($p_chunksize <= $chunksize)
-		{
-			$chunksize = $p_chunksize;
-			$userchunks[0] = $chunksize;
-		}
-		else
-		{
-			while($p_chunksize > 100)
-			{
-				push @userchunks,100;
-				$p_chunksize -= 100;
-			}	
-			push @userchunks,$p_chunksize;
-		}
-		$from = (($p_from - 1) * $chunksize) + 1 if(defined($p_from));
-	}
-	elsif(defined($p_from))
-	{
-		$log->logdie("page has to be > 0") if($p_from < 1);
-		$from = (($p_from - 1) * $chunksize) + 1;
-		$userchunks[0] = $chunksize;
-	}
+  #A requester is able to submit the page from where to start search and the chunksize
+  #If only page is submitted, chunksize == DEFAULT-CHUNKSIZE
+  if (defined($p_chunksize)) {
+    if ($p_chunksize <= $chunksize) {
+      $chunksize = $p_chunksize;
+      $userchunks[0] = $chunksize;
+    }
+    else {
+      while ($p_chunksize > 100) {
+        push @userchunks, 100;
+        $p_chunksize -= 100;
+      }
+      push @userchunks, $p_chunksize;
+    }
+    $from = (($p_from - 1) * $chunksize) + 1 if (defined($p_from));
+  }
+  elsif (defined($p_from)) {
+    $log->logdie("page has to be > 0") if ($p_from < 1);
+    $from = (($p_from - 1) * $chunksize) + 1;
+    $userchunks[0] = $chunksize;
+  }
 
-	my @pids = ();
+  my @pids = ();
 
-	my $soap = $self->getSoap('apia');
-	my ($done,$hitTotal) = (0,-1);
-	my $calls = 0;
-	$|=1;
-	while(!$done)
-	{
-		last if(defined($userchunks[0]) && !defined($userchunks[$calls]));
-		$chunksize = $userchunks[$calls] if(defined($userchunks[$calls]));
-		$calls++;
-		my ($gt0, $gt1);
-		$gt0=[gettimeofday];
-		$log->debug("search: Searching from $from to $to");
-		my $res = $soap->pfindObjects(SOAP::Data->type(string => $query), $from, $chunksize, 0, 200, 'Lucene');
-		if($res->fault)
-		{
-			$log->logdie("pfindObjects failed: ".$res->faultcode.": ".$res->faultstring);
-		}
-		$gt1=tv_interval($gt0);
-		$log->debug("search: call done ($gt1)");
+  my $soap = $self->getSoap('apia');
+  my ($done, $hitTotal) = (0, -1);
+  my $calls = 0;
+  $| = 1;
+  while (!$done) {
+    last                             if (defined($userchunks[0]) && !defined($userchunks[$calls]));
+    $chunksize = $userchunks[$calls] if (defined($userchunks[$calls]));
+    $calls++;
+    my ($gt0, $gt1);
+    $gt0 = [gettimeofday];
+    $log->debug("search: Searching from $from to $to");
+    my $res = $soap->pfindObjects(SOAP::Data->type(string => $query), $from, $chunksize, 0, 200, 'Lucene');
+    if ($res->fault) {
+      $log->logdie("pfindObjects failed: " . $res->faultcode . ": " . $res->faultstring);
+    }
+    $gt1 = tv_interval($gt0);
+    $log->debug("search: call done ($gt1)");
 
-		$gt0=[gettimeofday];
-		my $saxhandler = Phaidra::API::PfindObjectsSAXHandler->new($fieldlist, \@pids);
-		my $parser = XML::Parser::PerlSAX->new(Handler => $saxhandler);
-		my $xml = $res->result;
-		$xml =~ s/<\?xml version="1.0" encoding="UTF-16"\?>/<?xml version="1.0" encoding="UTF-8"?>/;
-		$parser->parse($xml);
+    $gt0 = [gettimeofday];
+    my $saxhandler = Phaidra::API::PfindObjectsSAXHandler->new($fieldlist, \@pids);
+    my $parser     = XML::Parser::PerlSAX->new(Handler => $saxhandler);
+    my $xml        = $res->result;
+    $xml =~ s/<\?xml version="1.0" encoding="UTF-16"\?>/<?xml version="1.0" encoding="UTF-8"?>/;
+    $parser->parse($xml);
 
-		$gt1=tv_interval($gt0);
-		$log->debug("search: XML processing done ($gt1)");
+    $gt1 = tv_interval($gt0);
+    $log->debug("search: XML processing done ($gt1)");
 
-		$done = 1;
-		$hitTotal = $saxhandler->get_hitTotal() if($hitTotal < 0);
-		$log->debug("search: hitTotal = $hitTotal");
-		if($to < $hitTotal)
-		{
-			$done = 0;
-			$from += $chunksize;
-			$to += $chunksize;
-		}
-	}
-	
-	if(!wantarray)
-	{
-		return (@pids ? \@pids : undef);
-	}
-	else
-	{
-		return (\@pids,$hitTotal);
-	}
+    $done     = 1;
+    $hitTotal = $saxhandler->get_hitTotal() if ($hitTotal < 0);
+    $log->debug("search: hitTotal = $hitTotal");
+    if ($to < $hitTotal) {
+      $done = 0;
+      $from += $chunksize;
+      $to   += $chunksize;
+    }
+  }
+
+  if (!wantarray) {
+    return (@pids ? \@pids : undef);
+  }
+  else {
+    return (\@pids, $hitTotal);
+  }
 }
 
 =head2 risearchTRIPLE
@@ -437,187 +399,170 @@ called by RISearch
 
 =cut
 
-sub risearchTRIPLE ($$$)
-{
-	my ($self,$query) = @_;
-    my $log = get_logger();
-    
-	my ($errno,$errstr,$result) = (0,'','');
+sub risearchTRIPLE ($$$) {
+  my ($self, $query) = @_;
+  my $log = get_logger();
 
-	
-    $log->debug('hugh risearch triple' . "$query" ) ;
-    
-	my $ua = LWP::UserAgent::Determined->new;
-	my $req=undef;
-	if($self->{username})
-	{
-		my $cred = encode_base64($self->{username}.':'.$self->{password});
-	
-		$req = POST $self->{config}->{fedorarisearch}."type=triples&lang=spo&format=RDF%2FXML&query=".uri_escape($query),
-					    Authorization => "Basic $cred";
-        $log->debug('in risearch hugh ' . Dumper $req ) ;					    
-	}
-	else
-	{
-		$req = POST $self->{config}->{fedorarisearch}."type=triples&lang=spo&format=RDF%2FXML&query=".uri_escape($query);
-		$log->debug('in risearch hugh unauthorised' . Dumper $req ) ;					
-	}
-	
-	my $risearchFedora = $ua->request($req);
-	
-	if ($risearchFedora->is_success)
-	{
-		$result = $risearchFedora->content;
-	}
-	else
-	{
-		$errstr = $risearchFedora->status_line;
-		$errno = -1;
-	}
-	
-	return ($errno,$errstr,$result);
+  my ($errno, $errstr, $result) = (0, '', '');
+
+  $log->debug('hugh risearch triple' . "$query");
+
+  my $ua  = LWP::UserAgent::Determined->new;
+  my $req = undef;
+  if ($self->{username}) {
+    my $cred = encode_base64($self->{username} . ':' . $self->{password});
+
+    $req = POST $self->{config}->{fedorarisearch} . "type=triples&lang=spo&format=RDF%2FXML&query=" . uri_escape($query), Authorization => "Basic $cred";
+    $log->debug('in risearch hugh ' . Dumper $req );
+  }
+  else {
+    $req = POST $self->{config}->{fedorarisearch} . "type=triples&lang=spo&format=RDF%2FXML&query=" . uri_escape($query);
+    $log->debug('in risearch hugh unauthorised' . Dumper $req );
+  }
+
+  my $risearchFedora = $ua->request($req);
+
+  if ($risearchFedora->is_success) {
+    $result = $risearchFedora->content;
+  }
+  else {
+    $errstr = $risearchFedora->status_line;
+    $errno  = -1;
+  }
+
+  return ($errno, $errstr, $result);
 }
 
 # Request an object property of the resource index. Starts a search just like
 # <subject> <property> * and returns the result as a reference on a list.
 #
 # If $rightsearch == true -> * <property> <subject>
-sub RIsearch
-{
-	my ($self, $subject, $property, $rightsearch)=@_;
-    my $log = get_logger();
-    
-	
-	my @results=();
-	my $query="<$subject> <$property> *";
-	if($rightsearch)
-	{
-		$query = "* <$property> <$subject>";
-	}
-	
-	my ($errno, $errstr, $result)=$self->risearchTRIPLE($query);
-	
-	if($errno==0)
-	{
-		my $xp=XML::XPath->new(xml => $result);
-		$xp->set_namespace('rdf', "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
-		if($rightsearch)
-		{
-			my $nodeset=$xp->findnodes('/rdf:RDF/rdf:Description/@rdf:about');
-			foreach my $node ($nodeset->get_nodelist)
-			{
-				push @results, $node->string_value();
-			}
-		}
-		else
-		{
-			my $nodeset=$xp->findnodes('/rdf:RDF/rdf:Description[@rdf:about="'.$subject.'"]/*/text()');
-			foreach my $node ($nodeset->get_nodelist)
-			{
-				push @results, $node->string_value();
-			}
+sub RIsearch {
+  my ($self, $subject, $property, $rightsearch) = @_;
+  my $log = get_logger();
 
-			# Resources can be found in the tag
-			$nodeset=$xp->findnodes('/rdf:RDF/rdf:Description[@rdf:about="'.$subject.'"]/*/@rdf:resource');
-			foreach my $node ($nodeset->get_nodelist)
-			{
-				push @results, $node->string_value();
-			}
-		}
-	}
-	else
-	{
-		$log->logdie("RIsearch: $errstr");
-	}
-	return \@results;
+  my @results = ();
+  my $query   = "<$subject> <$property> *";
+  if ($rightsearch) {
+    $query = "* <$property> <$subject>";
+  }
+
+  my ($errno, $errstr, $result) = $self->risearchTRIPLE($query);
+
+  if ($errno == 0) {
+    my $xp = XML::XPath->new(xml => $result);
+    $xp->set_namespace('rdf', "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
+    if ($rightsearch) {
+      my $nodeset = $xp->findnodes('/rdf:RDF/rdf:Description/@rdf:about');
+      foreach my $node ($nodeset->get_nodelist) {
+        push @results, $node->string_value();
+      }
+    }
+    else {
+      my $nodeset = $xp->findnodes('/rdf:RDF/rdf:Description[@rdf:about="' . $subject . '"]/*/text()');
+      foreach my $node ($nodeset->get_nodelist) {
+        push @results, $node->string_value();
+      }
+
+      # Resources can be found in the tag
+      $nodeset = $xp->findnodes('/rdf:RDF/rdf:Description[@rdf:about="' . $subject . '"]/*/@rdf:resource');
+      foreach my $node ($nodeset->get_nodelist) {
+        push @results, $node->string_value();
+      }
+    }
+  }
+  else {
+    $log->logdie("RIsearch: $errstr");
+  }
+  return \@results;
 }
 
-sub getRelatedObjectsInfo(){
-	
-	my ($self, $subject, $relation, $right, $offset, $limit)=@_;
-	
-	my $log = get_logger();
-	
-	my $rel = '<info:fedora/'.$subject.'> <'.$relation.'> $item';
-	if($right){
-		$rel = '$item <'.$relation.'> <info:fedora/'.$subject.'>';
-	}
-	
-	my $count;
-	my $relcount = '
+sub getRelatedObjectsInfo() {
+
+  my ($self, $subject, $relation, $right, $offset, $limit) = @_;
+
+  my $log = get_logger();
+
+  my $rel = '<info:fedora/' . $subject . '> <' . $relation . '> $item';
+  if ($right) {
+    $rel = '$item <' . $relation . '> <info:fedora/' . $subject . '>';
+  }
+
+  my $count;
+  my $relcount = '
 	select count(
 		select $item 
 		from <#ri> 
 		where 
 		$item <http://www.openarchives.org/OAI/2.0/itemID> $itemID and
-		'.$rel.' and 
+		' . $rel . ' and 
 		$item <info:fedora/fedora-system:def/model#state> <info:fedora/fedora-system:def/model#Active>)
 	from <#ri> 
 	where 
 	$item <http://www.openarchives.org/OAI/2.0/itemID> $itemID and
-	'.$rel.' and 
+	' . $rel . ' and 
 	$item <info:fedora/fedora-system:def/model#state> <info:fedora/fedora-system:def/model#Active>';
-	
-	my ($errno,$errstr,$result) = $self->risearchTUPLE($relcount);
-	my $xp = XML::XPath->new(xml => $result);
-	my $nodeset = $xp->findnodes('//result');
-	foreach my $node ($nodeset->get_nodelist){				
-		$count = int($node->findvalue('k0'));
-		last; # should be only one
-	}
-	
-	my $query = '
+
+  my ($errno, $errstr, $result) = $self->risearchTUPLE($relcount);
+  my $xp      = XML::XPath->new(xml => $result);
+  my $nodeset = $xp->findnodes('//result');
+  foreach my $node ($nodeset->get_nodelist) {
+    $count = int($node->findvalue('k0'));
+    last;    # should be only one
+  }
+
+  my $query = '
 	select $itemID $title $cmodel	
 	from <#ri> 
 	where 
 	$item <http://www.openarchives.org/OAI/2.0/itemID> $itemID and
-	'.$rel.' and  
+	' . $rel . ' and  
 	$item <info:fedora/fedora-system:def/model#state> <info:fedora/fedora-system:def/model#Active> and 
 	$item <http://purl.org/dc/elements/1.1/title> $title and
 	$item <info:fedora/fedora-system:def/model#hasModel> $cmodel
 	minus $cmodel <mulgara:is> <info:fedora/fedora-system:FedoraObject-3.0> 
 	order by $itemID asc';
-	
-	if($limit){
-		$query .= ' limit '.$limit;
-	}
-	if($offset){
-		$query .= ' offset '.$offset;
-	}
 
-	($errno,$errstr,$result) = $self->risearchTUPLE($query, $offset, $limit);
-	
-	if($errno ne 0)
-	{
-		$log->error("getPropertyWithTitle: ".$errstr);
-		return;
-	}
+  if ($limit) {
+    $query .= ' limit ' . $limit;
+  }
+  if ($offset) {
+    $query .= ' offset ' . $offset;
+  }
 
-	my @objects;
-	my $oaiid = $self->{config}->{proaiRepositoryIdentifier};
-	$xp = XML::XPath->new(xml => $result);
-	$nodeset = $xp->findnodes('//result');
-	foreach my $node ($nodeset->get_nodelist){				
+  ($errno, $errstr, $result) = $self->risearchTUPLE($query, $offset, $limit);
 
-		my $cmodel = $node->findvalue('cmodel/@uri');
-		
-		if($cmodel =~ m/fedora-system/){
-			next;
-		}
-				
-		$cmodel =~ s/^info:fedora\/cmodel:(.*)$/$1/;				
+  if ($errno ne 0) {
+    $log->error("getPropertyWithTitle: " . $errstr);
+    return;
+  }
 
-		my $itemID = $node->findvalue('itemID/@uri');		
-		$itemID =~ s/^info:fedora\/oai:$oaiid:(.*)$/$1/;
-		
-		push @objects, { 
-			pid => $itemID, 
-			title => $node->findvalue('title'), 
-			cmodel => $cmodel
-		};			
-	}	
-	
-	return (\@objects, $count);
+  my @objects;
+  my $oaiid = $self->{config}->{proaiRepositoryIdentifier};
+  $xp      = XML::XPath->new(xml => $result);
+  $nodeset = $xp->findnodes('//result');
+  foreach my $node ($nodeset->get_nodelist) {
+
+    my $cmodel = $node->findvalue('cmodel/@uri');
+
+    if ($cmodel =~ m/fedora-system/) {
+      next;
+    }
+
+    $cmodel =~ s/^info:fedora\/cmodel:(.*)$/$1/;
+
+    my $itemID = $node->findvalue('itemID/@uri');
+    $itemID =~ s/^info:fedora\/oai:$oaiid:(.*)$/$1/;
+
+    push @objects,
+      {
+      pid    => $itemID,
+      title  => $node->findvalue('title'),
+      cmodel => $cmodel
+      };
+  }
+
+  return (\@objects, $count);
 }
 
 =head2 getAllActiveObjects
@@ -630,29 +575,30 @@ Returns all active objects with following info:
 - modified
 
 =cut
-sub getAllActiveObjects(){
-	
-	my ($self, $offset, $limit)=@_;
-	
-	my $log = get_logger();
-	
-	my $count;
-	my $countquery = '
+
+sub getAllActiveObjects() {
+
+  my ($self, $offset, $limit) = @_;
+
+  my $log = get_logger();
+
+  my $count;
+  my $countquery = '
 	select count(select $item from <#ri> where $item <info:fedora/fedora-system:def/model#state> <info:fedora/fedora-system:def/model#Active>)
 	from <#ri> 
 	where
 	$item <http://www.openarchives.org/OAI/2.0/itemID> $itemID and
 	$item <info:fedora/fedora-system:def/model#state> <info:fedora/fedora-system:def/model#Active>';
-	
-	my ($errno,$errstr,$result) = $self->risearchTUPLE($countquery);
-	
-	my $xp = XML::XPath->new(xml => $result);
-	my $nodeset = $xp->findnodes('//result');	
-	foreach my $node ($nodeset->get_nodelist){				
-		$count = int($node->findvalue('k0'));
-	}	
-		
-	my $query = '
+
+  my ($errno, $errstr, $result) = $self->risearchTUPLE($countquery);
+
+  my $xp      = XML::XPath->new(xml => $result);
+  my $nodeset = $xp->findnodes('//result');
+  foreach my $node ($nodeset->get_nodelist) {
+    $count = int($node->findvalue('k0'));
+  }
+
+  my $query = '
 	select $itemID $title $cmodel $created $modified
 	from <#ri> 
 	where 
@@ -664,91 +610,85 @@ sub getAllActiveObjects(){
 	$item <info:fedora/fedora-system:def/model#hasModel> $cmodel
 	minus $cmodel <mulgara:is> <info:fedora/fedora-system:FedoraObject-3.0> 
 	order by $modified desc';
-	
-	if($limit){
-		$query .= ' limit '.$limit;
-	}
-	if($offset){
-		$query .= ' offset '.$offset;
-	}
 
-	($errno,$errstr,$result) = $self->risearchTUPLE($query, $offset, $limit);
-	
-	if($errno ne 0)
-	{
-		$log->error("getAllActiveObjects: ".$errstr);
-		return;
-	}
+  if ($limit) {
+    $query .= ' limit ' . $limit;
+  }
+  if ($offset) {
+    $query .= ' offset ' . $offset;
+  }
 
-	my @objects;
-	my $oaiid = $self->{config}->{proaiRepositoryIdentifier};
-	$xp=XML::XPath->new(xml => $result);
-	$nodeset=$xp->findnodes('//result');	
-	foreach my $node ($nodeset->get_nodelist){				
+  ($errno, $errstr, $result) = $self->risearchTUPLE($query, $offset, $limit);
 
-		my $cmodel = $node->findvalue('cmodel/@uri');
-		
-		if($cmodel =~ m/fedora-system/){
-			next;
-		}
-				
-		$cmodel =~ s/^info:fedora\/cmodel:(.*)$/$1/;				
+  if ($errno ne 0) {
+    $log->error("getAllActiveObjects: " . $errstr);
+    return;
+  }
 
-		my $itemID = $node->findvalue('itemID/@uri');		
-		$itemID =~ s/^info:fedora\/oai:$oaiid:(.*)$/$1/;
-		
-		push @objects, { 
-			pid => $itemID, 
-			title => $node->findvalue('title'), 
-			cmodel => $cmodel,
-			created => $node->findvalue('created'),
-			modified => $node->findvalue('modified'), 
-		};			
-	}	
-	
-	return (\@objects, $count);
+  my @objects;
+  my $oaiid = $self->{config}->{proaiRepositoryIdentifier};
+  $xp      = XML::XPath->new(xml => $result);
+  $nodeset = $xp->findnodes('//result');
+  foreach my $node ($nodeset->get_nodelist) {
+
+    my $cmodel = $node->findvalue('cmodel/@uri');
+
+    if ($cmodel =~ m/fedora-system/) {
+      next;
+    }
+
+    $cmodel =~ s/^info:fedora\/cmodel:(.*)$/$1/;
+
+    my $itemID = $node->findvalue('itemID/@uri');
+    $itemID =~ s/^info:fedora\/oai:$oaiid:(.*)$/$1/;
+
+    push @objects,
+      {
+      pid      => $itemID,
+      title    => $node->findvalue('title'),
+      cmodel   => $cmodel,
+      created  => $node->findvalue('created'),
+      modified => $node->findvalue('modified'),
+      };
+  }
+
+  return (\@objects, $count);
 }
 
-sub risearchTUPLE ($$$)
-{
-	my ($self,$query, $offset, $limit) = @_;
+sub risearchTUPLE ($$$) {
+  my ($self, $query, $offset, $limit) = @_;
 
-	my ($errno,$errstr,$result) = (0,'','');
+  my ($errno, $errstr, $result) = (0, '', '');
 
-	my $log = get_logger();
+  my $log = get_logger();
 
-	my $ua = LWP::UserAgent::Determined->new;
-	my $req=undef;
-	
-	my $params = 'type=tuples&lang=itql&format=Sparql';	
-	
-	$log->debug("tuple query:\n".$query);
-		
-	if($self->{username})
-	{
-		my $cred = encode_base64($self->{username}.':'.$self->{password});
-	
-		$req = POST $self->{config}->{fedorarisearch}.$params."&query=".uri_escape($query),
-					    Authorization => "Basic $cred";
-	}
-	else
-	{
-		$req = POST $self->{config}->{fedorarisearch}.$params."&query=".uri_escape($query);
-	}
-	
-	my $risearchFedora = $ua->request($req);
-	
-	if ($risearchFedora->is_success)
-	{
-		$result = $risearchFedora->content;
-	}
-	else
-	{
-		$errstr = $risearchFedora->status_line;
-		$errno = -1;
-	}
-	
-	return ($errno,$errstr,$result);
+  my $ua  = LWP::UserAgent::Determined->new;
+  my $req = undef;
+
+  my $params = 'type=tuples&lang=itql&format=Sparql';
+
+  $log->debug("tuple query:\n" . $query);
+
+  if ($self->{username}) {
+    my $cred = encode_base64($self->{username} . ':' . $self->{password});
+
+    $req = POST $self->{config}->{fedorarisearch} . $params . "&query=" . uri_escape($query), Authorization => "Basic $cred";
+  }
+  else {
+    $req = POST $self->{config}->{fedorarisearch} . $params . "&query=" . uri_escape($query);
+  }
+
+  my $risearchFedora = $ua->request($req);
+
+  if ($risearchFedora->is_success) {
+    $result = $risearchFedora->content;
+  }
+  else {
+    $errstr = $risearchFedora->status_line;
+    $errno  = -1;
+  }
+
+  return ($errno, $errstr, $result);
 }
 
 =cut
@@ -778,60 +718,47 @@ sub getSoap
 
 =cut
 
-sub getSoap($$$$)
-{
-        my $self = shift;
-        my $api = shift;
-        my $username = shift;
-        my $password = shift;
+sub getSoap($$$$) {
+  my $self     = shift;
+  my $api      = shift;
+  my $username = shift;
+  my $password = shift;
 
-       use constant NAMESPACE => 'http://www.fedora.info/definitions/1/0/types/';
+  use constant NAMESPACE => 'http://www.fedora.info/definitions/1/0/types/';
 
-        my $uri = $self->{$api}->{uri};
-        my $proxy = $self->{$api}->{proxy};
+  my $uri   = $self->{$api}->{uri};
+  my $proxy = $self->{$api}->{proxy};
 
-        # add username and password in proxy-string if available
-        if($username && $password)
-        {
-                $username = uri_escape($username);
-                $password = uri_escape($password);
-                $proxy =~ s#^http(s?)://#http$1://$username:$password@#i;
-        }
+  # add username and password in proxy-string if available
+  if ($username && $password) {
+    $username = uri_escape($username);
+    $password = uri_escape($password);
+    $proxy =~ s#^http(s?)://#http$1://$username:$password@#i;
+  }
 
-        my $soap = Phaidra::API::SOAP::Determined
-                ->ns( NAMESPACE,'types')
-                ->on_action( sub{ '' })
-              #  ->uri($uri)
-                ->proxy($proxy);
-        return $soap;
+  my $soap = Phaidra::API::SOAP::Determined->ns(NAMESPACE, 'types')->on_action(sub {''})
+
+    #  ->uri($uri)
+    ->proxy($proxy);
+  return $soap;
 }
-
-
-
-
-
-
-
-
 
 # change no thing, just create an update so that
 # info:fedora/fedora-system:def/view#lastModifiedDate
 # gets updated
-sub touchObject
-{
-	my ($self, $pid) = @_;
+sub touchObject {
+  my ($self, $pid) = @_;
 
-	my $log = get_logger();
+  my $log = get_logger();
 
-	$log->info("touching object: ".$pid);
-	my $res = $self->getSoap("apim")->modifyObject($pid, undef, undef, undef, SOAP::Data->type(string => 'touchObject by Phaidra API'));
-	
-	if($res->fault)
-	{
-		$log->logdie("modifyObject failed: ".$res->faultcode.": ".$res->faultstring);
-	}
+  $log->info("touching object: " . $pid);
+  my $res = $self->getSoap("apim")->modifyObject($pid, undef, undef, undef, SOAP::Data->type(string => 'touchObject by Phaidra API'));
 
-	$log->info("modifyObject success: DSID = ".$res->result);
+  if ($res->fault) {
+    $log->logdie("modifyObject failed: " . $res->faultcode . ": " . $res->faultstring);
+  }
+
+  $log->info("modifyObject success: DSID = " . $res->result);
 }
 
 =item cut
