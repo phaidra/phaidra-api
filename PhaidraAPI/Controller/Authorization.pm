@@ -10,15 +10,15 @@ use PhaidraAPI::Model::Authorization;
 
 sub check_rights {
 
-	my $self = shift;
+  my $self = shift;
 
-	my $pid = $self->stash('pid');
-	my $op = $self->stash('op');	
+  my $pid = $self->stash('pid');
+  my $op  = $self->stash('op');
 
-	my $authz_model = PhaidraAPI::Model::Authorization->new;
-	my $res = $authz_model->check_rights($self, $pid, $op);
+  my $authz_model = PhaidraAPI::Model::Authorization->new;
+  my $res         = $authz_model->check_rights($self, $pid, $op);
 
-	$self->render(json => { status => $res->{status}, alerts => $res->{alerts} } , status => $res->{status}) ;  
+  $self->render(json => {status => $res->{status}, alerts => $res->{alerts}}, status => $res->{status});
 }
 
 1;

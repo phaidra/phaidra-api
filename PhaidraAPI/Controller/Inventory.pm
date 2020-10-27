@@ -13,22 +13,22 @@ use base 'Mojolicious::Controller';
 sub get_md5 {
   my $self = shift;
 
-  my $pid = $self->stash('pid');
+  my $pid  = $self->stash('pid');
   my $pido = $pid =~ s/\:/_/r;
 
   my $authz_model = PhaidraAPI::Model::Authorization->new;
-  my $res = $authz_model->check_rights($self, $pid, 'ro');
-  unless($res->{status} eq '200'){
+  my $res         = $authz_model->check_rights($self, $pid, 'ro');
+  unless ($res->{status} eq '200') {
     $self->render(json => $res->{json}, status => $res->{status});
     return;
   }
-  my $cursor = $self->paf_mongo->db->collection('octets.catalog')->find({ 'path' => qr/$pido\+/ }, { path => 1, md5 => 1 });
+  my $cursor = $self->paf_mongo->db->collection('octets.catalog')->find({'path' => qr/$pido\+/}, {path => 1, md5 => 1});
   my @md5;
-	while (my $doc = $cursor->next) {
+  while (my $doc = $cursor->next) {
     push @md5, $doc;
-	}
+  }
 
-  $self->render(json => { alerts => [], md5 => \@md5 }, status => 200 );
+  $self->render(json => {alerts => [], md5 => \@md5}, status => 200);
 }
 
 1;

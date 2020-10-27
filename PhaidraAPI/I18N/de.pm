@@ -4,8 +4,7 @@ use utf8;
 use Mojo::Base 'PhaidraAPI::I18N';
 use Locale::Maketext::Lexicon (Gettext => '../I18N/de.po');
 
-
-#our %Lexicon = ( 
+#our %Lexicon = (
 #    'Metadata Editor' => 'Metadaten-Editor',
 #    'Full version' => 'Vollversion'
 #);

@@ -36,9 +36,8 @@ my $VERBS = {
     },
     required => [qw(metadataPrefix)],
   },
-  ListMetadataFormats =>
-    {valid => {identifier => 1, resumptionToken => 1}, required => []},
-  ListRecords => {
+  ListMetadataFormats => {valid => {identifier => 1, resumptionToken => 1}, required => []},
+  ListRecords         => {
     valid => {
       metadataPrefix  => 1,
       from            => 1,
@@ -65,15 +64,15 @@ sub _serialize {
 
 sub _get_metadata_dc {
   my ($self, $rec) = @_;
-  my @el = qw(contributor, coverage, creator, date, description, format, identifier, language, publisher, relation, rights, source, subject, title, type);
-  my %valuesCheck = map { $_ => {} } @el;
+  my @el          = qw(contributor, coverage, creator, date, description, format, identifier, language, publisher, relation, rights, source, subject, title, type);
+  my %valuesCheck = map {$_ => {}} @el;
   my @metadata;
   if (exists($rec->{bib_publisher})) {
     for my $v (@{$rec->{bib_publisher}}) {
       $valuesCheck{'publisher'}{$v} = 1;
     }
     my %field;
-    $field{name} = 'publisher';
+    $field{name}   = 'publisher';
     $field{values} = $rec->{bib_publisher};
     push @metadata, \%field;
   }
@@ -82,7 +81,7 @@ sub _get_metadata_dc {
       $valuesCheck{'date'}{$v} = 1;
     }
     my %field;
-    $field{name} = 'date';
+    $field{name}   = 'date';
     $field{values} = $rec->{bib_published};
     push @metadata, \%field;
   }
@@ -91,7 +90,7 @@ sub _get_metadata_dc {
       $valuesCheck{'date'}{$v} = 1;
     }
     my %field;
-    $field{name} = 'date';
+    $field{name}   = 'date';
     $field{values} = $rec->{dcterms_datesubmitted};
     push @metadata, \%field;
   }
@@ -106,9 +105,9 @@ sub _get_metadata_dc {
       }
       next if $skip;
       my %field;
-      $field{name} = $1;
+      $field{name}   = $1;
       $field{values} = $rec->{$k};
-      $field{lang} = $2 if $2;
+      $field{lang}   = $2 if $2;
       push @metadata, \%field;
     }
   }
@@ -116,8 +115,8 @@ sub _get_metadata_dc {
 }
 
 sub _get_metadata {
-  my $self = shift;
-  my $rec = shift;
+  my $self           = shift;
+  my $rec            = shift;
   my $metadataPrefix = shift;
 
   switch ($metadataPrefix) {
@@ -134,16 +133,16 @@ sub _get_metadata {
 sub handler {
   my $self = shift;
 
-  my $ns = "oai:".$self->config->{oai}->{oairepositoryidentifier}.":";
-  my $uri_base = 'https://' . $self->config->{baseurl} . '/' . $self->config->{basepath} . '/oai';
+  my $ns            = "oai:" . $self->config->{oai}->{oairepositoryidentifier} . ":";
+  my $uri_base      = 'https://' . $self->config->{baseurl} . '/' . $self->config->{basepath} . '/oai';
   my $response_date = DateTime->now->iso8601 . 'Z';
-  my $params = $self->req->params->to_hash;
-  my $errors = [];
+  my $params        = $self->req->params->to_hash;
+  my $errors        = [];
   my $set;
   my $sets;
-  my $skip = 0;
+  my $skip     = 0;
   my $pagesize = $self->config->{oai}->{pagesize};
-  my $verb = $params->{'verb'};
+  my $verb     = $params->{'verb'};
   $self->stash(
     uri_base              => $uri_base,
     request_uri           => $uri_base,
@@ -160,12 +159,12 @@ sub handler {
     my $valid    = $spec->{valid};
     my $required = $spec->{required};
 
-    if ($valid->{resumptionToken} and exists $params->{resumptionToken})
-    {
+    if ($valid->{resumptionToken} and exists $params->{resumptionToken}) {
       if (keys(%$params) > 2) {
         push @$errors, [badArgument => "resumptionToken cannot be combined with other parameters"];
       }
-    } else {
+    }
+    else {
       for my $key (keys %$params) {
         next if $key eq 'verb';
         unless ($valid->{$key}) {
@@ -192,9 +191,10 @@ sub handler {
   if (exists $params->{resumptionToken}) {
     if ($verb eq 'ListSets') {
       push @$errors, [badResumptionToken => "resumptionToken isn't necessary"];
-    } else {
+    }
+    else {
       eval {
-        $token = $self->_deserialize($params->{resumptionToken});
+        $token                    = $self->_deserialize($params->{resumptionToken});
         $params->{set}            = $token->{_s} if defined $token->{_s};
         $params->{from}           = $token->{_f} if defined $token->{_f};
         $params->{until}          = $token->{_u} if defined $token->{_u};
@@ -202,9 +202,9 @@ sub handler {
         $skip                     = $token->{_n} if defined $token->{_n};
         $self->stash(token => $token);
       };
-      if($@){
+      if ($@) {
         push @$errors, [badResumptionToken => "resumptionToken is not in the correct format"];
-      };
+      }
     }
   }
 
@@ -226,8 +226,9 @@ sub handler {
   if (exists $params->{metadataPrefix}) {
     if ($params->{metadataPrefix} eq 'oai_dc' || ($params->{metadataPrefix} eq 'oai_openaire')) {
       $self->stash(metadataPrefix => $params->{metadataPrefix});
-    } else {
-      push @$errors, [cannotDisseminateFormat => "metadataPrefix $params->{metadataPrefix} is not supported" ];
+    }
+    else {
+      push @$errors, [cannotDisseminateFormat => "metadataPrefix $params->{metadataPrefix} is not supported"];
     }
   }
 
@@ -246,13 +247,14 @@ sub handler {
       $self->render(template => 'oai/get_record', format => 'xml', handler => 'ep');
       return;
     }
-    push @$errors, [idDoesNotExist => "identifier ".$params->{identifier}." is unknown or illegal"];
+    push @$errors, [idDoesNotExist => "identifier " . $params->{identifier} . " is unknown or illegal"];
     $self->render(template => 'oai/error', format => 'xml', handler => 'ep');
     return;
 
-  } elsif ($verb eq 'Identify') {
-    my $earliestDatestamp = bson_time(0); # 1970-01-01T00:00:01Z
-    my $rec = $self->mongo->get_collection('oai_records')->find()->sort({ "updated" => 1 })->next;
+  }
+  elsif ($verb eq 'Identify') {
+    my $earliestDatestamp = bson_time(0);                                                                        # 1970-01-01T00:00:01Z
+    my $rec               = $self->mongo->get_collection('oai_records')->find()->sort({"updated" => 1})->next;
     if ($rec) {
       $earliestDatestamp = $rec->{created};
     }
@@ -260,9 +262,10 @@ sub handler {
     $self->render(template => 'oai/identify', format => 'xml', handler => 'ep');
     return;
 
-  } elsif ($verb eq 'ListIdentifiers' || $verb eq 'ListRecords') {
-    my $from  = $params->{from};
-    my $until = $params->{until};
+  }
+  elsif ($verb eq 'ListIdentifiers' || $verb eq 'ListRecords') {
+    my $from           = $params->{from};
+    my $until          = $params->{until};
     my $metadataPrefix = $params->{metadataPrefix};
 
     for my $datestamp (($from, $until)) {
@@ -296,11 +299,11 @@ sub handler {
     my %filter;
 
     if ($from) {
-      $filter{"updated"} = { '$gte' => DateTime::Format::ISO8601->parse_datetime($from) };
+      $filter{"updated"} = {'$gte' => DateTime::Format::ISO8601->parse_datetime($from)};
     }
 
     if ($until) {
-      $filter{"updated"} = { '$lte' => DateTime::Format::ISO8601->parse_datetime($until) };
+      $filter{"updated"} = {'$lte' => DateTime::Format::ISO8601->parse_datetime($until)};
     }
 
     if ($params->{set}) {
@@ -315,12 +318,13 @@ sub handler {
     }
     $self->stash(total => $total);
 
-    my $cursor = $self->mongo->get_collection('oai_records')->find(\%filter)->sort({ "updated" => -1 })->limit($pagesize)->skip($skip);
+    my $cursor  = $self->mongo->get_collection('oai_records')->find(\%filter)->sort({"updated" => -1})->limit($pagesize)->skip($skip);
     my @records = ();
     while (my $rec = $cursor->next) {
       if ($verb eq 'ListIdentifiers') {
         push @records, {r => $rec};
-      } else {
+      }
+      else {
         push @records, {r => $rec, metadata => $self->_get_metadata($rec, $metadataPrefix)};
       }
     }
@@ -330,29 +334,32 @@ sub handler {
       my $t;
       $t->{_n} = $skip + $pagesize;
       $t->{_s} = $set->{setSpec} if defined $set;
-      $t->{_f} = $from if defined $from;
-      $t->{_u} = $until if defined $until;
+      $t->{_f} = $from           if defined $from;
+      $t->{_u} = $until          if defined $until;
       $t->{_m} = $metadataPrefix if defined $metadataPrefix;
       $self->stash(resumption_token => $self->_serialize($t));
-    } else {
+    }
+    else {
       $self->stash(resumption_token => undef);
     }
 
-    $self->app->log->debug("oai list response: verb[$verb] skip[$skip] pagesize[$pagesize] total[$total] from[$from] until[$until] set[".$set->{setSpec}."] restoken[".$self->stash('resumption_token')."]");
+    $self->app->log->debug("oai list response: verb[$verb] skip[$skip] pagesize[$pagesize] total[$total] from[$from] until[$until] set[" . $set->{setSpec} . "] restoken[" . $self->stash('resumption_token') . "]");
 
     if ($verb eq 'ListIdentifiers') {
       $self->render(template => 'oai/list_identifiers', format => 'xml', handler => 'ep');
-    } else {
+    }
+    else {
       $self->render(template => 'oai/list_records', format => 'xml', handler => 'ep');
     }
 
-  } elsif ($verb eq 'ListMetadataFormats') {
+  }
+  elsif ($verb eq 'ListMetadataFormats') {
 
     if (my $id = $params->{identifier}) {
       $id =~ s/^$ns//;
       my $rec = $self->mongo->get_collection('oai_records')->find_one({"pid" => $id});
       unless (defined $rec) {
-        push @$errors, [idDoesNotExist => "identifier ".$params->{identifier}." is unknown or illegal"];
+        push @$errors, [idDoesNotExist => "identifier " . $params->{identifier} . " is unknown or illegal"];
         $self->render(template => 'oai/error', format => 'xml', handler => 'ep');
         return;
       }
@@ -360,9 +367,10 @@ sub handler {
     $self->render(template => 'oai/list_metadata_formats', format => 'xml', handler => 'ep');
     return;
 
-  } elsif ($verb eq 'ListSets') {
+  }
+  elsif ($verb eq 'ListSets') {
     for my $setSpec (keys %{$sets}) {
-      $sets->{$setSpec}->{metadata} = $self->_get_metadata($sets->{$setSpec}->{setDescription}, 'oai_dc')
+      $sets->{$setSpec}->{metadata} = $self->_get_metadata($sets->{$setSpec}->{setDescription}, 'oai_dc');
     }
     $self->stash(sets => $sets);
     $self->render(template => 'oai/list_sets', format => 'xml', handler => 'ep');

@@ -16,8 +16,8 @@ sub get {
 
   my $pid = $self->stash('pid');
 
-  unless(defined($pid)){
-    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
+  unless (defined($pid)) {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -34,134 +34,138 @@ sub post {
   my $pid = $self->stash('pid');
 
   my $metadata = $self->param('metadata');
-  unless(defined($metadata)){
-    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata sent' }]} , status => 400) ;
+  unless (defined($metadata)) {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata sent'}]}, status => 400);
     return;
   }
 
   eval {
-    if(ref $metadata eq 'Mojo::Upload'){
+    if (ref $metadata eq 'Mojo::Upload') {
       $self->app->log->debug("Metadata sent as file param");
       $metadata = $metadata->asset->slurp;
       $self->app->log->debug("parsing json");
       $metadata = decode_json($metadata);
-    }else{
+    }
+    else {
       # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
       $self->app->log->debug("parsing json");
       $metadata = decode_json(b($metadata)->encode('UTF-8'));
     }
   };
 
-  if($@){
+  if ($@) {
     $self->app->log->error("Error: $@");
-    $self->render(json => { alerts => [{ type => 'danger', msg => $@ }]} , status => 400);
+    $self->render(json => {alerts => [{type => 'danger', msg => $@}]}, status => 400);
     return;
   }
 
-  unless(defined($metadata->{metadata})){
-    $self->render(json => { alerts => [{ type => 'danger', msg => 'No metadata found' }]} , status => 400) ;
+  unless (defined($metadata->{metadata})) {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata found'}]}, status => 400);
     return;
   }
   $metadata = $metadata->{metadata};
 
-  unless(defined($pid)){
-    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined pid' }]} , status => 400) ;
+  unless (defined($pid)) {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
-  unless(defined($metadata->{'json-ld'}) || defined($metadata->{'JSON-LD'})){
-    $self->render(json => { alerts => [{ type => 'danger', msg => 'No JSON-LD sent' }]} , status => 400) ;
+  unless (defined($metadata->{'json-ld'}) || defined($metadata->{'JSON-LD'})) {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'No JSON-LD sent'}]}, status => 400);
     return;
   }
 
   my $jsonld;
   if (defined($metadata->{'json-ld'})) {
-    $jsonld = $metadata->{'json-ld'}
-  } else {
-    $jsonld = $metadata->{'JSON-LD'}
+    $jsonld = $metadata->{'json-ld'};
+  }
+  else {
+    $jsonld = $metadata->{'JSON-LD'};
   }
 
   my $cmodel;
   my $search_model = PhaidraAPI::Model::Search->new;
-  my $res_cmodel = $search_model->get_cmodel($self, $pid);
-  if($res_cmodel->{status} ne 200){
-    my $err = "ERROR saving json-ld for object $pid, could not get cmodel:".$self->app->dumper($res_cmodel);
+  my $res_cmodel   = $search_model->get_cmodel($self, $pid);
+  if ($res_cmodel->{status} ne 200) {
+    my $err = "ERROR saving json-ld for object $pid, could not get cmodel:" . $self->app->dumper($res_cmodel);
     $self->app->log->error($err);
-    $self->render(json => { alerts => [{ type => 'danger', msg => $err }]} , status => 500) ;
+    $self->render(json => {alerts => [{type => 'danger', msg => $err}]}, status => 500);
     return;
-  }else{
+  }
+  else {
     $cmodel = $res_cmodel->{cmodel};
   }
 
   my $jsonld_model = PhaidraAPI::Model::Jsonld->new;
-  my $res = $jsonld_model->save_to_object($self, $pid, $cmodel, $jsonld, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  my $res          = $jsonld_model->save_to_object($self, $pid, $cmodel, $jsonld, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 
   my $t1 = tv_interval($t0);
-  if($res->{status} eq 200){
-    unshift @{$res->{alerts}}, { type => 'success', msg => "JSON-LD for $pid saved successfully ($t1 s)"};
+  if ($res->{status} eq 200) {
+    unshift @{$res->{alerts}}, {type => 'success', msg => "JSON-LD for $pid saved successfully ($t1 s)"};
   }
 
-  $self->render(json => { alerts => $res->{alerts} } , status => $res->{status});
+  $self->render(json => {alerts => $res->{alerts}}, status => $res->{status});
 }
 
 sub add_template {
   my $self = shift;
 
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
 
   my $name = $self->param('name');
-  unless(defined($name)){
-    $self->render(json => { alerts => [{ type => 'danger', msg => 'No name sent' }]} , status => 400) ;
+  unless (defined($name)) {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'No name sent'}]}, status => 400);
     return;
   }
 
   my $form = $self->param('form');
-  unless(defined($form)){
-    $self->render(json => { alerts => [{ type => 'danger', msg => 'No form sent' }]} , status => 400) ;
+  unless (defined($form)) {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'No form sent'}]}, status => 400);
     return;
   }
 
   my $tag = $self->param('tag');
 
   eval {
-    if(ref $form eq 'Mojo::Upload'){
+    if (ref $form eq 'Mojo::Upload') {
       $self->app->log->debug("form sent as file param");
       $form = $form->asset->slurp;
       $form = decode_json($form);
-    }else{
+    }
+    else {
       $form = decode_json(b($form)->encode('UTF-8'));
     }
   };
 
-  if($@){
+  if ($@) {
     $self->app->log->error("Error: $@");
-    unshift @{$res->{alerts}}, { type => 'danger', msg => $@ };
+    unshift @{$res->{alerts}}, {type => 'danger', msg => $@};
     $res->{status} = 400;
-    $self->render(json => $res , status => $res->{status});
+    $self->render(json => $res, status => $res->{status});
     return;
   }
 
-  my $ug = Data::UUID->new;
+  my $ug   = Data::UUID->new;
   my $btid = $ug->create();
-  my $tid = $ug->to_string($btid);
+  my $tid  = $ug->to_string($btid);
 
-  $self->mango->db->collection('jsonldtemplates')->insert({ tid => $tid, owner => $self->stash->{basic_auth_credentials}->{username}, name => $name, form => $form, tag => $tag, created => time });
+  $self->mango->db->collection('jsonldtemplates')->insert({tid => $tid, owner => $self->stash->{basic_auth_credentials}->{username}, name => $name, form => $form, tag => $tag, created => time});
 
   $res->{tid} = $tid;
 
-  $self->render(json => $res , status => $res->{status});
+  $self->render(json => $res, status => $res->{status});
 }
 
 sub get_template {
   my $self = shift;
 
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
 
-  unless(defined($self->stash('tid'))){
-    $self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined template id' }]} , status => 400) ;
+  unless (defined($self->stash('tid'))) {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined template id'}]}, status => 400);
     return;
   }
-  $self->app->log->debug($self->stash('tid')." ".$self->stash->{basic_auth_credentials}->{username});
+  $self->app->log->debug($self->stash('tid') . " " . $self->stash->{basic_auth_credentials}->{username});
   my $tres = $self->mango->db->collection('jsonldtemplates')->find({tid => $self->stash('tid'), owner => $self->stash->{basic_auth_credentials}->{username}})->next;
 
   $res->{template} = $tres;
@@ -172,7 +176,7 @@ sub get_template {
 sub get_users_templates {
   my $self = shift;
 
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
 
   my $tag = $self->param('tag');
 
@@ -181,10 +185,10 @@ sub get_users_templates {
     $find->{'tag'} = $tag;
   }
 
-  my $users_templates = $self->mango->db->collection('jsonldtemplates')->find($find)->sort({ 'created' => -1});
-  my @tmplts = ();
+  my $users_templates = $self->mango->db->collection('jsonldtemplates')->find($find)->sort({'created' => -1});
+  my @tmplts          = ();
   while (my $doc = $users_templates->next) {
-      push @tmplts, { tid => $doc->{tid}, name => $doc->{name}, created => $doc->{created}};
+    push @tmplts, {tid => $doc->{tid}, name => $doc->{name}, created => $doc->{created}};
   }
 
   $res->{templates} = \@tmplts;
@@ -195,16 +199,16 @@ sub get_users_templates {
 sub remove_template {
   my $self = shift;
 
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
 
-  unless(defined($self->stash('tid'))){
-		$self->render(json => { alerts => [{ type => 'danger', msg => 'Undefined template id' }]} , status => 400) ;
-		return;
-	}
+  unless (defined($self->stash('tid'))) {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined template id'}]}, status => 400);
+    return;
+  }
 
-  $self->mango->db->collection('jsonldtemplates')->remove({ tid => $self->stash('tid'), owner => $self->stash->{basic_auth_credentials}->{username} }); 
+  $self->mango->db->collection('jsonldtemplates')->remove({tid => $self->stash('tid'), owner => $self->stash->{basic_auth_credentials}->{username}});
 
-  $self->render(json => $res , status => $res->{status});
+  $self->render(json => $res, status => $res->{status});
 }
 
 1;

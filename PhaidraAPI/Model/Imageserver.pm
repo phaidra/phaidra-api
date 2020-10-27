@@ -13,7 +13,7 @@ sub get_url {
 
   my ($self, $c, $params_arg, $rightscheck) = @_;
 
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
 
   my $url = Mojo::URL->new;
 
@@ -26,18 +26,18 @@ sub get_url {
   my $p;
   my $p_name;
   my $params = $params_arg->to_hash;
-  for my $param_name ('FIF','IIIF','Zoomify','DeepZoom') {
-    if(exists($params->{$param_name})){
-      $p = $params->{$param_name};
+  for my $param_name ('FIF', 'IIIF', 'Zoomify', 'DeepZoom') {
+    if (exists($params->{$param_name})) {
+      $p      = $params->{$param_name};
       $p_name = $param_name;
       last;
     }
   }
 
-  unless($p){
+  unless ($p) {
     my $msg = 'Cannot find IIIF, Zoomify or DeepZoom parameter';
     $c->app->log->error($msg);
-    unshift @{$res->{alerts}}, { type => 'danger', msg => $msg };
+    unshift @{$res->{alerts}}, {type => 'danger', msg => $msg};
     $res->{status} = 400;
     return $res;
   }
@@ -45,25 +45,26 @@ sub get_url {
   # get pid
   $p =~ m/([a-z]+:[0-9]+)_?([A-Z]+)?\.tif/;
   my $pid = $1;
-  my $ds = $2;
+  my $ds  = $2;
 
   # check rights
   if ($rightscheck) {
-    my $cachekey = 'img_rights_'.$c->stash->{basic_auth_credentials}->{username}."_$pid";
+    my $cachekey        = 'img_rights_' . $c->stash->{basic_auth_credentials}->{username} . "_$pid";
     my $status_cacheval = $c->app->chi->get($cachekey);
-    unless($status_cacheval){
+    unless ($status_cacheval) {
       $c->app->log->debug("[cache miss] $cachekey");
       my $object_model = PhaidraAPI::Model::Object->new;
-      my $rres = $object_model->get_datastream($c, $pid, 'READONLY', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});
+      my $rres         = $object_model->get_datastream($c, $pid, 'READONLY', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});
       $status_cacheval = $rres->{status};
-      $c->app->chi->set($cachekey, $status_cacheval, '1 day')
-    }else{
+      $c->app->chi->set($cachekey, $status_cacheval, '1 day');
+    }
+    else {
       $c->app->log->debug("[cache hit] $cachekey");
     }
 
-    unless($status_cacheval eq 404){
-      $c->app->log->info("imageserver::get username[".$c->stash->{basic_auth_credentials}->{username}."] pid[$pid] forbidden");
-      unshift @{$res->{alerts}}, { type => 'danger', msg => 'Forbidden' };
+    unless ($status_cacheval eq 404) {
+      $c->app->log->info("imageserver::get username[" . $c->stash->{basic_auth_credentials}->{username} . "] pid[$pid] forbidden");
+      unshift @{$res->{alerts}}, {type => 'danger', msg => 'Forbidden'};
       $res->{status} = 403;
       return;
     }
@@ -71,18 +72,20 @@ sub get_url {
 
   # infer hash
   my $hash;
-  if(defined($ds)){
-    $hash = hmac_sha1_hex($pid."_".$ds, $c->app->config->{imageserver}->{hash_secret});
-  }else{
+  if (defined($ds)) {
+    $hash = hmac_sha1_hex($pid . "_" . $ds, $c->app->config->{imageserver}->{hash_secret});
+  }
+  else {
     $hash = hmac_sha1_hex($pid, $c->app->config->{imageserver}->{hash_secret});
   }
-  my $root = $c->app->config->{imageserver}->{image_server_root};
-  my $first = substr($hash, 0, 1);
-  my $second = substr($hash, 1, 1);
+  my $root    = $c->app->config->{imageserver}->{image_server_root};
+  my $first   = substr($hash, 0, 1);
+  my $second  = substr($hash, 1, 1);
   my $imgpath = "$root/$first/$second/$hash.tif";
 
   # add leading slash if missing
   $p =~ s/^\/*/\//;
+
   # replace pid with hash
   $p =~ s/([a-z]+:[0-9]+)(_[A-Z]+)?\.tif/$imgpath/;
 
@@ -97,16 +100,16 @@ sub get_url {
   for (my $i = 0; $i < @{$params_arg->pairs}; $i += 2) {
     my ($name, $value) = @{$params_arg->pairs}[$i, $i + 1];
     next if $name eq $p_name;
-    $new_params->append( $name => $params_arg->every_param($name));
+    $new_params->append($name => $params_arg->every_param($name));
   }
-  $res->{url} = $url->to_string."?".$self->param_to_string($c, $new_params->pairs);
+  $res->{url} = $url->to_string . "?" . $self->param_to_string($c, $new_params->pairs);
   return $res;
 }
 
 # we cannot let mojo url-escape the values, imageserver won't take it
 sub param_to_string {
-  my $self = shift;
-  my $c = shift;
+  my $self  = shift;
+  my $c     = shift;
   my $pairs = shift;
 
   # Build pairs (HTML Living Standard)
@@ -117,8 +120,9 @@ sub param_to_string {
 
     # Escape and replace whitespace with "+"
     $name  = encode 'UTF-8', $name;
-    $name  = url_escape $name,  '^*\-.0-9A-Z_a-z';
+    $name  = url_escape $name, '^*\-.0-9A-Z_a-z';
     $value = encode 'UTF-8', $value;
+
     #$value = url_escape $value, '^*\-.0-9A-Z_a-z';
     s/\%20/\+/g for $name, $value;
 

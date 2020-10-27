@@ -15,49 +15,46 @@ use Log::Log4perl qw(get_logger);
 use base 'Phaidra::API::Objekt';
 
 # Ingest object
-sub ingest
-{
-	my ($self, $label) = @_;
+sub ingest {
+  my ($self, $label) = @_;
 
-	$self->SUPER::ingest($label, "cmodel:Picture");
+  $self->SUPER::ingest($label, "cmodel:Picture");
 }
 
-sub load
-{
-	my ($self, $pid) = @_;
+sub load {
+  my ($self, $pid) = @_;
 
-	$self->SUPER::load($pid, "cmodel:Picture");
+  $self->SUPER::load($pid, "cmodel:Picture");
 }
 
 # save
 #
 # save object.
-sub save
-{
-	my ($self) = @_;
+sub save {
+  my ($self) = @_;
 
-	my $log = get_logger();
+  my $log = get_logger();
 
-	$log->logdie("No PID; call 'ingest' or 'load' first") unless(defined($self->{PID}));
+  $log->logdie("No PID; call 'ingest' or 'load' first") unless (defined($self->{PID}));
 
-	if($self->{existing} == 0)
-	{
-		# add Default-Datastreams
-		$self->addDatastreamLocation("STYLESHEET", "text/xml", $self->{phaidra}->{config}->{fedorastylesheeturl}, "STYLESHEET label", "E");
-		#$self->addDatastreamLocation("THUMBNAIL", "image/png", $self->{phaidra}->{config}->{fedoraurlgetinternal}."/".$self->{PID}."/bdef:ImageManipulator/boxImage?BOX=120&FORMAT=png&PAD=1", "THUMBNAIL label", "E");
-		$self->addDatastreamLocation("THUMBNAIL", "image/png", $self->{phaidra}->{config}->{fedoraurlgetinternal}."/".$self->{PID}."/bdef:Asset/getThumbnail", "THUMBNAIL label", "E");
-	}
+  if ($self->{existing} == 0) {
 
-	$self->SUPER::save();
+    # add Default-Datastreams
+    $self->addDatastreamLocation("STYLESHEET", "text/xml", $self->{phaidra}->{config}->{fedorastylesheeturl}, "STYLESHEET label", "E");
+
+    #$self->addDatastreamLocation("THUMBNAIL", "image/png", $self->{phaidra}->{config}->{fedoraurlgetinternal}."/".$self->{PID}."/bdef:ImageManipulator/boxImage?BOX=120&FORMAT=png&PAD=1", "THUMBNAIL label", "E");
+    $self->addDatastreamLocation("THUMBNAIL", "image/png", $self->{phaidra}->{config}->{fedoraurlgetinternal} . "/" . $self->{PID} . "/bdef:Asset/getThumbnail", "THUMBNAIL label", "E");
+  }
+
+  $self->SUPER::save();
 }
 
 # Specialized addDatastream
-sub addPicture
-{
-	my ($self, $filename, $mimetype) = @_;
+sub addPicture {
+  my ($self, $filename, $mimetype) = @_;
 
-	# TODO basename($filename) for Label
-	$self->addDatastream("OCTETS", $mimetype, $filename, $filename, "M");
+  # TODO basename($filename) for Label
+  $self->addDatastream("OCTETS", $mimetype, $filename, $filename, "M");
 }
 
 1;

@@ -12,66 +12,70 @@ sub get_licenses {
 
   my ($self, $c, $nocache) = @_;
 
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
 
-	if($nocache){
-	  $c->app->log->debug("Reading licenses_file (nocache request)");
+  if ($nocache) {
+    $c->app->log->debug("Reading licenses_file (nocache request)");
 
-	  # read metadata tree from file	  
-	  my $path = Mojo::File->new($c->app->config->{licenses_file});
-	  my $bytes = $path->slurp;
-	  unless(defined($bytes)){
-	    push @{$res->{alerts}}, { type => 'danger', msg => "Error reading licenses_file, no content" };
-	    $res->{status} = 500;
-	    return $res;
-	  }
-		my $lic = decode_json($bytes);
+    # read metadata tree from file
+    my $path  = Mojo::File->new($c->app->config->{licenses_file});
+    my $bytes = $path->slurp;
+    unless (defined($bytes)) {
+      push @{$res->{alerts}}, {type => 'danger', msg => "Error reading licenses_file, no content"};
+      $res->{status} = 500;
+      return $res;
+    }
+    my $lic = decode_json($bytes);
 
-	 	$res->{licenses} = $lic->{licenses};
+    $res->{licenses} = $lic->{licenses};
 
-	}else{
+  }
+  else {
 
-		$c->app->log->debug("Reading licenses from cache");
+    $c->app->log->debug("Reading licenses from cache");
 
-		my $cachekey = 'licenses';
-	 	my $cacheval = $c->app->chi->get($cachekey);
+    my $cachekey = 'licenses';
+    my $cacheval = $c->app->chi->get($cachekey);
 
-	  my $miss = 1;
-      #$c->app->log->debug("XXXXXXXXXXX licenses: ".$c->app->dumper($cacheval));
-	  if($cacheval){
-	  	if(scalar @{$cacheval->{licenses}} > 0){
-	  		$miss = 0;
-	  		#$c->app->log->debug("[cache hit] $cachekey");
-	  	}
-	  }
+    my $miss = 1;
 
-	  if($miss){
-	    	$c->app->log->debug("[cache miss] $cachekey");
+    #$c->app->log->debug("XXXXXXXXXXX licenses: ".$c->app->dumper($cacheval));
+    if ($cacheval) {
+      if (scalar @{$cacheval->{licenses}} > 0) {
+        $miss = 0;
 
-			# read metadata tree from file
-			my $path = Mojo::File->new($c->app->config->{licenses_file});
-	  		my $bytes = $path->slurp;
-		    unless(defined($bytes)){
-		    	push @{$res->{alerts}}, { type => 'danger', msg => "Error reading licenses_file, no content" };
-		    	$res->{status} = 500;
-	    		return $res;
-		    }
-			$cacheval = decode_json($bytes);
+        #$c->app->log->debug("[cache hit] $cachekey");
+      }
+    }
 
-	    	$c->app->chi->set($cachekey, $cacheval, '1 day');
+    if ($miss) {
+      $c->app->log->debug("[cache miss] $cachekey");
 
-	  		# save and get the value. the serialization can change integers to strings so
-	  		# if we want to get the same structure for cache miss and cache hit we have to run it through
-	  		# the cache serialization process even if cache miss [when we already have the structure]
-	  		# so instead of using the structure created we will get the one just saved from cache.
-	    	$cacheval = $c->app->chi->get($cachekey);
-	    	#$c->app->log->debug("XXXXXXXXXXXX after save:".$c->app->dumper($cacheval));
-	    }
+      # read metadata tree from file
+      my $path  = Mojo::File->new($c->app->config->{licenses_file});
+      my $bytes = $path->slurp;
+      unless (defined($bytes)) {
+        push @{$res->{alerts}}, {type => 'danger', msg => "Error reading licenses_file, no content"};
+        $res->{status} = 500;
+        return $res;
+      }
+      $cacheval = decode_json($bytes);
 
-      $res->{licenses} = $cacheval->{licenses};
-	}
+      $c->app->chi->set($cachekey, $cacheval, '1 day');
 
-	return $res;
+      # save and get the value. the serialization can change integers to strings so
+      # if we want to get the same structure for cache miss and cache hit we have to run it through
+      # the cache serialization process even if cache miss [when we already have the structure]
+      # so instead of using the structure created we will get the one just saved from cache.
+      $cacheval = $c->app->chi->get($cachekey);
+
+      #$c->app->log->debug("XXXXXXXXXXXX after save:".$c->app->dumper($cacheval));
+    }
+
+    $res->{licenses} = $cacheval->{licenses};
+  }
+
+  return $res;
 }
 
 1;

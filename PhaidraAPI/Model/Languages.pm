@@ -8,8 +8,7 @@ use Mojo::ByteStream qw(b);
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::File;
 
-our %iso639map=
-(
+our %iso639map = (
   'xx' => 'xxx',
   'aa' => 'aar',
   'ab' => 'abk',
@@ -212,65 +211,69 @@ sub get_languages {
 
   my ($self, $c, $nocache) = @_;
 
-  my $res = { alerts => [], status => 200 };
+  my $res = {alerts => [], status => 200};
 
-	if($nocache){
-	  $c->app->log->debug("Reading languages_file (nocache request)");
+  if ($nocache) {
+    $c->app->log->debug("Reading languages_file (nocache request)");
 
-	  # read metadata tree from file
-    my $path = Mojo::File->new($c->app->config->{languages_file});
-	  my $bytes = $path->slurp;
-	  unless(defined($bytes)){
-	    push @{$res->{alerts}}, { type => 'danger', msg => "Error reading languages_file, no content" };
-	    $res->{status} = 500;
-	    return $res;
-	  }
-		my $lan = decode_json($bytes);
+    # read metadata tree from file
+    my $path  = Mojo::File->new($c->app->config->{languages_file});
+    my $bytes = $path->slurp;
+    unless (defined($bytes)) {
+      push @{$res->{alerts}}, {type => 'danger', msg => "Error reading languages_file, no content"};
+      $res->{status} = 500;
+      return $res;
+    }
+    my $lan = decode_json($bytes);
 
-	 	$res->{languages} = $lan->{languages};
+    $res->{languages} = $lan->{languages};
 
-	}else{
+  }
+  else {
 
-		$c->app->log->debug("Reading languages from cache");
+    $c->app->log->debug("Reading languages from cache");
 
-		my $cachekey = 'languages';
-	 	my $cacheval = $c->app->chi->get($cachekey);
+    my $cachekey = 'languages';
+    my $cacheval = $c->app->chi->get($cachekey);
 
-	  my $miss = 1;
+    my $miss = 1;
+
     #$c->app->log->debug($c->app->dumper($cacheval));
-	  if($cacheval){
-	  	if($cacheval->{languages}){
-	  		$miss = 0;
-	  		#$c->app->log->debug("[cache hit] $cachekey");
-	  	}
-	  }
+    if ($cacheval) {
+      if ($cacheval->{languages}) {
+        $miss = 0;
 
-	  if($miss){
-	    $c->app->log->debug("[cache miss] $cachekey");
+        #$c->app->log->debug("[cache hit] $cachekey");
+      }
+    }
 
-			# read metadata tree from file
-      my $path = Mojo::File->new($c->app->config->{languages_file});
-      my $bytes = $path->slurp;			
-		    unless(defined($bytes)){
-		    	push @{$res->{alerts}}, { type => 'danger', msg => "Error reading languages_file, no content" };
-		    	$res->{status} = 500;
-	    		return $res;
-		    }
-			$cacheval = decode_json($bytes);
+    if ($miss) {
+      $c->app->log->debug("[cache miss] $cachekey");
 
-	    	$c->app->chi->set($cachekey, $cacheval, '1 day');
+      # read metadata tree from file
+      my $path  = Mojo::File->new($c->app->config->{languages_file});
+      my $bytes = $path->slurp;
+      unless (defined($bytes)) {
+        push @{$res->{alerts}}, {type => 'danger', msg => "Error reading languages_file, no content"};
+        $res->{status} = 500;
+        return $res;
+      }
+      $cacheval = decode_json($bytes);
 
-	  		# save and get the value. the serialization can change integers to strings so
-	  		# if we want to get the same structure for cache miss and cache hit we have to run it through
-	  		# the cache serialization process even if cache miss [when we already have the structure]
-	  		# so instead of using the structure created we will get the one just saved from cache.
-	    	$cacheval = $c->app->chi->get($cachekey);
-	    	#$c->app->log->debug($c->app->dumper($cacheval));
-	    }
-      $res->{languages} = $cacheval->{languages};
-	}
+      $c->app->chi->set($cachekey, $cacheval, '1 day');
 
-	return $res;
+      # save and get the value. the serialization can change integers to strings so
+      # if we want to get the same structure for cache miss and cache hit we have to run it through
+      # the cache serialization process even if cache miss [when we already have the structure]
+      # so instead of using the structure created we will get the one just saved from cache.
+      $cacheval = $c->app->chi->get($cachekey);
+
+      #$c->app->log->debug($c->app->dumper($cacheval));
+    }
+    $res->{languages} = $cacheval->{languages};
+  }
+
+  return $res;
 }
 
 1;
