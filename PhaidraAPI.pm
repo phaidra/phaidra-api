@@ -174,7 +174,9 @@ sub startup {
     	port => $config->{mongodb}->{port},
     	username => $config->{mongodb}->{username},
     	password => $config->{mongodb}->{password},
-    	db_name => $config->{mongodb}->{database}
+    	db_name => $config->{mongodb}->{database},
+      connect_timeout_ms => 300000,
+      socket_timeout_ms => 300000,
     )->get_database($config->{mongodb}->{database});
   });
 
