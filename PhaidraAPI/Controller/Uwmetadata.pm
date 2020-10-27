@@ -210,15 +210,24 @@ sub xml2json {
   my $self = shift;
 
   #my $t0 = [gettimeofday];
+  
+  my $mode = $self->param('mode');
 
   my $uwmetadataxml = $self->req->body;
 
   $uwmetadataxml = b($uwmetadataxml)->decode('UTF-8');
 
   my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
-  # using uwmetadata_2_json_basic to avoid inserting empty elements which can break validation
-  my $res            = $metadata_model->uwmetadata_2_json_basic($self, $uwmetadataxml);
-
+  
+  my $res;
+  if ($mode && $mode eq 'full') {
+    $res = $metadata_model->uwmetadata_2_json($self, $uwmetadataxml);
+  }
+  else {
+    # uwmetadata_2_json_basic doesn't insert empty nodes which can break validation
+    $res = $metadata_model->uwmetadata_2_json_basic($self, $uwmetadataxml);
+  }
+  
   #my $t1 = tv_interval($t0);
   #$self->app->log->debug("xml2json took $t1 s");
   #$self->app->log->debug("XXXXXXXXXXX: ".$self->app->dumper($res));
