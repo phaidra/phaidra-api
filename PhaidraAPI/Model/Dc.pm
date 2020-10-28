@@ -480,13 +480,14 @@ sub map_uwmetadata_2_dc_hash {
       push @$identifiers, $relid;
     }
   }
-  my $titles          = $ext->_get_titles($c, $dom, \%doc_uwns);
-  my $descriptions    = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'} . '\:description');
-  my $languages       = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'} . '\:language');
-  my $keywords        = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'} . '\:keyword');
-  my $classifications = $ext->_get_uwm_classifications($c, $dom, \%doc_uwns);
-  my $creators        = $ext->_get_creators($c, $dom, \%doc_uwns);
-  my $dates           = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'digitalbook'} . '\:releaseyear');
+  my $titles           = $ext->_get_titles($c, $dom, \%doc_uwns);
+  my $descriptions     = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'} . '\:general > ' . $doc_uwns{'lom'} . '\:description');
+  my $rightsStatements = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'} . '\:rights > ' . $doc_uwns{'lom'} . '\:description');
+  my $languages        = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'} . '\:language');
+  my $keywords         = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'} . '\:keyword');
+  my $classifications  = $ext->_get_uwm_classifications($c, $dom, \%doc_uwns);
+  my $creators         = $ext->_get_creators($c, $dom, \%doc_uwns);
+  my $dates            = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'digitalbook'} . '\:releaseyear');
 
   unless (defined($dates)) {
     $dates = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'} . '\:upload_date');
@@ -527,9 +528,6 @@ sub map_uwmetadata_2_dc_hash {
   my $infoeurepoaccess_p   = $ext->_get_infoeurepoaccess($c, $dom, \%doc_uwns, $tree, $metadata_model, 'p');
   my $infoeurepoaccess_oai = $ext->_get_infoeurepoaccess($c, $dom, \%doc_uwns, $tree, $metadata_model, 'oai');
 
-  # FIXME 'description or additional data' have to go to dc:rights too
-  # <dc:subject xml:lang="deu">Apostelkommunion, tribelon</dc:subject>
-  # <dc:subject xml:lang="eng">last supper, tribelon</dc:subject>
   my $licenses = $ext->_get_licenses($c, $dom, \%doc_uwns, $tree, $metadata_model);
 
   # FIXME GEO datastream to DCMI BOX
@@ -580,6 +578,9 @@ sub map_uwmetadata_2_dc_hash {
     for my $v (@{$infoeurepoaccess_p}) {
       push @{$dc_p{rights}}, $v;
     }
+    for my $v (@{$rightsStatements}) {
+      push @{$dc_p{rights}}, $v;
+    }
     $dc_p{format} = $formats;
   }
 
@@ -592,6 +593,9 @@ sub map_uwmetadata_2_dc_hash {
       push @{$dc_oai->{rights}}, $v;
     }
     for my $v (@{$infoeurepoaccess_oai}) {
+      push @{$dc_oai->{rights}}, $v;
+    }
+    for my $v (@{$rightsStatements}) {
       push @{$dc_oai->{rights}}, $v;
     }
     for my $v (@$versions_oai) {
