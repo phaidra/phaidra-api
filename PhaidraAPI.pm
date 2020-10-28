@@ -312,6 +312,9 @@ sub startup {
     }
   );
 
+  # Set Content-Type header for XML rendering (default is 'application/xml', see https://docs.mojolicious.org/Mojolicious/Types) to be consistent with Fedora XML responses
+  $self->types->type(xml => 'text/xml; charset=utf-8');
+
   my $r = $self->routes;
   $r->namespaces(['PhaidraAPI::Controller']);
 
