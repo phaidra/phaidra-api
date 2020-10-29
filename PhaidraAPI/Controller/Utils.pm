@@ -86,4 +86,11 @@ sub get_all_pids {
 
 }
 
+sub testerror {
+  my $self = shift;
+
+  $self->app->log->error("test error");
+  $self->render(json => {error => 'test error'}, status => 500);
+}
+
 1;

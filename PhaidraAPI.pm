@@ -8,6 +8,7 @@ use Mojolicious::Static;
 use Mojolicious::Plugin::I18N;
 use Mojolicious::Plugin::Session;
 use Mojolicious::Plugin::Log::Any;
+use Mojolicious::Plugin::Prometheus;
 use Mojo::Loader qw(load_class);
 use lib "lib/phaidra_directory";
 use lib "lib/phaidra_binding";
@@ -63,7 +64,7 @@ sub startup {
 
   Log::Log4perl::init('log4perl.conf');
 
-  my $log = Log::Log4perl::get_logger("PhaidraAPI");
+  my $log = Log::Log4perl::get_logger("root");
   $self->plugin('Log::Any' => {logger => 'Log::Log4perl'});
 
   if ($config->{tmpdir}) {
@@ -90,6 +91,8 @@ sub startup {
 
   # init I18N
   $self->plugin(I18N => {namespace => 'PhaidraAPI::I18N', support_url_langs => [qw(en de it sr)]});
+
+  $self->plugin('Prometheus');
 
   # init cache
   $self->plugin(
@@ -503,6 +506,8 @@ sub startup {
   $check_auth->route('ir/allowsubmit')                                    ->via('get')      ->to('ir#allowsubmit');
 
   $check_auth->route('termsofuse/getagreed')                              ->via('get')      ->to('termsofuse#getagreed');
+
+  $check_admin_auth->route('test/error')                                  ->via('get')      ->to('utils#testerror');
 
   unless($self->app->config->{readonly}){
 
