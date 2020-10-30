@@ -564,14 +564,8 @@ sub submit {
           if ($arId eq 'https://pid.phaidra.org/vocabulary/AVFC-ZZSZ') {
             if (exists($metadata->{metadata}->{'json-ld'}->{'dcterms:available'})) {
               for my $embargoDate (@{$metadata->{metadata}->{'json-ld'}->{'dcterms:available'}}) {
-                $rights{'username'} = (
-                  { value   => $username,
-                    expires => $embargoDate . "T00:00:00Z"
-                  },
-                  { value   => $self->config->{ir}->{iraccount},
-                    expires => $embargoDate . "T00:00:00Z"
-                  }
-                );
+                push @{$rights{'username'}}, {value => $username, expires => $embargoDate . "T00:00:00Z"};
+                push @{$rights{'username'}}, {value => $self->config->{ir}->{iraccount}, expires => $embargoDate . "T00:00:00Z"};
                 last;
               }
             }
@@ -579,12 +573,14 @@ sub submit {
 
           # closed
           if ($arId eq 'https://pid.phaidra.org/vocabulary/QNGE-V02H') {
-            $rights{'username'} = ($username, $self->config->{ir}->{iraccount});
+            push @{$rights{'username'}}, $username;
+            push @{$rights{'username'}}, $self->config->{ir}->{iraccount};
           }
 
           # restricted
           if ($arId eq 'https://pid.phaidra.org/vocabulary/KC3K-CCGM') {
-            $rights{'username'} = ($username, $self->config->{ir}->{iraccount});
+            push @{$rights{'username'}}, $username;
+            push @{$rights{'username'}}, $self->config->{ir}->{iraccount};
           }
         }
       }
