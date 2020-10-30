@@ -567,6 +567,9 @@ sub submit {
                 $rights{'username'} = (
                   { value   => $username,
                     expires => $embargoDate . "T00:00:00Z"
+                  },
+                  { value   => $self->config->{ir}->{iraccount},
+                    expires => $embargoDate . "T00:00:00Z"
                   }
                 );
                 last;
@@ -576,12 +579,12 @@ sub submit {
 
           # closed
           if ($arId eq 'https://pid.phaidra.org/vocabulary/QNGE-V02H') {
-            $rights{'username'} = $username;
+            $rights{'username'} = ($username, $self->config->{ir}->{iraccount});
           }
 
           # restricted
           if ($arId eq 'https://pid.phaidra.org/vocabulary/KC3K-CCGM') {
-            $rights{'username'} = $username;
+            $rights{'username'} = ($username, $self->config->{ir}->{iraccount});
           }
         }
       }
