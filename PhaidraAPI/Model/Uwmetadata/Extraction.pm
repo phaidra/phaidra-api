@@ -94,7 +94,7 @@ sub _get_uwm_classifications {
     else {
       for my $lang (keys %{$cls_labels}) {
         my $path = $cls_labels->{$lang};
-        for my $tid ($dom->find($doc_uwns->{'classification'} . '\:taxon')->each) {
+        for my $tid ($idnode->find($doc_uwns->{'classification'} . '\:taxon')->each) {
           $tid = $tid->text;
           my $termLabels = $terms_model->_get_taxon_labels($c, $cid, $tid);
           if ($termLabels->{labels}->{$lang}) {
