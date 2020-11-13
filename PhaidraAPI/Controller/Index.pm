@@ -81,7 +81,8 @@ sub get_dc {
     elsif ($field =~ m/^dc_(\w+)/) {
 
       # if there is eg dc_title_deu do not add dc_title too, except for authors and contributors (where institutions have language but names do not)
-      next if ($have_lang_field{$1}) && ($field ne 'dc_creator') && ($field ne 'dc_contributor');
+      # and rights, where licences do have no language, but rights statements do
+      next if ($have_lang_field{$1}) && ($field ne 'dc_creator') && ($field ne 'dc_contributor') && ($field ne 'dc_rights');
 
       for my $value (@{$r->{index}->{$field}}) {
         $dc .= "\n  <dc:$1>" . xml_escape(html_unescape($value)) . "</dc:$1>";
