@@ -201,10 +201,15 @@ sub _get_sources {
     my $id = $idnode->find($doc_uwns->{'extended'} . '\:identifier')->first;
     if (defined($id) && $id->text ne '') {
       my $prefix = '';
-      if ($res eq '1552101' || $res eq '1552255' || $res eq '1552256') {
+      if ($res eq '1552101') {
         push @$srcs, {value => 'ISSN:' . $id->text};
       }
-
+      if ($res eq '1552255') {
+        push @$srcs, {value => 'PrintISSN:' . $id->text};
+      }
+      if ($res eq '1552256') {
+        push @$srcs, {value => 'eISSN:' . $id->text};
+      }
     }
   }
 
