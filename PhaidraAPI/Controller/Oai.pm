@@ -94,6 +94,16 @@ sub _get_metadata_dc {
     $field{values} = $rec->{dcterms_datesubmitted};
     push @metadata, \%field;
   }
+  if (exists($rec->{ispartof})) {
+    my @ispartofs;
+    for my $v (@{$rec->{ispartof}}) {
+      push @ispartofs, 'isPartOf:https://' . $self->config->{phaidra}->{baseurl} . '/' . $v;
+    }
+    my %field;
+    $field{name}   = 'relation';
+    $field{values} = \@ispartofs;
+    push @metadata, \%field;
+  }
   for my $k (keys %{$rec}) {
     if ($k =~ m/^dc_([a-z]+)_?([a-z]+)?$/) {
       my $skip = 0;
