@@ -964,6 +964,13 @@ sub get_metadata_openaire {
   # dc:description
   my $descNodes = $self->_get_dc_fields($c, \%iso6393ToBCP, $rec, 'description', 'dc:description');
   for my $descNode (@{$descNodes}) {
+    if (exists($rec->{ispartof})) {
+      for my $coll (@{$rec->{ispartof}}) {
+        if ($coll eq $c->app->config->{ir}->{ircollection}) {
+          $descNode = {name => 'dc:description', value => "The abstract is available here: https://" . $self->app->config->{ir}->{baseurl} . "/" . $rec->{pid}};
+        }
+      }
+    }
     push @metadata, $descNode;
   }
 
