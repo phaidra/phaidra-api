@@ -967,7 +967,7 @@ sub get_metadata_openaire {
     if (exists($rec->{ispartof})) {
       for my $coll (@{$rec->{ispartof}}) {
         if ($coll eq $c->app->config->{ir}->{ircollection}) {
-          $descNode = {name => 'dc:description', value => "The abstract is available here: https://" . $self->app->config->{ir}->{baseurl} . "/" . $rec->{pid}};
+          $descNode = {name => 'dc:description', value => "The abstract is available here: https://" . $c->app->config->{ir}->{baseurl} . "/" . $rec->{pid}};
         }
       }
     }
