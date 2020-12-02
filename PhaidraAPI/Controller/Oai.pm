@@ -115,9 +115,18 @@ sub _get_metadata_dc {
       }
       next if $skip;
       my %field;
-      $field{name}   = $1;
-      $field{values} = $rec->{$k};
-      $field{lang}   = $2 if $2;
+      $field{name} = $1;
+      if ($1 eq 'description') {
+        if (exists($rec->{ispartof})) {
+          if ($rec->{ispartof} eq $self->app->config->{ir}->{ircollection}) {
+            $field{values} = "The abstract is available here: https://" . $self->app->config->{ir}->{baseurl} . "/" . $rec->{pid};
+          }
+        }
+      }
+      else {
+        $field{values} = $rec->{$k};
+      }
+      $field{lang} = $2 if $2;
       push @metadata, \%field;
     }
   }
