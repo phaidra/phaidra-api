@@ -200,7 +200,7 @@ sub risearch_tuple ($$$) {
 
 sub related_objects_mptmysql() {
 
-  my ($self, $c, $subject, $relation, $right, $offset, $limit) = @_;
+  my ($self, $c, $subject, $relation, $right, $offset, $limit, $fields) = @_;
 
   my $res = {alerts => [], status => 200};
 
@@ -302,6 +302,10 @@ sub related_objects_mptmysql() {
   my $modelrel = '<info:fedora/fedora-system:def/model#hasModel>';
 
   #my $itemidrel = '<http://www.openarchives.org/OAI/2.0/itemID>';
+  
+  my $descrel   = '<http://purl.org/dc/elements/1.1/description>';
+  my $desctable = 't' . $relmap{$descrel};
+  my $descsep   = '#desc-sep#';
 
   #my $itemidtable = 't'.$relmap{$itemidrel};
   my $titletable = 't' . $relmap{$titlerel};
@@ -310,14 +314,15 @@ sub related_objects_mptmysql() {
   my $fedoraobjstr = '<info:fedora/fedora-system:FedoraObject-3.0>';
 
   foreach my $o (@objects) {
-    $ss = qq/SELECT $titletable.o AS title, GROUP_CONCAT($titletable.o SEPARATOR '$titsep') AS titles, $modeltable.o AS cmodel FROM $titletable JOIN $modeltable ON $modeltable.s = $titletable.s WHERE $titletable.s = ? AND $modeltable.o != ?/
-      ;    #$titletable.o AS title, GROUP_CONCAT($titletable.o SEPARATOR '$titsep') AS titles, $modeltable.o AS cmodel
+    
+    $ss = qq/SELECT a.pid, a.title, a.titles, a.cmodel, $desctable.o AS description, GROUP_CONCAT($desctable.o SEPARATOR '$descsep') AS descriptions FROM $desctable RIGHT JOIN (SELECT $titletable.s AS pid, $titletable.o AS title, GROUP_CONCAT($titletable.o SEPARATOR '$titsep') AS titles, $modeltable.o AS cmodel FROM $titletable JOIN $modeltable ON $modeltable.s = $titletable.s WHERE $titletable.s = ? AND $modeltable.o != ?) AS a ON $desctable.s = a.pid/;
+
     $sth = $c->app->db_triplestore->prepare($ss)                    or $c->app->log->error($c->app->db_triplestore->errstr);
     $sth->execute('<info:fedora/' . $o->{pid} . '>', $fedoraobjstr) or $c->app->log->error($c->app->db_triplestore->errstr);
 
-    my ($title, $titles, $cmodel);
-    $sth->bind_columns(undef, \$title, \$titles, \$cmodel) or $c->app->log->error($c->app->db_triplestore->errstr);
-
+    my ($pid, $title, $titles, $cmodel, $desc, $descs);
+    $sth->bind_columns(undef, \$pid, \$title, \$titles, \$cmodel, \$desc, \$descs) or $c->app->log->error($c->app->db_triplestore->errstr);
+   
     while ($sth->fetch()) {
 
       my @titles = split($titsep, $titles);
@@ -362,6 +367,55 @@ sub related_objects_mptmysql() {
         }
         else {
           $pref_title = $text;
+        }
+      }
+
+      foreach my $field (@{$fields}) {
+        if ($field == 'dc.description') {
+          my @descs = split($descsep, $descs);
+          my @descs_out;
+          my $session_lang = 'eng';
+          my $pref_desc    = '';
+          my $en_desc      = '';
+          my $text         = '';
+          foreach my $t (@descs) {
+            my $lang = '';
+            $text = $t;
+            if ($t =~ m/"@([^@]+)$/) {
+              $lang = $1;
+              $text =~ s/$lang$//g;
+              $text =~ s/\@$//g;
+              $text =~ s/^"|"$//g;
+              $text =~ s/\\"/"/g;
+
+              # unicode escaped stuff to utf8
+              $text =~ s/\\u([0-9a-fA-F]{4})/pack('U', hex($1))/eg;
+
+              if ($lang eq $session_lang) {
+                $pref_desc = $text;
+              }
+              if ($lang eq 'eng') {
+                $en_desc = $text;
+              }
+            }
+            else {
+              $text =~ s/^"|"$//g;
+              $text =~ s/\\"/"/g;
+              $text =~ s/\\u([0-9a-fA-F]{4})/pack('U', hex($1))/eg;
+            }
+            push @descs_out, {text => $text, lang => $lang};
+          }
+
+          if ($pref_desc eq '') {
+            if ($en_desc ne '') {
+              $pref_desc = $en_desc;
+            }
+            else {
+              $pref_desc = $text;
+            }
+          }
+          $o->{description}  = $pref_desc;
+          $o->{descriptions} = \@descs_out;
         }
       }
 
