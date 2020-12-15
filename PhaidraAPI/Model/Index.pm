@@ -1874,6 +1874,14 @@ sub _add_jsonld_index {
     push @{$index->{"frapo_hasfundingagency_json"}}, b(encode_json($jsonld->{'frapo:hasFundingAgency'}))->decode('UTF-8');
   }
 
+  if (exists($jsonld->{'dcterms:issued'}) && $jsonld->{'dcterms:issued'} ne '') {
+    push @{$index->{"bib_published"}}, $jsonld->{'dcterms:issued'}[0];
+  }
+
+  if (exists($jsonld->{'dcterms:dateSubmitted'}) && $jsonld->{'dcterms:dateSubmitted'} ne '') {
+    push @{$index->{"dcterms_datesubmitted"}}, $jsonld->{'dcterms:dateSubmitted'}[0];
+  }
+
   if (exists($jsonld->{'rdau:P60193'})) {
     for my $o (@{$jsonld->{'rdau:P60193'}}) {
       if (exists($o->{'dce:title'})) {
@@ -1887,15 +1895,28 @@ sub _add_jsonld_index {
       if (exists($o->{'bibo:issue'}) && $o->{'bibo:issue'} ne '') {
         push @{$index->{"bib_issue"}}, $o->{'bibo:issue'}[0];
       }
+      unless (exists($index->{"bib_published"})) {
+        if ((exists($o->{'bibo:volume'}) && $o->{'bibo:volume'} ne '') and (exists($o->{'bibo:issue'}) && $o->{'bibo:issue'} ne '')) {
+          if (exists($o->{'dcterms:issued'}) && $o->{'dcterms:issued'} ne '') {
+            push @{$index->{"bib_published"}}, $o->{'dcterms:issued'}[0];
+          }
+        }
+      }
     }
   }
 
-  if (exists($jsonld->{'dcterms:issued'}) && $jsonld->{'dcterms:issued'} ne '') {
-    push @{$index->{"bib_published"}}, $jsonld->{'dcterms:issued'}[0];
-  }
-
-  if (exists($jsonld->{'dcterms:dateSubmitted'}) && $jsonld->{'dcterms:dateSubmitted'} ne '') {
-    push @{$index->{"dcterms_datesubmitted"}}, $jsonld->{'dcterms:dateSubmitted'}[0];
+  if (exists($jsonld->{'rdau:P60101'})) {
+    for my $o (@{$jsonld->{'rdau:P60101'}}) {
+      if (exists($o->{'bf:provisionActivity'})) {
+        if (exists($o->{'bf:provisionActivity'}[0]->{'bf:date'})) {
+          if (exists($o->{'bf:provisionActivity'}[0]->{'bf:date'}[0]) and ($o->{'bf:provisionActivity'}[0]->{'bf:date'}[0] ne '')) {
+            unless (exists($index->{"bib_published"})) {
+              push @{$index->{"bib_published"}}, $o->{'bf:provisionActivity'}[0]->{'bf:date'}[0];
+            }
+          }
+        }
+      }
+    }
   }
 
   if (exists($jsonld->{'schema:pageStart'})) {
