@@ -1896,7 +1896,7 @@ sub _add_jsonld_index {
         push @{$index->{"bib_issue"}}, $o->{'bibo:issue'}[0];
       }
       unless (exists($index->{"bib_published"})) {
-        if ((exists($o->{'bibo:volume'}) && $o->{'bibo:volume'} ne '') and (exists($o->{'bibo:issue'}) && $o->{'bibo:issue'} ne '')) {
+        if ((exists($o->{'bibo:volume'}) && $o->{'bibo:volume'} ne '') or (exists($o->{'bibo:issue'}) && $o->{'bibo:issue'} ne '')) {
           if (exists($o->{'dcterms:issued'}) && $o->{'dcterms:issued'} ne '') {
             push @{$index->{"bib_published"}}, $o->{'dcterms:issued'}[0];
           }
