@@ -20,6 +20,7 @@ use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Dc;
 use PhaidraAPI::Model::Annotations;
 use PhaidraAPI::Model::Membersorder;
+use Scalar::Util qw/reftype/;
 
 our %indexed_datastreams = (
   "UWMETADATA"      => 1,
@@ -2024,15 +2025,17 @@ sub _add_jsonld_roles {
               if ($aff->{'skos:exactMatch'}) {
                 for my $id (@{$aff->{'skos:exactMatch'}}) {
                   unless (exists($foundAssIds->{$id})) {
-                    push @{$index->{"association_id"}}, $id;
-                    $foundAssIds->{$id} = 1;
-                    my $pp = $c->app->directory->org_get_parentpath($c, $id);
-                    if ($pp->{status} eq 200) {
-                      for my $parent (@{$pp->{parentpath}}) {
-                        if ($parent->{'@id'} ne $id) {
-                          unless (exists($foundAssIds->{$parent->{'@id'}})) {
-                            push @{$index->{"association_id"}}, $parent->{'@id'};
-                            $foundAssIds->{$parent->{'@id'}} = 1;
+                    if (reftype $id ne reftype {}) {
+                      push @{$index->{"association_id"}}, $id;
+                      $foundAssIds->{$id} = 1;
+                      my $pp = $c->app->directory->org_get_parentpath($c, $id);
+                      if ($pp->{status} eq 200) {
+                        for my $parent (@{$pp->{parentpath}}) {
+                          if ($parent->{'@id'} ne $id) {
+                            unless (exists($foundAssIds->{$parent->{'@id'}})) {
+                              push @{$index->{"association_id"}}, $parent->{'@id'};
+                              $foundAssIds->{$parent->{'@id'}} = 1;
+                            }
                           }
                         }
                       }
@@ -2052,8 +2055,10 @@ sub _add_jsonld_roles {
           if ($contr->{'skos:exactMatch'}) {
             for my $id (@{$contr->{'skos:exactMatch'}}) {
               unless (exists($foundAssIds->{$id})) {
-                push @{$index->{"association_id"}}, $id;
-                $foundAssIds->{$id} = 1;
+                if (reftype $id ne reftype {}) {
+                  push @{$index->{"association_id"}}, $id;
+                  $foundAssIds->{$id} = 1;
+                }
               }
             }
           }
