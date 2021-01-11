@@ -114,7 +114,9 @@ sub _get_metadata_dc {
         }
       }
       next if $skip;
-      $valuesCheck{$1}{$v} = 1;
+      for my $v (@{$rec->{$k}}) {
+        $valuesCheck{$1}{$v} = 1;
+      }
       my %field;
       $field{name} = $1;
       if ($1 eq 'description') {
