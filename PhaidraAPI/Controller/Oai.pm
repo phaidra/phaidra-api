@@ -114,19 +114,20 @@ sub _get_metadata_dc {
         }
       }
       next if $skip;
+      $valuesCheck{$1}{$v} = 1;
       my %field;
       $field{name} = $1;
       if ($1 eq 'description') {
         if (exists($rec->{ispartof})) {
           for my $coll (@{$rec->{ispartof}}) {
             if ($coll eq $self->app->config->{ir}->{ircollection}) {
-              $field{values} = [ "The abstract is available here: https://" . $self->app->config->{ir}->{baseurl} . "/" . $rec->{pid} ];
+              $field{values} = ["The abstract is available here: https://" . $self->app->config->{ir}->{baseurl} . "/" . $rec->{pid}];
             }
           }
         }
       }
       $field{values} = $rec->{$k} unless exists($field{values});
-      $field{lang} = $2 if $2;
+      $field{lang}   = $2 if $2;
       push @metadata, \%field;
     }
   }
