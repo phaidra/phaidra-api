@@ -443,7 +443,12 @@ sub _get_entities {
         $val .= $institution if $institution;
       }
       else {
-        $val .= " ($institution)" if $institution;
+        if ($firstname or $lastname) {
+          $val .= " ($institution)" if $institution;
+        }
+        else {
+          $val .= " $institution" if $institution;
+        }
       }
 
       push @entities, {value => $val, firstname => $firstname, lastname => $lastname, institution => $institution};
