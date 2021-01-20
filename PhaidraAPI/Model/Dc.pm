@@ -365,8 +365,6 @@ sub map_jsonld_2_dc_hash {
     push @{$dc_p{format}} => {value => "$filesize bytes"};
   }
 
-  $dc_p{rights} = $ext->_get_jsonld_values($c, $jsonld, 'edm:rights');
-
   #$c->app->log->debug("XXXXXXXXXXXXXX dc_p:".$c->app->dumper(\%dc_p));
   my %dc_oai = %dc_p;
 

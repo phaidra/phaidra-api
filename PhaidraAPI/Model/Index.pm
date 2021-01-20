@@ -1437,7 +1437,7 @@ sub _index_relsext {
     $o =~ s/^info:fedora\/(.*)$/$1/;
     push @{$index->{hasmember}}, $o;
   }
-  
+
   # padova
   for my $e ($xml->find('sameAs')->each) {
     my $o = $e->attr('rdf:resource');
