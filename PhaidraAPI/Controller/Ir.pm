@@ -645,7 +645,7 @@ sub submit {
     }
     else {
       $cmodel              = 'cmodel:Asset';
-      if ($cnt > 0) {
+      if ($cnt > 1) {
         $isAlternativeFormat = 1;
       }
     }
