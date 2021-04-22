@@ -645,7 +645,9 @@ sub submit {
     }
     else {
       $cmodel              = 'cmodel:Asset';
-      $isAlternativeFormat = 1;
+      if ($cnt > 0) {
+        $isAlternativeFormat = 1;
+      }
     }
 
     my $md = {metadata => {'json-ld' => $jsonld}};
