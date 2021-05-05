@@ -474,7 +474,7 @@ sub update {
 
     my $tcm        = [gettimeofday];
     my $cmodel_res = $search_model->get_cmodel($c, $pid);
-    $c->app->log->debug("getting cmodel took " . tv_interval($tcm));
+    $c->app->log->debug("getting cmodel[".$cmodel_res->{cmodel}."] took " . tv_interval($tcm));
     if ($cmodel_res->{status} ne 200) {
       return $cmodel_res;
     }
