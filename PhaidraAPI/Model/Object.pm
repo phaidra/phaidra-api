@@ -1645,12 +1645,14 @@ sub create_empty {
   # have to sent xml, because without the foxml fedora creates a default empty object
   # but this is then automatically 'Active'!
   # http://www.fedora-commons.org/documentation/3.0/userdocs/server/webservices/apim/#methods.ingest
+  my $ownerid = $username;
+  $ownerid = $c->stash->{remote_user} if $c->stash->{remote_user};
   my $foxml = qq|<?xml version="1.0" encoding="UTF-8"?>
 <foxml:digitalObject VERSION="1.1" xmlns:foxml="info:fedora/fedora-system:def/foxml#" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="info:fedora/fedora-system:def/foxml# http://www.fedora.info/definitions/1/0/foxml1-1.xsd">
         <foxml:objectProperties>
                 <foxml:property NAME="info:fedora/fedora-system:def/model#state" VALUE="Inactive"/>
                 <foxml:property NAME="info:fedora/fedora-system:def/model#label" VALUE="$label"/>
-                <foxml:property NAME="info:fedora/fedora-system:def/model#ownerId" VALUE="$username"/>
+                <foxml:property NAME="info:fedora/fedora-system:def/model#ownerId" VALUE="$ownerid"/>
         </foxml:objectProperties>
 </foxml:digitalObject>
 |;
@@ -1725,7 +1727,9 @@ sub add_relationship {
     $url->query(\%params);
 
     my $ua   = Mojo::UserAgent->new;
-    my $post = $ua->post($url);
+    my %headers;
+    $self->add_upstream_headers($c, \%headers);
+    my $post = $ua->post($url => \%headers);
     if (my $r = $post->success) {
       unshift @{$res->{alerts}}, {type => 'success', msg => $r->body};
     }
@@ -1832,7 +1836,9 @@ sub purge_relationship {
     $url->query(\%params);
 
     my $ua      = Mojo::UserAgent->new;
-    my $postres = $ua->delete($url)->result;
+    my %headers;
+    $self->add_upstream_headers($c, \%headers);
+    my $postres = $ua->delete($url => \%headers)->result;
     if ($postres->is_error) {
       unshift @{$res->{alerts}}, {type => 'danger', msg => $postres->message};
       $res->{status} = $postres->{code} ? $postres->{code} : 500;
