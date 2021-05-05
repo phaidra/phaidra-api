@@ -37,7 +37,7 @@ sub extract_credentials {
         && ($upstreampassword eq $configupstreampassword))
       {
         $self->app->log->debug("upstream credentials OK");
-        $self->stash->{basic_auth_credentials} = {username => $self->app->config->{authentication}->{upstream}->{fedorausername}, password => $self->app->config->{authentication}->{upstream}->{fedorapassword}};
+        $self->stash->{basic_auth_credentials} = {username => $self->app->config->{authentication}->{upstream}->{upstreamusername}, password => $self->app->config->{authentication}->{upstream}->{upstreampassword}};
         $self->stash->{remote_user}            = $remoteuser;
         my $remoteaffiliation = $self->req->headers->header($self->app->config->{authentication}->{upstream}->{affiliationheader});
         if ($remoteaffiliation) {
