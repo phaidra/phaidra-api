@@ -1946,6 +1946,7 @@ sub _add_jsonld_index {
       }
       for my $id (@{$o->{'skos:exactMatch'}}) {
         push @{$index->{"edm_hastype_id"}}, $id;
+        push @{$index->{"object_type_id"}}, $id;
       }
     }
   }
@@ -2132,6 +2133,7 @@ sub _add_uwm_index {
       for my $orgch (@{$org->{children}}) {
         if ($orgch->{xmlname} eq 'hoschtyp') {
           $index->{"oer"} = '1' if $orgch->{ui_value} eq 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_17/1562801';
+          push @{$index->{"object_type_id"}}, $orgch->{ui_value};
         }
       }
     }
