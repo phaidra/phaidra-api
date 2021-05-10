@@ -6,6 +6,30 @@ use v5.10;
 use PhaidraAPI::Model::Stats;
 use base 'Mojolicious::Controller';
 
+sub aggregates {
+  my $self = shift;
+
+  my $detail    = $self->stash('detail');
+  my $time_scale = $self->param('time_scale');
+
+  $detail = 'cm' unless defined($detail);
+  $time_scale = 'year' unless defined($time_scale);
+
+  unless ($detail =~ m/^[a-z]+$/g) {
+    $self->render(json => {alerts => [{type => 'info', msg => 'Invalid detail'}]}, status => 400);
+    return;
+  }
+  unless ($time_scale =~ m/^[a-z]+$/g) {
+    $self->render(json => {alerts => [{type => 'info', msg => 'Invalid time_scale'}]}, status => 400);
+    return;
+  }
+
+  my $stats_model = PhaidraAPI::Model::Stats->new;
+  my $res         = $stats_model->aggregates($self, $detail, $time_scale);
+
+  $self->render(json => $res, status => $res->{status});
+}
+
 sub stats {
   my $self = shift;
 

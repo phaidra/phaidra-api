@@ -430,10 +430,11 @@ sub startup {
 
   $r->route('dc/uwmetadata_2_dc_index')           ->via('post')   ->to('dc#uwmetadata_2_dc_index');
 
+  $r->route('stats/aggregates')                   ->via('get')    ->to('stats#aggregates');
   $r->route('stats/:pid')                         ->via('get')    ->to('stats#stats');
   $r->route('stats/:pid/downloads')               ->via('get')    ->to('stats#stats', stats_param_key => 'downloads');
   $r->route('stats/:pid/detail_page')             ->via('get')    ->to('stats#stats', stats_param_key => 'detail_page');
-  $r->route('stats/:pid/chart')                   ->via('get')    ->to('stats#chart');
+  $r->route('stats/:pid/chart')                   ->via('get')    ->to('stats#aggregates');
 
   $r->route('ir/stats/topdownloads')              ->via('get')    ->to('ir#stats_topdownloads');
   $r->route('ir/stats/:pid')                      ->via('get')    ->to('ir#stats');
