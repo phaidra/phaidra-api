@@ -330,6 +330,25 @@ sub preview {
       $self->render(template => 'utils/pdfviewer', format => 'html');
       return;
     }
+    case 'Asset' {
+      if (($filename =~ /\.ply\z/) || ($filename =~ /\.nxz\z/)) {
+        if ($showloadbutton) {
+          $self->render(template => 'utils/loadbutton', format => 'html');
+          return;
+        }
+        $self->stash(baseurl  => $self->config->{baseurl});
+        $self->stash(basepath => $self->config->{basepath});
+        $self->stash(pid      => $pid);
+        $self->stash(mType    => 'ply')   if $filename =~ /\.ply\z/;
+        $self->stash(mType    => 'nexus') if $filename =~ /\.nxz\z/;
+        $self->render(template => 'utils/3dviewer', format => 'html');
+        return;
+      }
+      else {
+        $self->reply->static('images/asset.png');
+        return;
+      }
+    }
     case 'Video' {
       if ($self->config->{streaming}) {
         my $u_model = PhaidraAPI::Model::Util->new;
@@ -416,28 +435,8 @@ sub preview {
             $self->reply->static('images/resource.png');
             return;
           }
-          case 'Asset' {
-            $self->reply->static('images/asset.png');
-            return;
-          }
         }
       }
-    }
-    case 'Container' {
-      $self->reply->static('images/container.png');
-      return;
-    }
-    case 'Collection' {
-      $self->reply->static('images/collection.png');
-      return;
-    }
-    case 'Resource' {
-      $self->reply->static('images/resource.png');
-      return;
-    }
-    case 'Asset' {
-      $self->reply->static('images/asset.png');
-      return;
     }
   }
   $self->reply->exception("pid[$pid] internal error");

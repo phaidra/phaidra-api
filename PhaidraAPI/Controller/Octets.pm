@@ -93,8 +93,39 @@ sub get {
     $self->res->headers->content_disposition("filename=$filename");
   }
   $self->res->headers->content_type($mimetype);
-  $self->res->content->asset(Mojo::Asset::File->new(path => $path));
-  $self->rendered(200);
+
+  my $asset = Mojo::Asset::File->new(path => $path);
+
+  # Range
+  # based on Mojolicious::Plugin::RenderFile
+  if (my $range = $self->req->headers->range) {
+    my $start = 0;
+    my $size  = $asset->size;
+    my $end   = $size - 1 >= 0 ? $size - 1 : 0;
+
+    # Check range
+    if ($range =~ m/^bytes=(\d+)-(\d+)?/ && $1 <= $end) {
+      $start = $1;
+      $end   = $2 if defined $2 && $2 <= $end;
+
+      $res->{status} = 206;
+      $self->res->headers->add('Content-Length' => $end - $start + 1);
+      $self->res->headers->add('Content-Range'  => "bytes $start-$end/$size");
+    }
+    else {
+      # Not satisfiable
+      return $self->rendered(416);
+    }
+
+    # Set range for asset
+    $asset->start_range($start)->end_range($end);
+  }
+  else {
+    $self->res->headers->add('Content-Length' => $asset->size);
+  }
+
+  $self->res->content->asset($asset);
+  $self->rendered($res->{status});
 }
 
 1;
