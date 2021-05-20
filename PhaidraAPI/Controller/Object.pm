@@ -331,7 +331,7 @@ sub preview {
       return;
     }
     case 'Asset' {
-      if (($filename =~ /\.ply\z/) || ($filename =~ /\.nxz\z/)) {
+      if (($mimetype eq 'model/ply') || ($mimetype eq 'model/nxz')) {
         if ($showloadbutton) {
           $self->render(template => 'utils/loadbutton', format => 'html');
           return;
@@ -339,8 +339,8 @@ sub preview {
         $self->stash(baseurl  => $self->config->{baseurl});
         $self->stash(basepath => $self->config->{basepath});
         $self->stash(pid      => $pid);
-        $self->stash(mType    => 'ply')   if $filename =~ /\.ply\z/;
-        $self->stash(mType    => 'nexus') if $filename =~ /\.nxz\z/;
+        $self->stash(mType    => 'ply')   if $mimetype eq 'model/ply';
+        $self->stash(mType    => 'nexus') if $mimetype eq 'model/nxz';
         $self->render(template => 'utils/3dviewer', format => 'html');
         return;
       }

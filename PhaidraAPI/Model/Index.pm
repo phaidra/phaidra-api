@@ -20,6 +20,7 @@ use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Dc;
 use PhaidraAPI::Model::Annotations;
 use PhaidraAPI::Model::Membersorder;
+use PhaidraAPI::Model::Octets;
 use Scalar::Util qw/reftype/;
 
 our %indexed_datastreams = (
@@ -474,7 +475,7 @@ sub update {
 
     my $tcm        = [gettimeofday];
     my $cmodel_res = $search_model->get_cmodel($c, $pid);
-    $c->app->log->debug("getting cmodel[".$cmodel_res->{cmodel}."] took " . tv_interval($tcm));
+    $c->app->log->debug("getting cmodel[" . $cmodel_res->{cmodel} . "] took " . tv_interval($tcm));
     if ($cmodel_res->{status} ne 200) {
       return $cmodel_res;
     }
@@ -1307,6 +1308,13 @@ sub _get {
     if ($inv_coll) {
       my $ds_doc = $inv_coll->find({pid => $pid})->sort({"updated_at" => -1})->next;
       $index{size} = $ds_doc->{ds_sizes}->{OCTETS};
+    }
+  }
+  unless($index{size}) {
+    my $octets_mdoel = PhaidraAPI::Model::Octets->new;
+    my $parthres     = $octets_mdoel->_get_ds_path($c, $pid, 'OCTETS');
+    if ($parthres->{status} == 200) {
+      $index{size} = -s $parthres->{path};
     }
   }
 

@@ -100,7 +100,6 @@ sub get {
   # based on Mojolicious::Plugin::RenderFile
   if (my $range = $self->req->headers->range) {
     my $start = 0;
-    my $size  = $asset->size;
     my $end   = $size - 1 >= 0 ? $size - 1 : 0;
 
     # Check range
