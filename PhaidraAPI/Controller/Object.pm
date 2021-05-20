@@ -331,7 +331,22 @@ sub preview {
       return;
     }
     case 'Asset' {
-      if (($mimetype eq 'model/ply') || ($mimetype eq 'model/nxz')) {
+
+      my $index_model = PhaidraAPI::Model::Index->new;
+      my $docres      = $index_model->get_doc($self, $pid);
+      if ($docres->{status} ne 200) {
+        $self->app->log->error("pid[$pid] error searching for doc: " . $self->app->dumper($docres));
+        $self->reply->static('images/error.png');
+        return;
+      }
+
+      # the mimetype in index can be coming from metadata too
+      my $index_mime;
+      for my $mt (@{$docres->{doc}->{dc_format}}) {
+        $index_mime = $mt if $mt =~ m/\//g;
+      }
+      $self->app->log->info("preview pid[$pid] metadata mimetype[$index_mime]");
+      if (($index_mime eq 'model/ply') || ($index_mime eq 'model/nxz')) {
         if ($showloadbutton) {
           $self->render(template => 'utils/loadbutton', format => 'html');
           return;
@@ -339,8 +354,8 @@ sub preview {
         $self->stash(baseurl  => $self->config->{baseurl});
         $self->stash(basepath => $self->config->{basepath});
         $self->stash(pid      => $pid);
-        $self->stash(mType    => 'ply')   if $mimetype eq 'model/ply';
-        $self->stash(mType    => 'nexus') if $mimetype eq 'model/nxz';
+        $self->stash(mType    => 'ply')   if $index_mime eq 'model/ply';
+        $self->stash(mType    => 'nexus') if $index_mime eq 'model/nxz';
         $self->render(template => 'utils/3dviewer', format => 'html');
         return;
       }
