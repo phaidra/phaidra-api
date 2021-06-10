@@ -47,7 +47,7 @@ BEGIN {
 use PhaidraAPI::Model::Session::Transport::Header;
 use PhaidraAPI::Model::Session::Store::Mongo;
 
-$ENV{MOJO_MAX_MESSAGE_SIZE}   = 20737418240;
+$ENV{MOJO_MAX_MESSAGE_SIZE}   = 207374182400;
 $ENV{MOJO_INACTIVITY_TIMEOUT} = 1209600;
 $ENV{MOJO_HEARTBEAT_TIMEOUT}  = 1209600;
 
