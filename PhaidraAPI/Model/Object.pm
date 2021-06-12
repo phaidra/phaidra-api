@@ -193,6 +193,8 @@ sub info {
     }
   }
 
+  $self->add_metatags($c, $info);
+
   if ($dshash{'GEO'}) {
     my $geo_model = PhaidraAPI::Model::Geo->new;
     my $r         = $geo_model->get_object_geo_json($c, $pid, $username, $password);
@@ -250,6 +252,64 @@ sub info {
 
   $res->{info} = $info;
   return $res;
+}
+
+sub add_metatags {
+  my ($self, $c, $info) = @_;
+
+  if (exists($info->{dc_title_eng})) {
+    $info->{metatags}->{citation_title} = $info->{dc_title_eng};
+  }
+  else {
+    $info->{metatags}->{citation_title} = ($info->{sort_dc_title});
+  }
+  $info->{metatags}->{citation_author}           = $info->{bib_roles_pers_aut} if exists $info->{bib_roles_pers_aut};
+  $info->{metatags}->{citation_publication_date} = $info->{bib_published}      if exists $info->{bib_published};
+  $info->{metatags}->{citation_publisher}        = $info->{bib_publisher}      if exists $info->{bib_publisher};
+  $info->{metatags}->{citation_journal_title}    = $info->{bib_journal}        if exists $info->{bib_journal};
+  $info->{metatags}->{citation_volume}           = $info->{bib_volume}         if exists $info->{bib_volume};
+  $info->{metatags}->{citation_issue}            = $info->{bib_issue}          if exists $info->{bib_issue};
+  if (exists($info->{metadata}->{'JSON-LD'})) {
+    my $jsonld = $info->{metadata}->{'JSON-LD'};
+    $info->{metatags}->{citation_firstpage} = $jsonld->{'schema:pageStart'} if exists $jsonld->{'schema:pageStart'};
+    $info->{metatags}->{citation_lastpage}  = $jsonld->{'schema:pageEnd'}   if exists $jsonld->{'schema:pageEnd'};
+    if (exists($jsonld->{'rdau:P60101'})) {
+      if (exists($jsonld->{'rdau:P60101'}->{'dce:title'})) {
+        if (exists($jsonld->{'rdau:P60101'}->{'dce:title'}->{'bf:mainTitle'})) {
+          $info->{metatags}->{citation_inbook_title} = ($jsonld->{'rdau:P60101'}->{'dce:title'}->{'bf:mainTitle'}[0]->{'@value'});
+        }
+      }
+    }
+  }
+  if (exists($info->{metadata}->{dc_identifier})) {
+    for my $id (@{$info->{metadata}->{dc_identifier}}) {
+      if ($id =~ /^doi:(.)+/) {
+        $info->{metatags}->{citation_doi} = ($1);
+      }
+      if ($id =~ /^isbn:(.)+/) {
+        $info->{metatags}->{citation_isbn} = ($1);
+      }
+    }
+  }
+  if (exists($info->{metadata}->{dc_source})) {
+    for my $id (@{$info->{metadata}->{dc_source}}) {
+      if ($id =~ /^issn:(.)+/) {
+        $info->{metatags}->{citation_issn} = ($1);
+      }
+    }
+  }
+
+  $info->{metatags}->{citation_keywords}          = $info->{keyword_suggest} if exists $info->{keyword_suggest};
+  $info->{metatags}->{citation_language}          = $info->{dc_language}     if exists $info->{dc_language};
+  $info->{metatags}->{citation_abstract_html_url} = ('https://' . $c->app->config->{phaidra}->{baseurl} . '/' . $info->{pid});
+  my $downloadurl = 'https://' . $c->app->config->{baseurl} . '/';
+  if ($c->app->config->{basepath} ne '') {
+    $downloadurl .= $c->app->config->{basepath} . '/';
+  }
+  $downloadurl .= 'object/' . $info->{pid} . '/download';
+  $info->{metatags}->{citation_pdf_url} = ($downloadurl);
+  $info->{metatags}->{'DC.identifier'}  = 'https://' . $c->app->config->{phaidra}->{baseurl} . '/' . $info->{pid};
+  $info->{metatags}->{'DC.rights'}      = $info->{dc_rights} if exists $info->{dc_rights};
 }
 
 sub delete {
@@ -1726,7 +1786,7 @@ sub add_relationship {
     $url->path("/fedora/objects/$pid/relationships/new");
     $url->query(\%params);
 
-    my $ua   = Mojo::UserAgent->new;
+    my $ua = Mojo::UserAgent->new;
     my %headers;
     $self->add_upstream_headers($c, \%headers);
     my $post = $ua->post($url => \%headers);
@@ -1835,7 +1895,7 @@ sub purge_relationship {
     $url->path("/fedora/objects/$pid/relationships");
     $url->query(\%params);
 
-    my $ua      = Mojo::UserAgent->new;
+    my $ua = Mojo::UserAgent->new;
     my %headers;
     $self->add_upstream_headers($c, \%headers);
     my $postres = $ua->delete($url => \%headers)->result;

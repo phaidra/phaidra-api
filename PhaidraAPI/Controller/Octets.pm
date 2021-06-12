@@ -87,10 +87,10 @@ sub get {
   $self->app->log->debug("operation[$operation] trywebversion[$trywebversion] pid[$pid] path[$path] mimetype[$mimetype] filename[$filename] size[$size]");
 
   if ($operation eq 'download') {
-    $self->res->headers->content_disposition("attachment;filename=$filename");
+    $self->res->headers->content_disposition("attachment;filename=\"$filename\"");
   }
   else {
-    $self->res->headers->content_disposition("filename=$filename");
+    $self->res->headers->content_disposition("filename=\"$filename\"");
   }
   $self->res->headers->content_type($mimetype);
 
