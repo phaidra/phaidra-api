@@ -288,7 +288,7 @@ sub add_metatags {
       if ($id =~ /^doi:(.+)/) {
         $info->{metatags}->{citation_doi} = ($1);
       }
-      if ($id =~ /^isbn:(.)+/) {
+      if ($id =~ /^isbn:(.+)/) {
         $info->{metatags}->{citation_isbn} = ($1);
       }
     }
@@ -296,7 +296,7 @@ sub add_metatags {
   if (exists($info->{dc_source})) {
     for my $id (@{$info->{dc_source}}) {
       $id =~ s/^\s+|\s+$//g;
-      if ($id =~ /^issn:(.)+/) {
+      if ($id =~ /^issn:(.+)/) {
         $info->{metatags}->{citation_issn} = ($1);
       }
     }
