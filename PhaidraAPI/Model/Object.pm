@@ -281,9 +281,11 @@ sub add_metatags {
       }
     }
   }
-  if (exists($info->{metadata}->{dc_identifier})) {
-    for my $id (@{$info->{metadata}->{dc_identifier}}) {
-      if ($id =~ /^doi:(.)+/) {
+
+  if (exists($info->{dc_identifier})) {
+    for my $id (@{$info->{dc_identifier}}) {
+      $id =~ s/^\s+|\s+$//g;
+      if ($id =~ /^doi:(.+)/) {
         $info->{metatags}->{citation_doi} = ($1);
       }
       if ($id =~ /^isbn:(.)+/) {
@@ -291,8 +293,9 @@ sub add_metatags {
       }
     }
   }
-  if (exists($info->{metadata}->{dc_source})) {
-    for my $id (@{$info->{metadata}->{dc_source}}) {
+  if (exists($info->{dc_source})) {
+    for my $id (@{$info->{dc_source}}) {
+      $id =~ s/^\s+|\s+$//g;
       if ($id =~ /^issn:(.)+/) {
         $info->{metatags}->{citation_issn} = ($1);
       }
@@ -306,7 +309,12 @@ sub add_metatags {
   if ($c->app->config->{basepath} ne '') {
     $downloadurl .= $c->app->config->{basepath} . '/';
   }
-  $downloadurl .= 'object/' . $info->{pid} . '/download';
+  if ($c->app->config->{baseurl} eq 'services.phaidra.univie.ac.at') {
+    $downloadurl .= 'object/' . $info->{pid} . '/diss/Content/download';
+  }
+  else {
+    $downloadurl .= 'object/' . $info->{pid} . '/download';
+  }
   $info->{metatags}->{citation_pdf_url} = ($downloadurl);
   $info->{metatags}->{'DC.identifier'}  = 'https://' . $c->app->config->{phaidra}->{baseurl} . '/' . $info->{pid};
   $info->{metatags}->{'DC.rights'}      = $info->{dc_rights} if exists $info->{dc_rights};

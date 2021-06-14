@@ -71,6 +71,12 @@ sub _remove_phaidra_tags($) {
 sub _get_uwm_classifications {
   my ($self, $c, $dom, $doc_uwns) = @_;
 
+  my $uselang;
+  if (exists($c->config->{terms}->{dc_subject_languages})) {
+    my %uselangtmp = map {$_ => 1} @{$c->config->{terms}->{dc_subject_languages}};
+    $uselang = \%uselangtmp;
+  }
+
   my @classifications;
   for my $idnode ($dom->find($doc_uwns->{'classification'} . '\:taxonpath')->each) {
 
@@ -88,11 +94,19 @@ sub _get_uwm_classifications {
       }
       my $labels = $terms_model->_get_taxon_labels($c, $cid, $tid);
       for my $lang (keys %{$labels->{labels}}) {
+
+        if (defined($uselang)) {
+          next unless $uselang->{$lang};
+        }
         push @classifications, {value => $cls_labels->{$lang} . ", " . $labels->{labels}->{$lang}, lang => $lang};
       }
     }
     else {
       for my $lang (keys %{$cls_labels}) {
+
+        if (defined($uselang)) {
+          next unless $uselang->{$lang};
+        }
         my $path = $cls_labels->{$lang};
         for my $tid ($idnode->find($doc_uwns->{'classification'} . '\:taxon')->each) {
           $tid = $tid->text;
