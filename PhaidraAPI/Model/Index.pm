@@ -1310,7 +1310,7 @@ sub _get {
       $index{size} = $ds_doc->{ds_sizes}->{OCTETS};
     }
   }
-  unless($index{size}) {
+  unless ($index{size}) {
     my $octets_mdoel = PhaidraAPI::Model::Octets->new;
     my $parthres     = $octets_mdoel->_get_ds_path($c, $pid, 'OCTETS');
     if ($parthres->{status} == 200) {
@@ -2228,6 +2228,14 @@ sub _add_uwm_index {
             push @{$index->{"dc_identifier"}}, $1;
           }
         }
+      }
+    }
+  }
+  unless (exists($index->{"bib_published"})) {
+    for my $con (@{$contributions}) {
+      if (($con->{role} eq 'aut') && exists($con->{date}) && $con->{date} ne '') {
+        push @{$index->{"bib_published"}}, $con->{date};
+        last;
       }
     }
   }
