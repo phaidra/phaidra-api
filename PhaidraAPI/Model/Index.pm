@@ -827,7 +827,7 @@ sub _update_members {
 
   my $res = {status => 200};
 
-  $c->app->log->debug("[" . (scalar @{$members}) . "] objects should have [$relation] relation to [$pid]");
+  $c->app->log->debug("[$pid] [" . (scalar @{$members}) . "] objects should have [$relation] relation to [$pid]");
 
   #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($members));
 
@@ -881,7 +881,7 @@ sub _update_members {
     return $res;
   }
 
-  $c->app->log->debug("there are [" . (scalar @curr_members) . "] objects currently having [$relation] relation to [$pid]");
+  $c->app->log->debug("[$pid] there are [" . (scalar @curr_members) . "] objects currently having [$relation] relation to [$pid]");
 
   #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper(\@curr_members));
 
