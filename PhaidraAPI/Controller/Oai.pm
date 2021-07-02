@@ -63,7 +63,7 @@ sub _serialize {
 }
 
 sub _get_metadata_dc {
-  my ($self, $rec) = @_;
+  my ($self, $rec, $set) = @_;
   my @el          = qw(contributor, coverage, creator, date, description, format, identifier, language, publisher, relation, rights, source, subject, title, type);
   my %valuesCheck = map {$_ => {}} @el;
   my @metadata;
@@ -119,6 +119,11 @@ sub _get_metadata_dc {
       }
       my %field;
       $field{name} = $1;
+      if ($set eq 'phaidra4primo') {
+        if ($1 eq 'type') {
+          $field{values} = [$self->_map_dc_type($rec, $k)];
+        }
+      }
       if ($1 eq 'description') {
         if (exists($rec->{ispartof})) {
           for my $coll (@{$rec->{ispartof}}) {
@@ -136,14 +141,171 @@ sub _get_metadata_dc {
   return \@metadata;
 }
 
+sub _map_dc_type {
+  my $self           = shift;
+  my $rec            = shift;
+  my $key            = shift;
+
+  my $type = $rec->{$key}[0];
+
+  switch ($rec->{cmodel}) {
+    case 'Asset' {
+      switch ($rec->{owner}) {
+        case 'dlbtrepo' {
+          $type = 'text_resource';
+        }
+        case 'phaidra1' {
+          $type = 'research_dataset'
+        }
+        case 'sachslf6' {
+          $type = 'movingimage'
+        }
+        case 'reposii5' {
+          $type = 'text_resource'
+        }
+        case 'otolithf' {
+          $type = 'research_dataset'
+        }
+        else {
+          $type = 'other'
+        }
+      }
+    }
+    case 'Audio' {
+      $type = 'audio';
+    }
+    case 'Book' {
+      switch ($rec->{owner}) {
+        case 'ondemae7' { # shouldn't occur
+          $type = 'book'
+        }
+        case 'archiv3' {
+          $type = 'book';
+        }
+        case 'hoenigsc' {
+          $type = 'image'
+        }
+        else {
+          $type = 'text_resource'
+        }
+      }
+    }
+    case 'Collection' {
+      $type = 'collection';
+    }
+    case 'Container' {
+      switch ($rec->{owner}) {
+        case 'wandtafelu36' {
+          $type = 'image'
+        }
+        else {
+          $type = 'container'
+        }
+      }
+    }
+    case 'Paper' {
+      $type = 'text_resource';
+    }
+    case 'PDFDocument' {
+      switch ($rec->{dc_type_eng}[0]) {
+        case 'article' {
+          $type = 'article'
+        }
+        case 'article in collected edition' {
+          $type = 'article';
+        }
+        case 'baccalaureate Dissertation' {
+          $type = 'dissertation';
+        }
+        case 'book' {
+          $type = 'book';
+        }
+        case 'book Part' {
+          $type = 'book_chapter';
+        }
+        case 'conference Object' {
+          $type = 'conference_object';
+        }
+        case 'diploma Dissertation' {
+          $type = 'dissertation';
+        }
+        case 'dissertation' {
+          $type = 'dissertation';
+        }
+        case 'lecture' {
+          $type = 'lecture';
+        }
+        case 'lecture series (one person)' {
+          $type = 'lecture';
+        }
+        case 'master\'s (Austria) Dissertation' {
+          $type = 'dissertation';
+        }
+        case 'master\'s Dissertation' {
+          $type = 'dissertation';
+        }
+        case 'preprint' {
+          $type = 'text_resource';
+        }
+        case 'professorial Dissertation' {
+          $type = 'dissertation';
+        }
+        case 'report' {
+          $type = 'report';
+        }
+        case 'research Data' {
+          $type = 'text_resource';
+        }
+        case 'review' {
+          $type = 'review';
+        }
+        case 'text' {
+          $type = 'text_resource';
+        }
+        case 'theses' {
+          $type = 'dissertation';
+        }
+        case 'working Paper' {
+          $type = 'text_resource';
+        }
+        case 'other' {
+          $type = 'text_resource';
+        }
+        else {
+          $type = 'text_resource'
+        }
+      }
+    }
+    case 'Picture' {
+      switch ($rec->{resourcetype}) {
+        case 'image' {
+          $type = 'image'
+        }
+        case 'map' {
+          $type = 'map';
+        }
+      }
+    }
+    case 'Resource' {
+      $type = 'web_resource';
+    }
+    case 'Video' {
+      $type = 'movingimage';
+    }
+  }
+
+  return $type;
+}
+
 sub _get_metadata {
   my $self           = shift;
   my $rec            = shift;
   my $metadataPrefix = shift;
+  my $set            = shift;
 
   switch ($metadataPrefix) {
     case 'oai_dc' {
-      return $self->_get_metadata_dc($rec);
+      return $self->_get_metadata_dc($rec, $set);
     }
     case 'oai_openaire' {
       my $oaire_model = PhaidraAPI::Model::Oai::Openaire->new;
@@ -347,7 +509,7 @@ sub handler {
         push @records, {r => $rec};
       }
       else {
-        push @records, {r => $rec, metadata => $self->_get_metadata($rec, $metadataPrefix)};
+        push @records, {r => $rec, metadata => $self->_get_metadata($rec, $metadataPrefix, $params->{set})};
       }
     }
     $self->stash(records => \@records);
