@@ -8,7 +8,6 @@ use Mojolicious::Static;
 use Mojolicious::Plugin::I18N;
 use Mojolicious::Plugin::Session;
 use Mojolicious::Plugin::Log::Any;
-use Mojolicious::Plugin::Prometheus;
 use Mojo::Loader qw(load_class);
 use lib "lib/phaidra_directory";
 use lib "lib/phaidra_binding";
@@ -91,8 +90,6 @@ sub startup {
 
   # init I18N
   $self->plugin(I18N => {namespace => 'PhaidraAPI::I18N', support_url_langs => [qw(en de it sr)]});
-
-  $self->plugin('Prometheus');
 
   # init cache
   $self->plugin(

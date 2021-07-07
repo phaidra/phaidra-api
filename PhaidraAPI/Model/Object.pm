@@ -248,6 +248,8 @@ sub info {
     }
   }
 
+  $c->app->directory->update_info_data($c, $info);
+
   # $c->app->log->debug("XXXXXXXXXXXXXX ".$c->app->dumper($info));
 
   $res->{info} = $info;

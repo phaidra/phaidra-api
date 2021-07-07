@@ -20,6 +20,14 @@ sub _init {
   return $self;
 }
 
+sub update_info_data {
+  my $self = shift;
+  my $c    = shift;
+  my $info = shift;
+
+  return $info;
+}
+
 sub authenticate($$$$) {
   my $app       = shift;
   my $username  = shift;
