@@ -113,6 +113,7 @@ sub _get_metadata_dc {
           last;
         }
       }
+      $skip = 1 if ($1 eq 'license'); #dc_license is not a dc field, it's in rights
       next if $skip;
       for my $v (@{$rec->{$k}}) {
         $valuesCheck{$1}{$v} = 1;
