@@ -134,7 +134,16 @@ sub _get_metadata_dc {
           }
         }
       }
-      $field{values} = $rec->{$k} unless exists($field{values});
+      unless (exists($field{values})) {
+	$field{values} = [];
+	my $localdupcheck;
+	for my $v (@{$rec->{$k}}) {
+	  unless ($localdupcheck->{$v}) {
+            push @{$field{values}}, $v;
+          }
+          $localdupcheck->{$v} = 1;
+	}
+      }
       $field{lang}   = $2 if $2;
       push @metadata, \%field;
     }
