@@ -107,7 +107,6 @@ sub _get_metadata_dc {
   unless (exists($rec->{dc_type_eng})) {
     $rec->{dc_type_eng} = ['other']
   }
-  $self->app->log->debug("XXXXXXXXXXXXXXXXXXXXXXx oai type0: ".$self->app->dumper($rec->{dc_type_eng}));
   for my $k (keys %{$rec}) {
     if ($k =~ m/^dc_([a-z]+)_?([a-z]+)?$/) {
       my $skip = 0;
@@ -161,10 +160,6 @@ sub _map_dc_type {
   my $key            = shift;
 
   my $type = $rec->{$key}[0];
-
-  $self->app->log->debug("XXXXXXXXXXXXXXXXXXXXXXx oai type1: ".$type);
-  $self->app->log->debug("XXXXXXXXXXXXXXXXXXXXXXx oai cmodel: ".$rec->{cmodel});
-  $self->app->log->debug("XXXXXXXXXXXXXXXXXXXXXXx oai owner: ".$rec->{owner});
 
   switch ($rec->{cmodel}) {
     case 'Asset' {
