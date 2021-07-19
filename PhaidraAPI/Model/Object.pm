@@ -276,9 +276,13 @@ sub add_metatags {
     $info->{metatags}->{citation_firstpage} = $jsonld->{'schema:pageStart'} if exists $jsonld->{'schema:pageStart'};
     $info->{metatags}->{citation_lastpage}  = $jsonld->{'schema:pageEnd'}   if exists $jsonld->{'schema:pageEnd'};
     if (exists($jsonld->{'rdau:P60101'})) {
-      if (exists($jsonld->{'rdau:P60101'}->{'dce:title'})) {
-        if (exists($jsonld->{'rdau:P60101'}->{'dce:title'}->{'bf:mainTitle'})) {
-          $info->{metatags}->{citation_inbook_title} = ($jsonld->{'rdau:P60101'}->{'dce:title'}->{'bf:mainTitle'}[0]->{'@value'});
+      for my $p6 (@{$jsonld->{'rdau:P60101'}}) {
+        if (exists($p6->{'dce:title'})) {
+          for my $p6tit (@{$p6->{'dce:title'}}) {
+            if (exists($p6tit->{'bf:mainTitle'})) {
+              $info->{metatags}->{citation_inbook_title} = ($p6tit->{'bf:mainTitle'}[0]->{'@value'});
+            }
+          }
         }
       }
     }
