@@ -394,7 +394,9 @@ sub _get_jsonld_values {
   my @arr;
   if (ref($p) eq 'ARRAY') {
     for my $l (@{$p}) {
-      push @arr, {value => $l};
+      unless (ref $l eq ref {}) {
+        push @arr, {value => $l};
+      }
     }
   }
   else {
