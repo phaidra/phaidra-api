@@ -195,11 +195,7 @@ sub _get_oefos_vocabulary_hash {
     my $code  = $fields[2];
     my $title = $fields[3];
 
-    push @{$termsHash->{$code}->{'skos:prefLabel'}},
-      {
-      '@language' => 'deu',
-      '@value'    => $title
-      };
+    $termsHash->{$code}->{'skos:prefLabel'}->{'deu'} = $title;
   }
 
   return $json;
@@ -210,12 +206,8 @@ sub _get_oefos_term {
   my $n = {
     '@id'            => "oefos2012:$code",
     'skos:notation'  => $code,
-    'skos:prefLabel' => [
-      { '@language' => 'eng',
-        '@value'    => $title
-      }
-    ],
-    'children' => undef
+    'skos:prefLabel' => {'eng' => $title},
+    'children'       => undef
   };
   $termsHash->{$code} = $n;
   return $n;
