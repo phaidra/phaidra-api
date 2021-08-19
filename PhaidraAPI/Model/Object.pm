@@ -278,9 +278,13 @@ sub add_metatags {
     $info->{metatags}->{citation_firstpage} = $jsonld->{'schema:pageStart'} if exists $jsonld->{'schema:pageStart'};
     $info->{metatags}->{citation_lastpage}  = $jsonld->{'schema:pageEnd'}   if exists $jsonld->{'schema:pageEnd'};
     if (exists($jsonld->{'rdau:P60101'})) {
-      if (exists($jsonld->{'rdau:P60101'}->{'dce:title'})) {
-        if (exists($jsonld->{'rdau:P60101'}->{'dce:title'}->{'bf:mainTitle'})) {
-          $info->{metatags}->{citation_inbook_title} = ($jsonld->{'rdau:P60101'}->{'dce:title'}->{'bf:mainTitle'}[0]->{'@value'});
+      for my $p6 (@{$jsonld->{'rdau:P60101'}}) {
+        if (exists($p6->{'dce:title'})) {
+          for my $p6tit (@{$p6->{'dce:title'}}) {
+            if (exists($p6tit->{'bf:mainTitle'})) {
+              $info->{metatags}->{citation_inbook_title} = ($p6tit->{'bf:mainTitle'}[0]->{'@value'});
+            }
+          }
         }
       }
     }
@@ -308,17 +312,16 @@ sub add_metatags {
 
   $info->{metatags}->{citation_keywords}          = $info->{keyword_suggest} if exists $info->{keyword_suggest};
   $info->{metatags}->{citation_language}          = $info->{dc_language}     if exists $info->{dc_language};
-  $info->{metatags}->{citation_abstract_html_url} = ('https://' . $c->app->config->{phaidra}->{baseurl} . '/' . $info->{pid});
-  my $downloadurl = 'https://' . $c->app->config->{baseurl} . '/';
-  if ($c->app->config->{basepath} ne '') {
-    $downloadurl .= $c->app->config->{basepath} . '/';
+  $info->{metatags}->{citation_abstract_html_url} = ('https://' . $c->app->config->{phaidra}->{baseurl} . '/detail/' . $info->{pid});
+  # this is just the extension in the citation_pdf_url link
+  # it's not the extension that comes in content-disposition upon download
+  my $ext = 'download';
+  if ($info->{cmodel} eq 'PDFDocument') {
+    $ext = 'pdf';
   }
-  if ($c->app->config->{baseurl} eq 'services.phaidra.univie.ac.at') {
-    $downloadurl .= 'object/' . $info->{pid} . '/diss/Content/download';
-  }
-  else {
-    $downloadurl .= 'object/' . $info->{pid} . '/download';
-  }
+  # this link is only for crawlers
+  # google scholar: The content of the tag is the absolute URL of the PDF file; for security reasons, it must refer to a file in the same subdirectory as the HTML abstract.
+  my $downloadurl = 'https://' . $c->app->config->{phaidra}->{baseurl} . '/detail/' . $info->{pid} . '.' . $ext;
   $info->{metatags}->{citation_pdf_url} = ($downloadurl);
   $info->{metatags}->{'DC.identifier'}  = 'https://' . $c->app->config->{phaidra}->{baseurl} . '/' . $info->{pid};
   $info->{metatags}->{'DC.rights'}      = $info->{dc_rights} if exists $info->{dc_rights};

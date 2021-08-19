@@ -71,19 +71,19 @@ sub _resolve_gnd {
   my $uri  = shift;
 
   my $res = {alerts => [], status => 200};
-
-  my $url = Mojo::URL->new($uri);
-  my $get = $self->ua->max_redirects(5)->get($url, => {'Accept' => 'application/ld+json'});
-  if (my $getres = $get->success) {
+  $uri =~ s/http/https/g;
+  my $url    = Mojo::URL->new($uri);
+  my $getres = $self->ua->max_redirects(5)->get($url . '/about/lds.jsonld')->result;
+  if ($getres->is_success) {
     for my $h (@{$getres->json}) {
       if ($h->{'@id'} eq $uri) {
         for my $k (keys %{$h}) {
-          if ($k eq 'http://d-nb.info/standards/elementset/gnd#preferredNameForTheSubjectHeading') {
+          if ($k eq 'https://d-nb.info/standards/elementset/gnd#preferredNameForTheSubjectHeading') {
             for my $vn (@{$h->{$k}}) {
               push @{$res->{'skos:prefLabel'}}, $vn;
             }
           }
-          if ($k eq 'http://d-nb.info/standards/elementset/gnd#variantNameForTheSubjectHeading') {
+          if ($k eq 'https://d-nb.info/standards/elementset/gnd#variantNameForTheSubjectHeading') {
             for my $vn (@{$h->{$k}}) {
               push @{$res->{'rdfs:label'}}, $vn;
             }
@@ -93,10 +93,9 @@ sub _resolve_gnd {
     }
   }
   else {
-    my ($err, $code) = $get->error;
-    $self->app->log->error("[$uri] error resolving uri " . $self->app->dumper($err));
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $self->app->dumper($err)};
-    $res->{status} = $code ? $code : 500;
+    $self->app->log->error("[$uri] error resolving uri " . $res->code . ": " . $res->message);
+    unshift @{$res->{alerts}}, {type => 'danger', msg => $res->code . ": " . $res->message};
+    $res->{status} = $res->code ? $res->code : 500;
     return $res;
   }
 

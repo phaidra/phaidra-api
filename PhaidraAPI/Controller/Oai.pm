@@ -97,13 +97,22 @@ sub _get_metadata_dc {
   if (exists($rec->{ispartof})) {
     my @ispartofs;
     for my $v (@{$rec->{ispartof}}) {
-      push @ispartofs, 'isPartOf:https://' . $self->config->{phaidra}->{baseurl} . '/' . $v;
+      my $val  = 'isPartOf:https://' . $self->config->{phaidra}->{baseurl} . '/' . $v;
+      my $upid = $v =~ s/:/_/r;
+      if (exists($rec->{"title_of_$upid"})) {
+        $val .= "[" . $rec->{"title_of_$upid"} . "]";
+      }
+      push @ispartofs, $val;
     }
     my %field;
     $field{name}   = 'relation';
     $field{values} = \@ispartofs;
     push @metadata, \%field;
   }
+  unless (exists($rec->{dc_type_eng})) {
+    $rec->{dc_type_eng} = ['other'];
+  }
+
   for my $k (keys %{$rec}) {
     if ($k =~ m/^dc_([a-z]+)_?([a-z]+)?$/) {
       my $skip = 0;
@@ -113,7 +122,8 @@ sub _get_metadata_dc {
           last;
         }
       }
-      $skip = 1 if ($1 eq 'license'); #dc_license is not a dc field, it's in rights
+      $skip = 1 if ($1 eq 'license');                                #dc_license is not a dc field, it's in rights
+      $skip = 1 if (($set eq 'phaidra4primo') && ($1 eq 'date'));    # bib_published was already added, the rest is not interesting
       next if $skip;
       for my $v (@{$rec->{$k}}) {
         $valuesCheck{$1}{$v} = 1;
@@ -135,33 +145,55 @@ sub _get_metadata_dc {
         }
       }
       unless (exists($field{values})) {
-	$field{values} = [];
-	my $localdupcheck;
-	for my $v (@{$rec->{$k}}) {
-	  unless ($localdupcheck->{$v}) {
+        $field{values} = [];
+        my $localdupcheck;
+        for my $v (@{$rec->{$k}}) {
+          unless ($localdupcheck->{$v}) {
             push @{$field{values}}, $v;
           }
           $localdupcheck->{$v} = 1;
-	}
+        }
       }
-      $field{lang}   = $2 if $2;
+      $field{lang} = $2 if $2;
       push @metadata, \%field;
     }
+  }
+
+  # if there is dc_title with language, remove the value without language
+  my $hasLangTitle = 0;
+  for my $f (@metadata) {
+    if ($f->{name} eq 'title') {
+      if ($f->{lang}) {
+        $hasLangTitle = 1;
+      }
+    }
+  }
+  if ($hasLangTitle) {
+    my @newMetadata;
+    for my $f (@metadata) {
+      if ($f->{name} eq 'title') {
+        if (length $f->{lang} < 2) {
+          next;
+        }
+      }
+      push @newMetadata, $f;
+    }
+    @metadata = @newMetadata;
   }
   return \@metadata;
 }
 
 sub _map_dc_type {
-  my $self           = shift;
-  my $rec            = shift;
-  my $key            = shift;
+  my $self = shift;
+  my $rec  = shift;
+  my $key  = shift;
 
   my $type = $rec->{$key}[0];
 
   switch ($rec->{cmodel}) {
     case 'Asset' {
       switch ($rec->{owner}) {
-        case 'dlbtrepo' {
+        case 'dlbtrepo2' {
           $type = 'text_resource';
         }
         case 'phaidra1' {
@@ -177,7 +209,7 @@ sub _map_dc_type {
           $type = 'research_dataset'
         }
         else {
-          $type = 'other'
+          $type = 'other';
         }
       }
     }
@@ -186,7 +218,7 @@ sub _map_dc_type {
     }
     case 'Book' {
       switch ($rec->{owner}) {
-        case 'ondemae7' { # shouldn't occur
+        case 'ondemae7' {    # shouldn't occur
           $type = 'book'
         }
         case 'archiv3' {
@@ -196,7 +228,7 @@ sub _map_dc_type {
           $type = 'image'
         }
         else {
-          $type = 'text_resource'
+          $type = 'text_resource';
         }
       }
     }
@@ -209,7 +241,7 @@ sub _map_dc_type {
           $type = 'image'
         }
         else {
-          $type = 'container'
+          $type = 'container';
         }
       }
     }
@@ -282,7 +314,7 @@ sub _map_dc_type {
           $type = 'text_resource';
         }
         else {
-          $type = 'text_resource'
+          $type = 'text_resource';
         }
       }
     }
@@ -362,7 +394,9 @@ sub handler {
       for my $key (keys %$params) {
         next if $key eq 'verb';
         unless ($valid->{$key}) {
-          push @$errors, [badArgument => "parameter $key is illegal"];
+          unless (($key eq 'set') && ($params->{$key} eq 'phaidra4primo')) {
+            push @$errors, [badArgument => "parameter $key is illegal"];
+          }
         }
       }
       for my $key (@$required) {
@@ -437,7 +471,7 @@ sub handler {
 
     my $rec = $self->mongo->get_collection('oai_records')->find_one({"pid" => $id});
     if (defined $rec) {
-      $self->stash(r => $rec, metadata => $self->_get_metadata($rec, $params->{metadataPrefix}));
+      $self->stash(r => $rec, metadata => $self->_get_metadata($rec, $params->{metadataPrefix}, $params->{set}));
       $self->render(template => 'oai/get_record', format => 'xml', handler => 'ep');
       return;
     }
