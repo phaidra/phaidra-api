@@ -162,7 +162,6 @@ sub _get_oefos_vocabulary_hash {
 
     #$c->app->log->debug("level[$level] code[$code] title[$title]");
 
-    next unless substr($code, 0, 1) eq '1';
     if ($level == 1) {
       push @$json, $self->_get_oefos_term($c, $termsHash, $code, $title);
     }
