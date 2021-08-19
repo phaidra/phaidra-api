@@ -63,6 +63,8 @@ my %mime_to_cmodel = (
   'audio/mpeg'  => 'cmodel:Audio',
   'audio/flac'  => 'cmodel:Audio',
   'audio/ogg'   => 'cmodel:Audio',
+  'audio/x-aiff'   => 'cmodel:Audio',
+  'audio/aiff'   => 'cmodel:Audio',
 
   'video/mpeg'       => 'cmodel:Video',
   'video/avi'        => 'cmodel:Video',
