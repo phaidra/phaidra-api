@@ -204,10 +204,11 @@ sub _get_oefos_term {
   my ($self, $c, $termsHash, $code, $title) = @_;
   my $n = {
     '@id'            => "oefos2012:$code",
-    'skos:notation'  => $code,
+    'skos:notation'  => [],
     'skos:prefLabel' => {'eng' => $title},
-    'children'       => undef
+    'children'       => []
   };
+  push @{$n->{'skos:notation'}}, $code;
   $termsHash->{$code} = $n;
   return $n;
 }
