@@ -7,7 +7,6 @@ use base qw/Mojo::Base/;
 use Mojo::ByteStream qw(b);
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::File;
-use Mojo::CSV;
 
 sub get_vocabulary {
   my ($self, $c, $uri, $nocache) = @_;
