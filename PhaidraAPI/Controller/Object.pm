@@ -96,12 +96,9 @@ sub thumbnail {
   my $pid = $self->stash('pid');
 
   my $w = $self->param('w');
-  unless ($w) {
-    $w = 120;
-  }
   my $h = $self->param('h');
-  unless ($h) {
-    $h = 120;
+  if (!$w and !$h) {
+    $w = 120;
   }
 
   my $thumbPid = $self->get_is_thumbnail_for($pid);
