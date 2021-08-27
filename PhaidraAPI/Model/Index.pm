@@ -2587,6 +2587,14 @@ sub get_relationships {
       loaded  => 1,
       checked => 0
     };
+    for my $r (@{$v->{hassuccessor}}) {
+      unless ($versionsCheck->{$r}) {
+        $versionsCheck->{$r} = {
+          loaded  => 0,
+          checked => 0
+        };
+      }
+    }
   }
   for my $v (@{$rels->{issuccessorof}}) {
     push @versions, $v;
@@ -2594,6 +2602,14 @@ sub get_relationships {
       loaded  => 1,
       checked => 0
     };
+    for my $r (@{$v->{issuccessorof}}) {
+      unless ($versionsCheck->{$r}) {
+        $versionsCheck->{$r} = {
+          loaded  => 0,
+          checked => 0
+        };
+      }
+    }
   }
   $self->add_set_rec($c, $ua, $urlget, 'hassuccessor', $pid, \@versions, $versionsCheck);
   @versions = sort {$a->{created} <=> $b->{created}} @versions;
@@ -2612,6 +2628,14 @@ sub get_relationships {
       loaded  => 1,
       checked => 0
     };
+    for my $r (@{$v->{isalternativeformatof}}) {
+      unless ($altformatsCheck->{$r}) {
+        $altformatsCheck->{$r} = {
+          loaded  => 0,
+          checked => 0
+        };
+      }
+    }
   }
   for my $v (@{$rels->{hasalternativeformat}}) {
     push @altformats, $v;
@@ -2619,6 +2643,14 @@ sub get_relationships {
       loaded  => 1,
       checked => 0
     };
+    for my $r (@{$v->{hasalternativeformat}}) {
+      unless ($altformatsCheck->{$r}) {
+        $altformatsCheck->{$r} = {
+          loaded  => 0,
+          checked => 0
+        };
+      }
+    }
   }
   $self->add_set_rec($c, $ua, $urlget, 'isalternativeformatof', $pid, \@altformats, $altformatsCheck);
   $res->{alternativeformats} = \@altformats;
@@ -2636,6 +2668,14 @@ sub get_relationships {
       loaded  => 1,
       checked => 0
     };
+    for my $r (@{$v->{isalternativeversionof}}) {
+      unless ($altversionsCheck->{$r}) {
+        $altversionsCheck->{$r} = {
+          loaded  => 0,
+          checked => 0
+        };
+      }
+    }
   }
   for my $v (@{$rels->{hasalternativeversion}}) {
     push @altversions, $v;
@@ -2643,6 +2683,14 @@ sub get_relationships {
       loaded  => 1,
       checked => 0
     };
+    for my $r (@{$v->{hasalternativeversion}}) {
+      unless ($altversionsCheck->{$r}) {
+        $altversionsCheck->{$r} = {
+          loaded  => 0,
+          checked => 0
+        };
+      }
+    }
   }
   $self->add_set_rec($c, $ua, $urlget, 'isalternativeversionof', $pid, \@altversions, $altversionsCheck);
   $res->{alternativeversions} = \@altversions;
@@ -2655,60 +2703,71 @@ sub get_relationships {
 sub add_set_rec {
   my ($self, $c, $ua, $urlget, $relationfield, $pid, $related, $relatedCheck) = @_;
 
-  for my $pid (keys %{$relatedCheck}) {
-    unless ($relatedCheck->{$pid}->{loaded}) {
+  #$c->app->log->debug("$pid - $relationfield before relatedCheck: " . $c->app->dumper($relatedCheck));
+  for my $relpid (keys %{$relatedCheck}) {
+    unless ($relatedCheck->{$relpid}->{checked}) {
+      unless ($relatedCheck->{$relpid}->{loaded}) {
 
-      # load
-      # $c->app->log->debug("getting doc of $pid ($relationfield)");
-      my $d = $self->get_doc_from_ua($c, $ua, $urlget, $pid);
-      push @{$related}, $d;
-      $relatedCheck->{$pid}->{loaded} = 1;
+        # load
+        my $d = $self->get_doc_from_ua($c, $ua, $urlget, $relpid);
+        push @{$related}, $d;
+        $relatedCheck->{$relpid}->{loaded} = 1;
 
-      # add found relationships
-      if ($d->{$relationfield}) {
-        for my $r (@{$d->{$relationfield}}) {
-          unless ($relatedCheck->{$pid}) {
-            $relatedCheck->{$pid} = {
-              loaded  => 0,
+        # add found relationships
+        if ($d->{$relationfield}) {
+          for my $r (@{$d->{$relationfield}}) {
+            unless ($relatedCheck->{$r}) {
+              $relatedCheck->{$r} = {
+                loaded  => 0,
+                checked => 0
+              };
+            }
+          }
+        }
+      }
+
+      # add reverse relationships
+      # $c->app->log->debug("reverse: getting docs where $pid is $relationfield");
+      $c->app->log->debug("for $relpid checking its REVERSE of '$relationfield'");
+      $urlget->query(q => "$relationfield:\"$relpid\"", rows => "1000", wt => "json");
+      my $r = $ua->get($urlget)->result;
+      if ($r->is_success) {
+        for my $d (@{$r->json->{response}->{docs}}) {
+          unless ($relatedCheck->{$d->{pid}}) {
+            $c->app->log->debug("adding " . $d->{pid} . " to related");
+            push @{$related}, $d;
+            $relatedCheck->{$d->{pid}} = {
+              loaded  => 1,
               checked => 0
             };
-          }
-        }
-      }
-    }
 
-    # add reverse relationships
-    # $c->app->log->debug("reverse: getting docs where $pid is $relationfield");
-    $urlget->query(q => "$relationfield:\"$pid\"", rows => "1000", wt => "json");
-    my $r = $ua->get($urlget)->result;
-    if ($r->is_success) {
-      for my $d (@{$r->json->{response}->{docs}}) {
-        if ($relatedCheck->{$d->{pid}}) {
-          unless ($relatedCheck->{$d->{pid}}->{loaded}) {
-            push @{$related}, $d;
-            $relatedCheck->{$d->{pid}}->{loaded} = 1;
+            # add found relationships
+            if ($d->{$relationfield}) {
+              for my $r (@{$d->{$relationfield}}) {
+                $c->app->log->debug($d->{pid} . " found $relationfield: " . $r);
+                unless ($relatedCheck->{$r}) {
+                  $relatedCheck->{$r} = {
+                    loaded  => 0,
+                    checked => 0
+                  };
+                }
+              }
+            }
           }
         }
-        else {
-          push @{$related}, $d;
-          $relatedCheck->{$pid} = {
-            loaded  => 1,
-            checked => 0
-          };
-        }
       }
+      else {
+        $c->app->log->error("[$pid] error getting solr query[$relationfield:\"$relpid\"]: " . $r->code . " " . $r->message);
+      }
+      $relatedCheck->{$relpid}->{checked} = 1;
     }
-    else {
-      $c->app->log->error("[$pid] error getting solr query[$relationfield:\"$pid\"]: " . $r->code . " " . $r->message);
-    }
-    $relatedCheck->{$pid}->{checked} = 1;
   }
 
-  # $c->app->log->debug("relatedCheck: ".$c->app->dumper($relatedCheck));
+  #$c->app->log->debug("$pid - $relationfield after relatedCheck: " . $c->app->dumper($relatedCheck));
 
-  for my $pid (keys %{$relatedCheck}) {
-    unless ($relatedCheck->{$pid}->{checked}) {
-      $self->add_set_rec($c, $ua, $urlget, 'hassuccessor', $pid, $related, $relatedCheck);
+  for my $pidtocheck (keys %{$relatedCheck}) {
+    unless ($relatedCheck->{$pidtocheck}->{checked}) {
+      $self->add_set_rec($c, $ua, $urlget, 'hassuccessor', $pidtocheck, $related, $relatedCheck);
     }
   }
 }
