@@ -2612,7 +2612,7 @@ sub get_relationships {
     }
   }
   $self->add_set_rec($c, $ua, $urlget, 'hassuccessor', $pid, \@versions, $versionsCheck);
-  @versions = sort {$a->{created} <=> $b->{created}} @versions;
+  @versions = sort {$a->{created} cmp $b->{created}} @versions;
   $res->{versions} = \@versions;
 
   my @altformats;
