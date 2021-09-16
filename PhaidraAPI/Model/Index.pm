@@ -1959,6 +1959,17 @@ sub _add_jsonld_index {
     }
   }
 
+  if ($jsonld->{'rdau:P60048'}) {
+    for my $o (@{$jsonld->{'edm:hasType'}}) {
+      for my $l (@{$o->{'skos:prefLabel'}}) {
+        push @{$index->{"rdau_P60048"}}, $l->{'@value'};
+      }
+      for my $id (@{$o->{'skos:exactMatch'}}) {
+        push @{$index->{"rdau_P60048_id"}}, $id;
+      }
+    }
+  }
+
   if ($jsonld->{'schema:genre'}) {
     for my $o (@{$jsonld->{'schema:genre'}}) {
       for my $l (@{$o->{'skos:prefLabel'}}) {
