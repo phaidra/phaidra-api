@@ -1960,7 +1960,7 @@ sub _add_jsonld_index {
   }
 
   if ($jsonld->{'rdau:P60048'}) {
-    for my $o (@{$jsonld->{'edm:hasType'}}) {
+    for my $o (@{$jsonld->{'rdau:P60048'}}) {
       for my $l (@{$o->{'skos:prefLabel'}}) {
         push @{$index->{"rdau_P60048"}}, $l->{'@value'};
       }
