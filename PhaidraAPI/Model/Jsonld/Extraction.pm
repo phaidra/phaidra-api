@@ -32,7 +32,10 @@ our %jsonld_identifiers = (
   'ids:orcid'    => 'orcid',
   'ids:viaf'     => 'viaf',
   'ids:gnd'      => 'gnd',
-  'ids:wikidata' => 'wikidata'
+  'ids:wikidata' => 'wikidata',
+  'ids:lcnaf'    => 'lcnaf',
+  'ids:isni'     => 'isni',
+  'ids:uri'      => 'uri'
 );
 
 sub _get_jsonld_titles {
