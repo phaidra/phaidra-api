@@ -67,9 +67,22 @@ sub _get_metadata_dc {
   my @el          = qw(contributor, coverage, creator, date, description, format, identifier, language, publisher, relation, rights, source, subject, title, type);
   my %valuesCheck = map {$_ => {}} @el;
   my @metadata;
+  my $isirobject = 0;
+  if (exists($rec->{isinadminset})) {
+    if (exists($self->config->{ir})) {
+      if (exists($self->config->{ir}->{adminset})) {
+        for my $admset (@{$rec->{isinadminset}}) {
+          if ($admset eq $self->config->{ir}->{adminset}) {
+            $isirobject = 1;
+          }
+        }
+      }
+    }
+  }
+
   if (exists($rec->{bib_publisher})) {
     for my $v (@{$rec->{bib_publisher}}) {
-      $valuesCheck{'publisher'}{$v} = 1;
+      $valuesCheck{'publisher'}{$v}->{exists} = 1;
     }
     my %field;
     $field{name}   = 'publisher';
@@ -78,7 +91,7 @@ sub _get_metadata_dc {
   }
   if (exists($rec->{bib_published})) {
     for my $v (@{$rec->{bib_published}}) {
-      $valuesCheck{'date'}{$v} = 1;
+      $valuesCheck{'date'}{$v}->{exists} = 1;
     }
     my %field;
     $field{name}   = 'date';
@@ -87,7 +100,7 @@ sub _get_metadata_dc {
   }
   if (exists($rec->{dcterms_datesubmitted})) {
     for my $v (@{$rec->{dcterms_datesubmitted}}) {
-      $valuesCheck{'date'}{$v} = 1;
+      $valuesCheck{'date'}{$v}->{exists} = 1;
     }
     my %field;
     $field{name}   = 'date';
@@ -113,20 +126,28 @@ sub _get_metadata_dc {
     $rec->{dc_type_eng} = ['other'];
   }
 
+  if (($set eq 'phaidra4primo') && $isirobject) {
+    $self->_add_roles_with_id($rec, \@metadata);
+  }
+
   for my $k (keys %{$rec}) {
     if ($k =~ m/^dc_([a-z]+)_?([a-z]+)?$/) {
       my $skip = 0;
       for my $v (@{$rec->{$k}}) {
-        if ($valuesCheck{$1}{$v}) {
+        if ($valuesCheck{$1}{$v}->{exists}) {    # we already saw this value, so we'll skip
+          if ($2) {                              # but there's language, and maybe there was no language before
+            $valuesCheck{$1}{$v}->{lang} = $2;    # so save this information so that we can add it later
+          }
           $skip = 1;
           last;
         }
       }
-      $skip = 1 if ($1 eq 'license');                                #dc_license is not a dc field, it's in rights
-      $skip = 1 if (($set eq 'phaidra4primo') && ($1 eq 'date'));    # bib_published was already added, the rest is not interesting
+      $skip = 1 if ($1 eq 'license');                                                                             # dc_license is not a dc field, it's in rights
+      $skip = 1 if (($set eq 'phaidra4primo') && ($1 eq 'date'));                                                 # bib_published was already added, the rest is not interesting
+      $skip = 1 if (($set eq 'phaidra4primo') && $isirobject && (($1 eq 'creator') || ($1 eq 'contributor')));    # we added those already, with IDs
       next if $skip;
       for my $v (@{$rec->{$k}}) {
-        $valuesCheck{$1}{$v} = 1;
+        $valuesCheck{$1}{$v}->{exists} = 1;
       }
       my %field;
       $field{name} = $1;
@@ -159,28 +180,80 @@ sub _get_metadata_dc {
     }
   }
 
-  # if there is dc_title with language, remove the value without language
-  my $hasLangTitle = 0;
   for my $f (@metadata) {
-    if ($f->{name} eq 'title') {
-      if ($f->{lang}) {
-        $hasLangTitle = 1;
-      }
-    }
-  }
-  if ($hasLangTitle) {
-    my @newMetadata;
-    for my $f (@metadata) {
-      if ($f->{name} eq 'title') {
-        if (length $f->{lang} < 2) {
-          next;
+    unless ($f->{lang}) {
+      for my $v (@{$f->{values}}) {
+        if ($valuesCheck{$f->{name}}{$v}->{lang}) {
+          $f->{lang} = $valuesCheck{$f->{name}}{$v}->{lang};
         }
       }
-      push @newMetadata, $f;
     }
-    @metadata = @newMetadata;
   }
+
   return \@metadata;
+}
+
+sub _add_roles_with_id {
+  my $self     = shift;
+  my $rec      = shift;
+  my $metadata = shift;
+
+  my @roles;
+  if ($rec->{roles_json}) {
+    my $roles_json = decode_json(b($rec->{roles_json}[0])->encode('UTF-8'));
+    for my $r (@{$roles_json}) {
+      for my $pred (keys %{$r}) {
+        my $dcrole;
+        if ($PhaidraAPI::Model::Jsonld::Extraction::jsonld_contributor_roles{substr($pred, 5)}) {
+          $dcrole = 'contributor';
+        }
+        if ($PhaidraAPI::Model::Jsonld::Extraction::jsonld_creator_roles{substr($pred, 5)}) {
+          $dcrole = 'creator';
+        }
+
+        for my $contr (@{$r->{$pred}}) {
+          my %field;
+          $field{name}   = $dcrole;
+          $field{values} = [];
+          my $name;
+          my $affiliation;
+          my $id;
+          if ($contr->{'@type'} eq 'schema:Person') {
+            if ($contr->{'schema:givenName'} || $contr->{'schema:familyName'}) {
+              $name = $contr->{'schema:givenName'}[0]->{'@value'} . " " . $contr->{'schema:familyName'}[0]->{'@value'};
+            }
+            else {
+              $name = $contr->{'schema:name'}[0]->{'@value'};
+            }
+            if ($contr->{'schema:affiliation'}) {
+              for my $aff (@{$contr->{'schema:affiliation'}}) {
+                for my $affname (@{$aff->{'schema:name'}}) {
+                  $affiliation = $affname->{'@value'};
+                }
+              }
+            }
+            if ($contr->{'skos:exactMatch'}) {
+              $id = $PhaidraAPI::Model::Jsonld::Extraction::jsonld_identifiers{$contr->{'skos:exactMatch'}[0]->{'@type'}} . ':' . $contr->{'skos:exactMatch'}[0]->{'@value'};
+            }
+          }
+          elsif ($contr->{'@type'} eq 'schema:Organization') {
+            $name = $contr->{'schema:name'}[0]->{'@value'};
+          }
+
+          my $role = $name;
+          if ($affiliation) {
+            $role .= ' (' . $affiliation . ')';
+          }
+          if ($id) {
+            $role .= ' [' . $id . ']';
+          }
+          $self->app->log->debug('adding: ' . $self->app->dumper($role));
+          push @{$field{values}}, $role;
+          push $metadata, \%field;
+        }
+      }
+    }
+  }
 }
 
 sub _map_dc_type {

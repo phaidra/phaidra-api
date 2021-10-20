@@ -22,13 +22,17 @@ our %jsonld_creator_roles = (
 );
 
 our %jsonld_identifiers = (
-  'schema:url' => 'url',
-  'ids:urn'    => 'urn',
-  'ids:hdl'    => 'hdl',
-  'ids:doi'    => 'doi',
-  'ids:isbn'   => 'isbn',
-  'ids:issn'   => 'issn',
-  'ids:local'  => 'local'
+  'schema:url'   => 'url',
+  'ids:urn'      => 'urn',
+  'ids:hdl'      => 'hdl',
+  'ids:doi'      => 'doi',
+  'ids:isbn'     => 'isbn',
+  'ids:issn'     => 'issn',
+  'ids:local'    => 'local',
+  'ids:orcid'    => 'orcid',
+  'ids:viaf'     => 'viaf',
+  'ids:gnd'      => 'gnd',
+  'ids:wikidata' => 'wikidata'
 );
 
 sub _get_jsonld_titles {
