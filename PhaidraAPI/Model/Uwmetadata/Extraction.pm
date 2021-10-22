@@ -154,6 +154,9 @@ sub _get_uwm_relations {
       if ($res eq '1562802') {
         push @$relations, {value => 'http://d-nb.info/gnd/' . $id->text};
       }
+      if ($res eq '1562603') {
+        push @$relations, {value => 'isPartOf:' . $id->text};
+      }
     }
   }
 
