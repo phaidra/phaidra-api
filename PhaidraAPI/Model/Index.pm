@@ -1311,8 +1311,8 @@ sub _get {
     }
   }
   unless ($index{size}) {
-    my $octets_mdoel = PhaidraAPI::Model::Octets->new;
-    my $parthres     = $octets_mdoel->_get_ds_path($c, $pid, 'OCTETS');
+    my $octets_model = PhaidraAPI::Model::Octets->new;
+    my $parthres     = $octets_model->_get_ds_path($c, $pid, 'OCTETS');
     if ($parthres->{status} == 200) {
       $index{size} = -s $parthres->{path};
     }
