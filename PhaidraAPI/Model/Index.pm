@@ -525,7 +525,7 @@ sub update {
       if ($getStatus eq 200) {
 
         if (exists($c->app->config->{index_mongodb})) {
-          $c->index_mongo->db->collection($c->app->config->{index_mongodb}->{collection})->update({pid => $pid}, $r->{index}, {upsert => 1});
+          $c->index_mongo->get_collection($c->app->config->{index_mongodb}->{collection})->update_one({pid => $pid}, {'$set' => $r->{index}}, {upsert => 1});
           $c->app->log->debug("[$pid] mongo index updated");
         }
 
@@ -1304,9 +1304,9 @@ sub _get {
 
   # inventory
   if (exists($c->app->config->{paf_mongodb})) {
-    my $inv_coll = $c->paf_mongo->db->collection('foxml.ds');
+    my $inv_coll = $c->paf_mongo->get_collection('foxml.ds');
     if ($inv_coll) {
-      my $ds_doc = $inv_coll->find({pid => $pid})->sort({"updated_at" => -1})->next;
+      my $ds_doc = $inv_coll->find_one({pid => $pid}, {}, {"sort" => {"updated_at" => -1}});
       $index{size} = $ds_doc->{ds_sizes}->{OCTETS};
     }
   }
