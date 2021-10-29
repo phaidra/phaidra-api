@@ -149,7 +149,7 @@ sub add_template {
   my $btid = $ug->create();
   my $tid  = $ug->to_string($btid);
 
-  $self->mango->db->collection('jsonldtemplates')->insert({tid => $tid, owner => $self->stash->{basic_auth_credentials}->{username}, name => $name, form => $form, tag => $tag, created => time});
+  $self->mongo->get_collection('jsonldtemplates')->insert_one({tid => $tid, owner => $self->stash->{basic_auth_credentials}->{username}, name => $name, form => $form, tag => $tag, created => time});
 
   $res->{tid} = $tid;
 
@@ -166,7 +166,7 @@ sub get_template {
     return;
   }
   $self->app->log->debug($self->stash('tid') . " " . $self->stash->{basic_auth_credentials}->{username});
-  my $tres = $self->mango->db->collection('jsonldtemplates')->find({tid => $self->stash('tid'), owner => $self->stash->{basic_auth_credentials}->{username}})->next;
+  my $tres = $self->mongo->get_collection('jsonldtemplates')->find_one({tid => $self->stash('tid'), owner => $self->stash->{basic_auth_credentials}->{username}});
 
   $res->{template} = $tres;
 
@@ -185,7 +185,7 @@ sub get_users_templates {
     $find->{'tag'} = $tag;
   }
 
-  my $users_templates = $self->mango->db->collection('jsonldtemplates')->find($find)->sort({'created' => -1});
+  my $users_templates = $self->mongo->get_collection('jsonldtemplates')->find($find)->sort({'created' => -1});
   my @tmplts          = ();
   while (my $doc = $users_templates->next) {
     push @tmplts, {tid => $doc->{tid}, name => $doc->{name}, created => $doc->{created}};
@@ -206,7 +206,7 @@ sub remove_template {
     return;
   }
 
-  $self->mango->db->collection('jsonldtemplates')->remove({tid => $self->stash('tid'), owner => $self->stash->{basic_auth_credentials}->{username}});
+  $self->mongo->get_collection('jsonldtemplates')->delete_one({tid => $self->stash('tid'), owner => $self->stash->{basic_auth_credentials}->{username}});
 
   $self->render(json => $res, status => $res->{status});
 }

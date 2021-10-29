@@ -48,9 +48,9 @@ sub imageserver_job_status {
   my $pid  = shift;
 
   if (exists($self->app->config->{paf_mongodb})) {
-    my $jobs_coll = $self->paf_mongo->db->collection('jobs');
+    my $jobs_coll = $self->paf_mongo->get_collection('jobs');
     if ($jobs_coll) {
-      my $job_record = $jobs_coll->find({pid => $pid, agent => 'pige'})->sort({'created' => -1})->next;
+      my $job_record = $jobs_coll->find_one({pid => $pid, agent => 'pige'}, {}, {"sort" => {"created" => -1}});
       return $job_record->{status};
     }
   }

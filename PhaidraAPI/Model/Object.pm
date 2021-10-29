@@ -58,12 +58,12 @@ my %mime_to_cmodel = (
   'image/tiff' => 'cmodel:Picture',
   'image/png'  => 'cmodel:Picture',
 
-  'audio/x-wav' => 'cmodel:Audio',
-  'audio/wav'   => 'cmodel:Audio',
-  'audio/mpeg'  => 'cmodel:Audio',
-  'audio/flac'  => 'cmodel:Audio',
-  'audio/ogg'   => 'cmodel:Audio',
-  'audio/x-aiff'   => 'cmodel:Audio',
+  'audio/x-wav'  => 'cmodel:Audio',
+  'audio/wav'    => 'cmodel:Audio',
+  'audio/mpeg'   => 'cmodel:Audio',
+  'audio/flac'   => 'cmodel:Audio',
+  'audio/ogg'    => 'cmodel:Audio',
+  'audio/x-aiff' => 'cmodel:Audio',
   'audio/aiff'   => 'cmodel:Audio',
 
   'video/mpeg'       => 'cmodel:Video',
@@ -242,7 +242,7 @@ sub info {
 
     if ($info->{readrights}) {
       my $pido   = $pid =~ s/\:/_/r;
-      my $cursor = $c->paf_mongo->db->collection('octets.catalog')->find({'path' => qr/$pido\+/}, {path => 1, md5 => 1});
+      my $cursor = $c->paf_mongo->get_collection('octets.catalog')->find({'path' => qr/$pido\+/}, {path => 1, md5 => 1});
       $info->{md5} = [];
       while (my $doc = $cursor->next) {
         push @{$info->{md5}}, $doc;
@@ -313,12 +313,14 @@ sub add_metatags {
   $info->{metatags}->{citation_keywords}          = $info->{keyword_suggest} if exists $info->{keyword_suggest};
   $info->{metatags}->{citation_language}          = $info->{dc_language}     if exists $info->{dc_language};
   $info->{metatags}->{citation_abstract_html_url} = ('https://' . $c->app->config->{phaidra}->{baseurl} . '/detail/' . $info->{pid});
+
   # this is just the extension in the citation_pdf_url link
   # it's not the extension that comes in content-disposition upon download
   my $ext = 'download';
   if ($info->{cmodel} eq 'PDFDocument') {
     $ext = 'pdf';
   }
+
   # this link is only for crawlers
   # google scholar: The content of the tag is the absolute URL of the PDF file; for security reasons, it must refer to a file in the same subdirectory as the HTML abstract.
   my $downloadurl = 'https://' . $c->app->config->{phaidra}->{baseurl} . '/detail/' . $info->{pid} . '.' . $ext;

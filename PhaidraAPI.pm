@@ -11,8 +11,7 @@ use Mojolicious::Plugin::Log::Any;
 use Mojo::Loader qw(load_class);
 use lib "lib/phaidra_directory";
 use lib "lib/phaidra_binding";
-use Mango 0.24;
-use MongoDB;
+use MongoDB 1.8.3;
 use Sereal::Encoder qw(encode_sereal);
 use Sereal::Decoder qw(decode_sereal);
 use Crypt::CBC              ();
@@ -169,9 +168,6 @@ sub startup {
 
   $self->plugin('database', {databases => \%databases});
 
-  # Mango driver
-  $self->helper(mango => sub {state $mango = Mango->new('mongodb://' . $config->{mongodb}->{username} . ':' . $config->{mongodb}->{password} . '@' . $config->{mongodb}->{host} . '/' . $config->{mongodb}->{database})});
-
   # MongoDB driver
   $self->helper(
     mongo => sub {
@@ -180,7 +176,6 @@ sub startup {
         port               => $config->{mongodb}->{port},
         username           => $config->{mongodb}->{username},
         password           => $config->{mongodb}->{password},
-        db_name            => $config->{mongodb}->{database},
         connect_timeout_ms => 300000,
         socket_timeout_ms  => 300000,
       )->get_database($config->{mongodb}->{database});
@@ -188,7 +183,16 @@ sub startup {
   );
 
   if (exists($config->{paf_mongodb})) {
-    $self->helper(paf_mongo => sub {state $paf_mongo = Mango->new('mongodb://' . $config->{paf_mongodb}->{username} . ':' . $config->{paf_mongodb}->{password} . '@' . $config->{paf_mongodb}->{host} . '/' . $config->{paf_mongodb}->{database})});
+    $self->helper(
+      paf_mongo => sub {
+        state $paf_mongo = MongoDB::MongoClient->new(
+          host     => $config->{paf_mongodb}->{host},
+          port     => $config->{paf_mongodb}->{port},
+          username => $config->{paf_mongodb}->{username},
+          password => $config->{paf_mongodb}->{password},
+        )->get_database($config->{paf_mongodb}->{database});
+      }
+    );
   }
 
   # we might possibly save a lot of data to session
@@ -197,7 +201,7 @@ sub startup {
     session => {
       stash_key => 'mojox-session',
       store     => PhaidraAPI::Model::Session::Store::Mongo->new(
-        mango => $self->mango,
+        mongo => $self->mongo,
         'log' => $self->log
       ),
       transport => PhaidraAPI::Model::Session::Transport::Header->new(

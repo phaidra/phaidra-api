@@ -3,7 +3,6 @@ package PhaidraAPI::Controller::Imageserver;
 use strict;
 use warnings;
 use v5.10;
-use Mango 0.24;
 use base 'Mojolicious::Controller';
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::Util qw(decode encode url_escape url_unescape);
@@ -30,14 +29,14 @@ sub process {
 
   if ($skipexisting && ($skipexisting eq 1)) {
     if (defined($ds)) {
-      my $res1 = $self->paf_mongo->db->collection('jobs')->find({pid => $pid, ds => $ds})->sort({"created" => -1})->next;
+      my $res1 = $self->paf_mongo->get_collection('jobs')->find_one({pid => $pid, ds => $ds}, {}, {"sort" => {"created" => -1}});
       if ($res1->{pid}) {
         $self->render(json => {alerts => [{type => 'info', msg => "Job for pid[$pid] and ds[$ds] already created"}], job => $res1}, status => 200);
         return;
       }
     }
     else {
-      my $res1 = $self->paf_mongo->db->collection('jobs')->find({pid => $pid})->sort({"created" => -1})->next;
+      my $res1 = $self->paf_mongo->get_collection('jobs')->find_one({pid => $pid}, {}, {"sort" => {"created" => -1}});
       if ($res1->{pid}) {
         $self->render(json => {alerts => [{type => 'info', msg => "Job for pid[$pid] already created"}], job => $res1}, status => 200);
         return;
@@ -56,14 +55,14 @@ sub process {
   my $hash;
   if (defined($ds)) {
     $hash = hmac_sha1_hex($pid . "_" . $ds, $self->app->config->{imageserver}->{hash_secret});
-    $self->paf_mongo->db->collection('jobs')->insert({pid => $pid, ds => $ds, cmodel => $cmodel, agent => "pige", status => "new", idhash => $hash, created => time});
+    $self->paf_mongo->get_collection('jobs')->insert_one({pid => $pid, ds => $ds, cmodel => $cmodel, agent => "pige", status => "new", idhash => $hash, created => time});
   }
   else {
     $hash = hmac_sha1_hex($pid, $self->app->config->{imageserver}->{hash_secret});
-    $self->paf_mongo->db->collection('jobs')->insert({pid => $pid, cmodel => $cmodel, agent => "pige", status => "new", idhash => $hash, created => time});
+    $self->paf_mongo->get_collection('jobs')->insert_one({pid => $pid, cmodel => $cmodel, agent => "pige", status => "new", idhash => $hash, created => time});
   }
 
-  my $res = $self->paf_mongo->db->collection('jobs')->find({pid => $pid})->sort({"created" => -1})->next;
+  my $res = $self->paf_mongo->get_collection('jobs')->find_one({pid => $pid}, {}, {"sort" => {"created" => -1}});
 
   $self->render(json => $res, status => 200);
 }
@@ -102,7 +101,7 @@ sub process_pids {
   for my $pid (@{$pids->{pids}}) {
 
     if ($skipexisting && ($skipexisting eq 1)) {
-      my $res1 = $self->paf_mongo->db->collection('jobs')->find({pid => $pid})->sort({"created" => -1})->next;
+      my $res1 = $self->paf_mongo->get_collection('jobs')->find_one({pid => $pid}, {}, {"sort" => {"created" => -1}});
       next if $res1->{pid};
     }
 
@@ -116,11 +115,11 @@ sub process_pids {
 
     # create new job to process image
     my $hash = hmac_sha1_hex($pid, $self->app->config->{imageserver}->{hash_secret});
-    $self->paf_mongo->db->collection('jobs')->insert({pid => $pid, cmodel => $cmodel, agent => "pige", status => "new", idhash => $hash, created => time});
+    $self->paf_mongo->get_collection('jobs')->insert_one({pid => $pid, cmodel => $cmodel, agent => "pige", status => "new", idhash => $hash, created => time});
 
     # create a temporary hash for the image to hide the real hash in case we want to forbid access to the picture
     my $tmp_hash = hmac_sha1_hex($hash, $self->app->config->{imageserver}->{tmp_hash_secret});
-    $self->mango->db->collection('imgsrv.hashmap')->insert({pid => $pid, idhash => $hash, tmp_hash => $tmp_hash, created => time});
+    $self->mongo->get_collection('imgsrv.hashmap')->insert_one({pid => $pid, idhash => $hash, tmp_hash => $tmp_hash, created => time});
 
     push @results, {pid => $pid, idhash => $hash, tmp_hash => $tmp_hash};
   }
@@ -142,7 +141,7 @@ sub status {
     return;
   }
 
-  my $res = $self->paf_mongo->db->collection('jobs')->find({pid => $pid})->sort({"created" => -1})->next;
+  my $res = $self->paf_mongo->get_collection('jobs')->find_one({pid => $pid}, {}, {"sort" => {"created" => -1}});
 
   $self->render(json => $res, status => 200);
 
@@ -160,11 +159,11 @@ sub tmp_hash {
   if ($rres->{status} eq '404') {
 
     # it's ok
-    my $res = $self->mango->db->collection('imgsrv.hashmap')->find_one({pid => $pid});
+    my $res = $self->mongo->get_collection('imgsrv.hashmap')->find_one({pid => $pid});
     if (!defined($res) || !exists($res->{tmp_hash})) {
 
       # if we could not find the temp hash, look into the jobs if the image isn't there as processed
-      my $res1 = $self->paf_mongo->db->collection('jobs')->find({pid => $pid})->sort({"created" => -1})->next;
+      my $res1 = $self->paf_mongo->get_collection('jobs')->find_one({pid => $pid}, {}, {"sort" => {"created" => -1}});
       if (!defined($res1) || $res1->{status} ne 'finished') {
 
         # if it isn't then this image isn't known to imageserver
@@ -175,7 +174,7 @@ sub tmp_hash {
         # if it is, create the temp hash
         if ($res1->{idhash}) {
           my $tmp_hash = hmac_sha1_hex($res1->{idhash}, $self->app->config->{imageserver}->{tmp_hash_secret});
-          $self->mango->db->collection('imgsrv.hashmap')->insert({pid => $pid, idhash => $res1->{idhash}, tmp_hash => $tmp_hash, created => time});
+          $self->mongo->get_collection('imgsrv.hashmap')->insert_one({pid => $pid, idhash => $res1->{idhash}, tmp_hash => $tmp_hash, created => time});
           $self->render(text => $tmp_hash, status => 200);
           return;
         }

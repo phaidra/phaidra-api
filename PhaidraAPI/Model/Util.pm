@@ -55,9 +55,9 @@ sub get_video_key {
   my $res = {alerts => [], status => 200};
 
   if (exists($c->app->config->{paf_mongodb})) {
-    my $video_coll = $c->paf_mongo->db->collection('video.map');
+    my $video_coll = $c->paf_mongo->get_collection('video.map');
     if ($video_coll) {
-      $map_record = $video_coll->find({pid => $pid})->sort({"_updated" => -1})->next;
+      $map_record = $video_coll->find_one({pid => $pid}, {}, { "sort" => {"_updated" => -1}});
     }
   }
   my $video_key;

@@ -12,7 +12,6 @@ use MIME::Base64 qw(encode_base64url decode_base64url);
 use DateTime;
 use DateTime::Format::ISO8601;
 use DateTime::Format::Strptime;
-use BSON::Types qw(:all);
 use Clone qw(clone);
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::ByteStream qw(b);
@@ -247,9 +246,10 @@ sub _add_roles_with_id {
           if ($id) {
             $role .= ' [' . $id . ']';
           }
-          $self->app->log->debug('adding: ' . $self->app->dumper($role));
+
+          # $self->app->log->debug('adding: ' . $self->app->dumper($role));
           push @{$field{values}}, $role;
-          push $metadata, \%field;
+          push @{$metadata}, \%field;
         }
       }
     }
@@ -554,12 +554,17 @@ sub handler {
 
   }
   elsif ($verb eq 'Identify') {
-    my $earliestDatestamp = bson_time(0);                                                                        # 1970-01-01T00:00:01Z
-    my $rec               = $self->mongo->get_collection('oai_records')->find()->sort({"updated" => 1})->next;
+    my $earliestDatestampSec = 0;                                                                                   # 1970-01-01T00:00:01Z
+    my $earliestDatestampStr = '1970-01-01T00:00:01Z';
+    my $rec                  = $self->mongo->get_collection('oai_records')->find()->sort({"updated" => 1})->next;
     if ($rec) {
-      $earliestDatestamp = $rec->{created};
+      $earliestDatestampSec = $rec->{created} / 1000;
+      my ($s, $m, $h, $D, $M, $Y) = gmtime($earliestDatestampSec);
+      $M++;
+      $Y += 1900;
+      $earliestDatestampStr = sprintf("%4d-%02d-%02dT%02d:%02d:%02dZ", $Y, $M, $D, $h, $m, $s);
     }
-    $self->stash(earliest_datestamp => $earliestDatestamp);
+    $self->stash(earliest_datestamp => $earliestDatestampStr);
     $self->render(template => 'oai/identify', format => 'xml', handler => 'ep');
     return;
 
@@ -600,11 +605,11 @@ sub handler {
     my %filter;
 
     if ($from) {
-      $filter{"updated"} = {'$gte' => DateTime::Format::ISO8601->parse_datetime($from)};
+      $filter{"updated"} = {'$gte' => DateTime::Format::ISO8601->parse_datetime($from)->epoch * 1000};
     }
 
     if ($until) {
-      $filter{"updated"} = {'$lte' => DateTime::Format::ISO8601->parse_datetime($until)};
+      $filter{"updated"} = {'$lte' => DateTime::Format::ISO8601->parse_datetime($until)->epoch * 1000};
     }
 
     if ($params->{set}) {

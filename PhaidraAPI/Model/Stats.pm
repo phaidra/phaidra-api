@@ -7,14 +7,14 @@ use XML::LibXML;
 use base qw/Mojo::Base/;
 
 sub aggregates {
-  my $self   = shift;
-  my $c      = shift;
-  my $detail    = shift;
+  my $self       = shift;
+  my $c          = shift;
+  my $detail     = shift;
   my $time_scale = shift;
 
   my $res = {alerts => [], status => 200};
 
-  my $cursor = $c->paf_mongo->db->collection('aggregates')->find({'detail' => $detail, 'time_scale' => $time_scale });
+  my $cursor = $c->paf_mongo->get_collection('aggregates')->find({'detail' => $detail, 'time_scale' => $time_scale});
   $res->{stats} = [];
   while (my $doc = $cursor->next) {
     push @{$res->{stats}}, $doc;

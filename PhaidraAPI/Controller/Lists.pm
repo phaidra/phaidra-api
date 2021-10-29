@@ -3,7 +3,6 @@ package PhaidraAPI::Controller::Lists;
 use strict;
 use warnings;
 use v5.10;
-use MongoDB;
 use Data::UUID;
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::ByteStream qw(b);

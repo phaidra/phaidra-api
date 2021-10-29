@@ -3,7 +3,6 @@ package PhaidraAPI::Controller::Inventory;
 use strict;
 use warnings;
 use v5.10;
-use MongoDB;
 use Data::UUID;
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::ByteStream qw(b);
@@ -22,7 +21,7 @@ sub get_md5 {
     $self->render(json => $res->{json}, status => $res->{status});
     return;
   }
-  my $cursor = $self->paf_mongo->db->collection('octets.catalog')->find({'path' => qr/$pido\+/}, {path => 1, md5 => 1});
+  my $cursor = $self->paf_mongo->get_collection('octets.catalog')->find({'path' => qr/$pido\+/}, {path => 1, md5 => 1});
   my @md5;
   while (my $doc = $cursor->next) {
     push @md5, $doc;
