@@ -10,10 +10,7 @@ __PACKAGE__->attr('log');
 
 sub create {
   my ($self, $sid, $expires, $data) = @_;
-
-  $expires = $expires;
   $self->mongo->get_collection('session')->update_one({_id => $sid}, {'$set' => {expires => $expires, data => $data}}, {upsert => 1});
-
   return 1;
 }
 

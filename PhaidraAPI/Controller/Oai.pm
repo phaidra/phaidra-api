@@ -61,6 +61,15 @@ sub _serialize {
   return encode_base64url($mp->pack($data));
 }
 
+sub _epochMsToIso {
+  my ($self, $epochms) = @_;
+  my $sec = $epochms / 1000;
+  my ($s, $m, $h, $D, $M, $Y) = gmtime($sec);
+  $M++;
+  $Y += 1900;
+  return sprintf("%4d-%02d-%02dT%02d:%02d:%02dZ", $Y, $M, $D, $h, $m, $s);
+}
+
 sub _get_metadata_dc {
   my ($self, $rec, $set) = @_;
   my @el          = qw(contributor, coverage, creator, date, description, format, identifier, language, publisher, relation, rights, source, subject, title, type);
@@ -558,11 +567,7 @@ sub handler {
     my $earliestDatestampStr = '1970-01-01T00:00:01Z';
     my $rec                  = $self->mongo->get_collection('oai_records')->find()->sort({"updated" => 1})->next;
     if ($rec) {
-      $earliestDatestampSec = $rec->{created} / 1000;
-      my ($s, $m, $h, $D, $M, $Y) = gmtime($earliestDatestampSec);
-      $M++;
-      $Y += 1900;
-      $earliestDatestampStr = sprintf("%4d-%02d-%02dT%02d:%02d:%02dZ", $Y, $M, $D, $h, $m, $s);
+      $earliestDatestampStr = $self->_epochMsToIso($rec->{created});
     }
     $self->stash(earliest_datestamp => $earliestDatestampStr);
     $self->render(template => 'oai/identify', format => 'xml', handler => 'ep');
@@ -628,9 +633,11 @@ sub handler {
     my @records = ();
     while (my $rec = $cursor->next) {
       if ($verb eq 'ListIdentifiers') {
+        $rec->{updated} = $self->_epochMsToIso($rec->{updated});
         push @records, {r => $rec};
       }
       else {
+        $rec->{updated} = $self->_epochMsToIso($rec->{updated});
         push @records, {r => $rec, metadata => $self->_get_metadata($rec, $metadataPrefix, $params->{set})};
       }
     }
