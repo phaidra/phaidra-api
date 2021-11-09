@@ -553,6 +553,7 @@ sub handler {
 
     my $rec = $self->mongo->get_collection('oai_records')->find_one({"pid" => $id});
     if (defined $rec) {
+      $rec->{updated} = $self->_epochMsToIso($rec->{updated});
       $self->stash(r => $rec, metadata => $self->_get_metadata($rec, $params->{metadataPrefix}, $params->{set}));
       $self->render(template => 'oai/get_record', format => 'xml', handler => 'ep');
       return;
