@@ -485,6 +485,34 @@ sub children {
   return $res;
 }
 
+sub taxonpath_upstreamid {
+  my $self       = shift;
+  my $c          = shift;
+  my $cid        = shift;
+  my $upstreamid = shift;
+
+  my $res = {alerts => [], status => 200};
+
+  my $tid;
+  my $ss  = qq/SELECT tid FROM taxon WHERE cid = (?) AND upstream_identifier = (?);/;
+  my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+  $sth->execute($cid, $upstreamid);
+  $sth->bind_columns(undef, \$tid);
+  $sth->fetch;
+
+  $c->app->log->debug("taxonpath_upstreamid cid[$cid] upstreamid[$upstreamid] tid[$tid]");
+
+  unless ($tid) {
+    push @{$res->{alerts}}, {type => 'danger', msg => "Cannot find taxonid cid[$cid] upstreamid[$upstreamid] tid[$tid]"};
+    $res->{status} = 400;
+    return $res;
+  }
+
+  my $uri = "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/classification/cls_$cid/$tid";
+
+  return $self->taxonpath($c, $uri);
+}
+
 sub taxonpath {
   my $self = shift;
   my $c    = shift;

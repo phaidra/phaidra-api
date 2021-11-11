@@ -37,7 +37,21 @@ sub taxonpath {
   my $self = shift;
 
   my $terms_model = PhaidraAPI::Model::Terms->new;
-  my $res         = $terms_model->taxonpath($self, $self->param('uri'));
+  my $res;
+  if ($self->param('upstreamid')) {
+    unless (defined($self->param('cid'))) {
+      $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined cid'}], status => 404}, status => 404);
+      return;
+    }
+    $res = $terms_model->taxonpath_upstreamid($self, $self->param('cid'), $self->param('upstreamid'));
+  }
+  else {
+    unless (defined($self->param('uri'))) {
+      $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined uri'}], status => 404}, status => 404);
+      return;
+    }
+    $res = $terms_model->taxonpath($self, $self->param('uri'));
+  }
 
   $self->render(json => $res, status => $res->{status});
 }
