@@ -219,46 +219,48 @@ sub _add_roles_with_id {
           $dcrole = 'creator';
         }
 
-        for my $contr (@{$r->{$pred}}) {
-          my %field;
-          $field{name}   = $dcrole;
-          $field{values} = [];
-          my $name;
-          my $affiliation;
-          my $id;
-          if ($contr->{'@type'} eq 'schema:Person') {
-            if ($contr->{'schema:givenName'} || $contr->{'schema:familyName'}) {
-              $name = $contr->{'schema:givenName'}[0]->{'@value'} . " " . $contr->{'schema:familyName'}[0]->{'@value'};
-            }
-            else {
-              $name = $contr->{'schema:name'}[0]->{'@value'};
-            }
-            if ($contr->{'schema:affiliation'}) {
-              for my $aff (@{$contr->{'schema:affiliation'}}) {
-                for my $affname (@{$aff->{'schema:name'}}) {
-                  $affiliation = $affname->{'@value'};
+        if ($dcrole) {
+          for my $contr (@{$r->{$pred}}) {
+            my %field;
+            $field{name}   = $dcrole;
+            $field{values} = [];
+            my $name;
+            my $affiliation;
+            my $id;
+            if ($contr->{'@type'} eq 'schema:Person') {
+              if ($contr->{'schema:givenName'} || $contr->{'schema:familyName'}) {
+                $name = $contr->{'schema:givenName'}[0]->{'@value'} . " " . $contr->{'schema:familyName'}[0]->{'@value'};
+              }
+              else {
+                $name = $contr->{'schema:name'}[0]->{'@value'};
+              }
+              if ($contr->{'schema:affiliation'}) {
+                for my $aff (@{$contr->{'schema:affiliation'}}) {
+                  for my $affname (@{$aff->{'schema:name'}}) {
+                    $affiliation = $affname->{'@value'};
+                  }
                 }
               }
+              if ($contr->{'skos:exactMatch'}) {
+                $id = $PhaidraAPI::Model::Jsonld::Extraction::jsonld_identifiers{$contr->{'skos:exactMatch'}[0]->{'@type'}} . ':' . $contr->{'skos:exactMatch'}[0]->{'@value'};
+              }
             }
-            if ($contr->{'skos:exactMatch'}) {
-              $id = $PhaidraAPI::Model::Jsonld::Extraction::jsonld_identifiers{$contr->{'skos:exactMatch'}[0]->{'@type'}} . ':' . $contr->{'skos:exactMatch'}[0]->{'@value'};
+            elsif ($contr->{'@type'} eq 'schema:Organization') {
+              $name = $contr->{'schema:name'}[0]->{'@value'};
             }
-          }
-          elsif ($contr->{'@type'} eq 'schema:Organization') {
-            $name = $contr->{'schema:name'}[0]->{'@value'};
-          }
 
-          my $role = $name;
-          if ($affiliation) {
-            $role .= ' (' . $affiliation . ')';
-          }
-          if ($id) {
-            $role .= ' [' . $id . ']';
-          }
+            my $role = $name;
+            if ($affiliation) {
+              $role .= ' (' . $affiliation . ')';
+            }
+            if ($id) {
+              $role .= ' [' . $id . ']';
+            }
 
-          # $self->app->log->debug('adding: ' . $self->app->dumper($role));
-          push @{$field{values}}, $role;
-          push @{$metadata}, \%field;
+            #$self->app->log->debug('adding: ' . $self->app->dumper($role));
+            push @{$field{values}}, $role;
+            push @{$metadata}, \%field;
+          }
         }
       }
     }
