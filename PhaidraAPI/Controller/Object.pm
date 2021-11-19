@@ -1145,7 +1145,9 @@ sub diss {
 
   if (($bdef eq 'Resource') && ($method eq 'get')) {
     my $redres = $self->ua->get($url)->result;
+    $self->app->log->info("fedora resource get result code[" . $redres->code . "] message[" . $redres->message . "] location[" . $redres->headers->location . "]");
     if ($redres->code == 302) {
+
       $self->res->headers->location($redres->headers->location);
       $self->rendered(302);
       return;

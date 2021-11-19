@@ -1391,15 +1391,15 @@ sub get_datastream {
   my %headers;
   $self->add_upstream_headers($c, \%headers);
 
-  my $get = Mojo::UserAgent->new->get($url => \%headers);
+  my $getres = Mojo::UserAgent->new->get($url => \%headers)->result;
 
-  if (my $r = $get->success) {
+  if ($getres->is_success) {
     $res->{status} = 200;
-    $res->{$dsid} = $r->body;
+    $res->{$dsid} = $getres->body;
   }
   else {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $get->error->{message}};
-    $res->{status} = $get->error->{code} ? $get->error->{code} : 500;
+    unshift @{$res->{alerts}}, {type => 'danger', msg => $getres->message};
+    $res->{status} = $getres->code ? $getres->code : 500;
   }
 
   return $res;
