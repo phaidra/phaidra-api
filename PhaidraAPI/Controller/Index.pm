@@ -101,6 +101,7 @@ sub update {
   my $self         = shift;
   my $pid_param    = $self->stash('pid');
   my $ignorestatus = $self->param('ignorestatus');
+  my $norecursion = $self->param('norecursion');
 
   my $username = $self->stash->{basic_auth_credentials}->{username};
   my $password = $self->stash->{basic_auth_credentials}->{password};
@@ -159,7 +160,7 @@ sub update {
 
     eval {
 
-      my $r = $index_model->update($self, $pid, $dc_model, $search_model, $object_model, $ignorestatus);
+      my $r = $index_model->update($self, $pid, $dc_model, $search_model, $object_model, $ignorestatus, $norecursion);
       if ($r->{status} eq 200 && $pidscount > 1) {
         push @res, {pid => $pid, status => 200};
       }

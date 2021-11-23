@@ -452,7 +452,7 @@ sub get_doc {
 }
 
 sub update {
-  my ($self, $c, $pid, $dc_model, $search_model, $object_model, $ignorestatus) = @_;
+  my ($self, $c, $pid, $dc_model, $search_model, $object_model, $ignorestatus, $norecursion) = @_;
 
   my $res = {status => 200};
 
@@ -601,38 +601,6 @@ sub update {
           push @{$res->{alerts}}, @{$umr->{alerts}} if scalar @{$umr->{alerts}} > 0;
         }
 
-        # update the index with members metadata:
-        # member_<pid>_dc - so that member's basic metadata (title, desc, subject) will be indexed in container's _text_
-        # also "memberresourcetype:<resourcetype>" is added as a value - so that we can filter containers containing particular types of members (eg videos)
-        my $membersCnt = scalar $members;
-        if ($membersCnt > 0) {
-          my $urlget = $self->_get_solrget_url($c);
-          $urlget->query(q => "*:*", fq => 'ismemberof:"'.$pid.'"', rows => 1000, wt => "json");
-
-          my $getres = $ua->get($urlget)->result;
-
-          if ($getres->is_success) {
-            if ($getres->json->{response}->{numFound} > 0) {
-              for my $mem_doc (@{$getres->json->{response}->{docs}}) {
-                if ($mem_doc->{pid}) {
-                  my $pidunderscore = $mem_doc->{pid};
-                  $pidunderscore =~ s/:/_/;
-                  my @dc_values;
-                  for my $k (keys %{$mem_doc}) {
-                    if ($k =~ m/^dc_([a-z]+)_?([a-z]+)?$/) {
-                      if (($1 eq 'title') || ($1 eq 'description') || ($1 eq 'subject')) {
-                        for my $dcv (@{$mem_doc->{$k}}) {
-                          push @{$r->{index}->{'member_dc_'.$pidunderscore}}, $dcv;
-                        }
-                      }
-                    }
-                  }
-                  push @{$r->{index}->{'member_dc_'.$pidunderscore}}, "memberresourcetype:".$mem_doc->{resourcetype};
-                }
-              }
-            }
-          }
-        }
       }
 
       if (($cmodel_res->{cmodel} eq 'Collection') || ($cmodel_res->{cmodel} eq 'Container')) {
@@ -652,37 +620,13 @@ sub update {
         }
       }
 
-      if (($cmodel_res->{cmodel} ne 'Collection') && ($cmodel_res->{cmodel} ne 'Container')) {
-        # check if this object is part of a container
-        # if it is, update the container with members metadata:
-        # member_<pid>_dc - so that member's basic metadata (title, desc, subject) will be indexed in container's _text_
-        # also "memberresourcetype:<resourcetype>" is added as a value - so that we can filter containers containing particular types of members (eg videos)
+      unless ($norecursion) {
         if (exists($r->{index}->{ismemberof})) {
           if((scalar @{$r->{index}->{ismemberof}}) > 0) {
-            my $pidunderscore = $pid;
-            $pidunderscore =~ s/:/_/;
-            my @dc_values;
-            if (($getStatus eq 301) || ($getStatus eq 302)) {
-              @dc_values = ();
-            } else {
-              for my $k (keys %{$r->{index}}) {
-                if ($k =~ m/^dc_([a-z]+)_?([a-z]+)?$/) {
-                  if (($1 eq 'title') || ($1 eq 'description') || ($1 eq 'subject')) {
-                    for my $dcv (@{$r->{index}->{$k}}) {
-                      push @dc_values, $dcv;
-                    }
-                  }
-                }
-              }
-              push @dc_values, "memberresourcetype:".$r->{index}->{resourcetype};
-            }
             for my $cnt_pid (@{$r->{index}->{ismemberof}}) {
-              my @update;
-              push @update, {pid => $cnt_pid, value => \@dc_values};
-              my $r_update = $self->_update_value($c, $pid, 'member_dc_'.$pidunderscore, \@update, $updateurl, 'set');
-              if ($r_update->{status} ne 200) {
-                $res->{status} = $r_update->{status};
-                push @{$res->{alerts}}, @{$r_update->{alerts}} if scalar @{$r_update->{alerts}} > 0;
+              $c->app->log->info("$pid is a member of $cnt_pid -> indexing $cnt_pid");
+              if ($cnt_pid ne $pid) {
+                $self->update($c, $cnt_pid, $dc_model, $search_model, $object_model, $ignorestatus, 1)
               }
             }
           }
@@ -1415,6 +1359,46 @@ sub _get {
                 push @{$index{title_suggest_ir}}, $t;
               }
             }
+          }
+        }
+      }
+    }
+  }
+
+  # update the index with members metadata:
+  # member_metadata - so that basic metadata of members (pid, title, desc, subject) will be indexed
+  # also "memberresourcetype:<resourcetype>" is added as a value - so that we can filter containers containing particular types of members (eg videos)
+  my $membersCnt = scalar $index{hasmember};
+  if ($membersCnt > 0) {
+    my $urlget = $self->_get_solrget_url($c);
+    $urlget->query(q => "*:*", fq => 'ismemberof:"'.$pid.'"', rows => 1000, wt => "json");
+
+    my $getres = $c->ua->get($urlget)->result;
+
+    if ($getres->is_success) {
+      if ($getres->json->{response}->{numFound} > 0) {
+        # hash, to avoid duplicity
+        my $values;
+        for my $mem_doc (@{$getres->json->{response}->{docs}}) {
+          if ($mem_doc->{pid}) {
+            unless (exists($values->{$mem_doc->{pid}})) {
+              $values->{$mem_doc->{pid}} = 1;
+            }
+            unless (exists($values->{'memberresourcetype:'.$mem_doc->{resourcetype}})) {
+              $values->{'memberresourcetype:'.$mem_doc->{resourcetype}} = 1;
+            }
+            for my $k (keys %{$mem_doc}) {
+              if ($k =~ m/^dc_([a-z]+)_?([a-z]+)?$/) {
+                if (($1 eq 'title') || ($1 eq 'description') || ($1 eq 'subject')) {
+                  for my $dcv (@{$mem_doc->{$k}}) {
+                    unless (exists($values->{$dcv})) {
+                      $values->{$dcv} = 1;
+                    }
+                  }
+                }
+              }
+            }
+            push @{$index{'members_metadata'}}, keys %{$values};
           }
         }
       }
