@@ -657,31 +657,33 @@ sub update {
         # if it is, update the container with members metadata:
         # member_<pid>_dc - so that member's basic metadata (title, desc, subject) will be indexed in container's _text_
         # also "memberresourcetype:<resourcetype>" is added as a value - so that we can filter containers containing particular types of members (eg videos)
-        if((scalar @{$r->{index}->{ismemberof}}) > 0) {
-          my $pidunderscore = $pid;
-          $pidunderscore =~ s/:/_/;
-          my @dc_values;
-          if (($getStatus eq 301) || ($getStatus eq 302)) {
-            @dc_values = ();
-          } else {
-            for my $k (keys %{$r->{index}}) {
-              if ($k =~ m/^dc_([a-z]+)_?([a-z]+)?$/) {
-                if (($1 eq 'title') || ($1 eq 'description') || ($1 eq 'subject')) {
-                  for my $dcv (@{$r->{index}->{$k}}) {
-                    push @dc_values, $dcv;
+        if (exists($r->{index}->{ismemberof})) {
+          if((scalar @{$r->{index}->{ismemberof}}) > 0) {
+            my $pidunderscore = $pid;
+            $pidunderscore =~ s/:/_/;
+            my @dc_values;
+            if (($getStatus eq 301) || ($getStatus eq 302)) {
+              @dc_values = ();
+            } else {
+              for my $k (keys %{$r->{index}}) {
+                if ($k =~ m/^dc_([a-z]+)_?([a-z]+)?$/) {
+                  if (($1 eq 'title') || ($1 eq 'description') || ($1 eq 'subject')) {
+                    for my $dcv (@{$r->{index}->{$k}}) {
+                      push @dc_values, $dcv;
+                    }
                   }
                 }
               }
+              push @dc_values, "memberresourcetype:".$r->{index}->{resourcetype};
             }
-            push @dc_values, "memberresourcetype:".$r->{index}->{resourcetype};
-          }
-          for my $cnt_pid (@{$r->{index}->{ismemberof}}) {
-            my @update;
-            push @update, {pid => $cnt_pid, value => \@dc_values};
-            my $r_update = $self->_update_value($c, $pid, 'member_dc_'.$pidunderscore, \@update, $updateurl, 'set');
-            if ($r_update->{status} ne 200) {
-              $res->{status} = $r_update->{status};
-              push @{$res->{alerts}}, @{$r_update->{alerts}} if scalar @{$r_update->{alerts}} > 0;
+            for my $cnt_pid (@{$r->{index}->{ismemberof}}) {
+              my @update;
+              push @update, {pid => $cnt_pid, value => \@dc_values};
+              my $r_update = $self->_update_value($c, $pid, 'member_dc_'.$pidunderscore, \@update, $updateurl, 'set');
+              if ($r_update->{status} ne 200) {
+                $res->{status} = $r_update->{status};
+                push @{$res->{alerts}}, @{$r_update->{alerts}} if scalar @{$r_update->{alerts}} > 0;
+              }
             }
           }
         }
