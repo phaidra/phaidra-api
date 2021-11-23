@@ -1398,9 +1398,9 @@ sub _get {
                 }
               }
             }
-            push @{$index{'members_metadata'}}, keys %{$values};
           }
         }
+        push @{$index{'members_metadata'}}, keys %{$values};
       }
     }
   }
