@@ -87,7 +87,12 @@ sub fix() {
     $c->app->log->debug("pid[$pid] cmodel[$cmodel] json-ld fix: adding dcterms:type");
     $metadata->{'dcterms:type'} = [
       { '@type'           => 'skos:Concept',
-        'skos:prefLabel'  => [$rt->{'skos:prefLabel'}],
+        'skos:prefLabel'  => [
+          {
+            '@language' => 'eng',
+            '@value' => $rt->{'skos:prefLabel'}->{'eng'}
+          }
+        ],
         'skos:exactMatch' => [$rt->{'@id'}]
       }
     ];
