@@ -845,6 +845,9 @@ sub create_container {
           if (exists($metadata->{metadata}->{'rights'})) {
             $child_metadata->{metadata}->{rights} = $metadata->{metadata}->{'rights'};
           }
+          if (exists($metadata->{metadata}->{'ownerid'})) {
+            $child_metadata->{metadata}->{ownerid} = $metadata->{metadata}->{'ownerid'};
+          }
 
           #$c->app->log->debug("Creating child with metadata:".$c->app->dumper($child_metadata));
           my $r = $self->create_simple($c, $childcmodel, $child_metadata, $mt, $childupload, undef, undef, $username, $password);

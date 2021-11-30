@@ -77,6 +77,39 @@ sub create {
       }
     }
   }
+
+  if (exists($metadata->{'ownerid'})) {
+    $c->app->log->debug("Changing ownerid to " . $metadata->{'ownerid'});
+    my $authorized = 0;
+    if ( ($username eq $c->app->config->{phaidra}->{intcallusername})
+      || ($username eq $c->app->config->{phaidra}->{adminusername}))
+    {
+      $authorized = 1;
+    }
+    else {
+      if ($c->app->config->{authorization}) {
+        if ($c->app->config->{authorization}->{canmodifyownerid}) {
+          for my $user (@{$c->app->config->{authorization}->{canmodifyownerid}}) {
+            if ($user eq $username) {
+              $authorized = 1;
+              last;
+            }
+          }
+        }
+      }
+    }
+    if ($authorized) {
+      my $r = $object_model->modify($c, $pid, undef, undef, $metadata->{'ownerid'}, undef, undef, $username, $password, 1);
+      if ($r->{status} ne 200) {
+        $res->{status} = $r->{status};
+        foreach my $a (@{$r->{alerts}}) {
+          unshift @{$res->{alerts}}, $a;
+        }
+        unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error modifying ownership'};
+      }
+    }
+  }
+
   $res->{pid} = $pid;
 
   return $res;
