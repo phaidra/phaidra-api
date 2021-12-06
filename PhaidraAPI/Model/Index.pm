@@ -622,11 +622,11 @@ sub update {
 
       unless ($norecursion) {
         if (exists($r->{index}->{ismemberof})) {
-          if((scalar @{$r->{index}->{ismemberof}}) > 0) {
+          if ((scalar @{$r->{index}->{ismemberof}}) > 0) {
             for my $cnt_pid (@{$r->{index}->{ismemberof}}) {
               $c->app->log->info("$pid is a member of $cnt_pid -> indexing $cnt_pid");
               if ($cnt_pid ne $pid) {
-                $self->update($c, $cnt_pid, $dc_model, $search_model, $object_model, $ignorestatus, 1)
+                $self->update($c, $cnt_pid, $dc_model, $search_model, $object_model, $ignorestatus, 1);
               }
             }
           }
@@ -822,6 +822,7 @@ sub _update_value_post {
   }
 
   my $ua = Mojo::UserAgent->new;
+
   # versions makes sure the document exists already
   # if it does not the field would be created as "ispartof.add" which is wrong
   # plus the member might not exist for a reason, eg it's a Page, we don't want to add it
@@ -1371,12 +1372,13 @@ sub _get {
   my $membersCnt = scalar $index{hasmember};
   if ($membersCnt > 0) {
     my $urlget = $self->_get_solrget_url($c);
-    $urlget->query(q => "*:*", fq => 'ismemberof:"'.$pid.'"', rows => 1000, wt => "json");
+    $urlget->query(q => "*:*", fq => 'ismemberof:"' . $pid . '"', rows => 1000, wt => "json");
 
     my $getres = $c->ua->get($urlget)->result;
 
     if ($getres->is_success) {
       if ($getres->json->{response}->{numFound} > 0) {
+
         # hash, to avoid duplicity
         my $values;
         for my $mem_doc (@{$getres->json->{response}->{docs}}) {
@@ -1384,8 +1386,8 @@ sub _get {
             unless (exists($values->{$mem_doc->{pid}})) {
               $values->{$mem_doc->{pid}} = 1;
             }
-            unless (exists($values->{'memberresourcetype:'.$mem_doc->{resourcetype}})) {
-              $values->{'memberresourcetype:'.$mem_doc->{resourcetype}} = 1;
+            unless (exists($values->{'memberresourcetype:' . $mem_doc->{resourcetype}})) {
+              $values->{'memberresourcetype:' . $mem_doc->{resourcetype}} = 1;
             }
             for my $k (keys %{$mem_doc}) {
               if ($k =~ m/^dc_([a-z]+)_?([a-z]+)?$/) {
@@ -1763,7 +1765,12 @@ sub _add_jsonld_index {
           $prefix = substr($type, 8);
         }
       }
-      push @{$index->{"dc_identifier"}}, $prefix . ":" . $id->{'@value'};
+      if ($prefix eq 'urn') {
+        push @{$index->{"dc_identifier"}}, $id->{'@value'};
+      }
+      else {
+        push @{$index->{"dc_identifier"}}, $prefix . ":" . $id->{'@value'};
+      }
     }
   }
 
@@ -2514,7 +2521,7 @@ sub get_object_members {
   my ($self, $c, $pid) = @_;
   my $res = {alerts => [], status => 200};
 
-  my $urlget = $self->_get_solrget_url($c);
+  my $urlget        = $self->_get_solrget_url($c);
   my $pidunderscore = $pid;
   $pidunderscore =~ s/:/_/;
   $urlget->query(q => "ismemberof:\"$pid\"", rows => "100", sort => "pos_in_$pidunderscore asc", wt => "json");
