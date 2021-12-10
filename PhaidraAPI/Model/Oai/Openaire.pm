@@ -216,6 +216,7 @@ sub _get_roles {
           }
           if ($prop eq 'skos:exactMatch') {
             for my $id (@{$e->{$prop}}) {
+              if (ref($id) eq 'HASH') {
               if ($id->{'@type'} eq 'ids:orcid') {
                 push @ids,
                   {
@@ -264,6 +265,7 @@ sub _get_roles {
                   schemeURI            => 'https://id.loc.gov/authorities/names/'
                   };
               }
+             }
             }
           }
 
