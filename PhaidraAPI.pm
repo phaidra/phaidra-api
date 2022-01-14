@@ -497,7 +497,7 @@ sub startup {
 
   $proxyauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
 
-  $proxyauth->route('imageserver/:pid/status')                            ->via('get')      ->to('imageserver#status');
+  $proxyauth_optional->route('imageserver/:pid/status')                   ->via('get')      ->to('imageserver#status');
 
   $proxyauth->route('object/:pid/jsonldprivate')                          ->via('get')      ->to('jsonldprivate#get');
   $proxyauth->route('object/:pid/rights')                                 ->via('get')      ->to('rights#get');

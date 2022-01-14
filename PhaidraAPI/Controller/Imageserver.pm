@@ -143,7 +143,7 @@ sub status {
 
   my $res = $self->paf_mongo->get_collection('jobs')->find_one({pid => $pid}, {}, {"sort" => {"created" => -1}});
 
-  $self->render(json => $res, status => 200);
+  $self->render(json => { conversion => $res->{conversion}, status => $res->{status} }, status => 200);
 
 }
 
