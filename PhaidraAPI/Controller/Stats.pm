@@ -40,6 +40,16 @@ sub stats {
     $self->render(json => {alerts => [{type => 'info', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
+  unless ($pid =~ m/^o:\d+$/) {
+    $self->render(json => {alerts => [{type => 'info', msg => 'Invalid pid'}]}, status => 400);
+    return;
+  }
+  if (defined($siteid)) {
+    unless ($siteid =~ m/^\d+$/) {
+      $self->render(json => {alerts => [{type => 'info', msg => 'Invalid siteid'}]}, status => 400);
+      return;
+    }
+  }
 
   my $key = $self->stash('stats_param_key');
 
@@ -63,6 +73,16 @@ sub chart {
   unless (defined($pid)) {
     $self->render(json => {alerts => [{type => 'info', msg => 'Undefined pid'}]}, status => 400);
     return;
+  }
+  unless ($pid =~ m/^o:\d+$/) {
+    $self->render(json => {alerts => [{type => 'info', msg => 'Invalid pid'}]}, status => 400);
+    return;
+  }
+  if (defined($siteid)) {
+    unless ($siteid =~ m/^\d+$/) {
+      $self->render(json => {alerts => [{type => 'info', msg => 'Invalid siteid'}]}, status => 400);
+      return;
+    }
   }
 
   my $key = $self->stash('stats_param_key');
