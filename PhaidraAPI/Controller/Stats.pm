@@ -9,10 +9,10 @@ use base 'Mojolicious::Controller';
 sub aggregates {
   my $self = shift;
 
-  my $detail    = $self->stash('detail');
+  my $detail     = $self->param('detail');
   my $time_scale = $self->param('time_scale');
 
-  $detail = 'cm' unless defined($detail);
+  $detail     = 'cm'   unless defined($detail);
   $time_scale = 'year' unless defined($time_scale);
 
   unless ($detail =~ m/^[a-z]+$/g) {
