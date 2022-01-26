@@ -109,7 +109,7 @@ sub _get_vocab_labels {
     }
 
     my $ss  = qq/SELECT entry, isocode FROM vocabulary_entry WHERE vid = (?) AND veid = (?);/;
-    my $sth = $c->app->db_metadata->dbh->dbh->prepare($ss) or $c->app->log->error($c->app->db_metadata->dbh->errstr);
+    my $sth = $c->app->db_metadata->dbh->prepare($ss) or $c->app->log->error($c->app->db_metadata->dbh->errstr);
     $sth->execute($vid, $veid);
 
     my $entry;      # value label (eg 'Wood-engraver')
