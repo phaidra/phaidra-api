@@ -15,9 +15,9 @@ sub _get_ds_path() {
   my $res = {alerts => [], status => 200};
 
   my $ss  = "SELECT token, path FROM datastreamPaths WHERE token like '$pid+$ds%';";
-  my $sth = $c->app->db_fedora->prepare($ss);
+  my $sth = $c->app->db_fedora->dbh->prepare($ss);
   unless ($sth) {
-    my $msg = $c->app->db_fedora->errstr;
+    my $msg = $c->app->db_fedora->dbh->errstr;
     $c->app->log->error($msg);
     $res->{status} = 500;
     unshift @{$res->{alerts}}, {type => 'danger', msg => $msg};
@@ -25,7 +25,7 @@ sub _get_ds_path() {
   }
   my $ex = $sth->execute();
   unless ($ex) {
-    my $msg = $c->app->db_fedora->errstr;
+    my $msg = $c->app->db_fedora->dbh->errstr;
     $c->app->log->error($msg);
     $res->{status} = 500;
     unshift @{$res->{alerts}}, {type => 'danger', msg => $msg};

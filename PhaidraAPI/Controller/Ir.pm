@@ -83,8 +83,8 @@ sub addEvent {
 
       # do not add double 'submits'
       my $check_ss  = qq/SELECT * FROM event WHERE user_id = ? AND event_type = 'submit' AND pid = ? LIMIT 1/;
-      my $check_sth = $self->app->db_ir->prepare($check_ss) or $self->app->log->error($self->app->db_ir->errstr);
-      $check_sth->execute($username, $pid) or $self->app->log->error($self->app->db_ir->errstr);
+      my $check_sth = $self->app->db_ir->dbh->prepare($check_ss) or $self->app->log->error($self->app->db_ir->dbh->errstr);
+      $check_sth->execute($username, $pid) or $self->app->log->error($self->app->db_ir->dbh->errstr);
       if ($check_sth->rows) {
         $self->app->log->info("IR skipping addEvent (username=" . $username . ", alerttype=$eventtype, pids=$pid), already added.");
         next;
@@ -92,8 +92,8 @@ sub addEvent {
     }
     $self->app->log->info("IR addEvent (username=" . $username . ", alerttype=$eventtype, pids=$pid)");
     my $ss  = qq/INSERT INTO event (event_type, pid, user_id, gmtimestamp) VALUES (?,?,?,?)/;
-    my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
-    $sth->execute($eventtype, $pid, $username, $time) or $self->app->log->error($self->app->db_ir->errstr);
+    my $sth = $self->app->db_ir->dbh->prepare($ss) or $self->app->log->error($self->app->db_ir->dbh->errstr);
+    $sth->execute($eventtype, $pid, $username, $time) or $self->app->log->error($self->app->db_ir->dbh->errstr);
   }
 }
 
@@ -109,8 +109,8 @@ sub addAlert {
     $self->app->log->info("IR addAlert (username=" . $username . ", alerttype=$alerttype, pids=$pids)");
     my $time = strftime "%Y-%m-%dT%H:%M:%SZ", (gmtime);
     my $ss   = qq/INSERT INTO alert (username,alert_type,pids,gmtimestamp,processed) VALUES (?,?,?,?,?)/;
-    my $sth  = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
-    $sth->execute($username, $alerttype, $pids, $time, 0) or $self->app->log->error($self->app->db_ir->errstr);
+    my $sth  = $self->app->db_ir->dbh->prepare($ss) or $self->app->log->error($self->app->db_ir->dbh->errstr);
+    $sth->execute($username, $alerttype, $pids, $time, 0) or $self->app->log->error($self->app->db_ir->dbh->errstr);
   }
 }
 
@@ -118,8 +118,8 @@ sub hasAlerts {
   my ($self, $alerttype, $pids, $username) = @_;
 
   my $ss  = qq/SELECT * FROM alert WHERE username = ? AND alert_type = ? AND pids = ? LIMIT 1/;
-  my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
-  $sth->execute($username, $alerttype, $pids) or $self->app->log->error($self->app->db_ir->errstr);
+  my $sth = $self->app->db_ir->dbh->prepare($ss) or $self->app->log->error($self->app->db_ir->dbh->errstr);
+  $sth->execute($username, $alerttype, $pids) or $self->app->log->error($self->app->db_ir->dbh->errstr);
 
   return $sth->rows;
 }
@@ -128,10 +128,10 @@ sub getAlertForPid {
   my ($self, $alerttype, $pids) = @_;
 
   my $ss  = qq/SELECT id, username, pids FROM alert WHERE alert_type = ? AND processed = 0 AND alert.pids LIKE ?;/;
-  my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
-  $sth->execute($alerttype, $pids) or $self->app->log->error($self->app->db_ir->errstr);
+  my $sth = $self->app->db_ir->dbh->prepare($ss) or $self->app->log->error($self->app->db_ir->dbh->errstr);
+  $sth->execute($alerttype, $pids) or $self->app->log->error($self->app->db_ir->dbh->errstr);
   my ($id, $username, $pids);
-  $sth->bind_columns(\$id, \$username, \$pids) or $self->app->log->error($self->app->db_ir->errstr);
+  $sth->bind_columns(\$id, \$username, \$pids) or $self->app->log->error($self->app->db_ir->dbh->errstr);
   while ($sth->fetch()) {
     return {id => $id, username => $username, pids => $pids};
   }
@@ -142,8 +142,8 @@ sub setAlertProcessed {
 
   $self->app->log->info("Ir::setAlertProcessed id[$id]");
   my $ss  = qq/UPDATE alert SET processed = 1 WHERE id = ?;/;
-  my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
-  $sth->execute($id) or $self->app->log->error($self->app->db_ir->errstr);
+  my $sth = $self->app->db_ir->dbh->prepare($ss) or $self->app->log->error($self->app->db_ir->dbh->errstr);
+  $sth->execute($id) or $self->app->log->error($self->app->db_ir->dbh->errstr);
 }
 
 sub accept {
@@ -331,10 +331,10 @@ sub events {
 
   my @events;
   my $ss  = qq/SELECT event_type, user_id, gmtimestamp FROM event WHERE pid = ? ORDER BY gmtimestamp DESC;/;
-  my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
-  $sth->execute($pid) or $self->app->log->error($self->app->db_ir->errstr);
+  my $sth = $self->app->db_ir->dbh->prepare($ss) or $self->app->log->error($self->app->db_ir->dbh->errstr);
+  $sth->execute($pid) or $self->app->log->error($self->app->db_ir->dbh->errstr);
   my ($event, $username, $ts);
-  $sth->bind_columns(\$event, \$username, \$ts) or $self->app->log->error($self->app->db_ir->errstr);
+  $sth->bind_columns(\$event, \$username, \$ts) or $self->app->log->error($self->app->db_ir->dbh->errstr);
   while ($sth->fetch()) {
     push @events, {event => $event, username => $username, ts => $ts};
   }
@@ -386,10 +386,10 @@ sub adminlistdata {
 
   my @licenses;
   my $ss  = "SELECT pid, license FROM requested_license WHERE pid IN ($pidsparam)";
-  my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
-  $sth->execute() or $self->app->log->error($self->app->db_ir->errstr);
+  my $sth = $self->app->db_ir->dbh->prepare($ss) or $self->app->log->error($self->app->db_ir->dbh->errstr);
+  $sth->execute() or $self->app->log->error($self->app->db_ir->dbh->errstr);
   my ($pid, $license);
-  $sth->bind_columns(undef, \$pid, \$license) or $self->app->log->error($self->app->db_ir->errstr);
+  $sth->bind_columns(undef, \$pid, \$license) or $self->app->log->error($self->app->db_ir->dbh->errstr);
   while ($sth->fetch()) {
     push @licenses, {pid => $pid, requestedlicense => $license};
   }
@@ -398,10 +398,10 @@ sub adminlistdata {
 
   my @submits;
   $ss  = "SELECT pid, user_id FROM event WHERE event_type = 'submit' AND pid IN ($pidsparam)";
-  $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
-  $sth->execute() or $self->app->log->error($self->app->db_ir->errstr);
+  $sth = $self->app->db_ir->dbh->prepare($ss) or $self->app->log->error($self->app->db_ir->dbh->errstr);
+  $sth->execute() or $self->app->log->error($self->app->db_ir->dbh->errstr);
   my $username;
-  $sth->bind_columns(undef, \$pid, \$username) or $self->app->log->error($self->app->db_ir->errstr);
+  $sth->bind_columns(undef, \$pid, \$username) or $self->app->log->error($self->app->db_ir->dbh->errstr);
   while ($sth->fetch()) {
     push @submits, {pid => $pid, user => {username => $username}};
   }
@@ -428,8 +428,8 @@ sub addrequestedlicense {
   my $time = strftime "%Y-%m-%dT%H:%M:%SZ", (gmtime);
 
   my $ss  = qq/INSERT INTO requested_license (pid, license, user_id, gmtimestamp) VALUES (?,?,?,?)/;
-  my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
-  $sth->execute($pid, $license, $username, $time) or $self->app->log->error($self->app->db_ir->errstr);
+  my $sth = $self->app->db_ir->dbh->prepare($ss) or $self->app->log->error($self->app->db_ir->dbh->errstr);
+  $sth->execute($pid, $license, $username, $time) or $self->app->log->error($self->app->db_ir->dbh->errstr);
 }
 
 sub allowsubmit {
@@ -485,7 +485,7 @@ sub getNrUnapprovedUploads {
 
   my $ss
     = 'SELECT COUNT(*) AS nrunapproveduploads FROM (SELECT INSTR(GROUP_CONCAT(event_type),"approve") as approvedstrpos, pid, INSTR(GROUP_CONCAT(user_id),?) as userstrpos, gmtimestamp FROM event as e, (SELECT MAX(STR_TO_DATE(gmtimestamp,"%Y-%m-%dT%TZ")) as maxd FROM event WHERE user_id = ? AND event_type = "submit") subq1 WHERE user_id = ? OR user_id = ? AND STR_TO_DATE(e.gmtimestamp,"%Y-%m-%dT%TZ") >= SUBDATE(subq1.maxd, ?) GROUP BY pid) uploads WHERE approvedstrpos = 0 AND userstrpos > 0;';
-  my $res = $self->app->db_ir->selectrow_hashref($ss, undef, ($username, $username, $self->config->{ir}->{iraccount}, $username, $nrdays)) or $self->app->log->error($self->app->db_ir->errstr);
+  my $res = $self->app->db_ir->dbh->selectrow_hashref($ss, undef, ($username, $username, $self->config->{ir}->{iraccount}, $username, $nrdays)) or $self->app->log->error($self->app->db_ir->dbh->errstr);
   return $res->{nrunapproveduploads};
 }
 
@@ -644,7 +644,7 @@ sub submit {
       $cmodel = 'cmodel:PDFDocument';
     }
     else {
-      $cmodel              = 'cmodel:Asset';
+      $cmodel = 'cmodel:Asset';
       if ($cnt > 1) {
         $isAlternativeFormat = 1;
       }
@@ -1273,10 +1273,10 @@ sub embargocheck {
   my @rows;
 
   my $ss  = qq/SELECT alert.id, alert.username, alert.pids FROM alert WHERE alert_type = ? AND alert.processed = 0;/;
-  my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
-  $sth->execute('embargo') or $self->app->log->error($self->app->db_ir->errstr);
+  my $sth = $self->app->db_ir->dbh->prepare($ss) or $self->app->log->error($self->app->db_ir->dbh->errstr);
+  $sth->execute('embargo') or $self->app->log->error($self->app->db_ir->dbh->errstr);
   my ($id, $username, $pids);
-  $sth->bind_columns(\$id, \$username, \$pids) or $self->app->log->error($self->app->db_ir->errstr);
+  $sth->bind_columns(\$id, \$username, \$pids) or $self->app->log->error($self->app->db_ir->dbh->errstr);
   while ($sth->fetch()) {
     push @rows, {id => $id, username => $username, pids => $pids};
   }
@@ -1311,8 +1311,8 @@ sub embargocheck {
         # set alert processed
         $self->app->log->info("embargocheck alerts processing[$i/$nrAlerts] alert[" . $row->{id} . "] pid[$p] setting alert as processed");
         my $ss  = qq/UPDATE alert SET processed = 1 WHERE id = ?;/;
-        my $sth = $self->app->db_ir->prepare($ss) or $self->app->log->error($self->app->db_ir->errstr);
-        $sth->execute($row->{id}) or $self->app->log->error($self->app->db_ir->errstr);
+        my $sth = $self->app->db_ir->dbh->prepare($ss) or $self->app->log->error($self->app->db_ir->dbh->errstr);
+        $sth->execute($row->{id}) or $self->app->log->error($self->app->db_ir->dbh->errstr);
 
         # change object's 'dcterms:accessRights' metadata field to open access
         $self->app->log->info("embargocheck alerts processing[$i/$nrAlerts] alert[" . $row->{id} . "] pid[$p] changing infoeurepoaccess");

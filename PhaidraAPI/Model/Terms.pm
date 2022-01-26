@@ -42,7 +42,7 @@ sub _get_taxon_labels {
     $c->app->log->debug("[cache miss] $cachekey");
 
     my $ss  = "SELECT t.upstream_identifier, tv.term_id, ve.entry, ve.isocode, tv.preferred FROM taxon t LEFT JOIN taxon_vocentry tv ON tv.tid = t.tid LEFT JOIN vocabulary_entry ve ON tv.veid = ve.veid WHERE t.cid = (?) and t.tid = (?)";
-    my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+    my $sth = $c->app->db_metadata->dbh->prepare($ss) or $c->app->log->error($c->app->db_metadata->dbh->errstr);
     $sth->execute($cid, $tid);
     $sth->bind_columns(undef, \$upstream_identifier, \$term_id, \$entry, \$isocode, \$preferred);
 
@@ -102,14 +102,14 @@ sub _get_vocab_labels {
     # so get the vid & veid of the classification name and continue as for vocabulary entries
     if ($cid) {
       my $ss  = qq/SELECT vid, veid FROM classification_db WHERE cid = (?);/;
-      my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+      my $sth = $c->app->db_metadata->dbh->prepare($ss) or $c->app->log->error($c->app->db_metadata->dbh->errstr);
       $sth->execute($cid);
       $sth->bind_columns(undef, \$vid, \$veid);
       $sth->fetch;
     }
 
     my $ss  = qq/SELECT entry, isocode FROM vocabulary_entry WHERE vid = (?) AND veid = (?);/;
-    my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+    my $sth = $c->app->db_metadata->dbh->dbh->prepare($ss) or $c->app->log->error($c->app->db_metadata->dbh->errstr);
     $sth->execute($vid, $veid);
 
     my $entry;      # value label (eg 'Wood-engraver')
@@ -378,7 +378,7 @@ sub children {
       # no classification id specified, return all the classification ids
       my ($cid, $entry, $isocode);
       my $ss  = "SELECT c.cid, ve.entry, ve.isocode FROM classification_db c LEFT JOIN vocabulary_entry ve on c.veid = ve.veid;";
-      my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+      my $sth = $c->app->db_metadata->dbh->prepare($ss) or $c->app->log->error($c->app->db_metadata->dbh->errstr);
       $sth->execute();
       $sth->bind_columns(undef, \$cid, \$entry, \$isocode);
       my %classes;
@@ -418,7 +418,7 @@ sub children {
       else {
         $ss .= "AND t.tid_parent IS NULL;";
       }
-      my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+      my $sth = $c->app->db_metadata->dbh->prepare($ss) or $c->app->log->error($c->app->db_metadata->dbh->errstr);
       if ($r->{tid}) {
         $sth->execute($r->{cid}, $r->{tid});
       }
@@ -495,7 +495,7 @@ sub taxonpath_upstreamid {
 
   my $tid;
   my $ss  = qq/SELECT tid FROM taxon WHERE cid = (?) AND upstream_identifier = (?);/;
-  my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+  my $sth = $c->app->db_metadata->dbh->prepare($ss) or $c->app->log->error($c->app->db_metadata->dbh->errstr);
   $sth->execute($cid, $upstreamid);
   $sth->bind_columns(undef, \$tid);
   $sth->fetch;
@@ -603,7 +603,7 @@ sub _get_parent_tid {
 
   my $ptid;
   my $ss  = "SELECT TID_parent FROM taxon WHERE cid = (?) AND tid = (?);";
-  my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+  my $sth = $c->app->db_metadata->dbh->prepare($ss) or $c->app->log->error($c->app->db_metadata->dbh->errstr);
   $sth->execute($cid, $tid);
   $sth->bind_columns(undef, \$ptid);
   $sth->fetch;
@@ -678,7 +678,7 @@ sub search {
   # get a list of all classifications
   my ($cid, $vid, $entry, $isocode);
   my $ss  = "SELECT c.cid, c.vid, ve.entry, ve.isocode FROM classification_db c LEFT JOIN vocabulary_entry ve on c.veid = ve.veid;";
-  my $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+  my $sth = $c->app->db_metadata->dbh->prepare($ss) or $c->app->log->error($c->app->db_metadata->dbh->errstr);
   $sth->execute();
   $sth->bind_columns(undef, \$cid, \$vid, \$entry, \$isocode);
   my %classes;
@@ -707,7 +707,7 @@ sub search {
     # we search for vocabulary entries where the query equals the upstream_identifier first, then where it matches the vocabulary entry
     $ss
       = "SELECT ve.veid, ve.isocode, ve.entry, ve.vid, t.tid, t.upstream_identifier, tv.term_id, tv.preferred FROM taxon t LEFT JOIN taxon_vocentry tv ON t.tid = tv.tid LEFT JOIN vocabulary_entry ve on tv.veid = ve.veid WHERE t.upstream_identifier = (?) AND tv.TID IS NOT NULL AND t.cid = (?) UNION SELECT ve.veid, ve.isocode, ve.entry, ve.vid, t.tid, t.upstream_identifier, tv.term_id, tv.preferred FROM vocabulary_entry ve LEFT JOIN taxon_vocentry tv ON ve.veid = tv.veid LEFT JOIN taxon t on tv.tid = t.tid  WHERE MATCH (entry) AGAINST(?) AND tv.TID IS NOT NULL AND t.cid = (?) LIMIT $limit;";
-    $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+    $sth = $c->app->db_metadata->dbh->prepare($ss) or $c->app->log->error($c->app->db_metadata->dbh->errstr);
     $sth->execute($q, $cid, $q, $cid);
     $sth->bind_columns(undef, \$veid, \$isocode, \$entry, \$vid, \$tid, \$upstream_identifier, \$term_id, \$preferred);
     my %terms;

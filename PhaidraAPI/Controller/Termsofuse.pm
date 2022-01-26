@@ -15,10 +15,10 @@ sub get {
   }
 
   my $ss  = "SELECT terms, added, version FROM terms_of_use WHERE isocode = '$lang' ORDER BY version DESC;";
-  my $sth = $self->app->db_metadata->prepare($ss) or $self->app->log->error($self->app->db_metadata->errstr);
-  $sth->execute() or $self->app->log->error($self->app->db_metadata->errstr);
+  my $sth = $self->app->db_metadata->dbh->prepare($ss) or $self->app->log->error($self->app->db_metadata->dbh->errstr);
+  $sth->execute() or $self->app->log->error($self->app->db_metadata->dbh->errstr);
   my ($terms, $added, $version);
-  $sth->bind_columns(undef, \$terms, \$added, \$version) or $self->app->log->error($self->app->db_metadata->errstr);
+  $sth->bind_columns(undef, \$terms, \$added, \$version) or $self->app->log->error($self->app->db_metadata->dbh->errstr);
   $sth->fetch();
   $sth->finish();
 
@@ -26,10 +26,10 @@ sub get {
 
     # get any language
     $ss  = "SELECT terms, added, version FROM terms_of_use ORDER BY version DESC;";
-    $sth = $self->app->db_metadata->prepare($ss) or $self->app->log->error($self->app->db_metadata->errstr);
-    $sth->execute() or $self->app->log->error($self->app->db_metadata->errstr);
+    $sth = $self->app->db_metadata->dbh->prepare($ss) or $self->app->log->error($self->app->db_metadata->dbh->errstr);
+    $sth->execute() or $self->app->log->error($self->app->db_metadata->dbh->errstr);
     my ($terms, $added, $version);
-    $sth->bind_columns(undef, \$terms, \$added, \$version) or $self->app->log->error($self->app->db_metadata->errstr);
+    $sth->bind_columns(undef, \$terms, \$added, \$version) or $self->app->log->error($self->app->db_metadata->dbh->errstr);
     $sth->fetch();
     $sth->finish();
 
@@ -51,10 +51,10 @@ sub agree {
   }
 
   my $ss  = "SELECT version FROM terms_of_use WHERE version = '$version';";
-  my $sth = $self->app->db_metadata->prepare($ss) or $self->app->log->error($self->app->db_metadata->errstr);
-  $sth->execute() or $self->app->log->error($self->app->db_metadata->errstr);
+  my $sth = $self->app->db_metadata->dbh->prepare($ss) or $self->app->log->error($self->app->db_metadata->dbh->errstr);
+  $sth->execute() or $self->app->log->error($self->app->db_metadata->dbh->errstr);
   my $versionexists;
-  $sth->bind_columns(undef, \$versionexists) or $self->app->log->error($self->app->db_metadata->errstr);
+  $sth->bind_columns(undef, \$versionexists) or $self->app->log->error($self->app->db_metadata->dbh->errstr);
   $sth->fetch();
   $sth->finish();
   unless ($versionexists) {
@@ -65,10 +65,10 @@ sub agree {
   my $username = $self->stash->{basic_auth_credentials}->{username};
 
   $ss  = "SELECT agreed FROM user_terms WHERE username = '$username' AND version = '$version';";
-  $sth = $self->app->db_user->prepare($ss) or $self->app->log->error($self->app->db_user->errstr);
-  $sth->execute() or $self->app->log->error($self->app->db_user->errstr);
+  $sth = $self->app->db_user->dbh->prepare($ss) or $self->app->log->error($self->app->db_user->dbh->errstr);
+  $sth->execute() or $self->app->log->error($self->app->db_user->dbh->errstr);
   my $agreed;
-  $sth->bind_columns(undef, \$agreed) or $self->app->log->error($self->app->db_user->errstr);
+  $sth->bind_columns(undef, \$agreed) or $self->app->log->error($self->app->db_user->dbh->errstr);
   $sth->fetch();
   $sth->finish();
   if ($agreed) {
@@ -80,12 +80,12 @@ sub agree {
   my $now = sprintf("%04d-%02d-%02d %02d:%02d:%02d", $now[5] + 1900, $now[4] + 1, $now[3], $now[2], $now[1], $now[0]);
 
   my $ss  = "INSERT INTO user_terms (username, version, agreed) VALUES ('$username', '$version', '$now');";
-  my $sth = $self->app->db_user->prepare($ss) or $self->app->log->error($self->app->db_user->errstr);
+  my $sth = $self->app->db_user->dbh->prepare($ss) or $self->app->log->error($self->app->db_user->dbh->errstr);
   if ($sth->execute()) {
     $self->render(json => {alerts => [], status => 200}, status => 200);
   }
   else {
-    my $msg = $self->app->db_user->errstr;
+    my $msg = $self->app->db_user->dbh->errstr;
     $self->app->log->error($msg);
     $self->render(json => {alerts => [{type => 'danger', msg => "Error agreeing to terms of use: $msg"}], status => 500}, status => 500);
   }
@@ -97,18 +97,18 @@ sub getagreed {
   my $username = $self->stash->{basic_auth_credentials}->{username};
 
   my $ss  = "SELECT version FROM terms_of_use ORDER BY version DESC;";
-  my $sth = $self->app->db_metadata->prepare($ss) or $self->app->log->error($self->app->db_metadata->errstr);
-  $sth->execute() or $self->app->log->error($self->app->db_metadata->errstr);
+  my $sth = $self->app->db_metadata->dbh->prepare($ss) or $self->app->log->error($self->app->db_metadata->dbh->errstr);
+  $sth->execute() or $self->app->log->error($self->app->db_metadata->dbh->errstr);
   my ($latestversion);
-  $sth->bind_columns(undef, \$latestversion) or $self->app->log->error($self->app->db_metadata->errstr);
+  $sth->bind_columns(undef, \$latestversion) or $self->app->log->error($self->app->db_metadata->dbh->errstr);
   $sth->fetch();
   $sth->finish();
 
   $ss  = "SELECT agreed FROM user_terms WHERE username = '$username' AND version = '$latestversion';";
-  $sth = $self->app->db_user->prepare($ss) or $self->app->log->error($self->app->db_user->errstr);
-  $sth->execute() or $self->app->log->error($self->app->db_user->errstr);
+  $sth = $self->app->db_user->dbh->prepare($ss) or $self->app->log->error($self->app->db_user->dbh->errstr);
+  $sth->execute() or $self->app->log->error($self->app->db_user->dbh->errstr);
   my $agreed;
-  $sth->bind_columns(undef, \$agreed) or $self->app->log->error($self->app->db_user->errstr);
+  $sth->bind_columns(undef, \$agreed) or $self->app->log->error($self->app->db_user->dbh->errstr);
   $sth->fetch();
   $sth->finish();
   if ($agreed) {

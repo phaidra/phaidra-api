@@ -6,6 +6,15 @@ use v5.10;
 use PhaidraAPI::Model::Stats;
 use base 'Mojolicious::Controller';
 
+sub disciplines {
+  my $self = shift;
+
+  my $stats_model = PhaidraAPI::Model::Stats->new;
+  my $res         = $stats_model->disciplines($self);
+
+  $self->render(json => $res, status => $res->{status});
+}
+
 sub aggregates {
   my $self = shift;
 

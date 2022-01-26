@@ -145,7 +145,7 @@ sub get_metadata_tree {
 
   # create mapping of veid to licence id
   $ss  = qq/SELECT LID, name FROM licenses/;
-  $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+  $sth = $c->app->db_metadata->dbh->prepare($ss) or $c->app->log->error($c->app->db_metadata->dbh->errstr);
   $sth->execute();
   my $l_lid;
   my $l_veid;
@@ -163,7 +163,7 @@ sub get_metadata_tree {
 			m.VID, m.defaultvalue, m.sequence
 			FROM metadata m
 			ORDER BY m.sequence, m.MID ASC/;
-  $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+  $sth = $c->app->db_metadata->dbh->prepare($ss) or $c->app->log->error($c->app->db_metadata->dbh->errstr);
   $sth->execute();
 
   my $mid;             # id of the element
@@ -365,7 +365,7 @@ sub get_metadata_tree {
 
   # get the element labels
   $ss  = qq/SELECT m.mid, ve.entry, ve.isocode FROM metadata AS m LEFT JOIN vocabulary_entry AS ve ON ve.veid = m.veid;/;
-  $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+  $sth = $c->app->db_metadata->dbh->prepare($ss) or $c->app->log->error($c->app->db_metadata->dbh->errstr);
   $sth->execute();
 
   my $entry;      # element label (name of the field, eg 'Title')
@@ -384,7 +384,7 @@ sub get_metadata_tree {
 
       # get vocabulary info
       $ss  = qq/SELECT description FROM vocabulary WHERE vid = (?);/;
-      $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+      $sth = $c->app->db_metadata->dbh->prepare($ss) or $c->app->log->error($c->app->db_metadata->dbh->errstr);
       $sth->execute($element->{vid});
 
       my $desc;    # some short text describing the vocabulary (it's not multilanguage, sorry)
@@ -399,7 +399,7 @@ sub get_metadata_tree {
 
       # get vocabulary values/codes
       $ss  = qq/SELECT veid, entry, isocode FROM vocabulary_entry WHERE vid = (?);/;
-      $sth = $c->app->db_metadata->prepare($ss) or $c->app->log->error($c->app->db_metadata->errstr);
+      $sth = $c->app->db_metadata->dbh->prepare($ss) or $c->app->log->error($c->app->db_metadata->dbh->errstr);
       $sth->execute($element->{vid});
 
       my $veid;       # the code, together with namespace this creates URI, that's the current hack

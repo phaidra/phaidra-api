@@ -6,6 +6,85 @@ use v5.10;
 use XML::LibXML;
 use base qw/Mojo::Base/;
 
+sub disciplines {
+  my $self = shift;
+  my $c    = shift;
+
+  my $res = {alerts => [], status => 200};
+
+  my $cachekey = 'stats_disciplines';
+  my $cacheval = $c->app->chi->get($cachekey);
+  if ($cacheval) {
+    $c->app->log->debug("[cache hit] $cachekey");
+    $res->{disciplines} = $cacheval;
+    return $res;
+  }
+
+  $c->app->log->debug("[cache miss] $cachekey");
+
+  my $disciplines;
+  for my $path (@{$c->app->static->paths}) {
+    open my $fh, "<:encoding(UTF-8)", "$path/statistics/disciplines.csv" or next;
+    my $header = <$fh>;
+    while (<$fh>) {
+      my @arr = split(/"/, $_);
+      $c->app->log->debug($c->app->dumper(\@arr));
+      my $kw = $arr[1];
+      my $ds = $arr[3];
+      $ds =~ s/\n+|^\s+|\s+$|"+//g;
+      $kw =~ s/\n+|^\s+|\s+$|"+//g;
+      my @dss = split(/,/, $ds);
+      for my $disc (@dss) {
+        $disc =~ s/\n+|^\s+|\s+$|"+//g;
+        unless (exists($disciplines->{$disc})) {
+          $disciplines->{$disc} = {kws => []};
+        }
+        push @{$disciplines->{$disc}->{kws}}, $kw;
+      }
+    }
+    close $fh;
+  }
+
+  unless (defined($disciplines)) {
+    my $msg = "Error reading disciplines";
+    $c->app->log->error($msg);
+    push @{$res->{alerts}}, {type => 'danger', msg => $msg};
+    $res->{status} = 500;
+    return $res;
+  }
+
+  my $urlget = Mojo::URL->new;
+  $urlget->scheme($c->app->config->{solr}->{scheme});
+  $urlget->host($c->app->config->{solr}->{host});
+  $urlget->port($c->app->config->{solr}->{port});
+  if ($c->app->config->{solr}->{path}) {
+    $urlget->path("/" . $c->app->config->{solr}->{path} . "/solr/" . $c->app->config->{solr}->{core} . "/select");
+  }
+  else {
+    $urlget->path("/solr/" . $c->app->config->{solr}->{core} . "/select");
+  }
+
+  for my $ds (keys %{$disciplines}) {
+    for my $kw (@{$disciplines->{$ds}->{kws}}) {
+      $c->app->log->debug("querying ds[$ds] kw[$kw]");
+      $urlget->query(q => '"' . $kw . '"', rows => "0", wt => "json");
+      my $get = $c->app->ua->get($urlget);
+      my $numFound;
+      if (my $r_num = $get->success) {
+        $numFound = $r_num->json->{response}->{numFound};
+        $disciplines->{$ds}->{count} += $numFound;
+      }
+    }
+  }
+
+  $cacheval = $disciplines;
+
+  $c->app->chi->set($cachekey, $cacheval, '1 week');
+  $cacheval = $c->app->chi->get($cachekey);
+  $res->{disciplines} = $cacheval;
+  return $res;
+}
+
 sub aggregates {
   my $self       = shift;
   my $c          = shift;

@@ -19,6 +19,7 @@ use Crypt::Rijndael         ();
 use Crypt::URandom          (qw/urandom/);
 use Digest::SHA             (qw/hmac_sha256/);
 use Math::Random::ISAAC::XS ();
+use DBIx::Connector;
 
 BEGIN {
   # that's what we want:
@@ -166,7 +167,19 @@ sub startup {
     }
   }
 
-  $self->plugin('database', {databases => \%databases});
+  foreach my $helper (keys %databases) {
+    my $dbconf = $databases{$helper};
+    $self->app->log->error('missing dsn parameter for ' . $helper) unless (defined($dbconf->{dsn}));
+    my $attr_name = '_dbh_' . $helper;
+    $self->app->attr(
+      $attr_name => sub {
+        my $cntr = DBIx::Connector->new($dbconf->{dsn}, $dbconf->{username}, $dbconf->{password}, $dbconf->{options});
+        $cntr->mode('ping');
+        return $cntr;
+      }
+    );
+    $self->app->helper($helper => sub {return shift->app->$attr_name()});
+  }
 
   # MongoDB driver
   $self->helper(
@@ -432,6 +445,7 @@ sub startup {
   $r->route('dc/uwmetadata_2_dc_index')           ->via('post')   ->to('dc#uwmetadata_2_dc_index');
 
   $r->route('stats/aggregates')                   ->via('get')    ->to('stats#aggregates');
+  $r->route('stats/disciplines')                  ->via('get')    ->to('stats#disciplines');
   $r->route('stats/:pid')                         ->via('get')    ->to('stats#stats');
   $r->route('stats/:pid/downloads')               ->via('get')    ->to('stats#stats', stats_param_key => 'downloads');
   $r->route('stats/:pid/detail_page')             ->via('get')    ->to('stats#stats', stats_param_key => 'detail_page');

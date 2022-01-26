@@ -208,10 +208,10 @@ sub related_objects_mptmysql() {
 
   my $ss = qq/SELECT pKey, p FROM tMap/;
 
-  my $sth = $c->app->db_triplestore->prepare($ss) or $c->app->log->error($c->app->db_triplestore->errstr);
-  $sth->execute()                                 or $c->app->log->error($c->app->db_triplestore->errstr);
+  my $sth = $c->app->db_triplestore->dbh->prepare($ss) or $c->app->log->error($c->app->db_triplestore->dbh->errstr);
+  $sth->execute()                                      or $c->app->log->error($c->app->db_triplestore->dbh->errstr);
   my ($num, $rel);
-  $sth->bind_columns(undef, \$num, \$rel) or $c->app->log->error($c->app->db_triplestore->errstr);
+  $sth->bind_columns(undef, \$num, \$rel) or $c->app->log->error($c->app->db_triplestore->dbh->errstr);
 
   my %relmap;
   while ($sth->fetch()) {
@@ -262,10 +262,10 @@ sub related_objects_mptmysql() {
 
   #$c->app->log->debug("Related objects query: ".$ss);
 
-  $sth = $c->app->db_triplestore->prepare($ss)                or $c->app->log->error($c->app->db_triplestore->errstr);
-  $sth->execute($activestr, '<info:fedora/' . $subject . '>') or $c->app->log->error($c->app->db_triplestore->errstr);
+  $sth = $c->app->db_triplestore->dbh->prepare($ss)           or $c->app->log->error($c->app->db_triplestore->dbh->errstr);
+  $sth->execute($activestr, '<info:fedora/' . $subject . '>') or $c->app->log->error($c->app->db_triplestore->dbh->errstr);
   my ($pid);
-  $sth->bind_columns(undef, \$pid) or $c->app->log->error($c->app->db_triplestore->errstr);
+  $sth->bind_columns(undef, \$pid) or $c->app->log->error($c->app->db_triplestore->dbh->errstr);
 
   my @objects;
   while ($sth->fetch()) {
@@ -290,10 +290,10 @@ sub related_objects_mptmysql() {
   $sth->finish();
 
   $ss  = qq/SELECT FOUND_ROWS();/;
-  $sth = $c->app->db_triplestore->prepare($ss) or $c->app->log->error($c->app->db_triplestore->errstr);
-  $sth->execute() or $c->app->log->error($c->app->db_triplestore->errstr);
+  $sth = $c->app->db_triplestore->dbh->prepare($ss) or $c->app->log->error($c->app->db_triplestore->dbh->errstr);
+  $sth->execute() or $c->app->log->error($c->app->db_triplestore->dbh->errstr);
   my $count;
-  $sth->bind_columns(undef, \$count) or $c->app->log->error($c->app->db_triplestore->errstr);
+  $sth->bind_columns(undef, \$count) or $c->app->log->error($c->app->db_triplestore->dbh->errstr);
   $sth->fetch();
   $sth->finish();
 
@@ -302,7 +302,7 @@ sub related_objects_mptmysql() {
   my $modelrel = '<info:fedora/fedora-system:def/model#hasModel>';
 
   #my $itemidrel = '<http://www.openarchives.org/OAI/2.0/itemID>';
-  
+
   my $descrel   = '<http://purl.org/dc/elements/1.1/description>';
   my $desctable = 't' . $relmap{$descrel};
   my $descsep   = '#desc-sep#';
@@ -314,15 +314,16 @@ sub related_objects_mptmysql() {
   my $fedoraobjstr = '<info:fedora/fedora-system:FedoraObject-3.0>';
 
   foreach my $o (@objects) {
-    
-    $ss = qq/SELECT a.pid, a.title, a.titles, a.cmodel, $desctable.o AS description, GROUP_CONCAT($desctable.o SEPARATOR '$descsep') AS descriptions FROM $desctable RIGHT JOIN (SELECT $titletable.s AS pid, $titletable.o AS title, GROUP_CONCAT($titletable.o SEPARATOR '$titsep') AS titles, $modeltable.o AS cmodel FROM $titletable JOIN $modeltable ON $modeltable.s = $titletable.s WHERE $titletable.s = ? AND $modeltable.o != ?) AS a ON $desctable.s = a.pid/;
 
-    $sth = $c->app->db_triplestore->prepare($ss)                    or $c->app->log->error($c->app->db_triplestore->errstr);
-    $sth->execute('<info:fedora/' . $o->{pid} . '>', $fedoraobjstr) or $c->app->log->error($c->app->db_triplestore->errstr);
+    $ss
+      = qq/SELECT a.pid, a.title, a.titles, a.cmodel, $desctable.o AS description, GROUP_CONCAT($desctable.o SEPARATOR '$descsep') AS descriptions FROM $desctable RIGHT JOIN (SELECT $titletable.s AS pid, $titletable.o AS title, GROUP_CONCAT($titletable.o SEPARATOR '$titsep') AS titles, $modeltable.o AS cmodel FROM $titletable JOIN $modeltable ON $modeltable.s = $titletable.s WHERE $titletable.s = ? AND $modeltable.o != ?) AS a ON $desctable.s = a.pid/;
+
+    $sth = $c->app->db_triplestore->dbh->prepare($ss)               or $c->app->log->error($c->app->db_triplestore->dbh->errstr);
+    $sth->execute('<info:fedora/' . $o->{pid} . '>', $fedoraobjstr) or $c->app->log->error($c->app->db_triplestore->dbh->errstr);
 
     my ($pid, $title, $titles, $cmodel, $desc, $descs);
-    $sth->bind_columns(undef, \$pid, \$title, \$titles, \$cmodel, \$desc, \$descs) or $c->app->log->error($c->app->db_triplestore->errstr);
-   
+    $sth->bind_columns(undef, \$pid, \$title, \$titles, \$cmodel, \$desc, \$descs) or $c->app->log->error($c->app->db_triplestore->dbh->errstr);
+
     while ($sth->fetch()) {
 
       my @titles = split($titsep, $titles);
