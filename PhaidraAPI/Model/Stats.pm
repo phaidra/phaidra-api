@@ -77,7 +77,9 @@ sub disciplines {
     }
   }
 
-  $cacheval = $disciplines;
+  for my $ds (keys %{$disciplines}) {
+    $cacheval->{$ds} = $disciplines->{$ds}->{count};
+  }
 
   $c->app->chi->set($cachekey, $cacheval, '1 week');
   $cacheval = $c->app->chi->get($cachekey);
