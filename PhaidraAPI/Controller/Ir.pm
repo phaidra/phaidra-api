@@ -840,10 +840,10 @@ sub stats_topdownloads {
     $self->app->log->debug("[cache miss] $cachekey");
 
     my $sth
-      = $self->app->db_stats_phaidra_catalyst->prepare(
+      = $self->app->db_stats_phaidra_catalyst->dbh->prepare(
       "SELECT count(name) AS cnt, name FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE piwik_log_action.name like '%download%' AND idsite = ? AND server_time > DATE_SUB(curdate(), INTERVAL ? MONTH) GROUP BY name ORDER BY cnt DESC LIMIT ?;"
-      ) or $self->app->log->error("Error querying piwik database for top downloads:" . $self->app->db_stats_phaidra_catalyst->errstr);
-    $sth->execute($irsiteid, $interval, $limit) or $self->app->log->error("Error querying piwik database for top downloads:" . $self->app->db_stats_phaidra_catalyst->errstr);
+      ) or $self->app->log->error("Error querying piwik database for top downloads:" . $self->app->db_stats_phaidra_catalyst->dbh->errstr);
+    $sth->execute($irsiteid, $interval, $limit) or $self->app->log->error("Error querying piwik database for top downloads:" . $self->app->db_stats_phaidra_catalyst->dbh->errstr);
     my ($nr, $action);
     $sth->bind_columns(undef, \$nr, \$action);
     my @tops;
@@ -953,27 +953,27 @@ sub stats {
   my $pidnum = $pid;
   $pidnum =~ s/://g;
 
-  my $sth = $self->app->db_stats_phaidra_catalyst->prepare(
+  my $sth = $self->app->db_stats_phaidra_catalyst->dbh->prepare(
     "CREATE TEMPORARY TABLE pid_visits_idsite_downloads_$pidnum AS (SELECT piwik_log_link_visit_action.idsite FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE piwik_log_action.name like '%download/$pid%');");
   $sth->execute();
-  my $downloads = $self->app->db_stats_phaidra_catalyst->selectrow_array("SELECT count(*) FROM pid_visits_idsite_downloads_$pidnum WHERE idsite = $irsiteid;");
-  $sth = $self->app->db_stats_phaidra_catalyst->prepare("DROP TEMPORARY TABLE IF EXISTS pid_visits_idsite_downloads_$pidnum;");
+  my $downloads = $self->app->db_stats_phaidra_catalyst->dbh->selectrow_array("SELECT count(*) FROM pid_visits_idsite_downloads_$pidnum WHERE idsite = $irsiteid;");
+  $sth = $self->app->db_stats_phaidra_catalyst->dbh->prepare("DROP TEMPORARY TABLE IF EXISTS pid_visits_idsite_downloads_$pidnum;");
   $sth->execute();
 
   unless (defined($downloads)) {
-    $self->app->log->error("Error querying piwik database for download stats:" . $self->app->db_stats_phaidra_catalyst->errstr);
+    $self->app->log->error("Error querying piwik database for download stats:" . $self->app->db_stats_phaidra_catalyst->dbh->errstr);
   }
 
   # this counts *any* page with pid in URL. But that kind of makes sense anyways...
-  my $sth = $self->app->db_stats_phaidra_catalyst->prepare(
+  my $sth = $self->app->db_stats_phaidra_catalyst->dbh->prepare(
     "CREATE TEMPORARY TABLE pid_visits_idsite_detail_$pidnum AS (SELECT piwik_log_link_visit_action.idsite FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE piwik_log_action.name like '%detail/$pid%');");
   $sth->execute();
-  my $detail_page = $self->app->db_stats_phaidra_catalyst->selectrow_array("SELECT count(*) FROM pid_visits_idsite_detail_$pidnum WHERE idsite = $irsiteid;");
-  $sth = $self->app->db_stats_phaidra_catalyst->prepare("DROP TEMPORARY TABLE IF EXISTS pid_visits_idsite_detail_$pidnum;");
+  my $detail_page = $self->app->db_stats_phaidra_catalyst->dbh->selectrow_array("SELECT count(*) FROM pid_visits_idsite_detail_$pidnum WHERE idsite = $irsiteid;");
+  $sth = $self->app->db_stats_phaidra_catalyst->dbh->prepare("DROP TEMPORARY TABLE IF EXISTS pid_visits_idsite_detail_$pidnum;");
   $sth->execute();
 
   unless (defined($detail_page)) {
-    $self->app->log->error("Error querying piwik database for detail stats:" . $self->app->db_stats_phaidra_catalyst->errstr);
+    $self->app->log->error("Error querying piwik database for detail stats:" . $self->app->db_stats_phaidra_catalyst->dbh->errstr);
   }
 
   if (defined($detail_page) || defined($downloads)) {
@@ -1063,10 +1063,10 @@ sub stats_chart {
 
     my $downloads;
     my $sth
-      = $self->app->db_stats_phaidra_catalyst->prepare(
+      = $self->app->db_stats_phaidra_catalyst->dbh->prepare(
       "SELECT DATE_FORMAT(server_time,'%Y-%m-%d'), location_country FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url INNER JOIN piwik_log_visit on piwik_log_visit.idvisit = piwik_log_link_visit_action.idvisit WHERE piwik_log_link_visit_action.idsite = $irsiteid AND (piwik_log_action.name like '%download/$pid%')"
-      ) or $self->app->log->error("Error querying piwik database for download stats chart:" . $self->app->db_stats_phaidra_catalyst->errstr);
-    $sth->execute() or $self->app->log->error("Error querying piwik database for download stats chart:" . $self->app->db_stats_phaidra_catalyst->errstr);
+      ) or $self->app->log->error("Error querying piwik database for download stats chart:" . $self->app->db_stats_phaidra_catalyst->dbh->errstr);
+    $sth->execute() or $self->app->log->error("Error querying piwik database for download stats chart:" . $self->app->db_stats_phaidra_catalyst->dbh->errstr);
     my $date;
     my $country;
     $sth->bind_columns(undef, \$date, \$country);
@@ -1082,10 +1082,10 @@ sub stats_chart {
 
     my $detail_page;
     $sth
-      = $self->app->db_stats_phaidra_catalyst->prepare(
+      = $self->app->db_stats_phaidra_catalyst->dbh->prepare(
       "SELECT DATE_FORMAT(server_time,'%Y-%m-%d'), location_country FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url INNER JOIN piwik_log_visit on piwik_log_visit.idvisit = piwik_log_link_visit_action.idvisit WHERE piwik_log_link_visit_action.idsite = $irsiteid AND (piwik_log_action.name like '%detail/$pid%')"
-      ) or $self->app->log->error("Error querying piwik database for detail stats chart:" . $self->app->db_stats_phaidra_catalyst->errstr);
-    $sth->execute() or $self->app->log->error("Error querying piwik database for detail stats chart:" . $self->app->db_stats_phaidra_catalyst->errstr);
+      ) or $self->app->log->error("Error querying piwik database for detail stats chart:" . $self->app->db_stats_phaidra_catalyst->dbh->errstr);
+    $sth->execute() or $self->app->log->error("Error querying piwik database for detail stats chart:" . $self->app->db_stats_phaidra_catalyst->dbh->errstr);
     $sth->bind_columns(undef, \$date, \$country);
     while ($sth->fetch) {
       if ($detail_page->{$country}) {

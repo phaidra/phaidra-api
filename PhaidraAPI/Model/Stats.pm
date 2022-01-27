@@ -156,10 +156,10 @@ sub stats {
 
     my $downloads;
     my $sth
-      = $c->app->db_stats_phaidra_catalyst->prepare(
+      = $c->app->db_stats_phaidra_catalyst->dbh->prepare(
       "SELECT DATE_FORMAT(server_time,'%Y-%m-%d'), location_country FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url INNER JOIN piwik_log_visit on piwik_log_visit.idvisit = piwik_log_link_visit_action.idvisit WHERE piwik_log_link_visit_action.idsite = $siteid AND (piwik_log_action.name like '%download/$pid%')"
-      ) or $c->app->log->error("Error querying piwik database for download stats chart:" . $c->app->db_stats_phaidra_catalyst->errstr);
-    $sth->execute() or $c->app->log->error("Error querying piwik database for download stats chart:" . $c->app->db_stats_phaidra_catalyst->errstr);
+      ) or $c->app->log->error("Error querying piwik database for download stats chart:" . $c->app->db_stats_phaidra_catalyst->dbh->errstr);
+    $sth->execute() or $c->app->log->error("Error querying piwik database for download stats chart:" . $c->app->db_stats_phaidra_catalyst->dbh->errstr);
     my $date;
     my $country;
     $sth->bind_columns(undef, \$date, \$country);
@@ -174,10 +174,10 @@ sub stats {
 
     my $detail_page;
     $sth
-      = $c->app->db_stats_phaidra_catalyst->prepare(
+      = $c->app->db_stats_phaidra_catalyst->dbh->prepare(
       "SELECT DATE_FORMAT(server_time,'%Y-%m-%d'), location_country FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url INNER JOIN piwik_log_visit on piwik_log_visit.idvisit = piwik_log_link_visit_action.idvisit WHERE piwik_log_link_visit_action.idsite = $siteid AND (piwik_log_action.name like '%detail/$pid%')"
-      ) or $c->app->log->error("Error querying piwik database for detail stats chart:" . $c->app->db_stats_phaidra_catalyst->errstr);
-    $sth->execute() or $c->app->log->error("Error querying piwik database for detail stats chart:" . $c->app->db_stats_phaidra_catalyst->errstr);
+      ) or $c->app->log->error("Error querying piwik database for detail stats chart:" . $c->app->db_stats_phaidra_catalyst->dbh->errstr);
+    $sth->execute() or $c->app->log->error("Error querying piwik database for detail stats chart:" . $c->app->db_stats_phaidra_catalyst->dbh->errstr);
     $sth->bind_columns(undef, \$date, \$country);
     while ($sth->fetch) {
       if ($detail_page->{$country}) {
@@ -192,41 +192,41 @@ sub stats {
       return {downloads => $downloads, detail_page => $detail_page, alerts => [], status => 200};
     }
     else {
-      my $msg = "No data has been fetched. DB msg:" . $c->app->db_stats_phaidra_catalyst->errstr;
+      my $msg = "No data has been fetched. DB msg:" . $c->app->db_stats_phaidra_catalyst->dbh->errstr;
       $c->app->log->warn($msg);
       return {alerts => [{type => 'info', msg => $msg}], status => 200};
     }
   }
   else {
 
-    my $sth = $c->app->db_stats_phaidra_catalyst->prepare(
+    my $sth = $c->app->db_stats_phaidra_catalyst->dbh->prepare(
       "CREATE TEMPORARY TABLE pid_visits_idsite_downloads_$pidnum AS (SELECT piwik_log_link_visit_action.idsite FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE piwik_log_action.name like '%download/$pid%');");
     $sth->execute();
-    my $downloads = $c->app->db_stats_phaidra_catalyst->selectrow_array("SELECT count(*) FROM pid_visits_idsite_downloads_$pidnum WHERE idsite = $siteid;");
-    $sth = $c->app->db_stats_phaidra_catalyst->prepare("DROP TEMPORARY TABLE IF EXISTS pid_visits_idsite_downloads_$pidnum;");
+    my $downloads = $c->app->db_stats_phaidra_catalyst->dbh->selectrow_array("SELECT count(*) FROM pid_visits_idsite_downloads_$pidnum WHERE idsite = $siteid;");
+    $sth = $c->app->db_stats_phaidra_catalyst->dbh->prepare("DROP TEMPORARY TABLE IF EXISTS pid_visits_idsite_downloads_$pidnum;");
     $sth->execute();
 
     unless (defined($downloads)) {
-      $c->app->log->error("Error querying piwik database for download stats:" . $c->app->db_stats_phaidra_catalyst->errstr);
+      $c->app->log->error("Error querying piwik database for download stats:" . $c->app->db_stats_phaidra_catalyst->dbh->errstr);
     }
 
     # this counts *any* page with pid in URL. But that kind of makes sense anyways...
-    $sth = $c->app->db_stats_phaidra_catalyst->prepare(
+    $sth = $c->app->db_stats_phaidra_catalyst->dbh->prepare(
       "CREATE TEMPORARY TABLE pid_visits_idsite_detail_$pidnum AS (SELECT piwik_log_link_visit_action.idsite FROM piwik_log_link_visit_action INNER JOIN piwik_log_action on piwik_log_action.idaction = piwik_log_link_visit_action.idaction_url WHERE piwik_log_action.name like '%detail/$pid%');");
     $sth->execute();
-    my $detail_page = $c->app->db_stats_phaidra_catalyst->selectrow_array("SELECT count(*) FROM pid_visits_idsite_detail_$pidnum WHERE idsite = $siteid;");
-    $sth = $c->app->db_stats_phaidra_catalyst->prepare("DROP TEMPORARY TABLE IF EXISTS pid_visits_idsite_detail_$pidnum;");
+    my $detail_page = $c->app->db_stats_phaidra_catalyst->dbh->selectrow_array("SELECT count(*) FROM pid_visits_idsite_detail_$pidnum WHERE idsite = $siteid;");
+    $sth = $c->app->db_stats_phaidra_catalyst->dbh->prepare("DROP TEMPORARY TABLE IF EXISTS pid_visits_idsite_detail_$pidnum;");
     $sth->execute();
 
     unless (defined($detail_page)) {
-      $c->app->log->error("Error querying piwik database for detail stats:" . $c->app->db_stats_phaidra_catalyst->errstr);
+      $c->app->log->error("Error querying piwik database for detail stats:" . $c->app->db_stats_phaidra_catalyst->dbh->errstr);
     }
 
     if (defined($detail_page)) {
       return {downloads => $downloads, detail_page => $detail_page, alerts => [], status => 200};
     }
     else {
-      my $msg = "No data has been fetched. DB msg:" . $c->app->db_stats_phaidra_catalyst->errstr;
+      my $msg = "No data has been fetched. DB msg:" . $c->app->db_stats_phaidra_catalyst->dbh->errstr;
       $c->app->log->warn($msg);
       return {alerts => [{type => 'info', msg => $msg}], status => 200};
     }
