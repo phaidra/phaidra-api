@@ -143,6 +143,15 @@ sub startup {
     };
   }
 
+  if ($config->{imagemanipulator_db}) {
+    $databases{'db_imagemanipulator'} = {
+      dsn      => $config->{imagemanipulator_db}->{dsn},
+      username => $config->{imagemanipulator_db}->{username},
+      password => $config->{imagemanipulator_db}->{password},
+      options  => {mysql_auto_reconnect => 1}
+    };
+  }
+
   if ($config->{ir}) {
     $databases{'db_ir'} = {
       dsn      => $config->{ir}->{'db'}->{dsn},

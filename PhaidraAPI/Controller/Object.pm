@@ -21,6 +21,7 @@ use PhaidraAPI::Model::Mods;
 use PhaidraAPI::Model::Imageserver;
 use PhaidraAPI::Model::Util;
 use PhaidraAPI::Model::Authorization;
+use Digest::SHA qw(hmac_sha1_hex);
 use Time::HiRes qw/tv_interval gettimeofday/;
 use File::Find::utf8;
 
@@ -865,6 +866,24 @@ sub add_octets {
   my $addres = $object_model->add_octets($self, $pid, $upload, $file, $mimetype, $checksumtype, $checksum);
   push @{$res->{alerts}}, @{$addres->{alerts}} if scalar @{$addres->{alerts}} > 0;
   $res->{status} = $addres->{status};
+
+  # delete imagemanipulator record
+  $self->app->db_imagemanipulator->dbh->do('DELETE FROM image WHERE url = "' . $pid . '";') or $self->app->log->error("Error deleting from imagemanipulator db:" . $self->app->db_imagemanipulator->dbh->errstr);
+
+  # insert new imageserver job
+  my $search_model = PhaidraAPI::Model::Search->new;
+  my $cmodelr      = $search_model->get_cmodel($self, $pid);
+  if ($cmodelr->{status} eq 200) {
+    my $cmodel = $cmodelr->{cmodel};
+    my $hash   = hmac_sha1_hex($pid, $self->app->config->{imageserver}->{hash_secret});
+    $self->paf_mongo->get_collection('jobs')->insert_one({pid => $pid, cmodel => $cmodel, agent => "pige", status => "new", idhash => $hash, created => time});
+  }
+  else {
+    $self->app->log->error("Error finding cmodel when creating imageserver job:" . $self->app->dumper($cmodelr));
+  }
+
+  # delete inventory info
+  $self->app->paf_mongo->get_collection('foxml.ds')->remove({'pid' => $pid});
 
   $self->render(json => $res, status => $res->{status});
 }
