@@ -46,7 +46,8 @@ my %datastream_versionable = (
   'GEO'             => 'true',
   'DC'              => 'false',
   'DC_P'            => 'false',
-  'DC_OAI'          => 'false'
+  'DC_OAI'          => 'false',
+  'OCTETS'          => 'true'
 );
 
 my %mime_to_cmodel = (
@@ -690,7 +691,7 @@ sub create_simple {
     my $size = $upload->size;
     my $name = $upload->filename;
 
-    # save data first, because these may be needed (dsinfo..) when saving metadata
+    # save data first, because these may be needed when saving metadata
     $c->app->log->debug("[$pid] Saving octets: $name [$size B]");
     my %params;
     $params{controlGroup} = 'M';

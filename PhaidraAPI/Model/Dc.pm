@@ -213,7 +213,7 @@ sub map_mods_2_dc_hash {
   $dc_p{rights} = $ext->_get_mods_element_values($c, $dom, 'mods > accessCondition[type="use and reproduction"]');
 
   unless ($indexing) {
-    my $filesize = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
+    my $filesize = $self->_get_filesize($c, $pid, $cmodel);
     push @{$dc_p{format}} => {value => "$filesize bytes"};
   }
 
@@ -361,7 +361,7 @@ sub map_jsonld_2_dc_hash {
 
   $dc_p{format} = $ext->_get_jsonld_values($c, $jsonld, 'ebucore:hasMimeType');
   unless ($indexing) {
-    my $filesize = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
+    my $filesize = $self->_get_filesize($c, $pid, $cmodel);
     push @{$dc_p{format}} => {value => "$filesize bytes"};
   }
 
@@ -509,7 +509,7 @@ sub map_uwmetadata_2_dc_hash {
 
   # include filesize and mimetype of OCTETS
   unless ($indexing) {
-    my $filesize = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
+    my $filesize = $self->_get_filesize($c, $pid, $cmodel);
     push @$formats, {value => $filesize . " bytes"} if defined($filesize);
   }
 
@@ -626,21 +626,27 @@ sub _get_relsext_identifiers {
   return \@ids;
 }
 
-sub _get_dsinfo_filesize {
+sub _get_filesize {
 
   my ($self, $c, $pid, $cmodel) = @_;
 
-  my $search_model = PhaidraAPI::Model::Search->new;
-  my $xml          = $search_model->_get_dsinfo_xml($c, $pid, $cmodel);
-
-  my $dom = Mojo::DOM->new();
-  $dom->xml(1);
-  $dom->parse($xml);
-
   my $bytesize;
-  for my $e ($dom->find('dsinfo > filesize')->each) {
-    return $e->text;
+  if (exists($c->app->config->{paf_mongodb})) {
+    my $inv_coll = $c->paf_mongo->get_collection('foxml.ds');
+    if ($inv_coll) {
+      my $ds_doc = $inv_coll->find_one({pid => $pid}, {}, {"sort" => {"updated_at" => -1}});
+      $bytesize = $ds_doc->{ds_sizes}->{OCTETS};
+    }
   }
+  unless ($bytesize) {
+    my $octets_model = PhaidraAPI::Model::Octets->new;
+    my $parthres     = $octets_model->_get_ds_path($c, $pid, 'OCTETS');
+    if ($parthres->{status} == 200) {
+      $bytesize = -s $parthres->{path};
+    }
+  }
+
+  return $bytesize;
 }
 
 sub _create_dc_from_hash {

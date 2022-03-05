@@ -174,7 +174,7 @@ sub map_uwmetadata_2_datacite {
   $data{uploaddates}     = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'lom'} . '\:upload_date');
   $data{embargodates}    = $ext->_get_uwm_element_values($c, $dom, $doc_uwns{'extended'} . '\:infoeurepoembargo');
   $data{formats}         = $ext->_get_formats($c, $pid, $cmodel, $dom, \%doc_uwns);
-  $data{filesizes}       = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
+  $data{filesizes}       = $self->_get_filesize($c, $pid, $cmodel);
   $data{publishers}      = $ext->_get_publishers($c, $dom, \%doc_uwns);
   $data{publicationYear} = $ext->_get_releaseyear($c, $dom, \%doc_uwns);
   $data{contributors}    = $ext->_get_contributors($c, $dom, \%doc_uwns);
@@ -266,7 +266,7 @@ sub map_mods_2_datacite {
   $data{descriptions} = $ext->_get_mods_element_values($c, $dom, 'mods > note');
   $data{publishers}   = $ext->_get_mods_element_values($c, $dom, 'mods > originInfo > publisher');
   $data{rights}       = $ext->_get_mods_element_values($c, $dom, 'mods > accessCondition[type="use and reproduction"]');
-  $data{filesizes}    = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
+  $data{filesizes}    = $self->_get_filesize($c, $pid, $cmodel);
 
   return $self->data_2_datacite($c, $cmodel, \%data);
 }
@@ -406,7 +406,7 @@ sub map_jsonld_2_datacite {
   $data{creators}     = $creators;
   $data{subjects}     = $subjects;
   $data{formats}      = $formats;
-  $data{filesizes}    = $self->_get_dsinfo_filesize($c, $pid, $cmodel);
+  $data{filesizes}    = $self->_get_filesize($c, $pid, $cmodel);
   $data{publishers}   = $publishers;
   $data{contributors} = $contributors;
   push @{$data{uploaddates}}, {value => $index->{created}};
@@ -903,26 +903,30 @@ sub _get_relsext_identifiers {
   return \@ids;
 }
 
-sub _get_dsinfo_filesize {
+sub _get_filesize {
 
   my ($self, $c, $pid, $cmodel) = @_;
 
-  my $search_model = PhaidraAPI::Model::Search->new;
-  my $xml          = $search_model->_get_dsinfo_xml($c, $pid, $cmodel);
-
-  my $dom = Mojo::DOM->new();
-  $dom->xml(1);
-  $dom->parse($xml);
-
   my $bytesize;
-  for my $e ($dom->find('dsinfo > filesize')->each) {
-    $bytesize = $e->text;
+  if (exists($c->app->config->{paf_mongodb})) {
+    my $inv_coll = $c->paf_mongo->get_collection('foxml.ds');
+    if ($inv_coll) {
+      my $ds_doc = $inv_coll->find_one({pid => $pid}, {}, {"sort" => {"updated_at" => -1}});
+      $bytesize = $ds_doc->{ds_sizes}->{OCTETS};
+    }
   }
+  unless ($bytesize) {
+    my $octets_model = PhaidraAPI::Model::Octets->new;
+    my $parthres     = $octets_model->_get_ds_path($c, $pid, 'OCTETS');
+    if ($parthres->{status} == 200) {
+      $bytesize = -s $parthres->{path};
+    }
+  }
+
   my @sizes;
   push @sizes, {value => $bytesize};
   return \@sizes;
 }
-
 sub json_2_xml {
 
   my ($self, $c, $json) = @_;
