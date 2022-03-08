@@ -166,7 +166,7 @@ sub post {
     if (ref $metadata eq 'Mojo::Upload') {
       $self->app->log->debug("Metadata sent as file param");
       $metadata = $metadata->asset->slurp;
-      $self->app->log->debug("parsing json");
+      $self->app->log->debug("parsing json file");
       $metadata = decode_json($metadata);
     }
     else {

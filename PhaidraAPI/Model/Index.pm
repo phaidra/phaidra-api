@@ -8,7 +8,7 @@ use Switch;
 use Time::HiRes qw/tv_interval gettimeofday/;
 use Mojo::ByteStream qw(b);
 use Mojo::Util qw(xml_escape encode decode trim);
-use Mojo::JSON qw(encode_json decode_json);
+use Mojo::JSON qw(encode_json decode_json from_json to_json);
 use Mojo::URL;
 use Mojo::UserAgent;
 use base qw/Mojo::Base/;
@@ -2198,7 +2198,7 @@ sub _add_uwm_index {
   my ($roles, $contributions) = $self->_get_uwm_roles($c, $uwm);
 
   # $c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($contributions));
-  $index->{"uwm_roles_json"} = b(encode_json($contributions))->decode('UTF-8');
+  $index->{"uwm_roles_json"} = to_json($contributions);
   for my $r (@{$roles}) {
     push @{$index->{"bib_roles_pers_" . $r->{role}}}, trim $r->{name}   if $r->{name} ne '';
     push @{$index->{"bib_roles_corp_" . $r->{role}}}, $r->{institution} if $r->{institution} ne '';
