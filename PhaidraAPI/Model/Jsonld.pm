@@ -13,6 +13,7 @@ use PhaidraAPI::Model::Object;
 
 our %cm2rt = (
   'Picture'       => {'@id' => 'https://pid.phaidra.org/vocabulary/44TN-P1S0', 'skos:prefLabel' => {'eng' => 'image'}},
+  'Page'          => {'@id' => 'https://pid.phaidra.org/vocabulary/44TN-P1S0', 'skos:prefLabel' => {'eng' => 'image'}},
   'PDFDocument'   => {'@id' => 'https://pid.phaidra.org/vocabulary/69ZZ-2KGX', 'skos:prefLabel' => {'eng' => 'text'}},
   'LaTeXDocument' => {'@id' => 'https://pid.phaidra.org/vocabulary/69ZZ-2KGX', 'skos:prefLabel' => {'eng' => 'text'}},
   'Collection'    => {'@id' => 'https://pid.phaidra.org/vocabulary/GXS7-ENXJ', 'skos:prefLabel' => {'eng' => 'collection'}},
@@ -86,11 +87,10 @@ sub fix() {
     my $rt = $cm2rt{$cmodel};
     $c->app->log->debug("pid[$pid] cmodel[$cmodel] json-ld fix: adding dcterms:type");
     $metadata->{'dcterms:type'} = [
-      { '@type'           => 'skos:Concept',
-        'skos:prefLabel'  => [
-          {
-            '@language' => 'eng',
-            '@value' => $rt->{'skos:prefLabel'}->{'eng'}
+      { '@type'          => 'skos:Concept',
+        'skos:prefLabel' => [
+          { '@language' => 'eng',
+            '@value'    => $rt->{'skos:prefLabel'}->{'eng'}
           }
         ],
         'skos:exactMatch' => [$rt->{'@id'}]
