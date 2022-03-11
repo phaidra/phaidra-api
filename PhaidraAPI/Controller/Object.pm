@@ -858,17 +858,17 @@ sub add_octets {
     unshift @{$res->{alerts}}, {type => 'info', msg => "Undefined mimetype, using magic: $mimetype"};
   }
 
+  my $file         = $self->param('file');
+  my $pid          = $self->stash('pid');
+  my $checksumtype = $self->param('checksumtype');
+  my $checksum     = $self->param('checksum');
+
   # $object_model->add_octets will re-index, so keep inventory cleanup above it to avoid indexing old data
   # delete inventory info
   $self->app->paf_mongo->get_collection('foxml.ds')->remove({'pid' => $pid});
 
   # delete imagemanipulator record
   $self->app->db_imagemanipulator->dbh->do('DELETE FROM image WHERE url = "' . $pid . '";') or $self->app->log->error("Error deleting from imagemanipulator db:" . $self->app->db_imagemanipulator->dbh->errstr);
-
-  my $file         = $self->param('file');
-  my $pid          = $self->stash('pid');
-  my $checksumtype = $self->param('checksumtype');
-  my $checksum     = $self->param('checksum');
 
   my $addres = $object_model->add_octets($self, $pid, $upload, $file, $mimetype, $checksumtype, $checksum);
   push @{$res->{alerts}}, @{$addres->{alerts}} if scalar @{$addres->{alerts}} > 0;
