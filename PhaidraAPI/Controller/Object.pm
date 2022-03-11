@@ -858,6 +858,13 @@ sub add_octets {
     unshift @{$res->{alerts}}, {type => 'info', msg => "Undefined mimetype, using magic: $mimetype"};
   }
 
+  # $object_model->add_octets will re-index, so keep inventory cleanup above it to avoid indexing old data
+  # delete inventory info
+  $self->app->paf_mongo->get_collection('foxml.ds')->remove({'pid' => $pid});
+
+  # delete imagemanipulator record
+  $self->app->db_imagemanipulator->dbh->do('DELETE FROM image WHERE url = "' . $pid . '";') or $self->app->log->error("Error deleting from imagemanipulator db:" . $self->app->db_imagemanipulator->dbh->errstr);
+
   my $file         = $self->param('file');
   my $pid          = $self->stash('pid');
   my $checksumtype = $self->param('checksumtype');
@@ -866,9 +873,6 @@ sub add_octets {
   my $addres = $object_model->add_octets($self, $pid, $upload, $file, $mimetype, $checksumtype, $checksum);
   push @{$res->{alerts}}, @{$addres->{alerts}} if scalar @{$addres->{alerts}} > 0;
   $res->{status} = $addres->{status};
-
-  # delete imagemanipulator record
-  $self->app->db_imagemanipulator->dbh->do('DELETE FROM image WHERE url = "' . $pid . '";') or $self->app->log->error("Error deleting from imagemanipulator db:" . $self->app->db_imagemanipulator->dbh->errstr);
 
   # insert new imageserver job
   my $search_model = PhaidraAPI::Model::Search->new;
@@ -881,9 +885,6 @@ sub add_octets {
   else {
     $self->app->log->error("Error finding cmodel when creating imageserver job:" . $self->app->dumper($cmodelr));
   }
-
-  # delete inventory info
-  $self->app->paf_mongo->get_collection('foxml.ds')->remove({'pid' => $pid});
 
   $self->render(json => $res, status => $res->{status});
 }

@@ -468,9 +468,9 @@ sub modify {
   my $putres = $ua->put($url => \%headers)->result;
   if ($putres->is_success) {
     my $hooks_model = PhaidraAPI::Model::Hooks->new;
-    my $hr          = $hooks_model->modify_object_hooks($c, $pid, $username, $password);
+    my $hr          = $hooks_model->index_hook($c, $pid);
     if ($hr->{status} ne 200) {
-      $c->app->log->error("Error indexing object $pid in modify_object_hooks: " . $c->app->dumper($hr));
+      $c->app->log->error("Error indexing object $pid in index_hook: " . $c->app->dumper($hr));
     }
   }
   else {
@@ -1095,7 +1095,14 @@ sub add_octets {
   $headers{'Content-Type'} = $mimetype;
 
   my $postres = $ua->post($url => \%headers => form => {file => {file => $upload->asset}})->result;
-  unless ($postres->is_success) {
+  if ($postres->is_success) {
+    my $hooks_model = PhaidraAPI::Model::Hooks->new;
+    my $hr          = $hooks_model->index_hook($c, $pid);
+    if ($hr->{status} ne 200) {
+      $c->app->log->error("Error indexing object $pid in index_hook: " . $c->app->dumper($hr));
+    }
+  }
+  else {
     $c->app->log->error($postres->code . ": " . $postres->message);
     unshift @{$res->{alerts}}, {type => 'danger', msg => $postres->message};
     $res->{status} = $postres->code ? $postres->code : 500;

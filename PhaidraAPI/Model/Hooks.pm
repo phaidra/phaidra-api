@@ -102,9 +102,9 @@ sub add_or_modify_relationships_hooks {
   return $res;
 }
 
-sub modify_object_hooks {
+sub index_hook {
 
-  my ($self, $c, $pid, $username, $password) = @_;
+  my ($self, $c, $pid) = @_;
 
   my $res = {alerts => [], status => 200};
 
