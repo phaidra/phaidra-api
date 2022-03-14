@@ -20,6 +20,24 @@ sub get_list {
   $self->render(json => {alerts => [], list => $list}, status => 200);
 }
 
+sub get_token_list {
+  my $self = shift;
+
+  my $token = $self->stash('token');
+  unless ($token) {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'No token sent'}]}, status => 400);
+    return;
+  }
+  unless ($token =~ /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i) {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'Invalid token'}]}, status => 400);
+    return;
+  }
+
+  my $list = $self->mongo->get_collection('lists')->find_one({"token" => $token});
+
+  $self->render(json => {alerts => [], list => $list}, status => 200);
+}
+
 sub get_lists {
   my $self = shift;
 
@@ -137,6 +155,42 @@ sub remove_members {
   }
 
   if ($r->{modified_count}) {
+    $self->render(json => {status => 200, alerts => []}, status => 200);
+  }
+  else {
+    $self->render(json => {alerts => [{type => 'danger', msg => $r->{err}}]}, status => 500);
+  }
+}
+
+sub token_create {
+  my $self = shift;
+
+  my $lid   = $self->stash('lid');
+  my $owner = $self->stash->{basic_auth_credentials}->{username};
+
+  my $uuid  = Data::UUID->new;
+  my $blid  = $uuid->create();
+  my $token = $uuid->to_string($blid);
+
+  my $r = $self->mongo->get_collection('lists')->update_one({"listid" => $lid, "owner" => $owner}, {'token' => $token, '$set' => {"updated" => time}});
+
+  if ($r->{ok}) {
+    $self->render(json => {status => 200, alerts => []}, status => 200);
+  }
+  else {
+    $self->render(json => {alerts => [{type => 'danger', msg => $r->{err}}]}, status => 500);
+  }
+}
+
+sub token_delete {
+  my $self = shift;
+
+  my $lid   = $self->stash('lid');
+  my $owner = $self->stash->{basic_auth_credentials}->{username};
+
+  my $r = $self->mongo->get_collection('lists')->update_one({"listid" => $lid, "owner" => $owner}, {'token' => '', '$set' => {"updated" => time}});
+
+  if ($r->{ok}) {
     $self->render(json => {status => 200, alerts => []}, status => 200);
   }
   else {
