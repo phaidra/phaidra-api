@@ -473,7 +473,9 @@ sub startup {
   $r->route('oai')                                ->via('get')    ->to('oai#handler');
   $r->route('oai')                                ->via('post')   ->to('oai#handler');
 
-  $r->route('termsofuse')                         ->via('get')   ->to('termsofuse#get');
+  $r->route('termsofuse')                         ->via('get')    ->to('termsofuse#get');
+
+  $r->route('list/token/:token')                  ->via('get')    ->to('lists#get_token_list');
 
   # this just extracts the credentials - authentication will be done by fedora
   my $proxyauth = $r->under('/')->to('authentication#extract_credentials', must_be_present => 1);
