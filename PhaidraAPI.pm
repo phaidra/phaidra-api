@@ -590,8 +590,8 @@ sub startup {
     $check_auth->route('group/:gid/members/remove')                       ->via('post')     ->to('groups#remove_members');
 
     $check_auth->route('list/add')                                        ->via('post')     ->to('lists#add_list');
-    $check_auth->route('list/token/create')                               ->via('post')     ->to('lists#token_create');
-    $check_auth->route('list/token/delete')                               ->via('post')     ->to('lists#token_delete');
+    $check_auth->route('list/:lid/token/create')                          ->via('post')     ->to('lists#token_create');
+    $check_auth->route('list/:lid/token/delete')                          ->via('post')     ->to('lists#token_delete');
     $check_auth->route('list/:lid/remove')                                ->via('post')     ->to('lists#remove_list');
     $check_auth->route('list/:lid/members/add')                           ->via('post')     ->to('lists#add_members');
     $check_auth->route('list/:lid/members/remove')                        ->via('post')     ->to('lists#remove_members');
