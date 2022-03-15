@@ -14,6 +14,7 @@ use PhaidraAPI::Model::Object;
 our %cm2rt = (
   'Picture'       => {'@id' => 'https://pid.phaidra.org/vocabulary/44TN-P1S0', 'skos:prefLabel' => {'eng' => 'image'}},
   'Page'          => {'@id' => 'https://pid.phaidra.org/vocabulary/44TN-P1S0', 'skos:prefLabel' => {'eng' => 'image'}},
+  'Book'          => {'@id' => 'https://pid.phaidra.org/vocabulary/69ZZ-2KGX', 'skos:prefLabel' => {'eng' => 'text'}},
   'PDFDocument'   => {'@id' => 'https://pid.phaidra.org/vocabulary/69ZZ-2KGX', 'skos:prefLabel' => {'eng' => 'text'}},
   'LaTeXDocument' => {'@id' => 'https://pid.phaidra.org/vocabulary/69ZZ-2KGX', 'skos:prefLabel' => {'eng' => 'text'}},
   'Collection'    => {'@id' => 'https://pid.phaidra.org/vocabulary/GXS7-ENXJ', 'skos:prefLabel' => {'eng' => 'collection'}},
