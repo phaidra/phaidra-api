@@ -172,10 +172,10 @@ sub token_create {
   my $blid  = $uuid->create();
   my $token = $uuid->to_string($blid);
 
-  my $r = $self->mongo->get_collection('lists')->update_one({"listid" => $lid, "owner" => $owner}, {'token' => $token, '$set' => {"updated" => time}});
+  my $r = $self->mongo->get_collection('lists')->update_one({"listid" => $lid, "owner" => $owner}, {'$set' => {'token' => $token, "updated" => time}});
 
-  if ($r->{ok}) {
-    $self->render(json => {status => 200, alerts => []}, status => 200);
+  if ($r->{acknowledged}) {
+    $self->render(json => {token => $token, status => 200, alerts => []}, status => 200);
   }
   else {
     $self->render(json => {alerts => [{type => 'danger', msg => $r->{err}}]}, status => 500);
@@ -188,9 +188,9 @@ sub token_delete {
   my $lid   = $self->stash('lid');
   my $owner = $self->stash->{basic_auth_credentials}->{username};
 
-  my $r = $self->mongo->get_collection('lists')->update_one({"listid" => $lid, "owner" => $owner}, {'token' => '', '$set' => {"updated" => time}});
+  my $r = $self->mongo->get_collection('lists')->update_one({"listid" => $lid, "owner" => $owner}, {'$set' => {'token' => '', "updated" => time}});
 
-  if ($r->{ok}) {
+  if ($r->{acknowledged}) {
     $self->render(json => {status => 200, alerts => []}, status => 200);
   }
   else {
