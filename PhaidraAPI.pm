@@ -511,6 +511,7 @@ sub startup {
 
   $proxyauth_optional->route('object/:pid/diss/:bdef/:method')            ->via('get')      ->to('object#diss');
   $proxyauth_optional->route('object/:pid/fulltext')                      ->via('get')      ->to('fulltext#get');
+  $proxyauth_optional->route('object/:pid/iiifmanifest')                  ->via('get')      ->to('object#get_iiif_manifest');
   $proxyauth_optional->route('object/:pid/metadata')                      ->via('get')      ->to('object#get_metadata');
   $proxyauth_optional->route('object/:pid/info')                          ->via('get')      ->to('object#info');
   $proxyauth_optional->route('object/:pid/thumbnail')                     ->via('get')      ->to('object#thumbnail');

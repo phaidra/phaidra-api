@@ -316,6 +316,21 @@ sub preview {
         return;
       }
     }
+    case ['Book'] {
+      my $index_model = PhaidraAPI::Model::Index->new;
+      my $docres      = $index_model->get_doc($self, $pid);
+      if ($docres->{status} ne 200) {
+        $self->app->log->error("pid[$pid] error searching for doc: " . $self->app->dumper($docres));
+        $self->reply->static('images/error.png');
+        return;
+      }
+
+      $self->stash(baseurl  => $self->config->{baseurl});
+      $self->stash(basepath => $self->config->{basepath});
+      $self->stash(pid      => $pid);
+      $self->render(template => 'utils/bookviewer', format => 'html');
+      return;
+    }
     case 'PDFDocument' {
       if ($showloadbutton) {
         $self->render(template => 'utils/loadbutton', format => 'html');
@@ -1127,6 +1142,20 @@ sub metadata {
 
   $self->render(json => $res, status => $res->{status});
 
+}
+
+sub get_iiif_manifest {
+  my $self = shift;
+
+  my $pid = $self->stash('pid');
+
+  unless (defined($pid)) {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}], status => 404}, status => 404);
+    return;
+  }
+
+  my $object_model = PhaidraAPI::Model::Object->new;
+  $object_model->proxy_datastream($self, $pid, 'IIIF-MANIFEST', $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 1);
 }
 
 # Diss method is for calling the disseminator which is api-a access, so it can also be called without credentials.
