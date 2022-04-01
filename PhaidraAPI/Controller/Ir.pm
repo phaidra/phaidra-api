@@ -241,17 +241,38 @@ sub approve {
     return;
   }
 
-  $self->app->log->debug("ir: approve: adding [$pid] to collection [" . $self->config->{ir}->{ircollection} . "]...");
-  my $object_model = PhaidraAPI::Model::Object->new;
-  my $r            = $object_model->add_relationship($self, $self->config->{ir}->{ircollection}, "info:fedora/fedora-system:def/relations-external#hasCollectionMember", "info:fedora/" . $pid, $username, $password, 0);
-  if ($r->{status} ne 200) {
-    $res->{status} = 500;
-    unshift @{$res->{alerts}}, @{$r->{alerts}};
-    unshift @{$res->{alerts}}, {type => 'danger', msg => "Error approving object $pid"};
-    $self->render(json => $res, status => $res->{status});
+  $self->app->log->debug("ir: approve: [$pid] adding tag...");
+  my $cmodel;
+  my $search_model = PhaidraAPI::Model::Search->new;
+  my $res_cmodel   = $search_model->get_cmodel($self, $pid);
+  if ($res_cmodel->{status} ne 200) {
+    $self->app->log->error("ERROR saving json-ld for object $pid, could not get cmodel:" . $self->app->dumper($res_cmodel));
     return;
   }
-  $self->app->log->debug("ir: approve: adding [$pid] to collection [" . $self->config->{ir}->{ircollection} . "]...finished");
+  else {
+    $cmodel = $res_cmodel->{cmodel};
+  }
+
+  my $jsonld_model = PhaidraAPI::Model::Jsonld->new;
+  my $res          = $jsonld_model->get_object_jsonld_parsed($self, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  if ($res->{status} ne 200) {
+    $self->app->log->error("ERROR getting json-ld for object $pid:\n" . $self->app->dumper($res));
+    return;
+  }
+
+  if (exists($res->{'JSON-LD'}->{'phaidra:systemTag'})) {
+    $self->app->log->error("ERROR phaidra:systemTag already exists");
+    return;
+  }
+
+  $res->{'JSON-LD'}->{'phaidra:systemTag'} = [$self->config->{ir}->{adminset} . ':approved'];
+
+  my $saveres = $jsonld_model->save_to_object($self, $pid, $cmodel, $res->{'JSON-LD'}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  if ($saveres->{status} ne 200) {
+    $self->app->log->error("ERROR saving json-ld for object $pid:\n" . $self->app->dumper($res));
+    return;
+  }
+  $self->app->log->debug("ir: approve: [$pid] adding tag...finished");
 
   my @pids = ($pid);
   $self->addEvent('approve', \@pids, $username);
@@ -638,6 +659,10 @@ sub submit {
       $jsonld->{'edm:rights'} = \@lic;
     }
 
+    if ($username eq $self->config->{ir}->{iraccount}) {
+      $jsonld->{'phaidra:systemTag'} = [$self->config->{ir}->{adminset} . ":approved"];
+    }
+
     my $isAlternativeFormat = 0;
     my $cmodel;
     if ($mimetype eq 'application/pdf' || $mimetype eq 'application/x-pdf') {
@@ -722,14 +747,6 @@ sub submit {
       $self->app->log->error("Error adding relationships[" . $self->app->dumper(\@alternativeFormatsRelationships) . "] pid[$alternativeFromatPid] res[" . $self->app->dumper($res) . "]");
 
       # continue, this isn't fatal
-    }
-  }
-
-  if ($username eq $self->config->{ir}->{iraccount}) {
-    my $r = $object_model->add_relationship($self, $self->config->{ir}->{ircollection}, "info:fedora/fedora-system:def/relations-external#hasCollectionMember", "info:fedora/" . $mainObjectPid, $username, $password, 0);
-    push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-    if ($r->{status} ne 200) {
-      $self->app->log->error("Error adding object to IR collection collpid[" . $self->config->{ir}->{ircollection} . "] relationship[info:fedora/fedora-system:def/relations-external#hasCollectionMember] pid[$mainObjectPid] res[" . $self->app->dumper($res) . "]");
     }
   }
 
