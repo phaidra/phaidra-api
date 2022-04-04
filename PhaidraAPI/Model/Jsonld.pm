@@ -17,6 +17,7 @@ our %cm2rt = (
   'Book'          => {'@id' => 'https://pid.phaidra.org/vocabulary/47QB-8QF1', 'skos:prefLabel' => {'eng' => 'book'}},
   'PDFDocument'   => {'@id' => 'https://pid.phaidra.org/vocabulary/69ZZ-2KGX', 'skos:prefLabel' => {'eng' => 'text'}},
   'LaTeXDocument' => {'@id' => 'https://pid.phaidra.org/vocabulary/69ZZ-2KGX', 'skos:prefLabel' => {'eng' => 'text'}},
+  'Paper'         => {'@id' => 'https://pid.phaidra.org/vocabulary/69ZZ-2KGX', 'skos:prefLabel' => {'eng' => 'text'}},
   'Collection'    => {'@id' => 'https://pid.phaidra.org/vocabulary/GXS7-ENXJ', 'skos:prefLabel' => {'eng' => 'collection'}},
   'Video'         => {'@id' => 'https://pid.phaidra.org/vocabulary/B0Y6-GYT8', 'skos:prefLabel' => {'eng' => 'video'}},
   'Asset'         => {'@id' => 'https://pid.phaidra.org/vocabulary/7AVS-Y482', 'skos:prefLabel' => {'eng' => 'data'}},
