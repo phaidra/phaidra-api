@@ -165,9 +165,9 @@ sub _get_metadata_dc {
         }
       }
       if ($1 eq 'description') {
-        if (exists($rec->{ispartof})) {
-          for my $coll (@{$rec->{ispartof}}) {
-            if ($coll eq $self->app->config->{ir}->{ircollection}) {
+        if (exists($rec->{isinadminset})) {
+          for my $as (@{$rec->{isinadminset}}) {
+            if ($as eq $self->app->config->{ir}->{adminset}) {
               $field{values} = ["The abstract is available here: https://" . $self->app->config->{ir}->{baseurl} . "/" . $rec->{pid}];
             }
           }

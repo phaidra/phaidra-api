@@ -237,11 +237,14 @@ sub startup {
 
   $self->hook(
     'before_dispatch' => sub {
-      my $self = shift;
-
+      my $self    = shift;
       my $session = $self->stash('mojox-session');
       $session->load;
-      if ($session->sid) {
+      if ($session->is_expired) {
+        $session->expire;
+        $session->flush;
+      }
+      elsif ($session->sid) {
         $session->extend_expires;
         $session->flush;
       }
