@@ -544,7 +544,8 @@ sub startup {
 
     $check_admin_auth->route('index')                                     ->via('post')     ->to('index#update');
     $check_admin_auth->route('dc')                                        ->via('post')     ->to('dc#update');
-    
+
+    $check_admin_auth->route('mint/pid')                                  ->via('post')     ->to('object#mint_pid');
     $check_admin_auth->route('object/:pid/index')                         ->via('post')     ->to('index#update');
     $check_admin_auth->route('object/:pid/dc')                            ->via('post')     ->to('dc#update');
 

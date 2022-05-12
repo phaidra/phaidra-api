@@ -25,6 +25,25 @@ use Digest::SHA qw(hmac_sha1_hex);
 use Time::HiRes qw/tv_interval gettimeofday/;
 use File::Find::utf8;
 
+sub mint_pid {
+  my $self = shift;
+
+  my $res = {alerts => [], status => 200};
+  my $dbh = $self->app->db_fedora->dbh;
+  $dbh->do("UPDATE pidGen SET highestID = LAST_INSERT_ID(highestID) + 1 WHERE namespace = '" . $self->app->config->{fedora}->{pidnamespace} . "';");
+  my $highestID = $dbh->last_insert_id(undef, undef, 'pidGen', 'highestID');
+  $highestID++;
+  my $pid = $self->app->config->{fedora}->{pidnamespace} . ':' . $highestID;
+  if (my $msg = $dbh->errstr) {
+    $self->app->log->error($msg);
+    $res->{status} = 500;
+    unshift @{$res->{alerts}}, {type => 'danger', msg => $msg};
+    return $res;
+  }
+
+  $self->render(json => {pid => $pid}, status => $res->{status});
+}
+
 sub info {
   my $self = shift;
 
