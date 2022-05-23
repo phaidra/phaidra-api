@@ -440,10 +440,10 @@ sub get_doc {
     }
   }
   else {
-    my $err = "[$pid] error getting object info from solr: " . $res->code . " " . $res->message;
+    my $err = "[$pid] error getting object info from solr: " . $getres->code . " " . $getres->message;
     $c->app->log->error($err);
     unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
-    $res->{status} = $res->code ? $res->code : 500;
+    $res->{status} = $getres->code ? $getres->code : 500;
     return $res;
   }
 
