@@ -507,13 +507,7 @@ sub update {
 
       my $collectionMembers = $r->{index}->{haspart} if exists $r->{index}->{haspart};
 
-      # don't save this
-      delete $r->{index}->{haspart};
-
       my $members = $r->{index}->{hasmember} if exists $r->{index}->{hasmember};
-
-      # don't save this
-      delete $r->{index}->{hasmember};
 
       my $membersorder = $r->{index}->{membersorder} if exists $r->{index}->{membersorder};
 
@@ -1483,16 +1477,12 @@ sub _index_relsext {
     push @{$index->{isinadminset}}, $o;
   }
 
-  # we save this now as haspart but this is later removed
-  # instead the array is used to create ispartof in members
   for my $e ($xml->find('hasCollectionMember')->each) {
     my $o = $e->attr('rdf:resource');
     $o =~ s/^info:fedora\/(.*)$/$1/;
     push @{$index->{haspart}}, $o;
   }
 
-  # we save this now as hasmember but this is later removed
-  # instead the array is used to create ismember in members
   for my $e ($xml->find('hasMember')->each) {
     my $o = $e->attr('rdf:resource');
     $o =~ s/^info:fedora\/(.*)$/$1/;
@@ -1549,76 +1539,31 @@ sub _add_reverse_relations {
 
   my $res = {alerts => [], status => 200};
 
-  my $r_trip = $search_model->triples($c, "* <info:fedora/fedora-system:def/relations-external#hasCollectionMember> <info:fedora/$pid>", 0);
-  if ($r_trip->{status} ne 200) {
-    return $r_trip;
-  }
-
-  for my $triple (@{$r_trip->{result}}) {
-    my $subject = @$triple[0];
-    if ($subject =~ m/^<info:fedora\/(.*)>$/) {
-      push @{$index->{ispartof}}, $1;
+  my $urlget = $self->_get_solrget_url($c);
+  $urlget->query(q => "*:*", fq => 'haspart:"' . $pid . '"', rows => 1000, wt => "json");
+  my $r = $c->ua->get($urlget)->result;
+  if ($r->is_success) {
+    for my $d (@{$r->json->{response}->{docs}}) {
+      push @{$index->{ispartof}}, $d->{pid};
     }
   }
-
-  my $r_trip = $search_model->triples($c, "* <http://pcdm.org/models#hasMember> <info:fedora/$pid>", 0);
-  if ($r_trip->{status} ne 200) {
-    return $r_trip;
+  else {
+    $c->app->log->error("[$pid] error getting solr doc in _add_reverse_relations for pid[$pid]: " . $r->code . " " . $r->message);
   }
 
-  for my $triple (@{$r_trip->{result}}) {
-    my $subject = @$triple[0];
-    if ($subject =~ m/^<info:fedora\/(.*)>$/) {
-      push @{$index->{ismemberof}}, $1;
+  $urlget->query(q => "*:*", fq => 'hasmember:"' . $pid . '"', rows => 1000, wt => "json");
+  my $r = $c->ua->get($urlget)->result;
+  if ($r->is_success) {
+    for my $d (@{$r->json->{response}->{docs}}) {
+      push @{$index->{ismemberof}}, $d->{pid};
     }
+  }
+  else {
+    $c->app->log->error("[$pid] error getting solr doc in _add_reverse_relations for pid[$pid]: " . $r->code . " " . $r->message);
   }
 
   return $res;
 }
-
-=cut
-sub _add_triples_index {
-
-  my ($self, $c, $pid, $search_model, $index) = @_;
-
-  my $res = { alerts => [], status => 200 };
-
-  my $r_trip = $search_model->triples($c, "<info:fedora/$pid> * *", 0);
-  if($r_trip->{status} ne 200){
-    return $r_trip;
-  }
-   
-  for my $triple (@{$r_trip->{result}}){
-    my $predicate = @$triple[1];
-    my $object = @$triple[2];
-
-    if($predicate eq '<info:fedora/fedora-system:def/model#hasModel>'){      
-      if($object =~ m/^<info:fedora\/cmodel:(.*)>$/){
-        $index->{cmodel} = $1;        
-      }
-    }
-
-    if($predicate eq '<info:fedora/fedora-system:def/model#ownerId>'){
-      $object =~ m/^"(.*)"$/;
-      $index->{owner} = $1;  
-    }
-
-    if($predicate eq '<info:fedora/fedora-system:def/view#lastModifiedDate>'){
-      $object =~ m/\"([\d\-\:\.TZ]+)\"/;
-      $index->{modified} = $1;    
-    }
-
-    if($predicate eq '<info:fedora/fedora-system:def/model#createdDate>'){
-      $object =~ m/\"([\d\-\:\.TZ]+)\"/;
-      $index->{created} = $1;
-    }
-
-  }
-
-  return $res;
-
-}
-=cut
 
 sub _add_mods_index {
   my ($self, $c, $pid, $modsjson, $index) = @_;
