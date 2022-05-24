@@ -250,21 +250,28 @@ sub get_pers_funktion_name {
 sub get_user_data {
   my ($self, $c) = @_;
 
-  my ($fname, $lname);
+  my $username = $c->session->{username};
+  my ($fname, $lname, $email);
   my @inums    = ();
   my @fakcodes = ();
 
   for my $user (@{$config->{users}}) {
-    if ($user->{username} eq $c->session->{username}) {
+    if ($user->{username} eq $username) {
       $fname = $user->{firstname};
       $lname = $user->{lastname};
+      $email = $user->{email};
       push @fakcodes, $user->{fakcode};
       push @inums,    $user->{inum};
       last;
     }
   }
 
-  return $fname, $lname, \@inums, \@fakcodes;
+  my $res = { username => $username, firstname => $fname, lastname => $lname, email => $email ,org_units_l2 => \@inums, org_units_l1 => \@fakcodes };
+
+	return $res;
+
+
+  return $fname, $lname, $email, \@inums, \@fakcodes;
 }
 
 sub is_superuser {
