@@ -251,8 +251,8 @@ sub preview {
   my $force = $self->param('force');
 
   my $authz_model = PhaidraAPI::Model::Authorization->new;
-  my $res         = $authz_model->check_rights($self, $pid, 'ro');
-  unless ($res->{status} eq '200') {
+  my $resro       = $authz_model->check_rights($self, $pid, 'ro');
+  unless ($resro->{status} eq '200') {
     $self->reply->static('images/locked.png');
     return;
   }
@@ -321,6 +321,20 @@ sub preview {
         }
         for my $l (@{$docres->{doc}->{dc_license}}) {
           $license = $l;
+        }
+
+        $self->stash(rights => '');
+        if ($resro->{status} eq '200') {
+          $self->stash(rights => 'ro');
+        }
+        my $resrw = $authz_model->check_rights($self, $pid, 'rw');
+        if ($resrw->{status} eq '200') {
+          $self->stash(rights => 'rw');
+        }
+
+        $self->stash(annotations_json => '');
+        if ($docres->{doc}->{annotations_json} != '') {
+          $self->stash(annotations_json => @{$docres->{doc}->{annotations_json}}[0]);
         }
 
         $self->stash(baseurl  => $self->config->{baseurl});
@@ -458,13 +472,13 @@ sub preview {
         if ($self->imageserver_job_status($pid) eq 'finished') {
           my $size       = "!480,480";
           my $isrv_model = PhaidraAPI::Model::Imageserver->new;
-          my $res        = $isrv_model->get_url($self, Mojo::Parameters->new(IIIF => "$pid.tif/full/$size/0/default.jpg"), 0);
-          if ($res->{status} ne 200) {
-            $self->render(json => $res, status => $res->{status});
+          my $resis      = $isrv_model->get_url($self, Mojo::Parameters->new(IIIF => "$pid.tif/full/$size/0/default.jpg"), 0);
+          if ($resis->{status} ne 200) {
+            $self->render(json => $resis, status => $resis->{status});
             return;
           }
           $self->render_later;
-          $self->ua->get($res->{url} => sub {my ($ua, $tx) = @_; $self->tx->res($tx->res); $self->rendered;});
+          $self->ua->get($resis->{url} => sub {my ($ua, $tx) = @_; $self->tx->res($tx->res); $self->rendered;});
           return;
         }
       }
