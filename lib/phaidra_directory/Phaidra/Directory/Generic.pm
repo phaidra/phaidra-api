@@ -248,14 +248,14 @@ sub get_pers_funktion_name {
 
 #get user data at the login
 sub get_user_data {
-  my ($self, $c) = @_;
+  my ($self, $c, $username) = @_;
 
-  my $username = $c->session->{username};
   my ($fname, $lname, $email);
   my @inums    = ();
   my @fakcodes = ();
 
   for my $user (@{$config->{users}}) {
+
     if ($user->{username} eq $username) {
       $fname = $user->{firstname};
       $lname = $user->{lastname};
@@ -270,8 +270,6 @@ sub get_user_data {
 
 	return $res;
 
-
-  return $fname, $lname, $email, \@inums, \@fakcodes;
 }
 
 sub is_superuser {
