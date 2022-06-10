@@ -722,7 +722,7 @@ sub create_simple {
     my $ua = Mojo::UserAgent->new;
     my %headers;
     $self->add_upstream_headers($c, \%headers);
-    if ($c->app->config->{fedora}->{wrapper}) {
+    if ($c->app->config->{fedora}->{version} >= 6) {
       $headers{'Content-Type'} = 'multipart/form-data';
     }
     else {
@@ -1541,7 +1541,7 @@ sub add_datastream {
     if ($mimetype eq 'text/xml') {
       $dscontent = encode 'UTF-8', $dscontent;
     }
-    if ($c->app->config->{fedora}->{wrapper}) {
+    if ($c->app->config->{fedora}->{version} >= 6) {
       $headers{'Content-Type'} = $mimetype;
     }
     $post = $ua->post($url => \%headers => $dscontent)->result;
@@ -1623,7 +1623,7 @@ sub modify_datastream {
     if ($mimetype eq 'text/xml') {
       $dscontent = encode 'UTF-8', $dscontent;
     }
-    if ($c->app->config->{fedora}->{wrapper}) {
+    if ($c->app->config->{fedora}->{version} >= 6) {
       $headers{'Content-Type'} = $mimetype;
     }
     $put = $ua->put($url => \%headers => $dscontent)->result;
