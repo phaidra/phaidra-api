@@ -21,6 +21,7 @@ use PhaidraAPI::Model::Dc;
 use PhaidraAPI::Model::Annotations;
 use PhaidraAPI::Model::Membersorder;
 use PhaidraAPI::Model::Octets;
+use PhaidraAPI::Model::Fedora;
 use Scalar::Util qw/reftype/;
 
 our %indexed_datastreams = (
@@ -451,6 +452,30 @@ sub get_doc {
   return $res;
 }
 
+sub getSolrUpdateUrl {
+  my ($self, $c, $cmodel) = @_;
+
+  my $core = $c->app->config->{solr}->{core};
+  if (exists($c->app->config->{solr}->{core_pages}) and $c->app->config->{solr}->{core_pages} ne '' and $cmodel eq 'Page') {
+    $core = $c->app->config->{solr}->{core_pages};
+  }
+
+  my $updateurl = Mojo::URL->new;
+  $updateurl->scheme($c->app->config->{solr}->{scheme});
+  $updateurl->userinfo($c->app->config->{solr}->{username} . ":" . $c->app->config->{solr}->{password});
+  $updateurl->host($c->app->config->{solr}->{host});
+  $updateurl->port($c->app->config->{solr}->{port});
+  if ($c->app->config->{solr}->{path}) {
+    $updateurl->path("/" . $c->app->config->{solr}->{path} . "/solr/$core/update");
+  }
+  else {
+    $updateurl->path("/solr/$core/update");
+  }
+  $updateurl->query(commit => 'true');
+
+  return $updateurl;
+}
+
 sub update {
   my ($self, $c, $pid, $dc_model, $search_model, $object_model, $ignorestatus, $norecursion) = @_;
 
@@ -458,28 +483,18 @@ sub update {
 
   if (exists($c->app->config->{index_mongodb}) || exists($c->app->config->{solr})) {
 
-    my $updateurl = Mojo::URL->new;
-    $updateurl->scheme($c->app->config->{solr}->{scheme});
-    $updateurl->userinfo($c->app->config->{solr}->{username} . ":" . $c->app->config->{solr}->{password});
-    $updateurl->host($c->app->config->{solr}->{host});
-    $updateurl->port($c->app->config->{solr}->{port});
-    if ($c->app->config->{solr}->{path}) {
-      $updateurl->path("/" . $c->app->config->{solr}->{path} . "/solr/" . $c->app->config->{solr}->{core} . "/update");
-    }
-    else {
-      $updateurl->path("/solr/" . $c->app->config->{solr}->{core} . "/update");
-    }
-    $updateurl->query(commit => 'true');
-
-    my $ua = Mojo::UserAgent->new;
-
     my $tcm        = [gettimeofday];
     my $cmodel_res = $search_model->get_cmodel($c, $pid);
     $c->app->log->debug("getting cmodel[" . $cmodel_res->{cmodel} . "] took " . tv_interval($tcm));
     if ($cmodel_res->{status} ne 200) {
       return $cmodel_res;
     }
-    elsif ($cmodel_res->{cmodel} eq '') {
+
+    my $updateurl = $self->getSolrUpdateUrl($c, $cmodel_res->{cmodel});
+
+    my $ua = Mojo::UserAgent->new;
+
+    if ($cmodel_res->{cmodel} eq '') {
 
       # triplestore works but returns nothing for this object -> it was probably deleted -> remove from index
       $c->app->log->debug("[$pid] no cmodel found, deleting from index");
@@ -498,7 +513,12 @@ sub update {
       return $res;
     }
 
-    if ($cmodel_res->{cmodel} && $cmodel_res->{cmodel} ne 'Page') {
+    if (
+      $cmodel_res->{cmodel}
+      && ($cmodel_res->{cmodel} ne 'Page'
+        or (exists($c->app->config->{solr}->{core_pages}) and $c->app->config->{solr}->{core_pages} ne ''))
+      )
+    {
 
       my $t0 = [gettimeofday];
       my $r  = $self->_get($c, $pid, $dc_model, $search_model, $object_model, $ignorestatus);
@@ -626,6 +646,7 @@ sub update {
           }
         }
       }
+
     }
     else {
       my $msg = "[$pid] cmodel: " . $cmodel_res->{cmodel} . ", skipping update";
@@ -1021,91 +1042,185 @@ sub _get {
   my %index;
   $res->{index} = \%index;
 
-  $c->app->log->debug("indexing $pid: getting foxml");
-  my $tgetfoxml = [gettimeofday];
-  my $r_oxml    = $object_model->get_foxml($c, $pid);
-  $c->app->log->debug("getting foxml took " . tv_interval($tgetfoxml));
-  if ($r_oxml->{status} ne 200) {
-    return $r_oxml;
-  }
-  $c->app->log->debug("indexing $pid: parsing foxml");
-  my $tparsefoxml = [gettimeofday];
-  my $dom         = Mojo::DOM->new();
-  $dom->xml(1);
-  $dom->parse($r_oxml->{foxml});
-  $c->app->log->debug("parsing foxml took " . tv_interval($tparsefoxml));
-  $c->app->log->debug("indexing $pid: foxml parsed!");
-
   my %datastreams;
-  my %datastreamids;
-  for my $e ($dom->find('foxml\:datastream')->each) {
 
-    my $dsid = $e->attr('ID');
+  # get basic object properties and a list of datastreams
+  if ($c->app->config->{fedora}->{version} >= 6) {
 
-    $datastreamids{$dsid} = 1;
+    my $fedora_model = PhaidraAPI::Model::Fedora->new;
+    my $fres         = $fedora_model->getObjectProperties($c, $pid);
+    if ($fres->{status} ne 200) {
+      return $fres;
+    }
 
-    if ($indexed_datastreams{$dsid}) {
-      my $latestVersion = $e->find('foxml\:datastreamVersion')->first;
-      for my $e1 ($e->find('foxml\:datastreamVersion')->each) {
-        if ($e1->attr('CREATED') gt $latestVersion->attr('CREATED')) {
-          $latestVersion = $e1;
-        }
+    # skip inactive objects
+    my $state = $fres->{state};
+    if ($state ne 'Active') {
+      my $errmsg = "[_get index] $pid is $state, deleting from index.";
+      $c->app->log->warn($errmsg);
+      push @{$res->{alerts}}, {type => 'danger', msg => $errmsg};
+      if ($state eq 'Deleted') {
+        $res->{status} = 301;
       }
-      $datastreams{$dsid} = $latestVersion;
+      if ($state eq 'Inactive') {
+        $res->{status} = 302;
+      }
+      return $res;
+    }
+    $index{owner}    = $fres->{owner};
+    $index{created}  = $fres->{created};
+    $index{modified} = $fres->{modified};
+    if ($fres->{identifier}) {
+      for my $v (@{$fres->{identifier}}) {
+        push @{$index{dc_identifier}}, $v;
+      }
+    }
+    if ($fres->{references}) {
+      for my $v (@{$fres->{references}}) {
+        push @{$index{references}}, $v;
+      }
+    }
+    if ($fres->{isbacksideof}) {
+      for my $v (@{$fres->{isbacksideof}}) {
+        push @{$index{isbacksideof}}, $v;
+      }
+    }
+    if ($fres->{isthumbnailfor}) {
+      for my $v (@{$fres->{isthumbnailfor}}) {
+        push @{$index{isthumbnailfor}}, $v;
+      }
+    }
+    if ($fres->{hassuccessor}) {
+      for my $v (@{$fres->{hassuccessor}}) {
+        push @{$index{hassuccessor}}, $v;
+      }
+    }
+    if ($fres->{isalternativeformatof}) {
+      for my $v (@{$fres->{isalternativeformatof}}) {
+        push @{$index{isalternativeformatof}}, $v;
+      }
+    }
+    if ($fres->{isalternativeversionof}) {
+      for my $v (@{$fres->{isalternativeversionof}}) {
+        push @{$index{isalternativeversionof}}, $v;
+      }
+    }
+    if ($fres->{isinadminset}) {
+      for my $v (@{$fres->{isinadminset}}) {
+        push @{$index{isinadminset}}, $v;
+      }
+    }
+    if ($fres->{haspart}) {
+      for my $v (@{$fres->{haspart}}) {
+        push @{$index{haspart}}, $v;
+      }
+    }
+    if ($fres->{hasmember}) {
+      for my $v (@{$fres->{hasmember}}) {
+        push @{$index{hasmember}}, $v;
+      }
+    }
+    if ($fres->{sameAs}) {
+      for my $v (@{$fres->{sameAs}}) {
+        push @{$index{owl_sameas}}, $v;
+      }
     }
 
-  }
-
-  push @{$index{datastreams}}, keys %datastreamids;
-
-  # keep this first so that we always get the cmodel
-  if (exists($datastreams{'RELS-EXT'})) {    # it should
-
-    my $r_relsext = $self->_index_relsext($c, $datastreams{'RELS-EXT'}->find('foxml\:xmlContent')->first, \%index);
-    if ($r_relsext->{status} ne 200) {
-      push @{$res->{alerts}}, {type => 'danger', msg => "Error indexing RELS-EXT for $pid"};
-      push @{$res->{alerts}}, @{$r_relsext->{alerts}} if scalar @{$r_relsext->{alerts}} > 0;
+    for my $dsid (@{$fres->{contains}}) {
+      my $getdsres = $object_model->get_and_parse_xml_datastream($c, $pid, $dsid, undef, undef, 1);
+      if ($getdsres->{status} ne 200) {
+        $c->app->log->debug("XXXXXXXXX" . $c->app->dumper($getdsres));
+        return $getdsres;
+      }
+      $datastreams{$dsid} = $getdsres->{xml};
     }
-
   }
+  else {
+    $c->app->log->debug("indexing $pid: getting foxml");
+    my $tgetfoxml = [gettimeofday];
+    my $r_oxml    = $object_model->get_foxml($c, $pid);
+    $c->app->log->debug("getting foxml took " . tv_interval($tgetfoxml));
+    if ($r_oxml->{status} ne 200) {
+      return $r_oxml;
+    }
+    $c->app->log->debug("indexing $pid: parsing foxml");
+    my $tparsefoxml = [gettimeofday];
+    my $dom         = Mojo::DOM->new();
+    $dom->xml(1);
+    $dom->parse($r_oxml->{foxml});
+    $c->app->log->debug("parsing foxml took " . tv_interval($tparsefoxml));
+    $c->app->log->debug("indexing $pid: foxml parsed!");
 
-  for my $e ($dom->find('foxml\:objectProperties')->each) {
-    for my $e1 ($e->find('foxml\:property')->each) {
+    my %datastreamids;
+    for my $e ($dom->find('foxml\:datastream')->each) {
 
-      if ($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#state') {
-        if ($ignorestatus && ($ignorestatus eq '1')) {
-          $c->app->log->debug("[_get index] ignorestatus=$ignorestatus");
-        }
-        else {
-          # skip inactive objects
-          my $state = $e1->attr('VALUE');
-          if ($state ne 'Active') {
-            my $errmsg = "[_get index] $pid is $state, deleting from index.";
-            $c->app->log->warn($errmsg);
-            push @{$res->{alerts}}, {type => 'danger', msg => $errmsg};
-            if ($state eq 'Deleted') {
-              $res->{status} = 301;
-            }
-            if ($state eq 'Inactive') {
-              $res->{status} = 302;
-            }
-            return $res;
+      my $dsid = $e->attr('ID');
+
+      $datastreamids{$dsid} = 1;
+
+      if ($indexed_datastreams{$dsid}) {
+        my $latestVersion = $e->find('foxml\:datastreamVersion')->first;
+        for my $e1 ($e->find('foxml\:datastreamVersion')->each) {
+          if ($e1->attr('CREATED') gt $latestVersion->attr('CREATED')) {
+            $latestVersion = $e1;
           }
         }
+        $datastreams{$dsid} = $latestVersion;
       }
 
-      if ($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#ownerId') {
-        $index{owner} = $e1->attr('VALUE');
+    }
+
+    push @{$index{datastreams}}, keys %datastreamids;
+
+    # keep this first so that we always get the cmodel
+    if (exists($datastreams{'RELS-EXT'})) {    # it should
+
+      my $r_relsext = $self->_index_relsext($c, $datastreams{'RELS-EXT'}->find('foxml\:xmlContent')->first, \%index);
+      if ($r_relsext->{status} ne 200) {
+        push @{$res->{alerts}}, {type => 'danger', msg => "Error indexing RELS-EXT for $pid"};
+        push @{$res->{alerts}}, @{$r_relsext->{alerts}} if scalar @{$r_relsext->{alerts}} > 0;
       }
 
-      if ($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#createdDate') {
-        $index{created} = $e1->attr('VALUE');
-      }
+    }
 
-      if ($e1->attr('NAME') eq 'info:fedora/fedora-system:def/view#lastModifiedDate') {
-        $index{modified} = $e1->attr('VALUE');
-      }
+    for my $e ($dom->find('foxml\:objectProperties')->each) {
+      for my $e1 ($e->find('foxml\:property')->each) {
 
+        if ($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#state') {
+          if ($ignorestatus && ($ignorestatus eq '1')) {
+            $c->app->log->debug("[_get index] ignorestatus=$ignorestatus");
+          }
+          else {
+            # skip inactive objects
+            my $state = $e1->attr('VALUE');
+            if ($state ne 'Active') {
+              my $errmsg = "[_get index] $pid is $state, deleting from index.";
+              $c->app->log->warn($errmsg);
+              push @{$res->{alerts}}, {type => 'danger', msg => $errmsg};
+              if ($state eq 'Deleted') {
+                $res->{status} = 301;
+              }
+              if ($state eq 'Inactive') {
+                $res->{status} = 302;
+              }
+              return $res;
+            }
+          }
+        }
+
+        if ($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#ownerId') {
+          $index{owner} = $e1->attr('VALUE');
+        }
+
+        if ($e1->attr('NAME') eq 'info:fedora/fedora-system:def/model#createdDate') {
+          $index{created} = $e1->attr('VALUE');
+        }
+
+        if ($e1->attr('NAME') eq 'info:fedora/fedora-system:def/view#lastModifiedDate') {
+          $index{modified} = $e1->attr('VALUE');
+        }
+
+      }
     }
   }
 
@@ -1114,7 +1229,6 @@ sub _get {
   }
 
   if (exists($datastreams{'GEO'})) {
-
     my $geo_model = PhaidraAPI::Model::Geo->new;
     my $r_geo     = $geo_model->xml_2_json($c, $datastreams{'GEO'}->find('foxml\:xmlContent')->first);
     if ($r_geo->{status} ne 200) {
@@ -1159,7 +1273,6 @@ sub _get {
   }
 
   if (exists($datastreams{'MODS'})) {
-
     my $mods_model = PhaidraAPI::Model::Mods->new;
     my $r_mods     = $mods_model->xml_2_json($c, $datastreams{'MODS'}->find('foxml\:xmlContent')->first, 'basic');
     if ($r_mods->{status} ne 200) {

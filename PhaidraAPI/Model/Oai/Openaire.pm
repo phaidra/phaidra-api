@@ -217,55 +217,55 @@ sub _get_roles {
           if ($prop eq 'skos:exactMatch') {
             for my $id (@{$e->{$prop}}) {
               if (ref($id) eq 'HASH') {
-              if ($id->{'@type'} eq 'ids:orcid') {
-                push @ids,
-                  {
-                  nameIdentifier       => $id->{'@value'},
-                  nameIdentifierScheme => 'ORCID',
-                  schemeURI            => 'https://orcid.org/'
-                  };
+                if ($id->{'@type'} eq 'ids:orcid') {
+                  push @ids,
+                    {
+                    nameIdentifier       => $id->{'@value'},
+                    nameIdentifierScheme => 'ORCID',
+                    schemeURI            => 'https://orcid.org/'
+                    };
+                }
+                if ($id->{'@type'} eq 'ids:gnd') {
+                  push @ids,
+                    {
+                    nameIdentifier       => $id->{'@value'},
+                    nameIdentifierScheme => 'GND',
+                    schemeURI            => 'https://d-nb.info/gnd/'
+                    };
+                }
+                if ($id->{'@type'} eq 'ids:isni') {
+                  push @ids,
+                    {
+                    nameIdentifier       => $id->{'@value'},
+                    nameIdentifierScheme => 'ISNI',
+                    schemeURI            => 'http://isni.org/isni/'
+                    };
+                }
+                if ($id->{'@type'} eq 'ids:viaf') {
+                  push @ids,
+                    {
+                    nameIdentifier       => $id->{'@value'},
+                    nameIdentifierScheme => 'VIAF',
+                    schemeURI            => 'https://viaf.org/viaf/'
+                    };
+                }
+                if ($id->{'@type'} eq 'ids:wikidata') {
+                  push @ids,
+                    {
+                    nameIdentifier       => $id->{'@value'},
+                    nameIdentifierScheme => 'Wikidata',
+                    schemeURI            => 'https://www.wikidata.org/wiki/'
+                    };
+                }
+                if ($id->{'@type'} eq 'ids:lcnaf') {
+                  push @ids,
+                    {
+                    nameIdentifier       => $id->{'@value'},
+                    nameIdentifierScheme => 'LCNAF',
+                    schemeURI            => 'https://id.loc.gov/authorities/names/'
+                    };
+                }
               }
-              if ($id->{'@type'} eq 'ids:gnd') {
-                push @ids,
-                  {
-                  nameIdentifier       => $id->{'@value'},
-                  nameIdentifierScheme => 'GND',
-                  schemeURI            => 'https://d-nb.info/gnd/'
-                  };
-              }
-              if ($id->{'@type'} eq 'ids:isni') {
-                push @ids,
-                  {
-                  nameIdentifier       => $id->{'@value'},
-                  nameIdentifierScheme => 'ISNI',
-                  schemeURI            => 'http://isni.org/isni/'
-                  };
-              }
-              if ($id->{'@type'} eq 'ids:viaf') {
-                push @ids,
-                  {
-                  nameIdentifier       => $id->{'@value'},
-                  nameIdentifierScheme => 'VIAF',
-                  schemeURI            => 'https://viaf.org/viaf/'
-                  };
-              }
-              if ($id->{'@type'} eq 'ids:wikidata') {
-                push @ids,
-                  {
-                  nameIdentifier       => $id->{'@value'},
-                  nameIdentifierScheme => 'Wikidata',
-                  schemeURI            => 'https://www.wikidata.org/wiki/'
-                  };
-              }
-              if ($id->{'@type'} eq 'ids:lcnaf') {
-                push @ids,
-                  {
-                  nameIdentifier       => $id->{'@value'},
-                  nameIdentifierScheme => 'LCNAF',
-                  schemeURI            => 'https://id.loc.gov/authorities/names/'
-                  };
-              }
-             }
             }
           }
 
@@ -1058,11 +1058,20 @@ sub get_metadata_openaire {
     }
     if ($resourceTypesToDownload->{$resourceTypeURI}) {
       my $downloadUrl;
-      if ($c->app->config->{feodra}->{version} eq '3.8') {
-        $downloadUrl = 'https://' . $c->app->config->{phaidra}->{fedorabaseurl} . '/fedora/objects/' . $rec->{pid} . '/methods/bdef:Content/download';
+      if ($c->app->config->{fedora}->{version} > 6) {
+        $downloadUrl = 'https://' . $c->app->config->{baseurl};
+        if ($c->app->config->{basepath}) {
+          $downloadUrl .= '/' . $c->app->config->{basepath};
+        }
+        $downloadUrl .= '/objects/' . $rec->{pid} . '/download';
       }
       else {
-        $downloadUrl = 'https://' . $c->app->config->{phaidra}->{fedorabaseurl} . '/fedora/get/' . $rec->{pid} . '/bdef:Content/download';
+        if ($c->app->config->{fedora}->{version} eq '3.8') {
+          $downloadUrl = 'https://' . $c->app->config->{phaidra}->{fedorabaseurl} . '/fedora/objects/' . $rec->{pid} . '/methods/bdef:Content/download';
+        }
+        else {
+          $downloadUrl = 'https://' . $c->app->config->{phaidra}->{fedorabaseurl} . '/fedora/get/' . $rec->{pid} . '/bdef:Content/download';
+        }
       }
       push @metadata,
         {

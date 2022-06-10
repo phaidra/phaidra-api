@@ -8,6 +8,7 @@ use XML::XPath;
 use Mojo::IOLoop;
 use Mojo::IOLoop::Delay;
 use PhaidraAPI::Model::Object;
+use PhaidraAPI::Model::Fedora;
 use base qw/Mojo::Base/;
 
 sub triples {
@@ -648,23 +649,30 @@ sub get_cmodel {
   my $cachekey = 'cmodel_' . $pid;
   unless ($cmodel = $c->app->chi->get($cachekey)) {
     $c->app->log->debug("[cache miss] $cachekey");
-
-    my $search_model = PhaidraAPI::Model::Search->new;
-    my $r            = $search_model->triples($c, "<info:fedora/$pid> <info:fedora/fedora-system:def/model#hasModel> *");
-    if ($r->{status} ne 200) {
-      return $r;
+    if ($c->app->config->{fedora}->{version} >= 6) {
+      my $fedora_model = PhaidraAPI::Model::Fedora->new;
+      my $r            = $fedora_model->getObjectProperties($c, $pid);
+      if ($r->{status} ne 200) {
+        return $r;
+      }
+      $cmodel = $r->{cmodel};
     }
+    else {
+      my $r = $self->triples($c, "<info:fedora/$pid> <info:fedora/fedora-system:def/model#hasModel> *");
+      if ($r->{status} ne 200) {
+        return $r;
+      }
 
-    for my $t (@{$r->{result}}) {
-      next if (@{$t}[2] =~ m/fedora-system/g);
+      for my $t (@{$r->{result}}) {
+        next if (@{$t}[2] =~ m/fedora-system/g);
 
-      @{$t}[2] =~ m/<(info:fedora\/)(\w+):(\w+)>/g;
+        @{$t}[2] =~ m/<(info:fedora\/)(\w+):(\w+)>/g;
 
-      if ($2 eq 'cmodel' && defined($3) && ($3 ne '')) {
-        $cmodel = $3;
+        if ($2 eq 'cmodel' && defined($3) && ($3 ne '')) {
+          $cmodel = $3;
+        }
       }
     }
-
     $c->app->chi->set($cachekey, $cmodel, '1 day');
   }
   else {
