@@ -580,6 +580,7 @@ sub startup {
     $proxyauth->route('audio/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Audio');
     $proxyauth->route('unknown/create')                                   ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Asset');
     $proxyauth->route('resource/create')                                  ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Resource');
+    $proxyauth->route('page/create')                                      ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Page');
 
     $proxyauth->route('container/create')                                 ->via('post')     ->to('object#create_container');
     $proxyauth->route('container/:pid/members/order')                     ->via('post')     ->to('membersorder#post');
