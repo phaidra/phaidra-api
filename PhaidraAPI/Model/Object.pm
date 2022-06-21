@@ -692,7 +692,12 @@ sub create_simple {
     my $name = $upload->filename;
 
     # save data first, because these may be needed when saving metadata
-    $c->app->log->debug("[$pid] Saving octets: $name [$size B]");
+    my $logmsg = "[$pid] Saving octets: $name [$size B]";
+    if ($checksumtype && $checksum) {
+      $logmsg .= " $checksumtype:$checksum";
+    }
+    $c->app->log->debug($logmsg);
+
     my %params;
     $params{controlGroup} = 'M';
     $params{dsLabel}      = $name;
@@ -1074,7 +1079,11 @@ sub add_octets {
   my $size = $file->size;
   my $name = $file->filename;
 
-  $c->app->log->debug("Got file: $name [$size]");
+  my $logmsg = "pid[$pid] Got file: $name [$size]";
+  if ($checksumtype && $checksum) {
+     $logmsg .= " $checksumtype:$checksum";
+  }
+  $c->app->log->debug($logmsg);
 
   my %params;
   $params{controlGroup} = 'M';
@@ -1522,7 +1531,11 @@ sub add_datastream {
   $params{mimeType}   = $mimetype if $mimetype;
   $params{logMessage} = 'PhaidraAPI object/add_datastream';
 
-  $c->app->log->debug("Add datastream $dsid: " . $c->app->dumper(\%params));
+  my $logmsg = "pid[$pid] Add datastream $dsid: " . $c->app->dumper(\%params);
+  if ($checksumtype && $checksum) {
+     $logmsg .= "\n$checksumtype:$checksum";
+  }
+  $c->app->log->debug($logmsg);
 
   my $url = Mojo::URL->new;
   $url->scheme('https');
@@ -1605,6 +1618,12 @@ sub modify_datastream {
   #$c->app->log->debug("XXXXXXXXXX ".$c->app->dumper(\%params));
   #$username = $c->app->{config}->{phaidra}->{adminusername};
   #$password = $c->app->{config}->{phaidra}->{adminpassword};
+
+  my $logmsg = "pid[$pid] Modify datastream $dsid: " . $c->app->dumper(\%params);
+  if ($checksumtype && $checksum) {
+     $logmsg .= "\n$checksumtype:$checksum";
+  }
+  $c->app->log->debug($logmsg);
 
   my $url = Mojo::URL->new;
   $url->scheme('https');
