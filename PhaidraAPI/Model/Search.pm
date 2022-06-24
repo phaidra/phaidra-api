@@ -34,12 +34,12 @@ sub triples {
   $url->query(\%params);
 
   my $ua = Mojo::UserAgent->new;
-  my $tx = $ua->post($url);
+  my $txres = $ua->post($url)->result;
 
-  if (my $reply = $tx->success) {
+  if ($txres->is_success) {
 
     my @a;
-    my $str = $reply->body;
+    my $str = $txres->body;
     while ($str =~ /([^\n]+)\n?/g) {
       my $line = $1;
 
@@ -59,9 +59,8 @@ sub triples {
 
   }
   else {
-    my ($err, $code) = $tx->error;
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $err->{message}};
-    $res->{status} = $err->{code};
+    unshift @{$res->{alerts}}, {type => 'danger', msg => $txres->message};
+    $res->{status} = $txres->code;
   }
 
   return $res;
@@ -547,15 +546,14 @@ sub datastream_exists {
   $url->query(\%params);
 
   my $ua = Mojo::UserAgent->new;
-  my $tx = $ua->post($url);
+  my $txres = $ua->post($url)->result;
 
-  if (my $reply = $tx->success) {
-    $res->{'exists'} = scalar($reply->body);
+  if ($txres->is_success) {
+    $res->{'exists'} = scalar($txres->body);
   }
   else {
-    my ($err, $code) = $tx->error;
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $err->{message}};
-    $res->{status} = $err->{code};
+    unshift @{$res->{alerts}}, {type => 'danger', msg => $txres->message};
+    $res->{status} = $txres->code;
   }
 
   return $res;

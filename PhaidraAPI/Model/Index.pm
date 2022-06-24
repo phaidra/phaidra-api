@@ -2,6 +2,7 @@ package PhaidraAPI::Model::Index;
 
 use strict;
 use warnings;
+use experimental 'smartmatch';
 use v5.10;
 use utf8;
 use Switch;
@@ -1665,7 +1666,7 @@ sub _add_reverse_relations {
   }
 
   $urlget->query(q => "*:*", fq => 'hasmember:"' . $pid . '"', rows => 1000, wt => "json");
-  my $r = $c->ua->get($urlget)->result;
+  $r = $c->ua->get($urlget)->result;
   if ($r->is_success) {
     for my $d (@{$r->json->{response}->{docs}}) {
       push @{$index->{ismemberof}}, $d->{pid};

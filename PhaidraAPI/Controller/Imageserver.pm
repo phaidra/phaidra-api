@@ -62,7 +62,7 @@ sub process {
     $self->paf_mongo->get_collection('jobs')->insert_one({pid => $pid, cmodel => $cmodel, agent => "pige", status => "new", idhash => $hash, created => time});
   }
 
-  my $res = $self->paf_mongo->get_collection('jobs')->find_one({pid => $pid}, {}, {"sort" => {"created" => -1}});
+  $res = $self->paf_mongo->get_collection('jobs')->find_one({pid => $pid}, {}, {"sort" => {"created" => -1}});
 
   $self->render(json => $res, status => 200);
 }
@@ -141,7 +141,7 @@ sub status {
     return;
   }
 
-  my $res = $self->paf_mongo->get_collection('jobs')->find_one({pid => $pid}, {}, {"sort" => {"created" => -1}});
+  $res = $self->paf_mongo->get_collection('jobs')->find_one({pid => $pid}, {}, {"sort" => {"created" => -1}});
 
   $self->render(json => { conversion => $res->{conversion}, status => $res->{status} }, status => 200);
 

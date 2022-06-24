@@ -231,6 +231,7 @@ sub info {
     email     => $user_data->{email}
   };
 
+  $mode = $mode ? $mode : '';
   if ($mode eq 'full') {
     my $stats_model = PhaidraAPI::Model::Stats->new;
     my $statsres    = $stats_model->stats($c, $pid, undef, 'stats');
@@ -1409,7 +1410,9 @@ sub get_datastream {
   my ($self, $c, $pid, $dsid, $username, $password, $intcallauth) = @_;
 
   my $res = {alerts => [], status => 200};
-
+	
+	$intcallauth = $intcallauth ? 1 : 0;
+	$username = $username ? $username : '';
   $c->app->log->debug("get_datastream pid[$pid] dsid[$dsid] username[$username] instcallauth[$intcallauth]");
 
   my $url = Mojo::URL->new;
@@ -1419,7 +1422,9 @@ sub get_datastream {
     $url->userinfo($c->app->config->{phaidra}->{intcallusername} . ':' . $c->app->config->{phaidra}->{intcallpassword});
   }
   else {
-    $url->userinfo("$username:$password");
+    if ($username && $password) {
+      $url->userinfo("$username:$password");
+    }
   }
   $url->host($c->app->config->{phaidra}->{fedorabaseurl});
   $url->path("/fedora/objects/$pid/datastreams/$dsid/content");
@@ -1477,15 +1482,18 @@ sub proxy_datastream {
 
 sub _proxy_tx {
   my ($c, $tx) = @_;
-  if (my $res = $tx->success) {
-    $c->tx->res($res);
+  #if (my $res = $tx->success) {
+  if ($tx->result->is_success) {
+    $c->tx->res($tx->result);
     $c->tx->res->headers->content_type($tx->res->headers->content_type . '; charset=utf-8');
     $c->rendered;
   }
   else {
-    my $error = $tx->error;
-    $c->tx->res->headers->add('X-Remote-Status', $error->{code} . ': ' . $error->{message});
-    $c->render(status => 500, text => 'Failed to fetch data from Fedora: ' . $c->app->dumper($error));
+    #my $error = $tx->error;
+    #$c->tx->res->headers->add('X-Remote-Status', $error->{code} . ': ' . $error->{message});
+    #$c->render(status => 500, text => 'Failed to fetch data from Fedora: ' . $c->app->dumper($error));
+    $c->tx->res->headers->add('X-Remote-Status', $tx->result->code . ': ' . $tx->result->message);
+    $c->render(status => 500, text => 'Failed to fetch data from Fedora: ' . $tx->result->message);
   }
 }
 

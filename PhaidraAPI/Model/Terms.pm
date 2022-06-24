@@ -2,6 +2,7 @@ package PhaidraAPI::Model::Terms;
 
 use strict;
 use warnings;
+use experimental 'smartmatch';
 use v5.10;
 use base qw/Mojo::Base/;
 
@@ -94,6 +95,7 @@ sub _get_vocab_labels {
   my $cid  = shift;
 
   my $labels;
+  $cid = $cid ? $cid : '';
   my $cachekey = 'vocab_labels_' . $vid . '_' . $veid . '_' . $cid;
   unless ($labels = $c->app->chi->get($cachekey)) {
     $c->app->log->debug("[cache miss] $cachekey");
@@ -260,7 +262,7 @@ sub _parse_uri {
 
   my $res = {alerts => [], status => 200};
 
-  my $xmlns;
+  my $xmlns = '';
   my $vid;
   my $cid;
   my $id;

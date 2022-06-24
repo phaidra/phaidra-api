@@ -163,8 +163,6 @@ sub xml_2_json_rec {
       $id = $type;
     }
 
-    my $node;
-
     #$c->app->log->debug("XXXXX type [$type] ns [$ns] id [$id]");
     $node->{xmlname} = $id;
     if (defined($e->text) && $e->text ne '') {

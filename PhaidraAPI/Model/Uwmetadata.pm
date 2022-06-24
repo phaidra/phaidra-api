@@ -51,6 +51,7 @@ sub metadata_tree {
 
   my $res = {alerts => [], status => 200};
 
+  $nocache = $nocache ? $nocache : '';
   $c->app->log->debug("metadata_tree nocache[$nocache]");
 
   if ($nocache) {

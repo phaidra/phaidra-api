@@ -49,7 +49,8 @@ sub get_url {
 
   # check rights
   if ($rightscheck) {
-    my $cachekey        = 'img_rights_' . $c->stash->{basic_auth_credentials}->{username} . "_$pid";
+    my $usrnm = $c->stash->{basic_auth_credentials}->{username} ? $c->stash->{basic_auth_credentials}->{username} : '';
+    my $cachekey        = "img_rights_" .$usrnm. "_$pid";
     my $status_cacheval = $c->app->chi->get($cachekey);
     unless ($status_cacheval) {
       $c->app->log->debug("[cache miss] $cachekey");
