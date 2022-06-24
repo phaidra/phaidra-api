@@ -141,6 +141,7 @@ sub get_members {
     $cached_members = $c->app->chi->get($cachekey);
   }
 
+  $nocache = $nocache ? $nocache : 0;
   if ($cached_members && ($nocache != 1)) {
     $c->app->log->debug("[cache hit] $cachekey");
   }
@@ -194,7 +195,7 @@ sub get_members {
           foreach my $p (keys %members) {
             push @$cached_members, {pid => $p, 'pos' => $members{$p}->{'pos'}};
           }
-
+					no warnings;
           sub undef_sort {
                 $a->{pos} eq "" && $b->{pos} eq "" ? 0
               : $a->{pos} eq ""                    ? +1
