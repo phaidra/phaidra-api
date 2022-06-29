@@ -1,6 +1,7 @@
 package PhaidraAPI::Model::Terms;
 
 use strict;
+
 use warnings;
 use experimental 'smartmatch';
 use v5.10;

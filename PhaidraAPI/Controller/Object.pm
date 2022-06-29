@@ -21,6 +21,7 @@ use PhaidraAPI::Model::Mods;
 use PhaidraAPI::Model::Imageserver;
 use PhaidraAPI::Model::Util;
 use PhaidraAPI::Model::Authorization;
+use PhaidraAPI::Model::Languages;
 use Digest::SHA qw(hmac_sha1_hex);
 use Time::HiRes qw/tv_interval gettimeofday/;
 use File::Find::utf8;
@@ -313,7 +314,13 @@ sub preview {
       if ($imgsrvjobstatus eq 'finished') {
         my $license     = '';
         my $index_model = PhaidraAPI::Model::Index->new;
-        my $docres      = $index_model->get_doc($self, $pid);
+        my $docres;
+        if (($cmodel eq 'Page') and ($self->app->config->{solr}->{core_pages})) {
+          $docres = $index_model->get_page_doc($self, $pid);
+        }
+        else {
+          $docres = $index_model->get_doc($self, $pid);
+        }
         if ($docres->{status} ne 200) {
           $self->app->log->error("pid[$pid] error searching for doc: " . $self->app->dumper($docres));
           $self->reply->static('images/error.png');
@@ -412,15 +419,57 @@ sub preview {
     }
     case 'Video' {
       if ($self->config->{streaming}) {
+
         my $u_model = PhaidraAPI::Model::Util->new;
         my $r       = $u_model->get_video_key($self, $pid);
         if ($r->{status} eq 200) {
-          $self->stash(video_key   => $r->{video_key});
-          $self->stash(errormsg    => $r->{errormsq});
-          $self->stash(server      => $self->config->{streaming}->{server});
-          $self->stash(server_rtmp => $self->config->{streaming}->{server_rtmp});
-          $self->stash(server_cd   => $self->config->{streaming}->{server_cd});
-          $self->stash(basepath    => $self->config->{streaming}->{basepath});
+          my $trackpid;
+          my $tracklabel;
+          my $tracklanguage;
+
+          # check if there isn't a track object
+          my $index_model = PhaidraAPI::Model::Index->new;
+          my $docres      = $index_model->get_doc($self, $pid);
+          if ($docres->{status} ne 200) {
+            $self->app->log->error("pid[$pid] error searching for doc: " . $self->app->dumper($docres));
+          }
+          else {
+            for my $tpid (@{$docres->{doc}->{hastrack}}) {
+              $self->app->log->info("pid[$pid] found track object: $tpid");
+              $trackpid = $tpid;
+              my $trackdocres = $index_model->get_doc($self, $trackpid);
+              if ($trackdocres->{status} ne 200) {
+                $self->app->log->error("pid[$pid] error searching for doc trackpid[$trackpid]: " . $self->app->dumper($docres));
+              }
+              else {
+                for my $ttit (@{$trackdocres->{doc}->{dc_title}}) {
+                  $tracklabel = $ttit;
+                  last;
+                }
+
+                # pretend you don't see this
+                my $lang_model   = PhaidraAPI::Model::Languages->new;
+                my %iso6393ToBCP = reverse %{$lang_model->get_iso639map()};
+                for my $lng3 (@{$trackdocres->{doc}->{dc_language}}) {
+                  $tracklanguage = exists($iso6393ToBCP{$lng3}) ? $iso6393ToBCP{$lng3} : $lng3;
+                  last;
+                }
+              }
+            }
+          }
+
+          $self->stash(baseurl           => $self->config->{baseurl});
+          $self->stash(basepath          => $self->config->{basepath});
+          $self->stash(video_key         => $r->{video_key});
+          $self->stash(errormsg          => $r->{errormsq});
+          $self->stash(server            => $self->config->{streaming}->{server});
+          $self->stash(server_rtmp       => $self->config->{streaming}->{server_rtmp});
+          $self->stash(server_cd         => $self->config->{streaming}->{server_cd});
+          $self->stash(streamingbasepath => $self->config->{streaming}->{basepath});
+          $self->stash(trackpid          => $trackpid);
+          $self->stash(tracklabel        => $tracklabel);
+          $self->stash(tracklanguage     => $tracklanguage);
+
           $self->render(template => 'utils/streamingplayer', format => 'html');
           return;
         }

@@ -56,6 +56,7 @@ sub getObjectProperties {
     $res->{isinadminset}           = $self->getJsonldValue($c, $props, 'http://phaidra.org/ontology/isInAdminSet');
     $res->{haspart}                = $self->getJsonldValue($c, $props, 'info:fedora/fedora-system:def/relations-external#hasCollectionMember');
     $res->{hasmember}              = $self->getJsonldValue($c, $props, 'http://pcdm.org/models#hasMember');
+    $res->{hastrack}               = $self->getJsonldValue($c, $props, 'http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#hasTrack');
     $res->{sameas}                 = $self->getJsonldValue($c, $props, 'http://www.w3.org/2002/07/owl#sameAs');
 
     $res->{contains} = [];

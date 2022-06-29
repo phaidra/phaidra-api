@@ -1,6 +1,7 @@
 package PhaidraAPI::Model::Index;
 
 use strict;
+
 use warnings;
 use experimental 'smartmatch';
 use v5.10;
@@ -407,6 +408,16 @@ our %uwm_funder = (
 
 sub get_doc {
   my ($self, $c, $pid) = @_;
+  return $self->get_doc_from_core($c, $pid, $c->app->config->{solr}->{core});
+}
+
+sub get_page_doc {
+  my ($self, $c, $pid) = @_;
+  return $self->get_doc_from_core($c, $pid, $c->app->config->{solr}->{core_pages});
+}
+
+sub get_doc_from_core {
+  my ($self, $c, $pid, $core) = @_;
 
   my $res = {alerts => [], status => 200};
   my $doc;
@@ -416,10 +427,10 @@ sub get_doc {
   $urlget->host($c->app->config->{solr}->{host});
   $urlget->port($c->app->config->{solr}->{port});
   if ($c->app->config->{solr}->{path}) {
-    $urlget->path("/" . $c->app->config->{solr}->{path} . "/solr/" . $c->app->config->{solr}->{core} . "/select");
+    $urlget->path("/" . $c->app->config->{solr}->{path} . "/solr/" . $core . "/select");
   }
   else {
-    $urlget->path("/solr/" . $c->app->config->{solr}->{core} . "/select");
+    $urlget->path("/solr/" . $core . "/select");
   }
 
   $urlget->query(q => "pid:\"$pid\"", rows => "1", wt => "json");
@@ -442,7 +453,7 @@ sub get_doc {
     }
   }
   else {
-    my $err = "[$pid] error getting object info from solr: " . $getres->code . " " . $getres->message;
+    my $err = "[$pid] error getting object info from solr host[" . $c->app->config->{solr}->{host} . "] core[$core]: " . $getres->code . " " . $getres->message;
     $c->app->log->error($err);
     unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
     $res->{status} = $getres->code ? $getres->code : 500;
@@ -1121,6 +1132,11 @@ sub _get {
         push @{$index{hasmember}}, $v;
       }
     }
+    if ($fres->{hastrack}) {
+      for my $v (@{$fres->{hastrack}}) {
+        push @{$index{hastrack}}, $v;
+      }
+    }
     if ($fres->{sameAs}) {
       for my $v (@{$fres->{sameAs}}) {
         push @{$index{owl_sameas}}, $v;
@@ -1601,6 +1617,12 @@ sub _index_relsext {
     my $o = $e->attr('rdf:resource');
     $o =~ s/^info:fedora\/(.*)$/$1/;
     push @{$index->{hasmember}}, $o;
+  }
+
+  for my $e ($xml->find('hasTrack')->each) {
+    my $o = $e->attr('rdf:resource');
+    $o =~ s/^info:fedora\/(.*)$/$1/;
+    push @{$index->{hastrack}}, $o;
   }
 
   # padova
@@ -2616,6 +2638,7 @@ sub get_relationships {
     # these two are supported elsewhere, not needed here
     # hascollectionmember => [],
     # hasmember => [],
+    hastrack               => [],
     references             => [],
     isbacksideof           => [],
     isthumbnailfor         => [],
