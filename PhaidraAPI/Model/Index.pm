@@ -1,9 +1,7 @@
 package PhaidraAPI::Model::Index;
 
 use strict;
-
 use warnings;
-use experimental 'smartmatch';
 use v5.10;
 use utf8;
 use Switch;
@@ -870,7 +868,7 @@ sub _update_value_post {
 }
 
 sub _update_members {
-
+  no warnings;
   my ($self, $c, $pid, $updateurl, $members, $relation) = @_;
 
   my $res = {status => 200};

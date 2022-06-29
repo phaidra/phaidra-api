@@ -1,9 +1,7 @@
 package PhaidraAPI::Model::Terms;
 
 use strict;
-
 use warnings;
-use experimental 'smartmatch';
 use v5.10;
 use base qw/Mojo::Base/;
 
@@ -256,7 +254,7 @@ sub label {
 }
 
 sub _parse_uri {
-
+  no warnings;
   my $self = shift;
   my $c    = shift;
   my $uri  = shift;
