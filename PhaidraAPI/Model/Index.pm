@@ -1494,7 +1494,9 @@ sub _get {
   my $membersCnt = scalar $index{hasmember};
   if ($membersCnt > 0) {
     my $urlget = $self->_get_solrget_url($c);
-    $urlget->query(q => "*:*", fq => 'ismemberof:"' . $pid . '"', rows => 1000, wt => "json");
+
+    # rows:100 - some conainert can be really big, but indexing all members is unlikely to make sense in such big containers
+    $urlget->query(q => "*:*", fq => 'ismemberof:"' . $pid . '"', rows => 100, wt => "json");
 
     my $getres = $c->ua->get($urlget)->result;
 
