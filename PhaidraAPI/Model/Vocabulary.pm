@@ -145,7 +145,7 @@ sub _get_oefos_vocabulary_hash {
   my $json;
   my $termsHash = {};
 
-  my $csvEn = $c->app->config->{vocabulary_folder} . '/OEFOS2012_EN_CTI_20190903_162003.txt';
+  my $csvEn = $c->app->config->{vocabulary_folder} . '/OEFOS2012_EN_CTI_20211111_154228_utf8.csv';
   open my $data, '<:encoding(UTF-8)', $csvEn or $c->app->log->error("Can't open '" . $csvEn . "' for reading: $!");
   while (my $line = <$data>) {
     chomp $line;
@@ -179,7 +179,7 @@ sub _get_oefos_vocabulary_hash {
     }
   }
 
-  my $csvDe = $c->app->config->{vocabulary_folder} . '/OEFOS2012_DE_CTI_20190903_161952.txt';
+  my $csvDe = $c->app->config->{vocabulary_folder} . '/OEFOS2012_DE_CTI_20211111_154218_utf8.csv';
   open my $data, '<:encoding(UTF-8)', $csvDe or $c->app->log->error("Can't open '" . $csvDe . "' for reading: $!");
   while (my $line = <$data>) {
     chomp $line;
