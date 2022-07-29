@@ -182,12 +182,20 @@ sub _resolve_geonames {
     return {alerts => [{type => 'danger', msg => $err}], status => 500};
   }
 
-  my $id = $uri =~ s/http:\/\/www\.geonames\.org\///r;
+  my $insecure = 0;
+  if (exists($self->config->{apis}->{geonames}->{insecure})) {
+    if ($self->config->{apis}->{geonames}->{insecure}) {
+      $insecure = 1;
+    }
+  }
+
+  my $id = $uri =~ s/https:\/\/www\.geonames\.org\///r;
 
   my $url = Mojo::URL->new($self->config->{apis}->{geonames}->{url} . "?username=" . $self->config->{apis}->{geonames}->{username} . "&geonameId=" . $id);
-  my $get = $self->ua->max_redirects(5)->get($url);
+  my $get = $self->ua->insecure($insecure)->max_redirects(5)->get($url);
   if (my $getres = $get->success) {
     my $json = $getres->json;
+    $self->app->log->debug("geonames response: " . $self->app->dumper($json));
     push @{$res->{'skos:prefLabel'}}, {'@value' => $json->{name}};
     my $path = "";
     if ($json->{adminName5}) {

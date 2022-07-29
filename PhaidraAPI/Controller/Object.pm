@@ -653,6 +653,8 @@ sub create_simple {
     return;
   }
 
+  # $self->app->log->debug("XXXXXXXXXXXXXXXXXXXXXXXXX ".$self->app->dumper($self->req));
+
   my $metadata = $self->param('metadata');
   unless ($metadata) {
     $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata sent.'}]}, status => 400);
