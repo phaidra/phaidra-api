@@ -518,10 +518,10 @@ sub preview {
     else {
       my $thumbPid = $self->get_is_thumbnail_for($pid);
       if ($thumbPid) {
-        if ($self->imageserver_job_status($pid) eq 'finished') {
+        if ($self->imageserver_job_status($thumbPid) eq 'finished') {
           my $size       = "!480,480";
           my $isrv_model = PhaidraAPI::Model::Imageserver->new;
-          my $resis      = $isrv_model->get_url($self, Mojo::Parameters->new(IIIF => "$pid.tif/full/$size/0/default.jpg"), 0);
+          my $resis      = $isrv_model->get_url($self, Mojo::Parameters->new(IIIF => "$thumbPid.tif/full/$size/0/default.jpg"), 0);
           if ($resis->{status} ne 200) {
             $self->render(json => $resis, status => $resis->{status});
             return;
