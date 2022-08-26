@@ -58,7 +58,7 @@ sub get_email {
 }
 
 #get the name to a specific user id
-sub get_mame {
+sub get_name {
   my ($self, $c, $username) = @_;
 
   die("PHAIDRA ORGANIZATIONAL ERROR:undefined username") unless (defined($username));
@@ -322,7 +322,7 @@ sub _connect_mongodb_group_manager() {
     port     => $c->app->config->{mongodb_group_manager}->{port},
     username => $c->app->config->{mongodb_group_manager}->{username},
     password => $c->app->config->{mongodb_group_manager}->{password},
-    db_name  => $c->app->config->{mongodb_group_manager}->{database}
+    db_name  => $c->app->config->{mongodb_group_manager}->{db_name}
   );
 
   return $client;
@@ -344,8 +344,10 @@ sub get_users_groups {
 
   my $users_groups = $groups->find({"owner" => $owner});
   my @grps         = ();
-  while (my $doc = $users_groups->next) {
-    push @grps, {groupid => $doc->{groupid}, name => $doc->{name}, created => $doc->{created}, updated => $doc->{updated}};
+  if ($users_groups) {
+    while (my $doc = $users_groups->next) {
+      push @grps, {groupid => $doc->{groupid}, name => $doc->{name}, created => $doc->{created}, updated => $doc->{updated}};
+    }
   }
 
   return \@grps;
@@ -383,7 +385,7 @@ sub create_group {
   my $bgid    = $ug->create();
   my $gid     = $ug->to_string($bgid);
   my @members = ();
-  $groups->insert(
+  $groups->insert_one(
     { "groupid" => $gid,
       "owner"   => $owner,
       "name"    => $groupname,
@@ -400,7 +402,7 @@ sub delete_group {
   my ($self, $c, $gid, $owner) = @_;
 
   my $groups = $self->_get_groups_col($c);
-  my $g      = $groups->remove({"groupid" => $gid, "owner" => $owner});
+  my $g      = $groups->remove_one({"groupid" => $gid, "owner" => $owner});
 
   return;
 }
@@ -409,7 +411,7 @@ sub remove_group_member {
   my ($self, $c, $gid, $uid, $owner) = @_;
 
   my $groups = $self->_get_groups_col($c);
-  $groups->update({"groupid" => $gid, "owner" => $owner}, {'$pull' => {'members' => $uid}, '$set' => {"updated" => time}});
+  $groups->update_one({"groupid" => $gid, "owner" => $owner}, {'$pull' => {'members' => $uid}, '$set' => {"updated" => time}});
 
   return;
 }
@@ -427,7 +429,7 @@ sub add_group_member {
     return if $m eq $uid;
   }
 
-  $groups->update({"groupid" => $gid, "owner" => $owner}, {'$push' => {'members' => $uid}, '$set' => {"updated" => time}});
+  $groups->update_one({"groupid" => $gid, "owner" => $owner}, {'$push' => {'members' => $uid}, '$set' => {"updated" => time}});
 
   return;
 }
