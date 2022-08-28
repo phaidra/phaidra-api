@@ -10,6 +10,7 @@ use PhaidraAPI::Model::Dc;
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Index;
+use PhaidraAPI::Model::Iiifmanifest;
 
 sub add_or_modify_datastream_hooks {
 
@@ -28,9 +29,7 @@ sub add_or_modify_datastream_hooks {
         $res = $dc_model->generate_dc_from_mods($c, $pid, $dscontent, $username, $password);
       }
     }
-  }
 
-  if (exists($c->app->config->{hooks})) {
     if (exists($c->app->config->{hooks}->{updateindex}) && $c->app->config->{hooks}->{updateindex}) {
       my $dc_model     = PhaidraAPI::Model::Dc->new;
       my $search_model = PhaidraAPI::Model::Search->new;
@@ -41,6 +40,32 @@ sub add_or_modify_datastream_hooks {
 
         # just log but don't change status, this isn't fatal
         push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+      }
+    }
+
+    if (exists($c->app->config->{hooks}->{iiifmanifest}) && $c->app->config->{hooks}->{iiifmanifest}) {
+      if ($dsid eq "UWMETADATA" or $dsid eq "MODS" or $dsid eq "JSON-LD") {
+        $c->app->log->debug("Updating IIIF-MANIFEST from $dsid");
+        my $search_model = PhaidraAPI::Model::Search->new;
+        my $rdshash      = $search_model->datastreams_hash($c, $pid);
+        if ($rdshash->{status} ne 200) {
+
+          # just log but don't change status, this isn't fatal
+          push @{$res->{alerts}}, {type => 'danger', msg => 'Error getting datastreams_hash when updating IIIF-MANIFEST metadata'};
+          push @{$res->{alerts}}, @{$rdshash->{alerts}} if scalar @{$rdshash->{alerts}} > 0;
+          return $res;
+        }
+
+        if (exists($rdshash->{dshash}->{'IIIF-MANIFEST'})) {
+          my $iiifm_model = PhaidraAPI::Model::Iiifmanifest->new;
+          my $r           = $iiifm_model->update_manifest_metadata($c, $pid);
+          if ($r->{status} ne 200) {
+
+            # just log but don't change status, this isn't fatal
+            push @{$res->{alerts}}, {type => 'danger', msg => 'Error updating IIIF-MANIFEST metadata'};
+            push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+          }
+        }
       }
     }
   }

@@ -1082,7 +1082,7 @@ sub add_octets {
 
   my $logmsg = "pid[$pid] Got file: $name [$size]";
   if ($checksumtype && $checksum) {
-     $logmsg .= " $checksumtype:$checksum";
+    $logmsg .= " $checksumtype:$checksum";
   }
   $c->app->log->debug($logmsg);
 
@@ -1410,9 +1410,9 @@ sub get_datastream {
   my ($self, $c, $pid, $dsid, $username, $password, $intcallauth) = @_;
 
   my $res = {alerts => [], status => 200};
-	
-	$intcallauth = $intcallauth ? 1 : 0;
-	$username = $username ? $username : '';
+
+  $intcallauth = $intcallauth ? 1         : 0;
+  $username    = $username    ? $username : '';
   $c->app->log->debug("get_datastream pid[$pid] dsid[$dsid] username[$username] instcallauth[$intcallauth]");
 
   my $url = Mojo::URL->new;
@@ -1482,6 +1482,7 @@ sub proxy_datastream {
 
 sub _proxy_tx {
   my ($c, $tx) = @_;
+
   #if (my $res = $tx->success) {
   if ($tx->result->is_success) {
     $c->tx->res($tx->result);
@@ -1541,7 +1542,7 @@ sub add_datastream {
 
   my $logmsg = "pid[$pid] Add datastream $dsid: " . $c->app->dumper(\%params);
   if ($checksumtype && $checksum) {
-     $logmsg .= "\n$checksumtype:$checksum";
+    $logmsg .= "\n$checksumtype:$checksum";
   }
   $c->app->log->debug($logmsg);
 
@@ -1629,7 +1630,7 @@ sub modify_datastream {
 
   my $logmsg = "pid[$pid] Modify datastream $dsid: " . $c->app->dumper(\%params);
   if ($checksumtype && $checksum) {
-     $logmsg .= "\n$checksumtype:$checksum";
+    $logmsg .= "\n$checksumtype:$checksum";
   }
   $c->app->log->debug($logmsg);
 

@@ -25,7 +25,7 @@ sub validate_xml() {
 
   eval {
 
-    $c->app->log->debug("Validating: " . $xml);
+    $c->app->log->debug("Validating: " . $xml . "\n\nagainst $xsdpath");
 
     my $document = $parser->parse_string($xml);
 
@@ -57,7 +57,7 @@ sub get_video_key {
   if (exists($c->app->config->{paf_mongodb})) {
     my $video_coll = $c->paf_mongo->get_collection('video.map');
     if ($video_coll) {
-      $map_record = $video_coll->find_one({pid => $pid}, {}, { "sort" => {"_updated" => -1}});
+      $map_record = $video_coll->find_one({pid => $pid}, {}, {"sort" => {"_updated" => -1}});
     }
   }
   my $video_key;
