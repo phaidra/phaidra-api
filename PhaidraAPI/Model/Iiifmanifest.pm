@@ -23,7 +23,7 @@ sub update_manifest_metadata {
   }
   my $index = $r->{index};
 
-  $c->app->log->debug("XXXXXXXXXXXXXXXXXXXXXXXXXXXX" . $c->app->dumper($index));
+  # $c->app->log->debug("XXXXXXXXXXXXXXXXXXXXXXXXXXXX" . $c->app->dumper($index));
 
   my $object_model = PhaidraAPI::Model::Object->new;
   $r = $object_model->get_datastream($c, $pid, 'IIIF-MANIFEST', $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});

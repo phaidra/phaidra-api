@@ -555,6 +555,7 @@ sub startup {
 
     $proxyauth->route('imageserver/:pid/process')                         ->via('post')     ->to('imageserver#process');
 
+    $proxyauth->route('object/:pid/updateiiifmanifest')                   ->via('post')     ->to('iiifmanifest#update_manifest_metadata');
     $proxyauth->route('object/:pid/modify')                               ->via('post')     ->to('object#modify');
     $proxyauth->route('object/:pid/delete')                               ->via('post')     ->to('object#delete');
     $proxyauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');
