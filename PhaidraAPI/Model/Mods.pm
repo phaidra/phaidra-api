@@ -7,6 +7,7 @@ use base qw/Mojo::Base/;
 use Storable qw(dclone);
 use Mojo::ByteStream qw(b);
 use Mojo::JSON qw(encode_json decode_json);
+use Mojo::Util qw(html_unescape);
 use Mojo::File;
 use POSIX qw/strftime/;
 use XML::Writer;
@@ -166,14 +167,14 @@ sub xml_2_json_rec {
     #$c->app->log->debug("XXXXX type [$type] ns [$ns] id [$id]");
     $node->{xmlname} = $id;
     if (defined($e->text) && $e->text ne '') {
-      $node->{ui_value} = b($e->text)->decode('UTF-8');
+      $node->{ui_value} = $e->text;
     }
 
     if (defined($e->attr)) {
       foreach my $ak (keys %{$e->attr}) {
         my $a = {
           xmlname  => $ak,
-          ui_value => b($e->attr->{$ak})->decode('UTF-8')
+          ui_value => $e->attr->{$ak}
         };
         push @{$node->{attributes}}, $a;
       }
@@ -683,8 +684,8 @@ sub get_object_mods_json {
   if ($res->{status} ne 200) {
     return $res;
   }
-
-  return $self->xml_2_json($c, $res->{MODS}, $mode);
+  my $mods = b($res->{MODS})->decode('UTF-8');
+  return $self->xml_2_json($c, $mods, $mode);
 }
 
 1;

@@ -565,6 +565,7 @@ sub startup {
     $proxyauth->route('object/:pid/geo')                                  ->via('post')     ->to('geo#post');
     $proxyauth->route('object/:pid/annotations')                          ->via('post')     ->to('annotations#post');
     $proxyauth->route('object/:pid/rights')                               ->via('post')     ->to('rights#post');
+    $proxyauth->route('object/:pid/iiifmanifest')                         ->via('post')    ->to('iiifmanifest#post');
     $proxyauth->route('object/:pid/metadata')                             ->via('post')     ->to('object#metadata');
     $proxyauth->route('object/create')                                    ->via('post')     ->to('object#create_empty');
     $proxyauth->route('object/create/:cmodel')                            ->via('post')     ->to('object#create');

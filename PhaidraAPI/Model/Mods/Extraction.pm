@@ -326,7 +326,7 @@ sub _get_mods_titles {
       $tit .= ": $subtit";
     }
 
-    push @tits, {value => $tit};
+    push @tits, {value => "$tit"};
   }
 
   return \@tits;

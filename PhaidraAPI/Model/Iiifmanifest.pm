@@ -5,7 +5,6 @@ use warnings;
 use v5.10;
 use utf8;
 use base qw/Mojo::Base/;
-use Mojo::JSON qw(decode_json);
 use JSON;
 use PhaidraAPI::Model::Index;
 use PhaidraAPI::Model::Object;
@@ -43,12 +42,14 @@ sub update_manifest_metadata {
   delete $manifest->{summary};
   $manifest->{metadata} = [];
 
+  my @labels;
   if (exists($index->{dc_title_eng})) {
-    $manifest->{label} = {'en' => [$index->{dc_title_eng}]};
+    push @labels, $index->{dc_title_eng};
   }
   else {
-    $manifest->{label} = {'en' => [$index->{sort_dc_title}]};
+    push @labels, $index->{sort_dc_title};
   }
+  $manifest->{label} = {'en' => \@labels};
 
   if (exists($index->{dc_description})) {
     $manifest->{summary} = {'en' => [$index->{dc_description}]};
@@ -127,9 +128,18 @@ sub update_manifest_metadata {
     };
   }
 
-  my $coder = JSON->new->utf8->pretty;
-  my $json  = $coder->encode($manifest);
+  # $c->app->log->debug("XXXXXXXXXXXXXXXXXXXX " . $c->app->dumper($manifest));
+
+  my $json = JSON->new->utf8->pretty->encode($manifest);
   return $object_model->add_or_modify_datastream($c, $pid, "IIIF-MANIFEST", "application/json", undef, $c->app->config->{phaidra}->{defaultlabel}, $json, "M", undef, undef, $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});
+}
+
+sub save_to_object {
+  my ($self, $c, $pid, $manifest, $username, $password) = @_;
+
+  my $json         = JSON->new->utf8->pretty->encode($manifest);
+  my $object_model = PhaidraAPI::Model::Object->new;
+  return $object_model->add_or_modify_datastream($c, $pid, "IIIF-MANIFEST", "application/json", undef, $c->app->config->{phaidra}->{defaultlabel}, $json, "M", undef, undef, $username, $password);
 }
 
 1;
