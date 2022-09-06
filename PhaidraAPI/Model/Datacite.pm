@@ -420,7 +420,7 @@ sub map_jsonld_2_datacite {
     push @{$data{licenses}}, {value => $lic->{value}, link_uri => $lic->{value}};
   }
 
-  $c->app->log->debug("XXXXXXXXXXXXXX datacite data:" . $c->app->dumper(\%data));
+  #$c->app->log->debug("XXXXXXXXXXXXXX datacite data:" . $c->app->dumper(\%data));
 
   return $self->data_2_datacite($c, $cmodel, \%data);
 }

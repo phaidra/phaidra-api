@@ -352,7 +352,7 @@ sub preview {
         return;
       }
       else {
-        $self->render(text => "imageserver job status: " . $imgsrvjobstatus, status => 200);
+        $self->render(text => "image processing status: " . $imgsrvjobstatus, status => 200);
         return;
       }
     }

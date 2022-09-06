@@ -65,25 +65,25 @@ sub xml_2_json {
     my $category = $a->find('category')->first;
     my $text     = $a->find('text')->first;
     if ($x) {
-      $annotation->{x} = b($x->text)->decode('UTF-8');
+      $annotation->{x} = $x->text;
     }
     if ($y) {
-      $annotation->{y} = b($y->text)->decode('UTF-8');
+      $annotation->{y} = $y->text;
     }
     if ($w) {
-      $annotation->{w} = b($w->text)->decode('UTF-8');
+      $annotation->{w} = $w->text;
     }
     if ($h) {
-      $annotation->{h} = b($h->text)->decode('UTF-8');
+      $annotation->{h} = $h->text;
     }
     if ($title) {
-      $annotation->{title} = b($title->text)->decode('UTF-8');
+      $annotation->{title} = $title->text;
     }
     if ($category) {
-      $annotation->{category} = b($category->text)->decode('UTF-8');
+      $annotation->{category} = $category->text;
     }
     if ($text) {
-      $annotation->{text} = b($text->text)->decode('UTF-8');
+      $annotation->{text} = $text->text;
     }
 
     $annotations{$a->attr('ph:id')} = $annotation;

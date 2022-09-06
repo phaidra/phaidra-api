@@ -106,6 +106,8 @@ sub _resolve_geonames {
 
   my $res = {alerts => [], status => 200};
 
+  my $lang = $self->param('lang');
+
   unless ($self->config->{apis}) {
     my $err = "resolve apis are not configured";
     $self->app->log->error($err);
@@ -125,9 +127,15 @@ sub _resolve_geonames {
     }
   }
 
-  my $id = $uri =~ s/https:\/\/www\.geonames\.org\///r;
-
-  my $url = Mojo::URL->new($self->config->{apis}->{geonames}->{url} . "?username=" . $self->config->{apis}->{geonames}->{username} . "&geonameId=" . $id);
+  my $id     = $uri =~ s/https:\/\/www\.geonames\.org\///r;
+  my $params = {
+    username  => $self->config->{apis}->{geonames}->{username},
+    geonameId => $id
+  };
+  if ($lang) {
+    $params->{lang} = $lang;
+  }
+  my $url = Mojo::URL->new($self->config->{apis}->{geonames}->{url})->query($params);
   my $get = $self->ua->insecure($insecure)->max_redirects(5)->get($url);
   if (my $getres = $get->success) {
     my $json = $getres->json;
@@ -151,33 +159,6 @@ sub _resolve_geonames {
     }
     if ($json->{countryName}) {
       $path .= "--" . $json->{countryName} unless $json->{countryName} eq $json->{toponymName};
-    }
-    if ($json->{continentCode}) {
-      my $continentName = "";
-      switch ($json->{continentCode}) {
-        case "AF" {
-          $continentName = "Africa";
-        }
-        case "AS" {
-          $continentName = "Asia";
-        }
-        case "EU" {
-          $continentName = "Europe";
-        }
-        case "NA" {
-          $continentName = "North america";
-        }
-        case "OC" {
-          $continentName = "Oceania";
-        }
-        case "SA" {
-          $continentName = "South america";
-        }
-        case "AN" {
-          $continentName = "Antarctica";
-        }
-      }
-      $path .= "--" . $continentName;
     }
     push @{$res->{'rdfs:label'}}, {'@value' => $json->{toponymName} . $path};
 

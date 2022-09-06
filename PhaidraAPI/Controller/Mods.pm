@@ -149,8 +149,10 @@ sub xml2json {
   my $mode = $self->param('mode');
   my $xml  = $self->req->body;
 
+  my $mods = b($xml)->decode('UTF-8');
+
   my $mods_model = PhaidraAPI::Model::Mods->new;
-  my $res        = $mods_model->xml_2_json($self, $xml, $mode);
+  my $res        = $mods_model->xml_2_json($self, $mods, $mode);
 
   $self->render(json => {metadata => {mods => $res->{mods}}, alerts => $res->{alerts}}, status => $res->{status});
 }
