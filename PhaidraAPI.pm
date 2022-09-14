@@ -496,6 +496,8 @@ sub startup {
 
   $check_auth->route('directory/user/data')                               ->via('get')      ->to('directory#get_user_data');
 
+  $check_auth->route('settings')                                          ->via('get')      ->to('settings#get_settings');
+
   $check_auth->route('groups')                                            ->via('get')      ->to('groups#get_users_groups');
   $check_auth->route('group/:gid')                                        ->via('get')      ->to('groups#get_group');
 
@@ -544,6 +546,8 @@ sub startup {
 
     $check_admin_auth->route('index')                                     ->via('post')     ->to('index#update');
     $check_admin_auth->route('dc')                                        ->via('post')     ->to('dc#update');
+
+    $check_auth->route('settings')                                        ->via('post')     ->to('settings#post_settings');
 
     $check_admin_auth->route('mint/pid')                                  ->via('post')     ->to('object#mint_pid');
     $check_admin_auth->route('object/:pid/index')                         ->via('post')     ->to('index#update');
