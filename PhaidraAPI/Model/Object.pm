@@ -8,6 +8,7 @@ use Data::Dumper;
 use Mojo::Util qw(xml_escape encode decode);
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::ByteStream qw(b);
+use Digest::SHA qw(hmac_sha1_hex);
 use lib "lib/phaidra_binding";
 use Phaidra::API;
 use PhaidraAPI::Model::Rights;
@@ -770,6 +771,13 @@ sub create_simple {
   }
   else {
     $c->app->log->info("Object successfully created pid[$pid]");
+
+    if ($cmodel eq 'cmodel:Picture' or $cmodel eq 'cmodel:PDFDocument') {
+      $c->app->log->info("Creating imageserver job pid[$pid]");
+      my $cm =~ s/cmodel://;
+      my $hash   = hmac_sha1_hex($pid, $c->app->config->{imageserver}->{hash_secret});
+      $c->paf_mongo->get_collection('jobs')->insert_one({pid => $pid, cmodel => $cm, agent => "pige", status => "new", idhash => $hash, created => time});
+    }
   }
 
   if (exists($metadata->{metadata}->{'ownerid'})) {

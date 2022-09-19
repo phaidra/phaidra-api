@@ -978,8 +978,10 @@ sub add_octets {
   my $cmodelr      = $search_model->get_cmodel($self, $pid);
   if ($cmodelr->{status} eq 200) {
     my $cmodel = $cmodelr->{cmodel};
-    my $hash   = hmac_sha1_hex($pid, $self->app->config->{imageserver}->{hash_secret});
-    $self->paf_mongo->get_collection('jobs')->insert_one({pid => $pid, cmodel => $cmodel, agent => "pige", status => "new", idhash => $hash, created => time});
+    if ($cmodel eq 'Picture' or $cmodel eq 'PDFDocument') {
+      my $hash   = hmac_sha1_hex($pid, $self->app->config->{imageserver}->{hash_secret});
+      $self->paf_mongo->get_collection('jobs')->insert_one({pid => $pid, cmodel => $cmodel, agent => "pige", status => "new", idhash => $hash, created => time});
+    }
   }
   else {
     $self->app->log->error("Error finding cmodel when creating imageserver job:" . $self->app->dumper($cmodelr));
