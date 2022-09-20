@@ -365,6 +365,9 @@ sub preview {
         return;
       }
 
+      my $page = $self->param('page');
+
+      $self->stash(page     => $page) if looks_like_number($page);
       $self->stash(baseurl  => $self->config->{baseurl});
       $self->stash(basepath => $self->config->{basepath});
       $self->stash(pid      => $pid);
@@ -979,7 +982,7 @@ sub add_octets {
   if ($cmodelr->{status} eq 200) {
     my $cmodel = $cmodelr->{cmodel};
     if ($cmodel eq 'Picture' or $cmodel eq 'PDFDocument') {
-      my $hash   = hmac_sha1_hex($pid, $self->app->config->{imageserver}->{hash_secret});
+      my $hash = hmac_sha1_hex($pid, $self->app->config->{imageserver}->{hash_secret});
       $self->paf_mongo->get_collection('jobs')->insert_one({pid => $pid, cmodel => $cmodel, agent => "pige", status => "new", idhash => $hash, created => time});
     }
   }

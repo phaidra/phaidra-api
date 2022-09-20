@@ -1913,6 +1913,14 @@ sub _add_jsonld_index {
         my $rr = $self->_add_jsonld_index($c, $pid, $o, $index);
         push @{$res->{alerts}}, @{$rr->{alerts}} if scalar @{$rr->{alerts}} > 0;
       }
+      else {
+        # the @values will be indexed as part of DC, but IDs (skos:exactMatch) not
+        if ($o->{'skos:exactMatch'}) {
+          for my $subject_id (@{$o->{'skos:exactMatch'}}) {
+            push @{$index->{"dcterms_subject_id"}}, $subject_id;
+          }
+        }
+      }
     }
   }
 
@@ -2179,6 +2187,14 @@ sub _add_jsonld_roles {
           }
           else {
             $name = $contr->{'schema:name'}[0]->{'@value'};
+          }
+          if ($contr->{'skos:exactMatch'}) {
+            for my $exm (@{$contr->{'skos:exactMatch'}}) {
+              my $type = $exm->{'@type'};
+              my $id   = trim($exm->{'@value'});
+              $type =~ s/^ids://;
+              push @{$index->{"id_bib_roles_pers_" . $role}}, $type . ':' . $id unless ($id eq '');
+            }
           }
           if ($contr->{'schema:affiliation'}) {
             for my $aff (@{$contr->{'schema:affiliation'}}) {
