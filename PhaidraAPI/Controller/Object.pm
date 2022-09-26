@@ -10,6 +10,7 @@ use Mojo::Util qw(encode decode);
 use Mojo::ByteStream qw(b);
 use Mojo::Upload;
 use Mojo::Path;
+use Scalar::Util qw(looks_like_number);
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Collection;
 use PhaidraAPI::Model::Search;

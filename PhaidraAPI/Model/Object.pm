@@ -226,10 +226,11 @@ sub info {
 
   my $user_data = $c->app->directory->get_user_data($c, $info->{owner});
   $info->{owner} = {
-    username  => $user_data->{username},
-    firstname => $user_data->{firstname},
-    lastname  => $user_data->{lastname},
-    email     => $user_data->{email}
+    username    => $user_data->{username},
+    firstname   => $user_data->{firstname},
+    lastname    => $user_data->{lastname},
+    displayname => $user_data->{displayname},
+    email       => $user_data->{email}
   };
 
   $mode = $mode ? $mode : '';
@@ -775,7 +776,7 @@ sub create_simple {
     if ($cmodel eq 'cmodel:Picture' or $cmodel eq 'cmodel:PDFDocument') {
       $c->app->log->info("Creating imageserver job pid[$pid]");
       my $cm =~ s/cmodel://;
-      my $hash   = hmac_sha1_hex($pid, $c->app->config->{imageserver}->{hash_secret});
+      my $hash = hmac_sha1_hex($pid, $c->app->config->{imageserver}->{hash_secret});
       $c->paf_mongo->get_collection('jobs')->insert_one({pid => $pid, cmodel => $cm, agent => "pige", status => "new", idhash => $hash, created => time});
     }
   }

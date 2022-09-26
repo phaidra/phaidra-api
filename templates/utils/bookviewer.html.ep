@@ -15,7 +15,8 @@
      var miradorInstance = Mirador.viewer({
        id: 'mirador',
        windows: [{
-         manifestId: 'https://<%= $baseurl %>/<%= $basepath %>/object/<%= $pid %>/iiifmanifest'
+         manifestId: 'https://<%= $baseurl %>/<%= $basepath %>/object/<%= $pid %>/iiifmanifest',
+         canvasId: 'https://<%= $baseurl %>/<%= $basepath %>/iiif/<%= $pid %>/canvas/<%= $page %>'
        }],
        window: {
         allowClose: false,
