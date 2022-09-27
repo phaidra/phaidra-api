@@ -367,8 +367,8 @@ sub preview {
       }
 
       my $page = $self->param('page');
-
-      $self->stash(page     => $page) if looks_like_number($page);
+      $page = looks_like_number($page) ? $page : 1;
+      $self->stash(page     => $page);
       $self->stash(baseurl  => $self->config->{baseurl});
       $self->stash(basepath => $self->config->{basepath});
       $self->stash(pid      => $pid);

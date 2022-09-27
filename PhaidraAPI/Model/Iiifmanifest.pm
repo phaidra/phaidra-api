@@ -51,10 +51,6 @@ sub update_manifest_metadata {
   }
   $manifest->{label} = {'en' => \@labels};
 
-  if (exists($index->{dc_description})) {
-    $manifest->{summary} = {'en' => [$index->{dc_description}]};
-  }
-
   $manifest->{homepage} = [
     { "id"     => 'https://' . $c->app->config->{phaidra}->{baseurl} . '/detail/' . $pid,
       "type"   => "Text",
@@ -78,6 +74,18 @@ sub update_manifest_metadata {
       {
       label => {"en"   => ["Author"]},
       value => {"none" => $authors}
+      };
+  }
+
+  if (exists($index->{dc_description})) {
+    my $descs = [];
+    for my $d (@{$index->{dc_description}}) {
+      push @{$descs}, $d;
+    }
+    push @{$manifest->{metadata}},
+      {
+      label => {"en"   => ["Description"]},
+      value => {"none" => $descs}
       };
   }
 
