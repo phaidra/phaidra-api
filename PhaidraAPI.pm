@@ -9,8 +9,8 @@ use Mojolicious::Plugin::I18N;
 use Mojolicious::Plugin::Session;
 use Mojolicious::Plugin::Log::Any;
 use Mojo::Loader qw(load_class);
-use lib "lib/phaidra_directory";
-use lib "lib/phaidra_binding";
+use FindBin;
+use lib "$FindBin::Bin/lib/phaidra_directory";
 use MongoDB 1.8.3;
 use Sereal::Encoder qw(encode_sereal);
 use Sereal::Decoder qw(decode_sereal);
@@ -61,7 +61,7 @@ sub startup {
   $self->secrets([$config->{secret}]);
   push @{$self->static->paths} => 'public';
 
-  Log::Log4perl::init('log4perl.conf');
+  Log::Log4perl::init($FindBin::Bin . '/log4perl.conf');
 
   my $log = Log::Log4perl::get_logger("root");
   $self->plugin('Log::Any' => {logger => 'Log::Log4perl'});
@@ -296,6 +296,7 @@ sub startup {
       my $self = shift;
       my $u    = shift;
       my $p    = shift;
+      my $ru   = shift;
 
       my $ciphertext;
 
@@ -304,7 +305,13 @@ sub startup {
       unless ($session->sid) {
         $session->create;
       }
-      my $ba   = encode_sereal({username => $u, password => $p});
+      my $ba;
+      if (defined($u)) {
+        $ba = encode_sereal({username => $u, password => $p});
+      }
+      if (defined($ru)) {
+        $ba = encode_sereal({remote_user => $ru});
+      }
       my $salt = Math::Random::ISAAC::XS->new(map {unpack("N", urandom(4))} 1 .. 256)->irand();
       my $key  = hmac_sha256($salt, $self->app->config->{enc_key});
       my $cbc  = Crypt::CBC->new(-key => $key, -cipher => 'Rijndael');
@@ -348,6 +355,7 @@ sub startup {
   $r->namespaces(['PhaidraAPI::Controller']);
 
   #<<< perltidy ignore
+  $r->route('')                                   ->via('get')    ->to('authentication#signin_shib');
   $r->route('languages')                          ->via('get')    ->to('languages#get_languages');
   $r->route('licenses')                           ->via('get')    ->to('licenses#get_licenses');
 

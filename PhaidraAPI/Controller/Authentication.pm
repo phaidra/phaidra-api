@@ -19,6 +19,7 @@ sub extract_credentials {
 
     my $remoteuser = $self->req->headers->header($self->app->config->{authentication}->{upstream}->{principalheader});
 
+    # remote user in header - basic auth must contain correct upstreamusername/upstreampassword as per config
     if ($remoteuser) {
       $self->app->log->debug("remote user: " . $remoteuser);
 
@@ -82,14 +83,24 @@ sub extract_credentials {
     my $cred = $self->load_cred;
     $username = $cred->{username};
     $password = $cred->{password};
+    my $remote_user = $cred->{remote_user};
     if (defined($username) && defined($password)) {
       $self->app->log->info("User $username, token authentication provided");
       $self->stash->{basic_auth_credentials} = {username => $username, password => $password};
       return 1;
     }
+    else {
+      # remote user in token - this is the case for shib
+      if (defined($remote_user)) {
+        $self->app->log->info("Remote user $remote_user, token authentication provided");
+        $self->stash->{remote_user}            = $remote_user;
+        $self->stash->{basic_auth_credentials} = {username => $self->app->config->{authentication}->{upstream}->{upstreamusername}, password => $self->app->config->{authentication}->{upstream}->{upstreampassword}};
+        return 1;
+      }
+    }
 
     if ($self->stash('must_be_present')) {
-      unless (defined($username) && defined($password)) {
+      unless ((defined($username) && defined($password)) || defined($remote_user)) {
         my $t = $self->tx->req->headers->header($self->app->config->{authentication}->{token_header});
         my $errmsg;
         if ($t) {
@@ -153,8 +164,15 @@ sub authenticate {
 
   my $self = shift;
 
+  if ($self->stash->{remote_user}) {
+    $self->app->log->info("Remote user " . $self->stash->{remote_user});
+    return 1;
+  }
+
   my $username = $self->stash->{basic_auth_credentials}->{username};
   my $password = $self->stash->{basic_auth_credentials}->{password};
+
+  $self->app->log->info("Authenticating user $username");
 
   $self->directory->authenticate($self, $username, $password);
   my $res = $self->stash('phaidra_auth_result');
@@ -236,6 +254,69 @@ sub signout {
   else {
     $self->render(json => {status => 200, alerts => [{type => 'info', msg => 'No session found'}]}, status => 200);
   }
+
+}
+
+sub signin_shib {
+  my $self = shift;
+
+  # $self->app->log->debug("XXXXXXXXXXXX shib XXXXXXXXXXX: " . $self->app->dumper(\%ENV));
+
+  my $username = %ENV{$self->app->config->{authentication}->{shibboleth}->{attributes}->{username}};
+
+  if ($username =~ m/(\w+)@*/g) {
+    $username =~ s/@([\w|\.]+)//g;
+  }
+
+  $self->app->log->debug("[$username] shibboleth login");
+
+  my $firstname;
+  my $lastname;
+  my $email;
+  my $affiliation;
+  my $authorized;
+
+  $firstname = %ENV{$self->app->config->{authentication}->{shibboleth}->{attributes}->{firstname}};
+  $lastname  = %ENV{$self->app->config->{authentication}->{shibboleth}->{attributes}->{lastname}};
+  $email     = %ENV{$self->app->config->{authentication}->{shibboleth}->{attributes}->{email}};
+
+  if ($self->app->config->{authentication}->{shibboleth}->{attributes}->{affiliation}) {
+    $affiliation = %ENV{$self->app->config->{authentication}->{shibboleth}->{attributes}->{affiliation}};
+
+    my @userAffs = split(';', $affiliation);
+    for my $userAff (@userAffs) {
+      last if $authorized;
+      $self->app->log->debug("Checking if affiliation $userAff can login");
+      for my $configAff (@{$self->app->config->{authentication}->{shibboleth}->{requiredaffiliations}}) {
+        if ($configAff eq $userAff) {
+          $self->app->log->debug($configAff . " can login");
+          $authorized = 1;
+          last;
+        }
+      }
+    }
+  }
+
+  if ($username && $authorized) {
+
+    # init session, save credentials
+    # currently we only save remote_user
+    # TODO: save remote_affiliation and remote_groups
+    $self->save_cred(undef, undef, $username);
+    my $session = $self->stash('mojox-session');
+
+    # sent token cookie
+    my $cookie = Mojo::Cookie::Response->new;
+    $cookie->name($self->app->config->{authentication}->{token_cookie})->value($session->sid);
+    $cookie->secure(1);
+    $cookie->samesite('Strict');
+    $cookie->path('/');
+    $cookie->domain($self->app->config->{phaidra}->{baseurl});
+    $self->tx->res->cookies($cookie);
+  }
+
+  $self->app->log->debug("redirecting to " . $self->app->config->{authentication}->{shibboleth}->{frontendloginurl});
+  $self->redirect_to($self->app->config->{authentication}->{shibboleth}->{frontendloginurl});
 
 }
 

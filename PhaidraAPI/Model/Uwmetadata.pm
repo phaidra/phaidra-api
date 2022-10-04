@@ -14,8 +14,6 @@ use Mojo::JSON qw(encode_json decode_json);
 use Mojo::Util qw(html_unescape);
 use XML::Writer;
 use XML::LibXML;
-use lib "lib/phaidra_binding";
-use Phaidra::API;
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Terms;

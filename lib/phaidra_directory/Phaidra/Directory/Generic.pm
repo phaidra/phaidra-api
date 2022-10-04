@@ -30,6 +30,8 @@ sub authenticate($$$$) {
 
   my $res = {alerts => [], status => 500};
 
+  $c->app->log->error("Authenticating user $username");
+
   for my $u (@{$config->{users}}) {
     if (($u->{username} eq $username) && ($u->{password} eq $password)) {
       $res->{status} = 200;
@@ -266,9 +268,9 @@ sub get_user_data {
     }
   }
 
-  my $res = { username => $username, firstname => $fname, lastname => $lname, email => $email ,org_units_l2 => \@inums, org_units_l1 => \@fakcodes };
+  my $res = {username => $username, firstname => $fname, lastname => $lname, email => $email, org_units_l2 => \@inums, org_units_l1 => \@fakcodes};
 
-	return $res;
+  return $res;
 
 }
 

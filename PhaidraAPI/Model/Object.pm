@@ -8,9 +8,6 @@ use Data::Dumper;
 use Mojo::Util qw(xml_escape encode decode);
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::ByteStream qw(b);
-use Digest::SHA qw(hmac_sha1_hex);
-use lib "lib/phaidra_binding";
-use Phaidra::API;
 use PhaidraAPI::Model::Rights;
 use PhaidraAPI::Model::Geo;
 use PhaidraAPI::Model::Uwmetadata;
@@ -1854,58 +1851,33 @@ sub add_relationship {
     }
   }
 
-  if ($c->app->config->{fedora}->{version} > 6) {
+  if ($c->app->config->{fedora}->{version} >= 6) {
     die('not implemented');
   }
   else {
+    my %params;
+    $params{subject}   = 'info:fedora/' . $pid;
+    $params{predicate} = $predicate;
+    $params{object}    = $object;
 
-    if ($c->app->config->{fedora}->{version} eq '3.8') {
-      my %params;
-      $params{subject}   = 'info:fedora/' . $pid;
-      $params{predicate} = $predicate;
-      $params{object}    = $object;
+    my $url = Mojo::URL->new;
+    $url->scheme('https');
+    $url->userinfo("$username:$password");
+    $url->host($c->app->config->{phaidra}->{fedorabaseurl});
+    $url->path("/fedora/objects/$pid/relationships/new");
+    $url->query(\%params);
 
-      my $url = Mojo::URL->new;
-      $url->scheme('https');
-      $url->userinfo("$username:$password");
-      $url->host($c->app->config->{phaidra}->{fedorabaseurl});
-      $url->path("/fedora/objects/$pid/relationships/new");
-      $url->query(\%params);
-
-      my $ua = Mojo::UserAgent->new;
-      my %headers;
-      $self->add_upstream_headers($c, \%headers);
-      my $post = $ua->post($url => \%headers);
-      if (my $r = $post->success) {
-        unshift @{$res->{alerts}}, {type => 'success', msg => $r->body};
-      }
-      else {
-        my ($err, $code) = $post->error;
-        unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
-        $res->{status} = $code ? $code : 500;
-      }
+    my $ua = Mojo::UserAgent->new;
+    my %headers;
+    $self->add_upstream_headers($c, \%headers);
+    my $post = $ua->post($url => \%headers);
+    if (my $r = $post->success) {
+      unshift @{$res->{alerts}}, {type => 'success', msg => $r->body};
     }
     else {
-
-      $c->app->log->debug("Connecting to " . $c->app->config->{phaidra}->{fedorabaseurl} . "...");
-      my $phaidra = Phaidra::API->new($c->app->config->{phaidra}->{fedorabaseurl}, $c->app->config->{phaidra}->{staticbaseurl}, $c->app->config->{phaidra}->{fedorastylesheeturl}, $c->app->config->{phaidra}->{proaiRepositoryIdentifier}, $username, $password);
-
-      my $soap = $phaidra->getSoap("apim");
-      unless (defined($soap)) {
-        unshift @{$res->{alerts}}, {type => 'danger', msg => 'Cannot create SOAP connection to ' . $c->app->config->{phaidra}->{fedorabaseurl}};
-        $res->{status} = 500;
-        return $res;
-      }
-
-      #$c->app->log->debug("Connected");
-      my $soapres = $soap->addRelationship($pid, SOAP::Data->type(string => $predicate), SOAP::Data->type(string => $object), SOAP::Data->type(boolean => 0), undef);
-
-      if ($soapres->fault) {
-        $c->app->log->error("Adding relationships for $pid failed: " . $soapres->faultcode . ": " . $soapres->faultstring);
-        $res->{status} = 500;
-        unshift @{$res->{alerts}}, {type => 'danger', msg => "Adding relationships for $pid failed: " . $soapres->faultcode . ": " . $soapres->faultstring};
-        return $res;
-      }
+      my ($err, $code) = $post->error;
+      unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+      $res->{status} = $code ? $code : 500;
     }
   }
 
@@ -1968,55 +1940,29 @@ sub purge_relationship {
 
   my $res = {alerts => [], status => 200};
 
-  if ($c->app->config->{fedora}->{version} > 6) {
+  if ($c->app->config->{fedora}->{version} >= 6) {
     die('not implemented');
   }
   else {
-    if ($c->app->config->{fedora}->{version} eq '3.8') {
+    my %params;
+    $params{subject}   = 'info:fedora/' . $pid;
+    $params{predicate} = $predicate;
+    $params{object}    = $object;
 
-      my %params;
-      $params{subject}   = 'info:fedora/' . $pid;
-      $params{predicate} = $predicate;
-      $params{object}    = $object;
+    my $url = Mojo::URL->new;
+    $url->scheme('https');
+    $url->userinfo("$username:$password");
+    $url->host($c->app->config->{phaidra}->{fedorabaseurl});
+    $url->path("/fedora/objects/$pid/relationships");
+    $url->query(\%params);
 
-      my $url = Mojo::URL->new;
-      $url->scheme('https');
-      $url->userinfo("$username:$password");
-      $url->host($c->app->config->{phaidra}->{fedorabaseurl});
-      $url->path("/fedora/objects/$pid/relationships");
-      $url->query(\%params);
-
-      my $ua = Mojo::UserAgent->new;
-      my %headers;
-      $self->add_upstream_headers($c, \%headers);
-      my $postres = $ua->delete($url => \%headers)->result;
-      if ($postres->is_error) {
-        unshift @{$res->{alerts}}, {type => 'danger', msg => $postres->message};
-        $res->{status} = $postres->{code} ? $postres->{code} : 500;
-      }
-
-    }
-    else {
-
-      $c->app->log->debug("Connecting to " . $c->app->config->{phaidra}->{fedorabaseurl} . "...");
-      my $phaidra = Phaidra::API->new($c->app->config->{phaidra}->{fedorabaseurl}, $c->app->config->{phaidra}->{staticbaseurl}, $c->app->config->{phaidra}->{fedorastylesheeturl}, $c->app->config->{phaidra}->{proaiRepositoryIdentifier}, $username, $password);
-
-      my $soap = $phaidra->getSoap("apim");
-      unless (defined($soap)) {
-        unshift @{$res->{alerts}}, {type => 'danger', msg => 'Cannot create SOAP connection to ' . $c->app->config->{phaidra}->{fedorabaseurl}};
-        $res->{status} = 500;
-        return $res;
-      }
-
-      #$c->app->log->debug("Connected");
-      my $soapres = $soap->purgeRelationship($pid, SOAP::Data->type(string => $predicate), SOAP::Data->type(string => $object), SOAP::Data->type(boolean => 0), undef);
-
-      if ($soapres->fault) {
-        $c->app->log->error("Removing relationships for $pid failed:" . $soapres->faultcode . ": " . $soapres->faultstring);
-        $res->{status} = 500;
-        unshift @{$res->{alerts}}, {type => 'danger', msg => "Removing relationship for $pid failed:" . $soapres->faultcode . ": " . $soapres->faultstring};
-        return $res;
-      }
+    my $ua = Mojo::UserAgent->new;
+    my %headers;
+    $self->add_upstream_headers($c, \%headers);
+    my $postres = $ua->delete($url => \%headers)->result;
+    if ($postres->is_error) {
+      unshift @{$res->{alerts}}, {type => 'danger', msg => $postres->message};
+      $res->{status} = $postres->{code} ? $postres->{code} : 500;
     }
   }
 

@@ -1066,12 +1066,7 @@ sub get_metadata_openaire {
         $downloadUrl .= '/objects/' . $rec->{pid} . '/download';
       }
       else {
-        if ($c->app->config->{fedora}->{version} eq '3.8') {
-          $downloadUrl = 'https://' . $c->app->config->{phaidra}->{fedorabaseurl} . '/fedora/objects/' . $rec->{pid} . '/methods/bdef:Content/download';
-        }
-        else {
-          $downloadUrl = 'https://' . $c->app->config->{phaidra}->{fedorabaseurl} . '/fedora/get/' . $rec->{pid} . '/bdef:Content/download';
-        }
+        $downloadUrl = 'https://' . $c->app->config->{phaidra}->{fedorabaseurl} . '/fedora/objects/' . $rec->{pid} . '/methods/bdef:Content/download';
       }
       push @metadata,
         {
