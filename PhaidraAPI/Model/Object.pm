@@ -7,6 +7,7 @@ use base qw/Mojo::Base/;
 use Data::Dumper;
 use Mojo::Util qw(xml_escape encode decode);
 use Mojo::JSON qw(encode_json decode_json);
+use Digest::SHA qw(hmac_sha1_hex);
 use Mojo::ByteStream qw(b);
 use PhaidraAPI::Model::Rights;
 use PhaidraAPI::Model::Geo;

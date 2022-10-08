@@ -118,8 +118,14 @@ sub get_user_data {
   my $username = $self->stash('username');
 
   unless ($username) {
-    $username = $self->stash->{basic_auth_credentials}->{username};
+    if ($self->stash('remote_user')) {
+      $username = $self->stash('remote_user')
+    } else {
+      $username = $self->stash->{basic_auth_credentials}->{username};
+    }
   }
+
+  $self->app->log->debug("get user data username[$username]");
 
   my $user_data = $self->app->directory->get_user_data($self, $username);
 
