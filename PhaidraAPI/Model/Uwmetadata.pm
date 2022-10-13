@@ -1420,12 +1420,12 @@ sub fix_uwmetadata() {
       { xmlns    => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0",
         xmlname  => "upload_date",
         datatype => "DateTime",
-        ui_value => strftime("%Y-%m-%dT%H:%M:%S.000Z", localtime)
+        ui_value => strftime("%Y-%m-%dT%H:%M:%S.000Z", gmtime(time))
       }
     );
   }
   if (!defined($n->{ui_value}) || $n->{ui_value} eq '') {
-    $n->{ui_value} = strftime("%Y-%m-%dT%H:%M:%S.000Z", localtime);
+    $n->{ui_value} = strftime("%Y-%m-%dT%H:%M:%S.000Z", gmtime(time));
   }
 
   # add and set status if not there
