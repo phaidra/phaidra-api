@@ -1226,4 +1226,55 @@ sub embargocheck {
   $self->render(text => 'finished', status => 200);
 }
 
+sub puresearch {
+  my ($self) = @_;
+
+  my $res = {alerts => [], status => 200};
+
+  # already went through check_auth
+  my $username = $self->stash->{basic_auth_credentials}->{username};
+  if ($username ne $self->config->{ir}->{iraccount}) {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'Not authorized.'}]}, status => 403);
+    return;
+  }
+
+  unless ($self->app->config->{apis}->{pure}) {
+    $self->render(json => {alerts => [{type => 'info', msg => 'Pure integration not configured'}]}, status => 400);
+    return;
+  }
+
+  my $size     = $self->param('size');
+  my $offset   = $self->param('offset');
+  my $page     = $self->param('page');
+  my $pageSize = $self->param('pageSize');
+
+  my $urlget = Mojo::URL->new($self->app->config->{apis}->{pure}->{url});
+  my $params = {apiKey => $self->app->config->{apis}->{pure}->{key}};
+  if ($size) {
+    $params->{size} = $size;
+  }
+  if ($offset) {
+    $params->{offset} = $offset;
+  }
+  if ($page) {
+    $params->{page} = $page;
+  }
+  if ($pageSize) {
+    $params->{pageSize} = $pageSize;
+  }
+  $urlget->query($params);
+
+  my $ua     = Mojo::UserAgent->new;
+  my $getres = $ua->get($urlget => {Accept => 'application/json'} => json => decode_json($self->app->config->{apis}->{pure}->{query}))->result;
+  if ($getres->is_success) {
+    $res->{response} = $getres->json;
+  }
+  else {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'error getting results from Pure ' . $getres->code . " " . $getres->message}]}, status => 500);
+    return;
+  }
+
+  $self->render(json => $res, status => $res->{status});
+}
+
 1;

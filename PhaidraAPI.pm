@@ -545,6 +545,7 @@ sub startup {
   $check_auth->route('ir/adminlistdata')                                  ->via('post')     ->to('ir#adminlistdata');
   $check_auth->route('ir/:pid/events')                                    ->via('get')      ->to('ir#events');
   $check_auth->route('ir/allowsubmit')                                    ->via('get')      ->to('ir#allowsubmit');
+  $check_auth->route('ir/puresearch')                                     ->via('get')      ->to('ir#puresearch');
 
   $check_auth->route('termsofuse/getagreed')                              ->via('get')      ->to('termsofuse#getagreed');
 
