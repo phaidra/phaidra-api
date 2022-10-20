@@ -262,7 +262,7 @@ sub signin_shib {
 
   # $self->app->log->debug("XXXXXXXXXXXX shib XXXXXXXXXXX: " . $self->app->dumper(\%ENV));
 
-  my $username = %ENV{$self->app->config->{authentication}->{shibboleth}->{attributes}->{username}};
+  my $username = $ENV{$self->app->config->{authentication}->{shibboleth}->{attributes}->{username}};
 
   if ($username =~ m/(\w+)@*/g) {
     $username =~ s/@([\w|\.]+)//g;
@@ -276,12 +276,12 @@ sub signin_shib {
   my $affiliation;
   my $authorized;
 
-  $firstname = %ENV{$self->app->config->{authentication}->{shibboleth}->{attributes}->{firstname}};
-  $lastname  = %ENV{$self->app->config->{authentication}->{shibboleth}->{attributes}->{lastname}};
-  $email     = %ENV{$self->app->config->{authentication}->{shibboleth}->{attributes}->{email}};
+  $firstname = $ENV{$self->app->config->{authentication}->{shibboleth}->{attributes}->{firstname}};
+  $lastname  = $ENV{$self->app->config->{authentication}->{shibboleth}->{attributes}->{lastname}};
+  $email     = $ENV{$self->app->config->{authentication}->{shibboleth}->{attributes}->{email}};
 
   if ($self->app->config->{authentication}->{shibboleth}->{attributes}->{affiliation}) {
-    $affiliation = %ENV{$self->app->config->{authentication}->{shibboleth}->{attributes}->{affiliation}};
+    $affiliation = $ENV{$self->app->config->{authentication}->{shibboleth}->{attributes}->{affiliation}};
 
     my @userAffs = split(';', $affiliation);
     for my $userAff (@userAffs) {

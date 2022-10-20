@@ -1265,7 +1265,7 @@ sub puresearch {
   $urlget->query($params);
 
   my $ua     = Mojo::UserAgent->new;
-  my $getres = $ua->get($urlget => {Accept => 'application/json'} => json => decode_json($self->app->config->{apis}->{pure}->{query}))->result;
+  my $getres = $ua->post($urlget => {Accept => 'application/json'} => json => decode_json($self->app->config->{apis}->{pure}->{query}))->result;
   if ($getres->is_success) {
     $res->{response} = $getres->json;
   }
