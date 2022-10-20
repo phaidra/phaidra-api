@@ -172,7 +172,8 @@ sub post {
     else {
       # http://showmetheco.de/articles/2010/10/how-to-avoid-unicode-pitfalls-in-mojolicious.html
       $self->app->log->debug("parsing json");
-      $metadata = decode_json(b($metadata)->encode('UTF-8'));
+      $self->app->log->debug($metadata);
+      $metadata = decode_json($metadata);
     }
   };
 
