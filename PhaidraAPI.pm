@@ -227,8 +227,9 @@ sub startup {
         'log' => $self->log
       ),
       transport => PhaidraAPI::Model::Session::Transport::Header->new(
-        name  => $config->{authentication}->{token_header},
-        'log' => $self->log
+        header_name => $config->{authentication}->{token_header},
+        cookie_name => $config->{authentication}->{token_cookie},
+        'log'       => $self->log
       ),
       expires_delta => $config->{session_expiration},
       ip_match      => $config->{session_ip_match}

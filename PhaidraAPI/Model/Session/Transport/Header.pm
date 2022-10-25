@@ -6,14 +6,15 @@ use Data::Dumper;
 
 use base 'MojoX::Session::Transport';
 
-__PACKAGE__->attr('name');
+__PACKAGE__->attr('header_name');
+__PACKAGE__->attr('cookie_name');
 __PACKAGE__->attr('log');
 
 sub get {
   my ($self) = @_;
 
   #$self->log->debug("Loading header=".$self->name.": ".$self->tx->req->headers->header($self->name));
-  my $token = $self->tx->req->headers->header($self->name);
+  my $token = $self->tx->req->headers->header($self->header_name);
   if ($token) {
 
     # $self->log->debug("Found token in ".$self->name." header");
@@ -21,7 +22,7 @@ sub get {
   else {
     my $cookies = $self->tx->req->cookies;
     for my $cookie (@{$cookies}) {
-      if ($cookie->name eq $self->name) {
+      if ($cookie->name eq $self->cookie_name) {
 
         # $self->log->debug("Found token in ".$self->name." cookie");
         $token = $cookie->value;

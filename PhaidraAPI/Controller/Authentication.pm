@@ -62,7 +62,7 @@ sub extract_credentials {
     else {
 
       # this is ok, even if upstream auth is enabled, someone can send a non-upstream-auth request
-      $self->app->log->debug("upstream authentication failed: missing principal header");
+      $self->app->log->debug("no upstream authentication: missing principal header");
     }
 
   }
