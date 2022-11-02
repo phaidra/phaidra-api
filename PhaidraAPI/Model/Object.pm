@@ -22,6 +22,7 @@ use PhaidraAPI::Model::Index;
 use PhaidraAPI::Model::Stats;
 use IO::Scalar;
 use File::MimeInfo;
+use File::MimeInfo::Magic;
 use File::Temp 'tempfile';
 
 # only those where a PID can be the object (in RDF sense)
