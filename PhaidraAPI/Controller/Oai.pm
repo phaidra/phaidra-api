@@ -75,18 +75,19 @@ sub _get_metadata_dc {
   my @el          = qw(contributor, coverage, creator, date, description, format, identifier, language, publisher, relation, rights, source, subject, title, type);
   my %valuesCheck = map {$_ => {}} @el;
   my @metadata;
-  my $isirobject = 0;
-  if (exists($rec->{isinadminset})) {
-    if (exists($self->config->{ir})) {
-      if (exists($self->config->{ir}->{adminset})) {
-        for my $admset (@{$rec->{isinadminset}}) {
-          if ($admset eq $self->config->{ir}->{adminset}) {
-            $isirobject = 1;
-          }
-        }
-      }
-    }
-  }
+
+  # my $isirobject = 0;
+  # if (exists($rec->{isinadminset})) {
+  #   if (exists($self->config->{ir})) {
+  #     if (exists($self->config->{ir}->{adminset})) {
+  #       for my $admset (@{$rec->{isinadminset}}) {
+  #         if ($admset eq $self->config->{ir}->{adminset}) {
+  #           $isirobject = 1;
+  #         }
+  #       }
+  #     }
+  #   }
+  # }
 
   if (exists($rec->{bib_publisher})) {
     for my $v (@{$rec->{bib_publisher}}) {
@@ -134,25 +135,21 @@ sub _get_metadata_dc {
     $rec->{dc_type_eng} = ['other'];
   }
 
-  if (($set eq 'phaidra4primo') && $isirobject) {
+  if (($set eq 'phaidra4primo') && exists($rec->{roles_json})) {
     $self->_add_roles_with_id($rec, \@metadata);
   }
 
   for my $k (keys %{$rec}) {
     if ($k =~ m/^dc_([a-z]+)_?([a-z]+)?$/) {
-      my $skip = 0;
       for my $v (@{$rec->{$k}}) {
-        if ($valuesCheck{$1}{$v}->{exists}) {    # we already saw this value, so we'll skip
-          if ($2) {                              # but there's language, and maybe there was no language before
-            $valuesCheck{$1}{$v}->{lang} = $2;    # so save this information so that we can add it later
-          }
-          $skip = 1;
-          last;
+        if ($2) {    # there's language, and maybe there was no language before
+          $valuesCheck{$1}{$v}->{lang} = $2;    # so save this information so that we can add it later
         }
       }
-      $skip = 1 if ($1 eq 'license');                                                                             # dc_license is not a dc field, it's in rights
-      $skip = 1 if (($set eq 'phaidra4primo') && ($1 eq 'date'));                                                 # bib_published was already added, the rest is not interesting
-      $skip = 1 if (($set eq 'phaidra4primo') && $isirobject && (($1 eq 'creator') || ($1 eq 'contributor')));    # we added those already, with IDs
+      my $skip = 0;
+      $skip = 1 if ($1 eq 'license');                                                                                            # dc_license is not a dc field, it's in rights
+      $skip = 1 if (($set eq 'phaidra4primo') && ($1 eq 'date'));                                                                # bib_published was already added, the rest is not interesting
+      $skip = 1 if (($set eq 'phaidra4primo') && exists($rec->{roles_json}) && (($1 eq 'creator') || ($1 eq 'contributor')));    # we added those already, with IDs
       next if $skip;
       for my $v (@{$rec->{$k}}) {
         $valuesCheck{$1}{$v}->{exists} = 1;
@@ -178,6 +175,7 @@ sub _get_metadata_dc {
         my $localdupcheck;
         for my $v (@{$rec->{$k}}) {
           unless ($localdupcheck->{$v}) {
+            $v =~ s/^\s+|\s+$//g;
             push @{$field{values}}, $v;
           }
           $localdupcheck->{$v} = 1;
@@ -198,7 +196,71 @@ sub _get_metadata_dc {
     }
   }
 
-  return \@metadata;
+  # if object has no JSON-LD, check if we can add IDs from uwm_roles_json
+  unless (exists($rec->{roles_json})) {
+    if ($rec->{uwm_roles_json}) {
+      my $uwm_roles_json = decode_json(b($rec->{uwm_roles_json}[0])->encode('UTF-8'));
+      for my $r (@{$uwm_roles_json}) {
+        for my $e (@{$r->{entities}}) {
+          if ($e->{orcid}) {
+            $self->_update_uwm_role_with_id(\@metadata, $e, 'orcid');
+          }
+          if ($e->{viaf}) {
+            $self->_update_uwm_role_with_id(\@metadata, $e, 'viaf');
+          }
+          if ($e->{wdq}) {
+            $self->_update_uwm_role_with_id(\@metadata, $e, 'wdq');
+          }
+          if ($e->{gnd}) {
+            $self->_update_uwm_role_with_id(\@metadata, $e, 'gnd');
+          }
+          if ($e->{isni}) {
+            $self->_update_uwm_role_with_id(\@metadata, $e, 'isni');
+          }
+        }
+      }
+    }
+  }
+
+  # remove duplicates
+  my @u_metadata = ();
+  for my $f (@metadata) {
+    unless ($self->_already_present($f, \@u_metadata)) {
+      push @u_metadata, $f;
+    }
+  }
+
+  return \@u_metadata;
+}
+
+sub _already_present {
+  my $self = shift;
+  my $fl   = shift;
+  my $arr  = shift;
+
+  for my $f (@{$arr}) {
+    if ($f->{name} eq $fl->{name} and $f->{lang} eq $fl->{lang}) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+sub _update_uwm_role_with_id {
+  my $self     = shift;
+  my $metadata = shift;
+  my $e        = shift;
+  my $idtype   = shift;
+
+  for my $fl (@{$metadata}) {
+    if ($fl->{name} eq 'creator' or $fl->{name} eq 'contributor') {
+      for my $v (@{$fl->{values}}) {
+        if ($v eq $e->{lastname} . ", " . $e->{firstname}) {
+          $v = $e->{lastname} . ", " . $e->{firstname} . " [$idtype:" . $e->{$idtype} . "]";
+        }
+      }
+    }
+  }
 }
 
 sub _add_roles_with_id {
