@@ -125,11 +125,17 @@ sub update_manifest_metadata {
       };
   }
 
-  if (exists($index->{dc_rights})) {
-    my $statements = [];
-    for my $st (@{$index->{dc_rights}}) {
-      push @{$statements}, $st;
+  my $statements = [];
+  for my $k (keys %{$index}) {
+    if ($k =~ m/^dc_([a-z]+)_?([a-z]+)?$/) {
+      if ($1 eq 'rights') {
+        for my $st (@{$index->{$k}}) {
+          push @{$statements}, $st;
+        }
+      }
     }
+  }
+  if (scalar $statements > 0) {
     $manifest->{requiredStatement} = {
       label => {"en"   => ["Rights"]},
       value => {"none" => $statements}
