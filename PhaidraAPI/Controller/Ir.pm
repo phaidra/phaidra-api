@@ -1243,6 +1243,12 @@ sub puresearch {
     return;
   }
 
+  my $ir_status = $self->param('ir_status');
+  unless ($ir_status eq 'ir_pending' or $ir_status eq 'ir_okay' or $ir_status eq 'ir_rejected') {
+    $self->render(json => {alerts => [{type => 'info', msg => 'Invalid ir_status'}]}, status => 400);
+    return;
+  }
+
   my $size     = $self->param('size');
   my $offset   = $self->param('offset');
   my $page     = $self->param('page');
@@ -1265,7 +1271,7 @@ sub puresearch {
   $urlget->query($params);
 
   my $ua     = Mojo::UserAgent->new;
-  my $getres = $ua->post($urlget => {Accept => 'application/json'} => json => decode_json($self->app->config->{apis}->{pure}->{query}))->result;
+  my $getres = $ua->post($urlget => {Accept => 'application/json'} => json => {"keywordUris" => ["/dk/atira/pure/keywords/ir_status/$ir_status"]})->result;
   if ($getres->is_success) {
     $res->{response} = $getres->json;
   }
