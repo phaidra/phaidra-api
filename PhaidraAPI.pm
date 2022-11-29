@@ -490,11 +490,15 @@ sub startup {
   $r->route('list/token/:token')                  ->via('get')    ->to('lists#get_token_list');
 
   # this just extracts the credentials - authentication will be done by fedora
-  my $proxyauth = $r->under('/')->to('authentication#extract_credentials', must_be_present => 1);
-  my $proxyauth_optional = $r->under('/')->to('authentication#extract_credentials', must_be_present => 0);
+  my $proxyauth = $r->under('/')->to('authentication#extract_credentials', creds_must_be_present => 1);
+  my $proxyauth_optional = $r->under('/')->to('authentication#extract_credentials', creds_must_be_present => 0);
 
-  # we authenticate the user, because we are not going to call fedora
   my $check_auth = $proxyauth->under('/')->to('authentication#authenticate');
+
+  if ($self->app->config->{fedora}->{version} >= 6) {
+    $proxyauth_optional = $proxyauth_optional->under('/')->to('authorization#authorize', op => 'r');
+    $proxyauth = $check_auth->under('/')->to('authorization#authorize', op => 'w');
+  }
 
   # check the user sends phaidra admin credentials
   my $check_admin_auth = $proxyauth->under('/')->to('authentication#authenticate_admin');
@@ -534,8 +538,6 @@ sub startup {
   $proxyauth_optional->route('object/:pid/octets')                        ->via('get')      ->to('octets#proxy');
   $proxyauth_optional->route('object/:pid/download')                      ->via('get')      ->to('octets#get', operation => 'download');
   $proxyauth_optional->route('object/:pid/get')                           ->via('get')      ->to('octets#get', operation => 'get');
-
-  $proxyauth->route('my/objects')                                         ->via('get')      ->to('search#my_objects');
 
   $proxyauth_optional->route('imageserver/:pid/status')                   ->via('get')      ->to('imageserver#status');
 
@@ -579,7 +581,7 @@ sub startup {
     $proxyauth->route('object/:pid/geo')                                  ->via('post')     ->to('geo#post');
     $proxyauth->route('object/:pid/annotations')                          ->via('post')     ->to('annotations#post');
     $proxyauth->route('object/:pid/rights')                               ->via('post')     ->to('rights#post');
-    $proxyauth->route('object/:pid/iiifmanifest')                         ->via('post')    ->to('iiifmanifest#post');
+    $proxyauth->route('object/:pid/iiifmanifest')                         ->via('post')     ->to('iiifmanifest#post');
     $proxyauth->route('object/:pid/metadata')                             ->via('post')     ->to('object#metadata');
     $proxyauth->route('object/create')                                    ->via('post')     ->to('object#create_empty');
     $proxyauth->route('object/create/:cmodel')                            ->via('post')     ->to('object#create');

@@ -99,7 +99,7 @@ sub extract_credentials {
       }
     }
 
-    if ($self->stash('must_be_present')) {
+    if ($self->stash('creds_must_be_present')) {
       unless ((defined($username) && defined($password)) || defined($remote_user)) {
         my $t = $self->tx->req->headers->header($self->app->config->{authentication}->{token_header});
         my $errmsg;
