@@ -1,4 +1,4 @@
-package Phaidra::Directory::Generic;
+package Phaidra::Directory::GenericLDAP;
 
 use strict;
 use warnings;
