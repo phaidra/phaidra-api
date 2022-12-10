@@ -209,7 +209,7 @@ sub get {
     $self->ua->get(
       $res->{url},
       sub {
-        my ($self_self, $tx) = @_;
+        my ($c, $tx) = @_;
         _proxy_tx($self, $tx);
       }
     );
@@ -222,17 +222,17 @@ sub get {
 }
 
 sub _proxy_tx {
-  my ($self, $tx) = @_;
+  my ($c, $tx) = @_;
   if (!$tx->error) {
     my $res = $tx->res;
-    $self->tx->res($res);
-    $self->rendered;
+    $c->tx->res($res);
+    $c->rendered;
   }
   else {
     my $error = $tx->error;
-    $self->tx->res->headers->add('X-Remote-Status',
+    $c->tx->res->headers->add('X-Remote-Status',
       $error->{code} . ': ' . $error->{message});
-    $self->render(status => 500, text => 'Failed to fetch data from backend');
+    $c->render(status => 500, text => 'Failed to fetch data from backend');
   }
 }
 
