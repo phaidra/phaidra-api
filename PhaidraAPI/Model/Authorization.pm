@@ -230,6 +230,7 @@ sub check_rights {
 
     if ($getres->{status} eq 404) {
       $c->app->log->info("Authz op[$op] pid[$pid] username[" . $c->stash->{basic_auth_credentials}->{username} . "] successful");
+      $res->{status} = 200;
       return $res;
     }
     else {

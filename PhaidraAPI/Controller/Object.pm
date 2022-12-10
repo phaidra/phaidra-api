@@ -155,8 +155,22 @@ sub thumbnail {
           $self->render(json => $res, status => $res->{status});
           return;
         }
-        $self->render_later;
-        $self->ua->get($res->{url} => sub {my ($ua, $tx) = @_; $self->tx->res($tx->res); $self->rendered;});
+        if (Mojo::IOLoop->is_running) {
+          $self->render_later;
+          $self->ua->get(
+            $res->{url},
+            sub {
+              my ($c, $tx) = @_;
+              _proxy_tx($self, $tx);
+            }
+          );
+        }
+        else {
+          my $tx = $self->ua->get($res->{url});
+          _proxy_tx($self, $tx);
+        }
+        # $self->render_later;
+        # $self->ua->get($res->{url} => sub {my ($ua, $tx) = @_; $self->tx->res($tx->res); $self->rendered;});
         return;
       }
       else {
