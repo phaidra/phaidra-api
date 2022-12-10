@@ -30,7 +30,7 @@ sub authorize {
 
   my $op = $self->stash('op');
   unless ($op eq 'r' or $op eq 'w') {
-    $self->app->log->error("Authz op[$op] pid[$pid] failed - unknown op");
+    $self->app->log->error("Authz op[$op] failed - unknown op");
     $res->{status} = 500;
     return $res;
   }
@@ -75,12 +75,12 @@ sub check_rights {
   my $pid          = $self->stash('pid');
   my $pidNamespace = $self->app->config->{fedora}->{pidnamespace};
   unless ($pid =~ m/^$pidNamespace:\d+$/) {
-    $self->app->log->error("Authz op[$op] pid[$pid] failed - wrong pid");
+    $self->app->log->error("Authz pid[$pid] failed - wrong pid");
     $res->{status} = 500;
     return $res;
   }
   my $op = $self->stash('op');
-  unless ($op eq 'r' or $op eq 'w') {
+  unless ($op eq 'r' or $op eq 'ro' or $op eq 'w' or $op eq 'rw') {
     $self->app->log->error("Authz op[$op] pid[$pid] failed - unknown op");
     $res->{status} = 500;
     return $res;
