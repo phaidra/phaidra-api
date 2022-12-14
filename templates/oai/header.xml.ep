@@ -6,5 +6,5 @@
 <% if ($params->{resumptionToken}) { %>
 <request verb="<%= $params->{verb} %>" resumptionToken="<%= $params->{resumptionToken} %>"><%= $uri_base %></request>
 <% } else { %>
-<request <% for my $key (keys %$params) { %><%= $key %>="<%== $params->{$key} %>" <% } %>><%= $uri_base %></request>
+<request <% for my $key (keys %$params) { %><%= $key %>="<%= $params->{$key} %>" <% } %>><%= $uri_base %></request>
 <% } %>
