@@ -6,7 +6,8 @@ use Data::Dumper;
 use utf8;
 use MongoDB;
 use Data::UUID;
-use Net::LDAPS;
+use Net::LDAP;
+use Net::LDAP::Util qw(ldap_error_text);
 use YAML::Syck;
 use base 'Phaidra::Directory';
 
@@ -31,7 +32,7 @@ sub get_ldap {
   my $LDAP_SERVER   = $c->app->config->{authentication}->{ldap}->{server};
   my $LDAP_SSL_PORT = $c->app->config->{authentication}->{ldap}->{port};
 
-  my $ldap = Net::LDAPS->new($LDAP_SERVER, port => $LDAP_SSL_PORT);
+  my $ldap = Net::LDAP->new($LDAP_SERVER, port => $LDAP_SSL_PORT);
   unless (defined($ldap)) {
     unshift @{$res->{alerts}}, {type => 'danger', msg => $!};
     return $res;
@@ -56,16 +57,16 @@ sub getLDAPEntryForUser {
   my $c        = shift;
   my $username = shift;
 
-  my $ldap = getLDAP($c);
+  my $ldap = $self->get_ldap($c);
 
-  my $filter = $c->app->config->{authenticate}->{ldap}->{usersearchfilter};
+  my $filter = $c->app->config->{authentication}->{ldap}->{usersearchfilter};
   $filter =~ s/\{0\}/$username/;
 
-  my $user_search_base = $c->app->config->{authenticate}->{ldap}->{usersearchbase};
+  my @user_search_base = @{$c->app->config->{authentication}->{ldap}->{usersearchbase}};
 
-  $c->app->log->info("Searching for user $username in searchbase $user_search_base.");
+  $c->app->log->info("Searching for user $username in searchbase @user_search_base.");
 
-  my $ldapSearch = $ldap->search(base => $user_search_base, filter => $filter);
+  my $ldapSearch = $ldap->search(base => @user_search_base, filter => $filter);
 
   die "There was an error during search:\n\t" . ldap_error_text($ldapSearch->code) if $ldapSearch->code;
 
@@ -123,7 +124,7 @@ sub authenticate() {
   my $LDAP_SERVER   = $c->app->config->{authentication}->{ldap}->{server};
   my $LDAP_SSL_PORT = $c->app->config->{authentication}->{ldap}->{port};
 
-  my $ldap = Net::LDAPS->new($LDAP_SERVER, port => $LDAP_SSL_PORT);
+  my $ldap = Net::LDAP->new($LDAP_SERVER, port => $LDAP_SSL_PORT);
   unless (defined($ldap)) {
     unshift @{$res->{alerts}}, {type => 'danger', msg => $!};
     $c->stash({phaidra_auth_result => $res});
