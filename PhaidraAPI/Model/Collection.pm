@@ -126,8 +126,31 @@ sub get_members {
 
   my $search_model = PhaidraAPI::Model::Search->new;
 
+  my $cmodel;
+  my $res_cmodel   = $search_model->get_cmodel($c, $pid);
+  if ($res_cmodel->{status} ne 200) {
+    $self->app->log->error("Collection->get_members: pid[$pid] could not get cmodel");
+    return $res_cmodel;
+  }
+  else {
+    $cmodel = $res_cmodel->{cmodel};
+  }
+
+  unless ($cmodel) {
+    $c->app->log->error("Collection->get_members: pid[$pid] Undefined cmodel");
+    unshift @{$res->{alerts}}, {type => 'danger', msg => 'Object content model is undefined'};
+    $res->{status} = 400;
+    return $res;
+  }
+
+  if ($cmodel ne 'Collection') {
+    $c->app->log->error("Collection->get_members: pid[$pid] cmodel[$cmodel] is not Collection");
+    unshift @{$res->{alerts}}, {type => 'danger', msg => 'Object content model is not Collection'};
+    $res->{status} = 400;
+    return $res;
+  }
+
   # get lastModifiedDate and check if the members are cached
-  my $lmd;
   my $cachekey;
   my $cached_members;
   my $r = $search_model->get_last_modified_date($c, $pid);
@@ -136,11 +159,11 @@ sub get_members {
   }
   else {
     $c->app->log->error("Collection->get_members: Cannot get lastModifiedDate!");
+    return $r;
   }
-  if ($cachekey) {
-    $cached_members = $c->app->chi->get($cachekey);
-  }
-
+  
+  $cached_members = $c->app->chi->get($cachekey);
+  
   $nocache = $nocache ? $nocache : 0;
   if ($cached_members && ($nocache != 1)) {
     $c->app->log->debug("[cache hit] $cachekey");
@@ -218,7 +241,7 @@ sub get_members {
     $c->app->chi->set($cachekey, $cached_members, '1 day');
   }
 
-  # we have to return mempty array if there's is nothing
+  # we have to return an empty array if there is nothing
   unless (defined($cached_members)) {
     my @arr = ();
     $res->{members} = \@arr;
