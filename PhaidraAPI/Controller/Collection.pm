@@ -289,6 +289,11 @@ sub get_collection_members {
   my $pid     = $self->stash('pid');
   my $nocache = $self->param('nocache');
 
+  unless (defined($pid)) {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    return;
+  }
+
   my $coll_model = PhaidraAPI::Model::Collection->new;
   my $res        = $coll_model->get_members($self, $pid, $nocache);
 
