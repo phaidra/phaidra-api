@@ -773,8 +773,8 @@ sub create_simple {
     $c->app->log->info("Object successfully created pid[$pid]");
 
     if ($cmodel eq 'cmodel:Picture' or $cmodel eq 'cmodel:PDFDocument') {
-      $c->app->log->info("Creating imageserver job pid[$pid]");
-      my $cm =~ s/cmodel://;
+      my $cm = $cmodel =~ s/cmodel://gr;
+      $c->app->log->info("Creating imageserver job pid[$pid] cm[$cm]");
       my $hash = hmac_sha1_hex($pid, $c->app->config->{imageserver}->{hash_secret});
       $c->paf_mongo->get_collection('jobs')->insert_one({pid => $pid, cmodel => $cm, agent => "pige", status => "new", idhash => $hash, created => time});
     }
