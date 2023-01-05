@@ -2102,6 +2102,9 @@ sub _add_jsonld_index {
       for my $id (@{$o->{'skos:exactMatch'}}) {
         push @{$index->{"edm_hastype_id"}}, $id;
         push @{$index->{"object_type_id"}}, $id;
+        if ($id eq 'https://pid.phaidra.org/vocabulary/YA8R-1M0D') {
+          $index->{"oer"} = '1';
+        }
       }
     }
   }
