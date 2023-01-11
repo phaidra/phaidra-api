@@ -255,7 +255,7 @@ sub getLDAPEntryForUser {
       my $attrtype = $attr->{'type'};
       my @attvals  = @{$attr->{'vals'}};
       foreach my $val (@attvals) {
-	if ($attrtype eq 'cn') {
+	if ($attrtype eq 'uid') {
 	  if ($val eq $username) {
 	    return $ldapEntry;
 	  }
