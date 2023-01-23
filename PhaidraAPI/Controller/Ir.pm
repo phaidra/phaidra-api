@@ -808,9 +808,9 @@ sub stats {
   my $key = $self->stash('stats_param_key');
 
   my $fr = undef;
-  if (exists($self->app->config->{frontends})) {
-    for my $f (@{$self->app->config->{frontends}}) {
-      if (defined($f->{frontend_id}) && $f->{frontend_id} eq 'ir') {
+  if (exists($self->app->config->{sites})) {
+    for my $f (@{$self->app->config->{sites}}) {
+      if (defined($f->{site}) && $f->{site} eq 'ir') {
         $fr = $f;
       }
     }
@@ -819,13 +819,13 @@ sub stats {
   unless (defined($fr)) {
 
     # return 200, this is just ok
-    $self->render(json => {alerts => [{type => 'info', msg => 'Frontend is not configured'}]}, status => 200);
+    $self->render(json => {alerts => [{type => 'info', msg => 'Site is not configured'}]}, status => 200);
     return;
   }
-  unless ($fr->{frontend_id} eq 'ir') {
+  unless ($fr->{site} eq 'ir') {
 
     # return 200, this is just ok
-    $self->render(json => {alerts => [{type => 'info', msg => 'Frontend [' . $fr->{frontend_id} . '] is not supported'}]}, status => 200);
+    $self->render(json => {alerts => [{type => 'info', msg => 'Site [' . $fr->{site} . '] is not supported'}]}, status => 200);
     return;
   }
   unless (defined($fr->{stats})) {
@@ -852,14 +852,14 @@ sub stats {
 
   my $stats;
 
-  my $downloads = $self->app->db_stats_phaidra_catalyst->dbh->selectrow_array("SELECT count(*) FROM downloads_$irsiteid WHERE pid = '$pid';");
+  my $downloads = $self->app->db_stats_phaidra->dbh->selectrow_array("SELECT count(*) FROM downloads_$irsiteid WHERE pid = '$pid';");
   unless (defined($downloads)) {
-    $self->app->log->error("Error querying piwik database for download stats:" . $self->app->db_stats_phaidra_catalyst->dbh->errstr);
+    $self->app->log->error("Error querying piwik database for download stats:" . $self->app->db_stats_phaidra->dbh->errstr);
   }
 
-  my $detail_page = $self->app->db_stats_phaidra_catalyst->dbh->selectrow_array("SELECT count(*) FROM views_$irsiteid WHERE pid = '$pid';");
+  my $detail_page = $self->app->db_stats_phaidra->dbh->selectrow_array("SELECT count(*) FROM views_$irsiteid WHERE pid = '$pid';");
   unless (defined($detail_page)) {
-    $self->app->log->error("Error querying piwik database for detail stats:" . $self->app->db_stats_phaidra_catalyst->dbh->errstr);
+    $self->app->log->error("Error querying piwik database for detail stats:" . $self->app->db_stats_phaidra->dbh->errstr);
   }
 
   if (defined($detail_page) || defined($downloads)) {
@@ -885,9 +885,9 @@ sub stats_chart {
   my $key = $self->stash('stats_param_key');
 
   my $fr = undef;
-  if (exists($self->app->config->{frontends})) {
-    for my $f (@{$self->app->config->{frontends}}) {
-      if (defined($f->{frontend_id}) && $f->{frontend_id} eq 'ir') {
+  if (exists($self->app->config->{sites})) {
+    for my $f (@{$self->app->config->{sites}}) {
+      if (defined($f->{site}) && $f->{site} eq 'ir') {
         $fr = $f;
       }
     }
@@ -896,13 +896,13 @@ sub stats_chart {
   unless (defined($fr)) {
 
     # return 200, this is just ok
-    $self->render(json => {alerts => [{type => 'info', msg => 'Frontend is not configured'}]}, status => 200);
+    $self->render(json => {alerts => [{type => 'info', msg => 'Site is not configured'}]}, status => 200);
     return;
   }
-  unless ($fr->{frontend_id} eq 'ir') {
+  unless ($fr->{site} eq 'ir') {
 
     # return 200, this is just ok
-    $self->render(json => {alerts => [{type => 'info', msg => 'Frontend [' . $fr->{frontend_id} . '] is not supported'}]}, status => 200);
+    $self->render(json => {alerts => [{type => 'info', msg => 'Site [' . $fr->{site} . '] is not supported'}]}, status => 200);
     return;
   }
   unless (defined($fr->{stats})) {
@@ -928,9 +928,9 @@ sub stats_chart {
   }
 
   my $downloads;
-  my $sth = $self->app->db_stats_phaidra_catalyst->dbh->prepare("SELECT DATE_FORMAT(server_time,'%Y-%m-%d'), location_country FROM downloads_$irsiteid WHERE pid = '$pid';")
-    or $self->app->log->error("Error querying piwik database for download stats chart:" . $self->app->db_stats_phaidra_catalyst->dbh->errstr);
-  $sth->execute() or $self->app->log->error("Error querying piwik database for download stats chart:" . $self->app->db_stats_phaidra_catalyst->dbh->errstr);
+  my $sth = $self->app->db_stats_phaidra->dbh->prepare("SELECT DATE_FORMAT(server_time,'%Y-%m-%d'), location_country FROM downloads_$irsiteid WHERE pid = '$pid';")
+    or $self->app->log->error("Error querying piwik database for download stats chart:" . $self->app->db_stats_phaidra->dbh->errstr);
+  $sth->execute() or $self->app->log->error("Error querying piwik database for download stats chart:" . $self->app->db_stats_phaidra->dbh->errstr);
   my $date;
   my $country;
   $sth->bind_columns(undef, \$date, \$country);
@@ -945,9 +945,9 @@ sub stats_chart {
   }
 
   my $detail_page;
-  $sth = $self->app->db_stats_phaidra_catalyst->dbh->prepare("SELECT DATE_FORMAT(server_time,'%Y-%m-%d'), location_country FROM views_$irsiteid WHERE pid = '$pid';")
-    or $self->app->log->error("Error querying piwik database for detail stats chart:" . $self->app->db_stats_phaidra_catalyst->dbh->errstr);
-  $sth->execute() or $self->app->log->error("Error querying piwik database for detail stats chart:" . $self->app->db_stats_phaidra_catalyst->dbh->errstr);
+  $sth = $self->app->db_stats_phaidra->dbh->prepare("SELECT DATE_FORMAT(server_time,'%Y-%m-%d'), location_country FROM views_$irsiteid WHERE pid = '$pid';")
+    or $self->app->log->error("Error querying piwik database for detail stats chart:" . $self->app->db_stats_phaidra->dbh->errstr);
+  $sth->execute() or $self->app->log->error("Error querying piwik database for detail stats chart:" . $self->app->db_stats_phaidra->dbh->errstr);
   $sth->bind_columns(undef, \$date, \$country);
   while ($sth->fetch) {
     if ($detail_page->{$country}) {

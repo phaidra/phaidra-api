@@ -103,6 +103,8 @@ sub info {
         $c->app->log->error("pid[$pid] could not get book pid");
         return $bookpidr;
       }
+      $docres      = $index_model->get_page_doc($c, $pid);
+      $info = $docres->{doc};
       $info->{bookpid} = $bookpidr->{bookpid};
     }
     else {
@@ -114,7 +116,7 @@ sub info {
   }
 
   if ($info->{cmodel} eq 'Collection') {
-    my $r_hps = $index_model->get_haspart_size($c, $pid);
+    my $r_hps = $index_model->get_haspart_size($c, $pid, $info->{cmodel});
     if ($r_hps->{status} ne 200) {
       push @{$res->{alerts}}, @{$r_hps->{alerts}} if scalar @{$r_hps->{alerts}} > 0;
       push @{$res->{alerts}}, {type => 'danger', msg => 'Error getting haspart size'};
@@ -125,7 +127,7 @@ sub info {
   }
 
   if ($info->{cmodel} eq 'Container') {
-    my $r_mmbrs = $index_model->get_object_members($c, $pid);
+    my $r_mmbrs = $index_model->get_object_members($c, $pid, $info->{cmodel});
     if ($r_mmbrs->{status} ne 200) {
       push @{$res->{alerts}}, @{$r_mmbrs->{alerts}} if scalar @{$r_mmbrs->{alerts}} > 0;
       push @{$res->{alerts}}, {type => 'danger', msg => 'Error getting object members'};
@@ -135,7 +137,7 @@ sub info {
     }
   }
 
-  my $r_rels = $index_model->get_relationships($c, $pid);
+  my $r_rels = $index_model->get_relationships($c, $pid, $info->{cmodel});
   if ($r_rels->{status} ne 200) {
     push @{$res->{alerts}}, @{$r_rels->{alerts}} if scalar @{$r_rels->{alerts}} > 0;
     push @{$res->{alerts}}, {type => 'danger', msg => 'Error getting relationships'};
@@ -1377,16 +1379,16 @@ sub get_foxml {
   my %headers;
   $self->add_upstream_headers($c, \%headers);
 
-  my $get = Mojo::UserAgent->new->get($url => \%headers);
+  my $get = Mojo::UserAgent->new->get($url => \%headers)->result;
 
-  if (my $r = $get->success) {
+  if ($get->is_success) {
     $res->{status} = 200;
-    $res->{foxml}  = b($r->body)->decode('UTF-8');
+    $res->{foxml}  = b($get->body)->decode('UTF-8');
   }
   else {
-    $c->app->log->error("Error getting foxml: " . $get->error->{message});
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $get->error->{message}};
-    $res->{status} = $get->error->{code} ? $get->error->{code} : 500;
+    $c->app->log->error("Error getting foxml: " . $get->message);
+    unshift @{$res->{alerts}}, {type => 'danger', msg => $get->message};
+    $res->{status} = $get->code ? $get->code : 500;
   }
 
   return $res;

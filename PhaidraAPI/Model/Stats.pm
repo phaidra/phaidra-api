@@ -112,9 +112,9 @@ sub stats {
   my $output = shift;
 
   my $fr = undef;
-  if (exists($c->app->config->{frontends})) {
-    for my $f (@{$c->app->config->{frontends}}) {
-      if (defined($f->{frontend_id}) && $f->{frontend_id} eq 'phaidra_catalyst') {
+  if (exists($c->app->config->{sites})) {
+    for my $f (@{$c->app->config->{sites}}) {
+      if (defined($f->{site}) && $f->{site} eq 'phaidra') {
         $fr = $f;
       }
     }
@@ -123,12 +123,12 @@ sub stats {
   unless (defined($fr)) {
 
     # return 200, this is just ok
-    return {alerts => [{type => 'info', msg => 'Frontend is not configured'}], status => 200};
+    return {alerts => [{type => 'info', msg => 'Site is not configured'}], status => 200};
   }
-  unless ($fr->{frontend_id} eq 'phaidra_catalyst') {
+  unless ($fr->{site} eq 'phaidra') {
 
     # return 200, this is just ok
-    return {alerts => [{type => 'info', msg => 'Frontend [' . $fr->{frontend_id} . '] is not supported'}], status => 200};
+    return {alerts => [{type => 'info', msg => 'Site [' . $fr->{site} . '] is not supported'}], status => 200};
   }
   unless (defined($fr->{stats})) {
 
@@ -152,9 +152,9 @@ sub stats {
   if ($output eq 'chart') {
 
     my $downloads;
-    my $sth = $c->app->db_stats_phaidra_catalyst->dbh->prepare("SELECT DATE_FORMAT(server_time,'%Y-%m-%d'), location_country FROM downloads_$siteid WHERE pid = '$pid';")
-      or $c->app->log->error("Error querying piwik database for download stats chart:" . $c->app->db_stats_phaidra_catalyst->dbh->errstr);
-    $sth->execute() or $c->app->log->error("Error querying piwik database for download stats chart:" . $c->app->db_stats_phaidra_catalyst->dbh->errstr);
+    my $sth = $c->app->db_stats_phaidra->dbh->prepare("SELECT DATE_FORMAT(server_time,'%Y-%m-%d'), location_country FROM downloads_$siteid WHERE pid = '$pid';")
+      or $c->app->log->error("Error querying piwik database for download stats chart:" . $c->app->db_stats_phaidra->dbh->errstr);
+    $sth->execute() or $c->app->log->error("Error querying piwik database for download stats chart:" . $c->app->db_stats_phaidra->dbh->errstr);
     my $date;
     my $country;
     $sth->bind_columns(undef, \$date, \$country);
@@ -168,8 +168,8 @@ sub stats {
     }
 
     my $detail_page;
-    $sth = $c->app->db_stats_phaidra_catalyst->dbh->prepare("SELECT DATE_FORMAT(server_time,'%Y-%m-%d'), location_country FROM views_$siteid WHERE pid = '$pid';") or $c->app->log->error("Error querying piwik database for detail stats chart:" . $c->app->db_stats_phaidra_catalyst->dbh->errstr);
-    $sth->execute()                                                                                                                                                or $c->app->log->error("Error querying piwik database for detail stats chart:" . $c->app->db_stats_phaidra_catalyst->dbh->errstr);
+    $sth = $c->app->db_stats_phaidra->dbh->prepare("SELECT DATE_FORMAT(server_time,'%Y-%m-%d'), location_country FROM views_$siteid WHERE pid = '$pid';") or $c->app->log->error("Error querying piwik database for detail stats chart:" . $c->app->db_stats_phaidra->dbh->errstr);
+    $sth->execute()                                                                                                                                                or $c->app->log->error("Error querying piwik database for detail stats chart:" . $c->app->db_stats_phaidra->dbh->errstr);
     $sth->bind_columns(undef, \$date, \$country);
     while ($sth->fetch) {
       if ($detail_page->{$country}) {
@@ -184,28 +184,28 @@ sub stats {
       return {downloads => $downloads, detail_page => $detail_page, alerts => [], status => 200};
     }
     else {
-      my $msg = "No data has been fetched. DB msg:" . $c->app->db_stats_phaidra_catalyst->dbh->errstr;
+      my $msg = "No data has been fetched. DB msg:" . $c->app->db_stats_phaidra->dbh->errstr;
       $c->app->log->warn($msg);
       return {alerts => [{type => 'info', msg => $msg}], status => 200};
     }
   }
   else {
 
-    my $downloads = $c->app->db_stats_phaidra_catalyst->dbh->selectrow_array("SELECT count(*) FROM downloads_$siteid WHERE pid = '$pid';");
+    my $downloads = $c->app->db_stats_phaidra->dbh->selectrow_array("SELECT count(*) FROM downloads_$siteid WHERE pid = '$pid';");
     unless (defined($downloads)) {
-      $c->app->log->error("Error querying piwik database for download stats:" . $c->app->db_stats_phaidra_catalyst->dbh->errstr);
+      $c->app->log->error("Error querying piwik database for download stats:" . $c->app->db_stats_phaidra->dbh->errstr);
     }
 
-    my $detail_page = $c->app->db_stats_phaidra_catalyst->dbh->selectrow_array("SELECT count(*) FROM views_$siteid WHERE pid = '$pid';");
+    my $detail_page = $c->app->db_stats_phaidra->dbh->selectrow_array("SELECT count(*) FROM views_$siteid WHERE pid = '$pid';");
     unless (defined($detail_page)) {
-      $c->app->log->error("Error querying piwik database for detail stats:" . $c->app->db_stats_phaidra_catalyst->dbh->errstr);
+      $c->app->log->error("Error querying piwik database for detail stats:" . $c->app->db_stats_phaidra->dbh->errstr);
     }
 
     if (defined($detail_page)) {
       return {downloads => $downloads, detail_page => $detail_page, alerts => [], status => 200};
     }
     else {
-      my $msg = "No data has been fetched. DB msg:" . $c->app->db_stats_phaidra_catalyst->dbh->errstr;
+      my $msg = "No data has been fetched. DB msg:" . $c->app->db_stats_phaidra->dbh->errstr;
       $c->app->log->warn($msg);
       return {alerts => [{type => 'info', msg => $msg}], status => 200};
     }

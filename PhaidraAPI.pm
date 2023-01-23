@@ -161,11 +161,11 @@ sub startup {
     };
   }
 
-  if (exists($config->{frontends})) {
-    for my $f (@{$config->{frontends}}) {
+  if (exists($config->{sites})) {
+    for my $f (@{$config->{sites}}) {
       if (exists($f->{stats})) {
         if ($f->{stats}->{type} eq 'piwik') {
-          $databases{'db_stats_' . $f->{frontend_id}} = {
+          $databases{'db_stats_' . $f->{site}} = {
             dsn      => $f->{stats}->{db_piwik}->{dsn},
             username => $f->{stats}->{db_piwik}->{username},
             password => $f->{stats}->{db_piwik}->{password},

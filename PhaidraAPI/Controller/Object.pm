@@ -73,6 +73,7 @@ sub imageserver_job_status {
     my $jobs_coll = $self->paf_mongo->get_collection('jobs');
     if ($jobs_coll) {
       my $job_record = $jobs_coll->find_one({pid => $pid, agent => 'pige'}, {}, {"sort" => {"created" => -1}});
+      $self->app->log->debug($self->app->dumper($job_record));
       return $job_record->{status};
     }
   }
@@ -326,6 +327,13 @@ sub preview {
   switch ($cmodel) {
     case ['Picture', 'Page'] {
       my $imgsrvjobstatus = $self->imageserver_job_status($pid);
+      unless ($imgsrvjobstatus) {
+        $self->app->log->info("Imageserver job not found: creating imageserver job pid[$pid] cm[$cmodel]");
+        my $hash = hmac_sha1_hex($pid, $self->app->config->{imageserver}->{hash_secret});
+        $self->paf_mongo->get_collection('jobs')->insert_one({pid => $pid, cmodel => $cmodel, agent => "pige", status => "new", idhash => $hash, created => time});
+        $self->render(text => "Image processing status: queued. Please try again later.", status => 200);
+        return;
+      }
       if ($imgsrvjobstatus eq 'finished') {
         my $license     = '';
         my $index_model = PhaidraAPI::Model::Index->new;
@@ -367,7 +375,7 @@ sub preview {
         return;
       }
       else {
-        $self->render(text => "image processing status: " . $imgsrvjobstatus, status => 200);
+        $self->render(text => "Image processing status: " . $imgsrvjobstatus . ". Please try again later.", status => 200);
         return;
       }
     }
