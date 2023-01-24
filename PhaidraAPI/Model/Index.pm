@@ -602,7 +602,7 @@ sub update {
         unless (defined($collectionMembers)) {
           @{$collectionMembers} = ();
         }
-        my $umr = $self->_update_members($c, $pid, $updateurl, $collectionMembers, 'ispartof');
+        my $umr = $self->_update_members($c, $pid, $cmodel_res->{cmodel}, $updateurl, $collectionMembers, 'ispartof');
         if ($umr->{status} ne 200) {
           $res->{status} = $umr->{status};
           push @{$res->{alerts}}, @{$umr->{alerts}} if scalar @{$umr->{alerts}} > 0;
@@ -619,7 +619,7 @@ sub update {
         unless (defined($members)) {
           @{$members} = ();
         }
-        my $umr = $self->_update_members($c, $pid, $updateurl, $members, 'ismemberof');
+        my $umr = $self->_update_members($c, $pid, $cmodel_res->{cmodel}, $updateurl, $members, 'ismemberof');
         if ($umr->{status} ne 200) {
           $res->{status} = $umr->{status};
           push @{$res->{alerts}}, @{$umr->{alerts}} if scalar @{$umr->{alerts}} > 0;
@@ -637,7 +637,7 @@ sub update {
         unless (defined($membersorder)) {
           @{$membersorder} = ();
         }
-        my $umr = $self->_update_membersorder($c, $pid, $updateurl, $membersorder);
+        my $umr = $self->_update_membersorder($c, $pid, $cmodel_res->{cmodel}, $updateurl, $membersorder);
         if ($umr->{status} ne 200) {
           $res->{status} = $umr->{status};
           push @{$res->{alerts}}, @{$umr->{alerts}} if scalar @{$umr->{alerts}} > 0;
@@ -670,24 +670,28 @@ sub update {
 }
 
 sub _get_solrget_url {
-  my ($self, $c) = @_;
+  my ($self, $c, $cmodel) = @_;
 
   my $urlget = Mojo::URL->new;
   $urlget->scheme($c->app->config->{solr}->{scheme});
   $urlget->host($c->app->config->{solr}->{host});
   $urlget->port($c->app->config->{solr}->{port});
+  my $core = $c->app->config->{solr}->{core};
+  if ($cmodel eq 'Page' and exists($c->app->config->{solr}->{core_pages}) and $c->app->config->{solr}->{core_pages} ne '') {
+    $core = $c->app->config->{solr}->{core_pages};
+  }
   if ($c->app->config->{solr}->{path}) {
-    $urlget->path("/" . $c->app->config->{solr}->{path} . "/solr/" . $c->app->config->{solr}->{core} . "/select");
+    $urlget->path("/" . $c->app->config->{solr}->{path} . "/solr/$core/select");
   }
   else {
-    $urlget->path("/solr/" . $c->app->config->{solr}->{core} . "/select");
+    $urlget->path("/solr/$core/select");
   }
 
   return $urlget;
 }
 
 sub _update_membersorder {
-  my ($self, $c, $pid, $updateurl, $membersorder) = @_;
+  my ($self, $c, $pid, $cmodel, $updateurl, $membersorder) = @_;
 
   my $pidunderscore = $pid;
   $pidunderscore =~ s/:/_/;
@@ -696,7 +700,7 @@ sub _update_membersorder {
   my $res = {status => 200};
 
   # get current order
-  my $urlget = $self->_get_solrget_url($c);
+  my $urlget = $self->_get_solrget_url($c, $cmodel);
 
   $urlget->query(q => "$field:*", fl => "pid,$field", rows => "0", wt => "json");
 
@@ -869,7 +873,7 @@ sub _update_value_post {
 
 sub _update_members {
   no warnings;
-  my ($self, $c, $pid, $updateurl, $members, $relation) = @_;
+  my ($self, $c, $pid, $cmodel, $updateurl, $members, $relation) = @_;
 
   my $res = {status => 200};
 
@@ -878,7 +882,7 @@ sub _update_members {
   #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($members));
 
   # get current members
-  my $urlget = $self->_get_solrget_url($c);
+  my $urlget = $self->_get_solrget_url($c, $cmodel);
 
   $urlget->query(q => "$relation:\"$pid\"", fl => "pid", rows => "0", wt => "json");
 
@@ -1430,7 +1434,7 @@ sub _get {
   }
 
   # relations
-  my $r_add_rrels = $self->_add_reverse_relations($c, $pid, $search_model, \%index);
+  my $r_add_rrels = $self->_add_reverse_relations($c, $pid, $index{cmodel}, $search_model, \%index);
   if ($r_add_rrels->{status} ne 200) {
     push @{$res->{alerts}}, {type => 'danger', msg => "Error adding reverse relationships for $pid"};
     push @{$res->{alerts}}, @{$r_add_rrels->{alerts}} if scalar @{$r_add_rrels->{alerts}} > 0;
@@ -1493,7 +1497,7 @@ sub _get {
   # also "memberresourcetype:<resourcetype>" is added as a value - so that we can filter containers containing particular types of members (eg videos)
   my $membersCnt = scalar $index{hasmember};
   if ($membersCnt > 0) {
-    my $urlget = $self->_get_solrget_url($c);
+    my $urlget = $self->_get_solrget_url($c, $index{cmodel});
 
     # rows:100 - some conainert can be really big, but indexing all members is unlikely to make sense in such big containers
     $urlget->query(q => "*:*", fq => 'ismemberof:"' . $pid . '"', rows => 100, wt => "json");
@@ -1671,11 +1675,11 @@ sub _add_dc_index {
 
 sub _add_reverse_relations {
 
-  my ($self, $c, $pid, $search_model, $index) = @_;
+  my ($self, $c, $pid, $cmodel, $search_model, $index) = @_;
 
   my $res = {alerts => [], status => 200};
 
-  my $urlget = $self->_get_solrget_url($c);
+  my $urlget = $self->_get_solrget_url($c, $cmodel);
   $urlget->query(q => "*:*", fq => 'haspart:"' . $pid . '"', rows => 1000, wt => "json");
   my $r = $c->ua->get($urlget)->result;
   if ($r->is_success) {
@@ -2595,10 +2599,10 @@ sub _find_first_uwm_node_rec {
 }
 
 sub get_haspart_size {
-  my ($self, $c, $pid) = @_;
+  my ($self, $c, $pid, $cmodel) = @_;
   my $res = {alerts => [], status => 200};
 
-  my $urlget = $self->_get_solrget_url($c);
+  my $urlget = $self->_get_solrget_url($c, $cmodel);
 
   $urlget->query(q => "ispartof:\"$pid\"", fl => "pid", rows => "0", wt => "json");
 
@@ -2618,10 +2622,10 @@ sub get_haspart_size {
 }
 
 sub get_object_members {
-  my ($self, $c, $pid) = @_;
+  my ($self, $c, $pid, $cmodel) = @_;
   my $res = {alerts => [], status => 200};
 
-  my $urlget        = $self->_get_solrget_url($c);
+  my $urlget        = $self->_get_solrget_url($c, $cmodel);
   my $pidunderscore = $pid;
   $pidunderscore =~ s/:/_/;
   $urlget->query(q => "ismemberof:\"$pid\"", rows => "100", sort => "pos_in_$pidunderscore asc", wt => "json");
@@ -2643,11 +2647,11 @@ sub get_object_members {
 }
 
 sub get_relationships {
-  my ($self, $c, $pid) = @_;
+  my ($self, $c, $pid, $cmodel) = @_;
   my $res = {alerts => [], status => 200};
 
   my $ua     = Mojo::UserAgent->new;
-  my $urlget = $self->_get_solrget_url($c);
+  my $urlget = $self->_get_solrget_url($c, $cmodel);
 
   # $c->app->log->debug("getting doc of $pid");
   my $idx  = $self->get_doc_from_ua($c, $ua, $urlget, $pid);
