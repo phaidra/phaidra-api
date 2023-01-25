@@ -227,8 +227,31 @@ sub thumbnail {
       }
     }
     case 'Video' {
-      $self->reply->static('images/video.png');
-      return;
+      if ($self->config->{streaming}) {
+        my $u_model = PhaidraAPI::Model::Util->new;
+        my $r       = $u_model->get_video_key($self, $pid);
+        if ($r->{status} eq 200) {
+          my $thumburl = 'https://'.$self->config->{streaming}->{server}.'/media/'.$self->config->{streaming}->{basepath}.'/'.$r->{video_key}.'.jpeg';
+          if (Mojo::IOLoop->is_running) {
+            $self->render_later;
+            $self->ua->get(
+              $thumburl,
+              sub {
+                my ($c, $tx) = @_;
+                _proxy_tx($self, $tx);
+              }
+            );
+          }
+          else {
+            my $tx = $self->ua->get($thumburl);
+            _proxy_tx($self, $tx);
+          }
+          return;
+        }
+      } else {
+        $self->reply->static('images/video.png');
+        return;
+      }
     }
     case 'Audio' {
       $self->reply->static('images/audio.png');
