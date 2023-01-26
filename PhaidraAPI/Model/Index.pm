@@ -2655,6 +2655,8 @@ sub get_relationships {
 
   # $c->app->log->debug("getting doc of $pid");
   my $idx  = $self->get_doc_from_ua($c, $ua, $urlget, $pid);
+  return $res unless ($idx);
+
   my $rels = {
 
     # own

@@ -15,15 +15,37 @@ sub get {
   my $self = shift;
 
   my $pid = $self->stash('pid');
+  my $header = $self->stash('header') eq '1' or $self->param('header') eq '1';
 
   unless (defined($pid)) {
     $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
-  my $object_model = PhaidraAPI::Model::Object->new;
-  $object_model->proxy_datastream($self, $pid, 'JSON-LD', undef, undef, 1);
-  return;
+  if ($header) {
+    my $jsonld_model = PhaidraAPI::Model::Jsonld->new;
+    my $res = $jsonld_model->get_object_jsonld_parsed($self, $pid);
+    if ($res->{status} ne 200) {
+      return $res;
+    }
+    my $jsonld = $res->{'JSON-LD'};
+    my $context;
+    for my $ns (keys %{$PhaidraAPI::Model::Jsonld::namespaces}) {
+      $context->{$ns} = $PhaidraAPI::Model::Jsonld::namespaces->{$ns}->{IRI};
+    }
+    $jsonld->{'@context'} = $context;
+    $jsonld->{'@id'} = 'https://'.$self->config->{phaidra}->{baseurl}.'/'.$pid;
+    for my $pred (keys %{$jsonld}) {
+      if ($pred =~ m/role:(\w+)/g) {
+        $jsonld->{'@context'}->{$pred} = { '@id' => 'http://id.loc.gov/vocabulary/relators', '@container' => '@list' };
+      }
+    }
+    $self->render(json => $jsonld, status => 200);
+  } else {
+    my $object_model = PhaidraAPI::Model::Object->new;
+    $object_model->proxy_datastream($self, $pid, 'JSON-LD', undef, undef, 1);
+    return;
+  }
 }
 
 sub post {
