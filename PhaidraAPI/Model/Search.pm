@@ -694,6 +694,7 @@ sub get_book_for_page {
     $c->app->log->debug("[cache miss] $cachekey");
 
     my $search_model = PhaidraAPI::Model::Search->new;
+    # todo: add hasMember as well (new books)
     my $r            = $search_model->triples($c, "* <info:fedora/fedora-system:def/relations-external#hasCollectionMember> <info:fedora/$pagepid>");
     if ($r->{status} ne 200) {
       return $r;
