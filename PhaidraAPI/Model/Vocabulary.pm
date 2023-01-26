@@ -182,7 +182,7 @@ sub _get_oefos_vocabulary_hash {
 
   my $csvDe = $c->app->config->{vocabulary_folder} . '/OEFOS2012_DE_CTI_20211111_154218_utf8.csv';
   open my $data_2, '<:encoding(UTF-8)', $csvDe or $c->app->log->error("Can't open '" . $csvDe . "' for reading: $!");
-  <$data_2> # ignore csv header to reduce log warnings
+  <$data_2>; # ignore csv header to reduce log warnings
   while (my $line = <$data_2>) {
     chomp $line;
     my @fields = split ';', $line;
