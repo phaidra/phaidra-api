@@ -1671,6 +1671,7 @@ sub _add_dc_index {
     }
 }
 
+
 sub _add_reverse_relations {
 
   my ($self, $c, $pid, $cmodel, $search_model, $index) = @_;
