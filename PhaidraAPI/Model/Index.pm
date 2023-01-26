@@ -1639,38 +1639,36 @@ sub _index_relsext {
   return $res;
 }
 
+
 sub _add_dc_index {
-
-  my ($self, $c, $dc, $index) = @_;
-  while (my ($xmlname, $values) = each %{$dc}) {
-    for my $v (@{$values}) {
-      if ($v->{value} ne '') {
-
-        my $val = $v->{value};
-        if (exists($v->{lang})) {
-          if (($xmlname eq 'title') || ($xmlname eq 'description')) {
-            push @{$index->{'dc_' . $xmlname}}, $val;
-          }
-          my $lang = $v->{lang};
-          if (length($v->{lang}) eq 2) {
-            $lang = $PhaidraAPI::Model::Languages::iso639map{$v->{lang}};
-          }
-          push @{$index->{'dc_' . $xmlname . "_" . $lang}}, $val;
-          if ($xmlname eq 'title') {
-            $index->{sort_dc_title} = trim $val;
-            $index->{'sort_' . $lang . '_dc_title'} = trim $val;
-          }
-        }
-        else {
-          push @{$index->{'dc_' . $xmlname}}, $val;
-          if ($xmlname eq 'title') {
-            $index->{sort_dc_title} = trim $val;
-          }
-        }
-      }
+    my ($self, $c, $dc, $index) = @_;
+    while (my ($xmlname, $values) = each %{$dc}) {
+	for my $v (@{$values}) {
+	    if (exists($v->{value}) && defined($v->{value}) && $v->{value} ne '') {
+		my $val = $v->{value};
+		if (exists($v->{lang})) {
+		    if (($xmlname eq 'title') || ($xmlname eq 'description')) {
+			push @{$index->{'dc_' . $xmlname}}, $val;
+		    }
+		    my $lang = $v->{lang};
+		    if (length($v->{lang}) eq 2) {
+			$lang = $PhaidraAPI::Model::Languages::iso639map{$v->{lang}};
+		    }
+		    push @{$index->{'dc_' . $xmlname . "_" . $lang}}, $val;
+		    if ($xmlname eq 'title') {
+			$index->{sort_dc_title} = trim $val;
+			$index->{'sort_' . $lang . '_dc_title'} = trim $val;
+		    }
+		}
+		else {
+		    push @{$index->{'dc_' . $xmlname}}, $val;
+		    if ($xmlname eq 'title') {
+			$index->{sort_dc_title} = trim $val;
+		    }
+		}
+	    }
+	}
     }
-  }
-
 }
 
 sub _add_reverse_relations {
