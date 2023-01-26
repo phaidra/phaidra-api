@@ -446,6 +446,7 @@ sub startup {
   $r->route('object/:pid/uwmetadata')             ->via('get')    ->to('uwmetadata#get');
   $r->route('object/:pid/mods')                   ->via('get')    ->to('mods#get');
   $r->route('object/:pid/jsonld')                 ->via('get')    ->to('jsonld#get');
+  $r->route('object/:pid/json-ld')                ->via('get')    ->to('jsonld#get', header => '1');
   $r->route('object/:pid/geo')                    ->via('get')    ->to('geo#get');
   $r->route('object/:pid/members/order')          ->via('get')    ->to('membersorder#get');
   $r->route('object/:pid/annotations')            ->via('get')    ->to('annotations#get');

@@ -103,8 +103,15 @@ sub info {
         $c->app->log->error("pid[$pid] could not get book pid");
         return $bookpidr;
       }
+      $c->app->log->info("bookpid for [$pid] ".$c->app->dumper($bookpidr));
       $docres      = $index_model->get_page_doc($c, $pid);
-      $info = $docres->{doc};
+      if ($docres->{status} == 200) {
+        $info = $docres->{doc};
+      } else {
+        # if the page is not indexed (by default pages are not), just take create index on the fly
+        my $idxres = $index_model->get($c, $pid);
+        $info = $idxres->{index};
+      }
       $info->{bookpid} = $bookpidr->{bookpid};
     }
     else {
@@ -150,7 +157,12 @@ sub info {
   }
 
   if (exists($info->{uwm_roles_json})) {
-    my $rolesjsonstr = encode 'UTF-8', @{$info->{uwm_roles_json}}[0];
+    my $rolesjsonstr;
+    if (ref($info->{uwm_roles_json}) eq 'ARRAY') {
+      $rolesjsonstr = encode 'UTF-8', @{$info->{uwm_roles_json}}[0];
+    } else {
+      $rolesjsonstr = encode 'UTF-8', $info->{uwm_roles_json};
+    }
     $info->{uwm_roles_json} = decode_json($rolesjsonstr);
   }
 
