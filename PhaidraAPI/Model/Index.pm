@@ -1461,10 +1461,10 @@ sub _get {
 
   my $resourcetype;
   $resourcetype = $cmodel_2_resourcetype{$index{cmodel}};
-  if ($index{"bib_ir"} eq "yes") {
+  if (exists($index{"bib_ir"}) && defined($index{"bib_ir"}) && $index{"bib_ir"} eq "yes") {
     $resourcetype = "journalarticle";
   }
-  if ($index{"owner"} eq "ubmapsp2") {
+  if (exists($index{"owner"}) && defined($index{"owner"}) && $index{"owner"} eq "ubmapsp2") {
     $resourcetype = "map";
   }
   if (exists($index{"dc_subject"})) {
@@ -1496,7 +1496,7 @@ sub _get {
   # member_metadata - so that basic metadata of members (pid, title, desc, subject) will be indexed
   # also "memberresourcetype:<resourcetype>" is added as a value - so that we can filter containers containing particular types of members (eg videos)
   my $membersCnt = scalar $index{hasmember};
-  if ($membersCnt > 0) {
+  if (defined($membersCnt) && $membersCnt > 0) {
     my $urlget = $self->_get_solrget_url($c, $index{cmodel});
 
     # rows:100 - some conainert can be really big, but indexing all members is unlikely to make sense in such big containers

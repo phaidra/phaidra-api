@@ -344,8 +344,10 @@ sub preview {
       }
     }
   }
-
-  $self->app->log->info("preview pid[$pid] force[$force] cmodel[$cmodel] mimetype[$mimetype] size[$size] showloadbutton[$showloadbutton]");
+  if (defined($force)) {
+      $self->app->log->info("preview pid[$pid] force[$force] cmodel[$cmodel] mimetype[$mimetype] size[$size] showloadbutton[$showloadbutton]");}
+  else {
+      $self->app->log->info("preview pid[$pid] force[NO] cmodel[$cmodel] mimetype[$mimetype] size[$size] showloadbutton[$showloadbutton]");}
 
   switch ($cmodel) {
     case ['Picture', 'Page'] {
@@ -386,8 +388,10 @@ sub preview {
         }
 
         $self->stash(annotations_json => '');
-        if ($docres->{doc}->{annotations_json} != '') {
-          $self->stash(annotations_json => @{$docres->{doc}->{annotations_json}}[0]);
+        if (exists($docres->{doc}->{annotations_json}) &&
+            defined($docres->{doc}->{annotations_json}) &&
+            $docres->{doc}->{annotations_json} ne '') {
+            $self->stash(annotations_json => @{$docres->{doc}->{annotations_json}}[0]);
         }
 
         $self->stash(baseurl  => $self->config->{baseurl});

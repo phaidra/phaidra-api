@@ -38,7 +38,7 @@
     var prefix = '/api/iipmooviewer/';
     var iipmooviewer =  new IIPMooViewer( "viewer", { server: server, image: image, prefix: prefix, credit: credit <% if ($annotations_json) { %>, showCoords: true, annotations: annotations <% } %> });
 
-    <% if ($rights == 'rw') { %>
+    <% if ($rights eq 'rw') { %>
       iipmooviewer.addEvent('annotationChange', function(action, annotation_id) {
         var data = { metadata: { annotations: this.annotations } } ;
         // `action` is either `updated` or `deleted`
