@@ -217,6 +217,20 @@ sub startup {
     );
   }
 
+  if (exists($config->{irma})) {
+    $self->helper(
+      irma_mongo => sub {
+        state $paf_mongo = MongoDB::MongoClient->new(
+          host     => $config->{irma}->{host},
+          port     => $config->{irma}->{port},
+          username => $config->{irma}->{username},
+          password => $config->{irma}->{password},
+          db_name  => $config->{irma}->{database}
+        )->get_database($config->{irma}->{database});
+      }
+    );
+  }
+
   # we might possibly save a lot of data to session
   # so we are not going to use cookies, but a database instead
   $self->plugin(

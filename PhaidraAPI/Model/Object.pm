@@ -792,6 +792,28 @@ sub create_simple {
       my $hash = hmac_sha1_hex($pid, $c->app->config->{imageserver}->{hash_secret});
       $c->paf_mongo->get_collection('jobs')->insert_one({pid => $pid, cmodel => $cm, agent => "pige", status => "new", idhash => $hash, created => time});
     }
+
+    if (exists($c->app->config->{handle})) {
+      if ($c->app->config->{handle}->{create_handle_job} eq '1') {
+        unless (($c->app->config->{handle}->{ignore_pages} eq '1') && ($cmodel eq 'cmodel:Page')) {
+          my ($pidnoprefix) = $pid =~ /o:(\d+)/;
+          my @ts = localtime (time());
+          my $ts_iso = sprintf ("%04d%02d%02dT%02d%02d%02d", $ts[5]+1900, $ts[4]+1, $ts[3], $ts[2], $ts[1], $ts[0]);
+          my $hdl = $c->app->config->{handle}->{hdl_prefix}."/".$c->app->config->{handle}->{instance_hdl_prefix}.".".$pidnoprefix;
+          my $url = $c->app->config->{handle}->{instance_url_prefix}.$pid;
+          $c->app->log->info("Creating handle job hdl[$hdl] url[$url]");
+          $c->irma_mongo->get_collection('irma.map')->insert_one(
+            {
+              ts_iso => $ts_iso,
+              _created => time,
+              _updated => time,
+              hdl => $hdl,
+              url => $url
+            }
+          );
+        }
+      }
+    }
   }
 
   if (exists($metadata->{metadata}->{'ownerid'})) {
