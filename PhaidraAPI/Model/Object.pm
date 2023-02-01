@@ -751,7 +751,7 @@ sub create_simple {
     }
 
     my $post = $ua->post($url => \%headers => form => {file => {file => $upload->asset}});
-    if ($r = $post->success) {
+    if ($r = $post->result->is_success) {
       $c->app->log->info("Data successfully uploaded: filename[$name] size[$size]");
     }
     else {
@@ -1841,7 +1841,8 @@ sub create_empty {
   $headers{'Content-Type'} = 'text/xml';
 
   my $put = $ua->post($url => \%headers => $foxml);
-  if (my $r = $put->success) {
+  my $r = $put->result;
+  if ($r->is_success) {
     $res->{pid} = $r->body;
   }
   else {
@@ -1909,7 +1910,8 @@ sub add_relationship {
     my %headers;
     $self->add_upstream_headers($c, \%headers);
     my $post = $ua->post($url => \%headers);
-    if (my $r = $post->success) {
+    my $r = $post->result;
+    if ($r->is_success) {
       unshift @{$res->{alerts}}, {type => 'success', msg => $r->body};
     }
     else {
