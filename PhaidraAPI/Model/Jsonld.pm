@@ -25,7 +25,7 @@ our $namespaces = {
   ebucore => { label => "EBUCore", IRI =>	"https://www.ebu.ch/metadata/ontologies/ebucore/ebucore#" },
   edm => { label => "Europeana Data Model", IRI =>	"http://www.europeana.eu/schemas/edm/" },
   foaf => { label => "FOAF (Friend of a Friend)", IRI =>	"http://xmlns.com/foaf/spec/#" },
-  opaque => { label => "OpaqueNamespace", IRI =>	"http://opaquenamespace.org/ [might change]" },
+  opaque => { label => "OpaqueNamespace", IRI =>	"http://opaquenamespace.org/" },
   pcdm => { label => "Portland Common Data Model", IRI =>	"http://pcdm.org/models#" },
   rdau => { label => "RDA Unconstrained", IRI =>	"http://rdaregistry.info/Elements/u/" },
   rdf => { label => "The RDF Concepts Vocabulary (RDF)", IRI =>	"http://www.w3.org/1999/02/22-rdf-syntax-ns#" },
