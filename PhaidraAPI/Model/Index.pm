@@ -1461,10 +1461,10 @@ sub _get {
 
   my $resourcetype;
   $resourcetype = $cmodel_2_resourcetype{$index{cmodel}};
-  if ($index{"bib_ir"} eq "yes") {
+  if (exists($index{"bib_ir"}) && defined($index{"bib_ir"}) && $index{"bib_ir"} eq "yes") {
     $resourcetype = "journalarticle";
   }
-  if ($index{"owner"} eq "ubmapsp2") {
+  if (exists($index{"owner"}) && defined($index{"owner"}) && $index{"owner"} eq "ubmapsp2") {
     $resourcetype = "map";
   }
   if (exists($index{"dc_subject"})) {
@@ -1496,7 +1496,7 @@ sub _get {
   # member_metadata - so that basic metadata of members (pid, title, desc, subject) will be indexed
   # also "memberresourcetype:<resourcetype>" is added as a value - so that we can filter containers containing particular types of members (eg videos)
   my $membersCnt = scalar $index{hasmember};
-  if ($membersCnt > 0) {
+  if (defined($membersCnt) && $membersCnt > 0) {
     my $urlget = $self->_get_solrget_url($c, $index{cmodel});
 
     # rows:100 - some conainert can be really big, but indexing all members is unlikely to make sense in such big containers
@@ -1639,38 +1639,36 @@ sub _index_relsext {
   return $res;
 }
 
+
 sub _add_dc_index {
-
-  my ($self, $c, $dc, $index) = @_;
-  while (my ($xmlname, $values) = each %{$dc}) {
-    for my $v (@{$values}) {
-      if ($v->{value} ne '') {
-
-        my $val = $v->{value};
-        if (exists($v->{lang})) {
-          if (($xmlname eq 'title') || ($xmlname eq 'description')) {
-            push @{$index->{'dc_' . $xmlname}}, $val;
-          }
-          my $lang = $v->{lang};
-          if (length($v->{lang}) eq 2) {
-            $lang = $PhaidraAPI::Model::Languages::iso639map{$v->{lang}};
-          }
-          push @{$index->{'dc_' . $xmlname . "_" . $lang}}, $val;
-          if ($xmlname eq 'title') {
-            $index->{sort_dc_title} = trim $val;
-            $index->{'sort_' . $lang . '_dc_title'} = trim $val;
-          }
+    my ($self, $c, $dc, $index) = @_;
+    while (my ($xmlname, $values) = each %{$dc}) {
+        for my $v (@{$values}) {
+            if (exists($v->{value}) && defined($v->{value}) && $v->{value} ne '') {
+                my $val = $v->{value};
+                if (exists($v->{lang})) {
+                    if (($xmlname eq 'title') || ($xmlname eq 'description')) {
+                        push @{$index->{'dc_' . $xmlname}}, $val;
+                    }
+                    my $lang = $v->{lang};
+                    if (length($v->{lang}) eq 2) {
+                        $lang = $PhaidraAPI::Model::Languages::iso639map{$v->{lang}};
+                    }
+                    push @{$index->{'dc_' . $xmlname . "_" . $lang}}, $val;
+                    if ($xmlname eq 'title') {
+                        $index->{sort_dc_title} = trim $val;
+                        $index->{'sort_' . $lang . '_dc_title'} = trim $val;
+                    }
+                }
+                else {
+                    push @{$index->{'dc_' . $xmlname}}, $val;
+                    if ($xmlname eq 'title') {
+                        $index->{sort_dc_title} = trim $val;
+                    }
+                }
+            }
         }
-        else {
-          push @{$index->{'dc_' . $xmlname}}, $val;
-          if ($xmlname eq 'title') {
-            $index->{sort_dc_title} = trim $val;
-          }
-        }
-      }
     }
-  }
-
 }
 
 sub _add_reverse_relations {

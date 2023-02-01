@@ -79,8 +79,8 @@ sub agree {
   my @now = localtime();
   my $now = sprintf("%04d-%02d-%02d %02d:%02d:%02d", $now[5] + 1900, $now[4] + 1, $now[3], $now[2], $now[1], $now[0]);
 
-  my $ss  = "INSERT INTO user_terms (username, version, agreed) VALUES ('$username', '$version', '$now');";
-  my $sth = $self->app->db_user->dbh->prepare($ss) or $self->app->log->error($self->app->db_user->dbh->errstr);
+  $ss  = "INSERT INTO user_terms (username, version, agreed) VALUES ('$username', '$version', '$now');";
+  $sth = $self->app->db_user->dbh->prepare($ss) or $self->app->log->error($self->app->db_user->dbh->errstr);
   if ($sth->execute()) {
     $self->render(json => {alerts => [], status => 200}, status => 200);
   }

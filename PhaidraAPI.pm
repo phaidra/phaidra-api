@@ -329,7 +329,7 @@ sub startup {
       }
       my $salt = Math::Random::ISAAC::XS->new(map {unpack("N", urandom(4))} 1 .. 256)->irand();
       my $key  = hmac_sha256($salt, $self->app->config->{enc_key});
-      my $cbc  = Crypt::CBC->new(-key => $key, -cipher => 'Rijndael');
+      my $cbc  = Crypt::CBC->new(-key => $key, -pbkdf => 'pbkdf2');
 
       eval {$ciphertext = encode_base64url($cbc->encrypt($ba));};
       $self->app->log->error("Encoding error: $@") if $@;
@@ -354,7 +354,7 @@ sub startup {
       my $salt       = $session->data('salt');
       my $ciphertext = $session->data('cred');
       my $key        = hmac_sha256($salt, $self->app->config->{enc_key});
-      my $cbc        = Crypt::CBC->new(-key => $key, -cipher => 'Rijndael');
+      my $cbc        = Crypt::CBC->new(-key => $key, -pbkdf => 'pbkdf2');
       my $data;
       eval {$data = decode_sereal($cbc->decrypt(decode_base64url($ciphertext)))};
       $self->app->log->error("Decoding error: $@") if $@;
