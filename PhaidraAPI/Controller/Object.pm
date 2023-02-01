@@ -122,6 +122,7 @@ sub thumbnail {
   my $h = $self->param('h');
   if (!$w and !$h) {
     $w = 120;
+    $h = '';
   }
 
   my $thumbPid = $self->get_is_thumbnail_for($pid);
@@ -1366,7 +1367,8 @@ sub diss {
 
 sub _proxy_tx {
   my ($c, $tx) = @_;
-  if (my $res = $tx->success) {
+  my $res = $tx->result;
+  if ($res->is_success) {
     $c->tx->res($res);
     $c->rendered;
   }

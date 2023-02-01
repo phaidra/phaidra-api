@@ -510,7 +510,8 @@ sub update {
       $c->app->log->debug("[$pid] no cmodel found, deleting from index");
       if (exists($c->app->config->{solr})) {
         my $post = $ua->post($updateurl => json => {delete => $pid});
-        if (my $r = $post->success) {
+        my $r = $post->result;
+        if ($r->is_success) {
           $c->app->log->debug("[$pid] solr document deleted (not found in triplestore)");
         }
         else {
@@ -578,7 +579,8 @@ sub update {
         # 302 - object is in state Inactive
         if (exists($c->app->config->{solr})) {
           my $post = $ua->post($updateurl => json => {delete => $pid});
-          if (my $r = $post->success) {
+          my $r = $post->result;
+          if ($r->is_success) {
             $c->app->log->debug("[$pid] solr document deleted getStatus[$getStatus]");
           }
           else {
@@ -708,7 +710,8 @@ sub _update_membersorder {
 
   my $get = $ua->get($urlget);
   my $numFound;
-  if (my $r_num = $get->success) {
+  my $r_num = $get->result;
+  if ($r_num->is_success) {
     $numFound = $r_num->json->{response}->{numFound};
   }
   else {

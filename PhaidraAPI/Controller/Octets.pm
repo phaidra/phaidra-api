@@ -143,7 +143,7 @@ sub track_download {
   }
 
   unless (defined($fr)) {
-    $self->app->log->error("pid[$pid] Error tracking download: Site is not configured");
+    $self->app->log->debug("pid[$pid] Not tracking download: Site is not configured");
     return;
   }
   unless ($fr->{site} eq 'phaidra') {
