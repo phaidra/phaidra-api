@@ -35,7 +35,7 @@ sub feedback {
       From        => $self->config->{phaidra}->{supportemail},
       To          => $self->config->{phaidra}->{supportemail},
       Subject     => 'Phaidra feedback',
-      Charset     => 'utf8',
+      Charset     => 'iso-8859-15',
       Encoding    => 'quoted-printable',
       Template    => {html => 'email.html.tt', text => 'email.txt.tt'},
       TmplParams  => \%emaildata,

@@ -491,7 +491,7 @@ sub update {
 
   my $res = {status => 200};
 
-  if (exists($c->app->config->{index_mongodb}) || exists($c->app->config->{solr})) {
+  if (exists($c->app->config->{solr})) {
 
     my $tcm        = [gettimeofday];
     my $cmodel_res = $search_model->get_cmodel($c, $pid);
@@ -548,11 +548,6 @@ sub update {
       my $getStatus = $r->{status};
       $c->app->log->debug("[$pid] index get status $getStatus");
       if ($getStatus eq 200) {
-
-        if (exists($c->app->config->{index_mongodb})) {
-          $c->index_mongo->get_collection($c->app->config->{index_mongodb}->{collection})->update_one({pid => $pid}, {'$set' => $r->{index}}, {upsert => 1});
-          $c->app->log->debug("[$pid] mongo index updated");
-        }
 
         if (exists($c->app->config->{solr})) {
           $t0 = [gettimeofday];

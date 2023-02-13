@@ -73,7 +73,7 @@ sub imageserver_job_status {
     my $jobs_coll = $self->paf_mongo->get_collection('jobs');
     if ($jobs_coll) {
       my $job_record = $jobs_coll->find_one({pid => $pid, agent => 'pige'}, {}, {"sort" => {"created" => -1}});
-      $self->app->log->debug($self->app->dumper($job_record));
+      # $self->app->log->debug($self->app->dumper($job_record));
       return $job_record->{status};
     }
   }
@@ -990,6 +990,19 @@ sub add_octets {
 
   my $object_model = PhaidraAPI::Model::Object->new;
 
+  $self->app->log->debug("=== headers ===");
+  $self->app->log->debug($self->app->dumper($self->req->headers));
+  $self->app->log->debug("==============");
+
+  $self->app->log->debug("=== params ===");
+  for my $pn (@{$self->req->params->names}) {
+    $self->app->log->debug($pn);
+  }
+  for my $up (@{$self->req->uploads}) {
+    $self->app->log->debug($up->{name} . ": " . $up->{filename});
+  }
+  $self->app->log->debug("==============");
+
   my $upload = $self->req->upload('file');
 
   if ($self->req->is_limit_exceeded) {
@@ -1018,7 +1031,7 @@ sub add_octets {
 
   # $object_model->add_octets will re-index, so keep inventory cleanup above it to avoid indexing old data
   # delete inventory info
-  $self->app->paf_mongo->get_collection('foxml.ds')->remove({'pid' => $pid});
+  $self->app->paf_mongo->get_collection('foxml.ds')->delete_one({'pid' => $pid});
 
   # delete imagemanipulator record
   $self->app->db_imagemanipulator->dbh->do('DELETE FROM image WHERE url = "' . $pid . '";') or $self->app->log->error("Error deleting from imagemanipulator db:" . $self->app->db_imagemanipulator->dbh->errstr);

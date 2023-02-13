@@ -811,13 +811,20 @@ sub create_simple {
               url => $url
             }
           );
+
+          my $idres = $self->add_relationship($c, $pid, 'http://purl.org/dc/terms/identifier', "hdl:$hdl", $username, $password);
+          if ($idres->{status} eq 200) {
+            $c->app->log->info("Added handle relationship hdl[$hdl]");
+          } else {
+            $c->app->log->error("Failed to add hdl[$hdl] to relationships");
+          }
         }
       }
     }
   }
 
   if (exists($metadata->{metadata}->{'ownerid'})) {
-    $c->app->log->debug("Changing ownerid to " . $metadata->{metadata}->{'ownerid'});
+    $c->app->log->info("Changing ownerid to " . $metadata->{metadata}->{'ownerid'});
     my $authorized = 0;
     if ( ($username eq $c->app->config->{phaidra}->{intcallusername})
       || ($username eq $c->app->config->{phaidra}->{adminusername}))

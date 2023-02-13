@@ -136,8 +136,9 @@ sub search_user {
   my $self = shift;
 
   my $q = $self->param('q');
+  my $exact = $self->param('exact');
 
-  my ($r, $hits) = $self->app->directory->search_user($self, $q);
+  my ($r, $hits) = $self->app->directory->search_user($self, $q, $exact);
 
   $self->render(json => {status => 200, accounts => $r, hits => $hits}, status => 200);
 }
