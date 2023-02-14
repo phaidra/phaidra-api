@@ -5,6 +5,8 @@ use warnings;
 use v5.10;
 use utf8;
 use base qw/Mojo::Base/;
+use Digest::SHA qw(hmac_sha1_hex);
+use IO::Scalar;
 use Mojo::ByteStream qw(b);
 use PhaidraAPI::Model::Dc;
 use PhaidraAPI::Model::Object;
@@ -14,7 +16,7 @@ use PhaidraAPI::Model::Iiifmanifest;
 
 sub add_or_modify_datastream_hooks {
 
-  my ($self, $c, $pid, $dsid, $dscontent, $username, $password) = @_;
+  my ($self, $c, $pid, $dsid, $dscontent, $exists, $username, $password) = @_;
 
   my $res = {alerts => [], status => 200};
 
@@ -66,6 +68,20 @@ sub add_or_modify_datastream_hooks {
             push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
           }
         }
+      }
+    }
+
+    if ($dsid eq "OCTETS") {
+      if ($exists) {
+
+        # $object_model->add_octets will re-index, so keep inventory cleanup above it to avoid indexing old data
+        # delete inventory info
+        $c->app->paf_mongo->get_collection('foxml.ds')->delete_one({'pid' => $pid});
+
+        # delete imagemanipulator record
+        $c->app->db_imagemanipulator->dbh->do('DELETE FROM image WHERE url = "' . $pid . '";') or $c->app->log->error("Error deleting from imagemanipulator db:" . $c->app->db_imagemanipulator->dbh->errstr);
+
+        $self->_create_imageserver_job($c, $pid);
       }
     }
   }
@@ -127,8 +143,125 @@ sub add_or_modify_relationships_hooks {
   return $res;
 }
 
-sub index_hook {
+sub add_octets_hook {
+  my ($self, $c, $pid, $exists) = @_;
 
+  my $res = {alerts => [], status => 200};
+
+  if ($exists) {
+
+    # $object_model->add_octets will re-index, so keep inventory cleanup above it to avoid indexing old data
+    # delete inventory info
+    $c->app->paf_mongo->get_collection('foxml.ds')->delete_one({'pid' => $pid});
+
+    # delete imagemanipulator record
+    $c->app->db_imagemanipulator->dbh->do('DELETE FROM image WHERE url = "' . $pid . '";') or $c->app->log->error("Error deleting from imagemanipulator db:" . $c->app->db_imagemanipulator->dbh->errstr);
+
+    my $imsr = $self->_create_imageserver_job($c, $pid);
+    push @{$res->{alerts}}, @{$imsr->{alerts}} if scalar @{$imsr->{alerts}} > 0;
+  }
+
+  return $res;
+}
+
+sub modify_hook {
+  my ($self, $c, $pid, $state, $ownerid) = @_;
+
+  my $res = {alerts => [], status => 200};
+
+  my $idxres = $self->_index($c, $pid);
+  push @{$res->{alerts}}, @{$idxres->{alerts}} if scalar @{$idxres->{alerts}} > 0;
+
+  my $search_model = PhaidraAPI::Model::Search->new;
+  my $res_cmodel   = $search_model->get_cmodel($c, $pid);
+  if ($res_cmodel->{status} ne 200) {
+    $c->app->log->error("modify_hook: could not get cmodel");
+    return $res_cmodel;
+  }
+  else {
+    if ($state eq 'A') {
+      if (exists($c->app->config->{handle})) {
+        if ($c->app->config->{handle}->{create_handle_job} eq '1') {
+          unless (($c->app->config->{handle}->{ignore_pages} eq '1') && ($res_cmodel->{cmodel} eq 'cmodel:Page')) {
+            $self->_create_handle($c, $pid);
+          }
+        }
+      }
+      my $imsr = $self->_create_imageserver_job($c, $pid);
+      push @{$res->{alerts}}, @{$imsr->{alerts}} if scalar @{$imsr->{alerts}} > 0;
+    }
+  }
+
+  return $res;
+}
+
+sub _create_imageserver_job {
+  my ($self, $c, $pid) = @_;
+
+  my $res = {alerts => [], status => 200};
+
+  my $search_model = PhaidraAPI::Model::Search->new;
+  my $res_cmodel   = $search_model->get_cmodel($c, $pid);
+  if ($res_cmodel->{status} ne 200) {
+    $c->app->log->error("modify_hook: could not get cmodel");
+    return $res_cmodel;
+  }
+  my $cmodel = $res_cmodel->{cmodel};
+
+  my $find = $c->paf_mongo->get_collection('jobs')->find_one({pid => $pid});
+  unless ($find->{pid}) {
+    if ($cmodel eq 'cmodel:Picture' or $cmodel eq 'cmodel:PDFDocument') {
+      my $cm = $cmodel =~ s/cmodel://gr;
+      $c->app->log->info("Creating imageserver job pid[$pid] cm[$cm]");
+      my $hash = hmac_sha1_hex($pid, $c->app->config->{imageserver}->{hash_secret});
+      $c->paf_mongo->get_collection('jobs')->insert_one({pid => $pid, cmodel => $cm, agent => "pige", status => "new", idhash => $hash, created => time});
+    }
+  }
+
+  return $res;
+}
+
+sub _create_handle {
+  my ($self, $c, $pid) = @_;
+
+  my $res = {alerts => [], status => 200};
+
+  my ($pidnoprefix) = $pid =~ /o:(\d+)/;
+  my @ts            = localtime(time());
+  my $ts_iso        = sprintf("%04d%02d%02dT%02d%02d%02d", $ts[5] + 1900, $ts[4] + 1, $ts[3], $ts[2], $ts[1], $ts[0]);
+  my $hdl           = $c->app->config->{handle}->{hdl_prefix} . "/" . $c->app->config->{handle}->{instance_hdl_prefix} . "." . $pidnoprefix;
+  my $url           = $c->app->config->{handle}->{instance_url_prefix} . $pid;
+
+  my $find = $c->irma_mongo->get_collection('irma.map')->find_one({hdl => $hdl});
+  unless ($find->{hdl}) {
+    $c->app->log->info("_create_handle: creating handle job hdl[$hdl] url[$url]");
+    $c->irma_mongo->get_collection('irma.map')->insert_one(
+      { ts_iso   => $ts_iso,
+        _created => time,
+        _updated => time,
+        hdl      => $hdl,
+        url      => $url
+      }
+    );
+
+    my $object_model = PhaidraAPI::Model::Object->new;
+    my $idres        = $object_model->add_relationship($c, $pid, 'http://purl.org/dc/terms/identifier', "hdl:$hdl", $c->app->config->{phaidra}->{intcallusername}, $c->app->config->{phaidra}->{intcallpassword});
+    if ($idres->{status} eq 200) {
+      $c->app->log->info("_create_handle: added handle relationship hdl[$hdl]");
+    }
+    else {
+      $c->app->log->error("_create_handle: failed to add hdl[$hdl] to relationships");
+      return $idres;
+    }
+  }
+  else {
+    $c->app->log->info("_create_handle: handle already exists hdl[$hdl]");
+  }
+
+  return $res;
+}
+
+sub _index {
   my ($self, $c, $pid) = @_;
 
   my $res = {alerts => [], status => 200};
@@ -149,6 +282,7 @@ sub index_hook {
   }
 
   return $res;
+
 }
 
 1;

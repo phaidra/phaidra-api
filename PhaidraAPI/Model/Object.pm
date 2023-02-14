@@ -103,11 +103,12 @@ sub info {
         $c->app->log->error("pid[$pid] could not get book pid");
         return $bookpidr;
       }
-      $c->app->log->info("bookpid for [$pid] ".$c->app->dumper($bookpidr));
-      $docres      = $index_model->get_page_doc($c, $pid);
+      $c->app->log->info("bookpid for [$pid] " . $c->app->dumper($bookpidr));
+      $docres = $index_model->get_page_doc($c, $pid);
       if ($docres->{status} == 200) {
         $info = $docres->{doc};
-      } else {
+      }
+      else {
         # if the page is not indexed (by default pages are not), just take create index on the fly
         my $idxres = $index_model->get($c, $pid);
         $info = $idxres->{index};
@@ -160,7 +161,8 @@ sub info {
     my $rolesjsonstr;
     if (ref($info->{uwm_roles_json}) eq 'ARRAY') {
       $rolesjsonstr = encode 'UTF-8', @{$info->{uwm_roles_json}}[0];
-    } else {
+    }
+    else {
       $rolesjsonstr = encode 'UTF-8', $info->{uwm_roles_json};
     }
     $info->{uwm_roles_json} = decode_json($rolesjsonstr);
@@ -484,9 +486,9 @@ sub modify {
   my $putres = $ua->put($url => \%headers)->result;
   if ($putres->is_success) {
     my $hooks_model = PhaidraAPI::Model::Hooks->new;
-    my $hr          = $hooks_model->index_hook($c, $pid);
+    my $hr          = $hooks_model->modify_hook($c, $pid, $state, $ownerid);
     if ($hr->{status} ne 200) {
-      $c->app->log->error("Error indexing object $pid in index_hook: " . $c->app->dumper($hr));
+      $c->app->log->error("pid[$pid] Error in modify_hook: " . $c->app->dumper($hr));
     }
   }
   else {
@@ -700,65 +702,9 @@ sub create_simple {
     }
   }
   else {
-
-    # $c->app->log->debug("req Upload: ".$c->app->dumper($c->req->upload));
-    # $c->app->log->debug("upload: ".$c->app->dumper($upload));
-
-    my $size = $upload->size;
-    my $name = $upload->filename;
-
-    # save data first, because these may be needed when saving metadata
-    my $logmsg = "[$pid] Saving octets: $name [$size B]";
-    if ($checksumtype && $checksum) {
-      $logmsg .= " $checksumtype:$checksum";
-    }
-    $c->app->log->debug($logmsg);
-
-    my %params;
-    $params{controlGroup} = 'M';
-    $params{dsLabel}      = $name;
-    if ($checksumtype) {
-      $params{checksumType} = $checksumtype;
-    }
-    if ($checksum) {
-      $params{checksum} = $checksum;
-    }
-    if (defined($mimetype)) {
-      $c->app->log->info("Provided mimetype $mimetype");
-    }
-    else {
-      $mimetype = $self->get_mimetype($c, $upload->asset);
-      unshift @{$res->{alerts}}, {type => 'info', msg => "Undefined mimetype, using magic: $mimetype"};
-      $c->app->log->info("Undefined mimetype, using magic: $mimetype");
-    }
-    $params{mimeType} = $mimetype;
-
-    my $url = Mojo::URL->new;
-    $url->scheme('https');
-    $url->userinfo("$username:$password");
-    $url->host($c->app->config->{phaidra}->{fedorabaseurl});
-    $url->path("/fedora/objects/$pid/datastreams/OCTETS");
-    $url->query(\%params);
-
-    my $ua = Mojo::UserAgent->new;
-    my %headers;
-    $self->add_upstream_headers($c, \%headers);
-    if ($c->app->config->{fedora}->{version} >= 6) {
-      $headers{'Content-Type'} = 'multipart/form-data';
-    }
-    else {
-      $headers{'Content-Type'} = $mimetype;
-    }
-
-    my $post = $ua->post($url => \%headers => form => {file => {file => $upload->asset}});
-    if ($r = $post->result->is_success) {
-      $c->app->log->info("Data successfully uploaded: filename[$name] size[$size]");
-    }
-    else {
-      my ($err, $code) = $post->error;
-      unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
-      $res->{status} = $code ? $code : 500;
-      return $res;
+    my $aor = $self->add_octets($c, $pid, $upload, $mimetype, $checksumtype, $checksum, $username, $password);
+    if ($aor->{status} ne 200) {
+      return $aor;
     }
   }
 
@@ -784,43 +730,7 @@ sub create_simple {
     return $res;
   }
   else {
-    $c->app->log->info("Object successfully created pid[$pid]");
-
-    if ($cmodel eq 'cmodel:Picture' or $cmodel eq 'cmodel:PDFDocument') {
-      my $cm = $cmodel =~ s/cmodel://gr;
-      $c->app->log->info("Creating imageserver job pid[$pid] cm[$cm]");
-      my $hash = hmac_sha1_hex($pid, $c->app->config->{imageserver}->{hash_secret});
-      $c->paf_mongo->get_collection('jobs')->insert_one({pid => $pid, cmodel => $cm, agent => "pige", status => "new", idhash => $hash, created => time});
-    }
-
-    if (exists($c->app->config->{handle})) {
-      if ($c->app->config->{handle}->{create_handle_job} eq '1') {
-        unless (($c->app->config->{handle}->{ignore_pages} eq '1') && ($cmodel eq 'cmodel:Page')) {
-          my ($pidnoprefix) = $pid =~ /o:(\d+)/;
-          my @ts = localtime (time());
-          my $ts_iso = sprintf ("%04d%02d%02dT%02d%02d%02d", $ts[5]+1900, $ts[4]+1, $ts[3], $ts[2], $ts[1], $ts[0]);
-          my $hdl = $c->app->config->{handle}->{hdl_prefix}."/".$c->app->config->{handle}->{instance_hdl_prefix}.".".$pidnoprefix;
-          my $url = $c->app->config->{handle}->{instance_url_prefix}.$pid;
-          $c->app->log->info("Creating handle job hdl[$hdl] url[$url]");
-          $c->irma_mongo->get_collection('irma.map')->insert_one(
-            {
-              ts_iso => $ts_iso,
-              _created => time,
-              _updated => time,
-              hdl => $hdl,
-              url => $url
-            }
-          );
-
-          my $idres = $self->add_relationship($c, $pid, 'http://purl.org/dc/terms/identifier', "hdl:$hdl", $username, $password);
-          if ($idres->{status} eq 200) {
-            $c->app->log->info("Added handle relationship hdl[$hdl]");
-          } else {
-            $c->app->log->error("Failed to add hdl[$hdl] to relationships");
-          }
-        }
-      }
-    }
+    $c->app->log->info("Object successfully created pid[$pid] cmodel[$cmodel]");
   }
 
   if (exists($metadata->{metadata}->{'ownerid'})) {
@@ -1077,7 +987,7 @@ sub create_container {
     return $res;
   }
   else {
-    $c->app->log->info("Object successfully created pid[$pid]");
+    $c->app->log->info("Object successfully created pid[$pid] cmodel[cmodel:Container]");
   }
 
   if (exists($metadata->{metadata}->{'ownerid'})) {
@@ -1121,15 +1031,33 @@ sub add_octets {
   my $c            = shift;
   my $pid          = shift;
   my $upload       = shift;
-  my $file         = shift;
   my $mimetype     = shift;
   my $checksumtype = shift;
   my $checksum     = shift;
+  my $username     = shift;
+  my $password     = shift;
+
+  unless ($username) {
+    $username = $c->stash->{basic_auth_credentials}->{username};
+  }
+
+  unless ($password) {
+    $password = $c->stash->{basic_auth_credentials}->{password};
+  }
 
   my $res = {alerts => [], status => 200};
 
-  my $size = $file->size;
-  my $name = $file->filename;
+  my $search_model = PhaidraAPI::Model::Search->new;
+  my $sr           = $search_model->datastream_exists($c, $pid, 'OCTETS');
+  if ($sr->{status} ne 200) {
+    unshift @{$res->{alerts}}, @{$sr->{alerts}};
+    $res->{status} = $sr->{status};
+    return $res;
+  }
+  my $exists = $sr->{'exists'};
+
+  my $size = $upload->size;
+  my $name = $upload->filename;
 
   my $logmsg = "pid[$pid] Got file: $name [$size]";
   if ($checksumtype && $checksum) {
@@ -1139,34 +1067,47 @@ sub add_octets {
 
   my %params;
   $params{controlGroup} = 'M';
-  $params{dsLabel}      = defined($name) ? $name : $c->app->config->{phaidra}->{defaultlabel};
-  $params{mimeType}     = $mimetype;
+  $params{dsLabel}      = $name;
   if ($checksumtype) {
     $params{checksumType} = $checksumtype;
   }
   if ($checksum) {
     $params{checksum} = $checksum;
   }
+  if (defined($mimetype)) {
+    $c->app->log->info("Provided mimetype $mimetype");
+  }
+  else {
+    $mimetype = $self->get_mimetype($c, $upload->asset);
+    $c->app->log->info("Undefined mimetype, using magic: $mimetype");
+  }
+  $params{mimeType} = $mimetype;
 
   my $url = Mojo::URL->new;
   $url->scheme('https');
-  $url->userinfo($c->stash->{basic_auth_credentials}->{username} . ":" . $c->stash->{basic_auth_credentials}->{password});
+  $url->userinfo("$username:$password");
   $url->host($c->app->config->{phaidra}->{fedorabaseurl});
-  $url->path("/fedora/objects/" . $pid . "/datastreams/OCTETS");
+  $url->path("/fedora/objects/$pid/datastreams/OCTETS");
   $url->query(\%params);
 
   my $ua = Mojo::UserAgent->new;
   my %headers;
   $self->add_upstream_headers($c, \%headers);
-  $headers{'Content-Type'} = $mimetype;
+  if ($c->app->config->{fedora}->{version} >= 6) {
+    $headers{'Content-Type'} = 'multipart/form-data';
+  }
+  else {
+    $headers{'Content-Type'} = $mimetype;
+  }
 
   my $postres = $ua->post($url => \%headers => form => {file => {file => $upload->asset}})->result;
   if ($postres->is_success) {
     my $hooks_model = PhaidraAPI::Model::Hooks->new;
-    my $hr          = $hooks_model->index_hook($c, $pid);
+    my $hr          = $hooks_model->add_octets_hook($c, $pid, $exists);
     if ($hr->{status} ne 200) {
-      $c->app->log->error("Error indexing object $pid in index_hook: " . $c->app->dumper($hr));
+      $c->app->log->error("pid[$pid] add_octets_hook error: " . $c->app->dumper($hr));
     }
+    $c->app->log->info("pid[$pid] octets successfully uploaded: filename[$name] size[$size]");
   }
   else {
     $c->app->log->error($postres->code . ": " . $postres->message);
@@ -1769,8 +1710,10 @@ sub add_or_modify_datastream {
     $password = $c->app->{config}->{phaidra}->{adminpassword};
   }
 
+  my $exists = $sr->{'exists'};
+
   # save
-  if ($sr->{'exists'}) {
+  if ($exists) {
     my $r = $self->modify_datastream($c, $pid, $dsid, $mimetype, $location, $label, $dscontent, $checksumtype, $checksum, $username, $password);
     push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
     $res->{status} = $r->{status};
@@ -1790,7 +1733,7 @@ sub add_or_modify_datastream {
   }
 
   my $hooks_model = PhaidraAPI::Model::Hooks->new;
-  my $hr          = $hooks_model->add_or_modify_datastream_hooks($c, $pid, $dsid, $dscontent, $username, $password);
+  my $hr          = $hooks_model->add_or_modify_datastream_hooks($c, $pid, $dsid, $dscontent, $exists, $username, $password);
   push @{$res->{alerts}}, @{$hr->{alerts}} if scalar @{$hr->{alerts}} > 0;
   $res->{status} = $hr->{status};
   if ($hr->{status} ne 200) {
@@ -1848,7 +1791,7 @@ sub create_empty {
   $headers{'Content-Type'} = 'text/xml';
 
   my $put = $ua->post($url => \%headers => $foxml);
-  my $r = $put->result;
+  my $r   = $put->result;
   if ($r->is_success) {
     $res->{pid} = $r->body;
   }
@@ -1875,6 +1818,10 @@ sub add_relationship {
   my $skiphook  = shift;
 
   my $res = {alerts => [], status => 200};
+
+  if ($predicate eq 'info:fedora/fedora-system:def/model#hasModel') {
+    $c->app->chi->remove('cmodel_' . $pid);
+  }
 
   # only allow if object's owner is subject's owner
   if ($predicate eq 'http://pcdm.org/models#hasMember') {
@@ -1917,7 +1864,7 @@ sub add_relationship {
     my %headers;
     $self->add_upstream_headers($c, \%headers);
     my $post = $ua->post($url => \%headers);
-    my $r = $post->result;
+    my $r    = $post->result;
     if ($r->is_success) {
       unshift @{$res->{alerts}}, {type => 'success', msg => $r->body};
     }
@@ -1986,6 +1933,10 @@ sub purge_relationship {
   my $skiphook  = shift;
 
   my $res = {alerts => [], status => 200};
+
+  if ($predicate eq 'info:fedora/fedora-system:def/model#hasModel') {
+    $c->app->chi->remove('cmodel_' . $pid);
+  }
 
   if ($c->app->config->{fedora}->{version} >= 6) {
     die('not implemented');

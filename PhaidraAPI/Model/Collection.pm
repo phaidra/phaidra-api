@@ -39,6 +39,9 @@ sub create {
 
   # activate
   my $res_act = $object_model->modify($c, $pid, 'A', undef, undef, undef, undef, $username, $password);
+  if ($res_act->{status} eq 200) {
+    $c->app->log->info("Object successfully created pid[$pid] cmodel[cmodel:Collection]");
+  }
 
   $c->app->log->debug("Adding members");
 
@@ -127,7 +130,7 @@ sub get_members {
   my $search_model = PhaidraAPI::Model::Search->new;
 
   my $cmodel;
-  my $res_cmodel   = $search_model->get_cmodel($c, $pid);
+  my $res_cmodel = $search_model->get_cmodel($c, $pid);
   if ($res_cmodel->{status} ne 200) {
     $self->app->log->error("Collection->get_members: pid[$pid] could not get cmodel");
     return $res_cmodel;
@@ -161,9 +164,9 @@ sub get_members {
     $c->app->log->error("Collection->get_members: Cannot get lastModifiedDate!");
     return $r;
   }
-  
+
   $cached_members = $c->app->chi->get($cachekey);
-  
+
   $nocache = $nocache ? $nocache : 0;
   if ($cached_members && ($nocache != 1)) {
     $c->app->log->debug("[cache hit] $cachekey");
@@ -218,7 +221,8 @@ sub get_members {
           foreach my $p (keys %members) {
             push @$cached_members, {pid => $p, 'pos' => $members{$p}->{'pos'}};
           }
-					no warnings;
+          no warnings;
+
           sub undef_sort {
                 $a->{pos} eq "" && $b->{pos} eq "" ? 0
               : $a->{pos} eq ""                    ? +1

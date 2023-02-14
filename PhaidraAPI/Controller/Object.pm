@@ -23,6 +23,7 @@ use PhaidraAPI::Model::Imageserver;
 use PhaidraAPI::Model::Util;
 use PhaidraAPI::Model::Authorization;
 use PhaidraAPI::Model::Languages;
+use PhaidraAPI::Model::Hooks;
 use Digest::SHA qw(hmac_sha1_hex);
 use Time::HiRes qw/tv_interval gettimeofday/;
 use File::Find::utf8;
@@ -73,6 +74,7 @@ sub imageserver_job_status {
     my $jobs_coll = $self->paf_mongo->get_collection('jobs');
     if ($jobs_coll) {
       my $job_record = $jobs_coll->find_one({pid => $pid, agent => 'pige'}, {}, {"sort" => {"created" => -1}});
+
       # $self->app->log->debug($self->app->dumper($job_record));
       return $job_record->{status};
     }
@@ -171,6 +173,7 @@ sub thumbnail {
           my $tx = $self->ua->get($res->{url});
           _proxy_tx($self, $tx);
         }
+
         # $self->render_later;
         # $self->ua->get($res->{url} => sub {my ($ua, $tx) = @_; $self->tx->res($tx->res); $self->rendered;});
         return;
@@ -232,7 +235,7 @@ sub thumbnail {
         my $u_model = PhaidraAPI::Model::Util->new;
         my $r       = $u_model->get_video_key($self, $pid);
         if ($r->{status} eq 200) {
-          my $thumburl = 'https://'.$self->config->{streaming}->{server}.'/media/'.$self->config->{streaming}->{basepath}.'/'.$r->{video_key}.'.jpeg';
+          my $thumburl = 'https://' . $self->config->{streaming}->{server} . '/media/' . $self->config->{streaming}->{basepath} . '/' . $r->{video_key} . '.jpeg';
           if (Mojo::IOLoop->is_running) {
             $self->render_later;
             $self->ua->get(
@@ -249,7 +252,8 @@ sub thumbnail {
           }
           return;
         }
-      } else {
+      }
+      else {
         $self->reply->static('images/video.png');
         return;
       }
@@ -346,9 +350,11 @@ sub preview {
     }
   }
   if (defined($force)) {
-      $self->app->log->info("preview pid[$pid] force[$force] cmodel[$cmodel] mimetype[$mimetype] size[$size] showloadbutton[$showloadbutton]");}
+    $self->app->log->info("preview pid[$pid] force[$force] cmodel[$cmodel] mimetype[$mimetype] size[$size] showloadbutton[$showloadbutton]");
+  }
   else {
-      $self->app->log->info("preview pid[$pid] force[NO] cmodel[$cmodel] mimetype[$mimetype] size[$size] showloadbutton[$showloadbutton]");}
+    $self->app->log->info("preview pid[$pid] force[NO] cmodel[$cmodel] mimetype[$mimetype] size[$size] showloadbutton[$showloadbutton]");
+  }
 
   switch ($cmodel) {
     case ['Picture', 'Page'] {
@@ -389,10 +395,11 @@ sub preview {
         }
 
         $self->stash(annotations_json => '');
-        if (exists($docres->{doc}->{annotations_json}) &&
-            defined($docres->{doc}->{annotations_json}) &&
-            $docres->{doc}->{annotations_json} ne '') {
-            $self->stash(annotations_json => @{$docres->{doc}->{annotations_json}}[0]);
+        if ( exists($docres->{doc}->{annotations_json})
+          && defined($docres->{doc}->{annotations_json})
+          && $docres->{doc}->{annotations_json} ne '')
+        {
+          $self->stash(annotations_json => @{$docres->{doc}->{annotations_json}}[0]);
         }
 
         $self->stash(baseurl  => $self->config->{baseurl});
@@ -1024,35 +1031,13 @@ sub add_octets {
     unshift @{$res->{alerts}}, {type => 'info', msg => "Undefined mimetype, using magic: $mimetype"};
   }
 
-  my $file         = $self->param('file');
   my $pid          = $self->stash('pid');
   my $checksumtype = $self->param('checksumtype');
   my $checksum     = $self->param('checksum');
 
-  # $object_model->add_octets will re-index, so keep inventory cleanup above it to avoid indexing old data
-  # delete inventory info
-  $self->app->paf_mongo->get_collection('foxml.ds')->delete_one({'pid' => $pid});
-
-  # delete imagemanipulator record
-  $self->app->db_imagemanipulator->dbh->do('DELETE FROM image WHERE url = "' . $pid . '";') or $self->app->log->error("Error deleting from imagemanipulator db:" . $self->app->db_imagemanipulator->dbh->errstr);
-
-  my $addres = $object_model->add_octets($self, $pid, $upload, $file, $mimetype, $checksumtype, $checksum);
+  my $addres = $object_model->add_octets($self, $pid, $upload, $mimetype, $checksumtype, $checksum);
   push @{$res->{alerts}}, @{$addres->{alerts}} if scalar @{$addres->{alerts}} > 0;
   $res->{status} = $addres->{status};
-
-  # insert new imageserver job
-  my $search_model = PhaidraAPI::Model::Search->new;
-  my $cmodelr      = $search_model->get_cmodel($self, $pid);
-  if ($cmodelr->{status} eq 200) {
-    my $cmodel = $cmodelr->{cmodel};
-    if ($cmodel eq 'Picture' or $cmodel eq 'PDFDocument') {
-      my $hash = hmac_sha1_hex($pid, $self->app->config->{imageserver}->{hash_secret});
-      $self->paf_mongo->get_collection('jobs')->insert_one({pid => $pid, cmodel => $cmodel, agent => "pige", status => "new", idhash => $hash, created => time});
-    }
-  }
-  else {
-    $self->app->log->error("Error finding cmodel when creating imageserver job:" . $self->app->dumper($cmodelr));
-  }
 
   $self->render(json => $res, status => $res->{status});
 }
