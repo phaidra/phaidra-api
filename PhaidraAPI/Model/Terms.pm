@@ -342,7 +342,7 @@ sub _parse_uri {
 
   $res->{xmlns} = $xmlns;
 
-  $c->app->log->debug("Parsing uri: " . $c->app->dumper($res));
+  # $c->app->log->debug("Parsing uri: " . $c->app->dumper($res));
 
   return $res;
 }

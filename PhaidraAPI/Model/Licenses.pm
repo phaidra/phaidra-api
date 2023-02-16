@@ -32,7 +32,7 @@ sub get_licenses {
   }
   else {
 
-    $c->app->log->debug("Reading licenses from cache");
+    # $c->app->log->debug("Reading licenses from cache");
 
     my $cachekey = 'licenses';
     my $cacheval = $c->app->chi->get($cachekey);

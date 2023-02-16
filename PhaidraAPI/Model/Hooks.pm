@@ -182,7 +182,7 @@ sub modify_hook {
     if ($state eq 'A') {
       if (exists($c->app->config->{handle})) {
         if ($c->app->config->{handle}->{create_handle_job} eq '1') {
-          unless (($c->app->config->{handle}->{ignore_pages} eq '1') && ($res_cmodel->{cmodel} eq 'cmodel:Page')) {
+          unless (($c->app->config->{handle}->{ignore_pages} eq '1') && ($res_cmodel->{cmodel} eq 'Page')) {
             $self->_create_handle($c, $pid);
           }
         }
@@ -210,11 +210,10 @@ sub _create_imageserver_job {
 
   my $find = $c->paf_mongo->get_collection('jobs')->find_one({pid => $pid});
   unless ($find->{pid}) {
-    if ($cmodel eq 'cmodel:Picture' or $cmodel eq 'cmodel:PDFDocument') {
-      my $cm = $cmodel =~ s/cmodel://gr;
-      $c->app->log->info("Creating imageserver job pid[$pid] cm[$cm]");
+    if ($cmodel eq 'Picture' or $cmodel eq 'PDFDocument') {
+      $c->app->log->info("Creating imageserver job pid[$pid] cm[$cmodel]");
       my $hash = hmac_sha1_hex($pid, $c->app->config->{imageserver}->{hash_secret});
-      $c->paf_mongo->get_collection('jobs')->insert_one({pid => $pid, cmodel => $cm, agent => "pige", status => "new", idhash => $hash, created => time});
+      $c->paf_mongo->get_collection('jobs')->insert_one({pid => $pid, cmodel => $cmodel, agent => "pige", status => "new", idhash => $hash, created => time});
     }
   }
 
