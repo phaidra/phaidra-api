@@ -526,7 +526,9 @@ sub create {
   my $oaiid = "oai:" . $c->app->config->{phaidra}->{proaiRepositoryIdentifier} . ":" . $pid;
   my @relationships;
   push @relationships, {predicate => "info:fedora/fedora-system:def/model#hasModel", object => "info:fedora/" . $contentmodel};
-  push @relationships, {predicate => "http://www.openarchives.org/OAI/2.0/itemID",   object => $oaiid};
+  unless (exists($c->app->config->{phaidra}->{nolegacyds}) and $c->app->config->{phaidra}->{nolegacyds} == 1) {
+    push @relationships, {predicate => "http://www.openarchives.org/OAI/2.0/itemID", object => $oaiid};
+  }
 
   # set cmodel and oai itemid
   $c->app->log->debug("Set cmodel ($contentmodel) and oaiitemid ($oaiid)");
@@ -537,22 +539,25 @@ sub create {
     return $res;
   }
 
-  # add thumbnail
-  my $thumburl = "http://" . $c->app->config->{phaidra}->{baseurl} . "/preview/$pid";
-  $c->app->log->debug("Adding thumbnail ($thumburl)");
-  $r = $self->add_datastream($c, $pid, "THUMBNAIL", "image/png", $thumburl, undef, undef, "E", undef, undef, $username, $password);
-  push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-  $res->{status} = $r->{status};
-  if ($r->{status} ne 200) {
-    return $res;
-  }
+  unless (exists($c->app->config->{phaidra}->{nolegacyds}) and $c->app->config->{phaidra}->{nolegacyds} == 1) {
 
-  # add stylesheet
-  $r = $self->add_datastream($c, $pid, "STYLESHEET", "text/xml", $c->app->config->{phaidra}->{fedorastylesheeturl}, undef, undef, "E", undef, undef, $username, $password);
-  push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-  $res->{status} = $r->{status};
-  if ($r->{status} ne 200) {
-    return $res;
+    # add thumbnail
+    my $thumburl = "http://" . $c->app->config->{phaidra}->{baseurl} . "/preview/$pid";
+    $c->app->log->debug("Adding thumbnail ($thumburl)");
+    $r = $self->add_datastream($c, $pid, "THUMBNAIL", "image/png", $thumburl, undef, undef, "E", undef, undef, $username, $password);
+    push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+    $res->{status} = $r->{status};
+    if ($r->{status} ne 200) {
+      return $res;
+    }
+
+    # add stylesheet
+    $r = $self->add_datastream($c, $pid, "STYLESHEET", "text/xml", $c->app->config->{phaidra}->{fedorastylesheeturl}, undef, undef, "E", undef, undef, $username, $password);
+    push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+    $res->{status} = $r->{status};
+    if ($r->{status} ne 200) {
+      return $res;
+    }
   }
 
   return $res;
