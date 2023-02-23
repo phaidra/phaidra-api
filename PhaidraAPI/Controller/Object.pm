@@ -337,6 +337,19 @@ sub preview {
     ($filename, $mimetype, $size) = $octets_model->_get_ds_attributes($self, $pid, 'OCTETS', $foxmldom);
   }
 
+  my $docres;
+  my $index_model = PhaidraAPI::Model::Index->new;
+  if (!$size or $size == -1) {
+    $self->app->log->debug("pid[$pid] getting size from index");
+    $docres = $index_model->get_doc($self, $pid);
+    if ($docres->{status} ne 200) {
+      $self->app->log->error("pid[$pid] error searching for doc: " . $self->app->dumper($docres));
+      $self->reply->static('images/error.png');
+      return;
+    }
+    $size = $docres->{doc}->{size};
+  }
+
   my $showloadbutton = 0;
   unless ($force) {
     if ($size) {
@@ -368,13 +381,13 @@ sub preview {
       }
       if ($imgsrvjobstatus eq 'finished') {
         my $license     = '';
-        my $index_model = PhaidraAPI::Model::Index->new;
-        my $docres;
         if (($cmodel eq 'Page') and ($self->app->config->{solr}->{core_pages})) {
           $docres = $index_model->get_page_doc($self, $pid);
         }
         else {
-          $docres = $index_model->get_doc($self, $pid);
+          unless ($docres) {
+            $docres = $index_model->get_doc($self, $pid);
+          }
         }
         if ($docres->{status} ne 200) {
           $self->app->log->error("pid[$pid] error searching for doc: " . $self->app->dumper($docres));
@@ -415,12 +428,13 @@ sub preview {
       }
     }
     case ['Book'] {
-      my $index_model = PhaidraAPI::Model::Index->new;
-      my $docres      = $index_model->get_doc($self, $pid);
-      if ($docres->{status} ne 200) {
-        $self->app->log->error("pid[$pid] error searching for doc: " . $self->app->dumper($docres));
-        $self->reply->static('images/error.png');
-        return;
+      unless ($docres) {
+        $docres = $index_model->get_doc($self, $pid);
+        if ($docres->{status} ne 200) {
+          $self->app->log->error("pid[$pid] error searching for doc: " . $self->app->dumper($docres));
+          $self->reply->static('images/error.png');
+          return;
+        }
       }
 
       my $page = $self->param('page');
@@ -446,12 +460,12 @@ sub preview {
     }
     case 'Asset' {
 
-      my $index_model = PhaidraAPI::Model::Index->new;
-      my $docres      = $index_model->get_doc($self, $pid);
-      if ($docres->{status} ne 200) {
-        $self->app->log->error("pid[$pid] error searching for doc: " . $self->app->dumper($docres));
-        $self->reply->static('images/error.png');
-        return;
+      unless ($docres) {
+        if ($docres->{status} ne 200) {
+          $self->app->log->error("pid[$pid] error searching for doc: " . $self->app->dumper($docres));
+          $self->reply->static('images/error.png');
+          return;
+        }
       }
 
       # the mimetype in index can be coming from metadata too
@@ -489,8 +503,9 @@ sub preview {
           my $tracklanguage;
 
           # check if there isn't a track object
-          my $index_model = PhaidraAPI::Model::Index->new;
-          my $docres      = $index_model->get_doc($self, $pid);
+          unless ($docres) {
+            $docres = $index_model->get_doc($self, $pid);
+          }
           if ($docres->{status} ne 200) {
             $self->app->log->error("pid[$pid] error searching for doc: " . $self->app->dumper($docres));
           }

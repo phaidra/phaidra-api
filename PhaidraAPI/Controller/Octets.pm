@@ -85,6 +85,19 @@ sub get {
     ($filename, $mimetype, $size) = $octets_model->_get_ds_attributes($self, $pid, 'OCTETS', $dom);
   }
 
+  my $docres;
+  my $index_model = PhaidraAPI::Model::Index->new;
+  if (!$size or $size == -1) {
+    $self->app->log->debug("pid[$pid] getting size from index");
+    $docres = $index_model->get_doc($self, $pid);
+    if ($docres->{status} ne 200) {
+      $self->app->log->error("pid[$pid] error searching for doc: " . $self->app->dumper($docres));
+      $self->reply->static('images/error.png');
+      return;
+    }
+    $size = $docres->{doc}->{size};
+  }
+
   $self->app->log->debug("operation[$operation] trywebversion[".($trywebversion ? $trywebversion : 'undef') ."] pid[$pid] path[$path] mimetype[$mimetype] filename[$filename] size[$size]");
 
   if ($operation eq 'download') {
