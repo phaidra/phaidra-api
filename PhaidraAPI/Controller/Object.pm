@@ -1316,6 +1316,8 @@ sub get_iiif_manifest {
 sub get_legacy_container_member {
   my $self = shift;
 
+  my $res = {alerts => [], status => 200};
+
   my $pid = $self->stash('pid');
   unless (defined($pid)) {
     $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}], status => 404}, status => 404);
@@ -1328,8 +1330,49 @@ sub get_legacy_container_member {
     return;
   }
 
+  my $authz_model = PhaidraAPI::Model::Authorization->new;
+  my $authzres    = $authz_model->check_rights($self, $pid, 'ro');
+  if ($authzres->{status} != 200) {
+    $res->{status} = $authzres->{status};
+    push @{$res->{alerts}}, @{$authzres->{alerts}} if scalar @{$authzres->{alerts}} > 0;
+    $self->render(json => $res, status => $res->{status});
+    return;
+  }
+
   my $object_model = PhaidraAPI::Model::Object->new;
-  $object_model->proxy_datastream($self, $pid, $ds, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 0);
+  my $r_oxml       = $object_model->get_foxml($self, $pid);
+  if ($r_oxml->{status} ne 200) {
+    $self->render(json => $r_oxml, status => $r_oxml->{status});
+    return;
+  }
+  my $dom = Mojo::DOM->new();
+  $dom->xml(1);
+  $dom->parse($r_oxml->{foxml});
+
+  my ($filename, $mimetype, $size, $path);
+  my $octets_model = PhaidraAPI::Model::Octets->new;
+  my $parthres     = $octets_model->_get_ds_path($self, $pid, $ds);
+  if ($parthres->{status} != 200) {
+    $res->{status} = $parthres->{status};
+    push @{$res->{alerts}}, @{$parthres->{alerts}} if scalar @{$parthres->{alerts}} > 0;
+    $self->render(json => $res, status => $res->{status});
+    return;
+  }
+  else {
+    $path = $parthres->{path};
+  }
+  ($filename, $mimetype, $size) = $octets_model->_get_ds_attributes($self, $pid, $ds, $dom);
+
+  $self->app->log->debug("operation[download_member] pid[$pid] path[$path] mimetype[$mimetype] filename[$filename] size[$size]");
+
+  $self->res->headers->content_disposition("attachment;filename=\"$filename\"");
+  $self->res->headers->content_type($mimetype);
+
+  my $asset = Mojo::Asset::File->new(path => $path);
+  $self->res->headers->add('Content-Length' => $asset->size);
+
+  $self->res->content->asset($asset);
+  $self->rendered($res->{status});
 }
 
 # Diss method is for calling the disseminator which is api-a access, so it can also be called without credentials.
