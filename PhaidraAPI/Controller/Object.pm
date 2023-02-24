@@ -380,7 +380,7 @@ sub preview {
         return;
       }
       if ($imgsrvjobstatus eq 'finished') {
-        my $license     = '';
+        my $license = '';
         if (($cmodel eq 'Page') and ($self->app->config->{solr}->{core_pages})) {
           $docres = $index_model->get_page_doc($self, $pid);
         }
@@ -563,9 +563,10 @@ sub preview {
         $self->stash(baseurl       => $self->config->{baseurl});
         $self->stash(basepath      => $self->config->{basepath});
         $self->stash(trywebversion => $trywebversion);
+
         # html tag won't work with video/quicktime
-        $self->stash(mimetype      => $mimetype = 'video/quicktime' ? 'video/mp4' : $mimetype);
-        $self->stash(pid           => $pid);
+        $self->stash(mimetype => $mimetype = 'video/quicktime' ? 'video/mp4' : $mimetype);
+        $self->stash(pid      => $pid);
         my $thumbPid = $self->get_is_thumbnail_for($pid);
         if ($thumbPid) {
           $self->stash(thumbpid => $pid);
@@ -1310,6 +1311,25 @@ sub get_iiif_manifest {
 
   my $object_model = PhaidraAPI::Model::Object->new;
   $object_model->proxy_datastream($self, $pid, 'IIIF-MANIFEST', $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 1);
+}
+
+sub get_legacy_container_member {
+  my $self = shift;
+
+  my $pid = $self->stash('pid');
+  unless (defined($pid)) {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}], status => 404}, status => 404);
+    return;
+  }
+
+  my $ds = $self->stash('ds');
+  unless (defined($ds)) {
+    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined ds'}], status => 404}, status => 404);
+    return;
+  }
+
+  my $object_model = PhaidraAPI::Model::Object->new;
+  $object_model->proxy_datastream($self, $pid, $ds, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 0);
 }
 
 # Diss method is for calling the disseminator which is api-a access, so it can also be called without credentials.

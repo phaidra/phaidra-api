@@ -553,6 +553,7 @@ sub startup {
   $proxyauth_optional->route('object/:pid/octets')                        ->via('get')      ->to('octets#proxy');
   $proxyauth_optional->route('object/:pid/download')                      ->via('get')      ->to('octets#get', operation => 'download');
   $proxyauth_optional->route('object/:pid/get')                           ->via('get')      ->to('octets#get', operation => 'get');
+  $proxyauth_optional->route('object/:pid/comp/:ds')                      ->via('get')      ->to('object#get_legacy_container_member');
 
   $proxyauth_optional->route('imageserver/:pid/status')                   ->via('get')      ->to('imageserver#status');
 
