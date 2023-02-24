@@ -239,6 +239,12 @@ sub info {
     }
   }
 
+  if ($dshash{'CONTAINERINFO'}) {
+    if ($info->{readrights} == 1) {
+      $self->add_legacy_container_members($c, $pid, $info);
+    }
+  }
+
   my $user_data = $c->app->directory->get_user_data($c, $info->{owner});
   $info->{owner} = {
     username    => $user_data->{username},
@@ -275,6 +281,44 @@ sub info {
 
   $res->{info} = $info;
   return $res;
+}
+
+sub add_legacy_container_members {
+  my ($self, $c, $pid, $info) = @_;
+
+  my $containerinfo;
+  my $r_oxml = $self->get_foxml($c, $pid);
+  if ($r_oxml->{status} eq 200) {
+    my $dom = Mojo::DOM->new();
+    $dom->xml(1);
+    $dom->parse($r_oxml->{foxml});
+
+    for my $e ($dom->find('foxml\:datastream')->each) {
+      if ($e->attr('ID') eq 'CONTAINERINFO') {
+        my $latestVersion = $e->find('foxml\:datastreamVersion')->first;
+        for my $e1 ($e->find('foxml\:datastreamVersion')->each) {
+          if ($e1->attr('CREATED') gt $latestVersion->attr('CREATED')) {
+            $latestVersion = $e1;
+          }
+        }
+        $containerinfo = $latestVersion;
+      }
+    }
+  }
+
+  # <c:container xmlns:c="http://phaidra.univie.ac.at/XML/V1.0/container">
+  #   <c:datastream default="yes" filename="blatt_mit_wassertropfen.jpg">COMP000001</c:datastream>
+  #   <c:datastream default="no" filename="bild_test.zip">COMP000000</c:datastream>
+  #   <c:datastream default="no" filename="DE-wp1.jpg">COMP000002</c:datastream>
+  # </c:container>
+  my @members;
+  if ($containerinfo) {
+    for my $e ($containerinfo->find('c\:datastream')->each) {
+      push @members, {filename => $e->attr('filename'), ds => $e->text};
+    }
+  }
+
+  $info->{legacy_container_members} = \@members;
 }
 
 sub add_metatags {
