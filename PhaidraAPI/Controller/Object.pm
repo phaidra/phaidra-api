@@ -344,10 +344,11 @@ sub preview {
     $docres = $index_model->get_doc($self, $pid);
     if ($docres->{status} ne 200) {
       $self->app->log->error("pid[$pid] error searching for doc: " . $self->app->dumper($docres));
-      $self->reply->static('images/error.png');
-      return;
+      #$self->reply->static('images/error.png');
+      #return;
+    } else {
+      $size = $docres->{doc}->{size};
     }
-    $size = $docres->{doc}->{size};
   }
 
   my $showloadbutton = 0;
@@ -384,11 +385,15 @@ sub preview {
         if (($cmodel eq 'Page') and ($self->app->config->{solr}->{core_pages})) {
           $docres = $index_model->get_page_doc($self, $pid);
         }
-        else {
-          unless ($docres) {
-            $docres = $index_model->get_doc($self, $pid);
-          }
+    
+        if(!$docres or ($docres->{status} ne 200)) {
+          $docres = $index_model->get_doc($self, $pid);
         }
+
+        if(!$docres or ($docres->{status} ne 200)) {
+          $docres = $index_model->get($self, $pid);
+        }
+   
         if ($docres->{status} ne 200) {
           $self->app->log->error("pid[$pid] error searching for doc: " . $self->app->dumper($docres));
           $self->reply->static('images/error.png');
@@ -597,9 +602,9 @@ sub preview {
       my $thumbPid = $self->get_is_thumbnail_for($pid);
       if ($thumbPid) {
         if ($self->imageserver_job_status($thumbPid) eq 'finished') {
-          my $size       = "!480,480";
+          my $thsize       = "!480,480";
           my $isrv_model = PhaidraAPI::Model::Imageserver->new;
-          my $resis      = $isrv_model->get_url($self, Mojo::Parameters->new(IIIF => "$thumbPid.tif/full/$size/0/default.jpg"), 0);
+          my $resis      = $isrv_model->get_url($self, Mojo::Parameters->new(IIIF => "$thumbPid.tif/full/$thsize/0/default.jpg"), 0);
           if ($resis->{status} ne 200) {
             $self->render(json => $resis, status => $resis->{status});
             return;

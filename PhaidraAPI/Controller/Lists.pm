@@ -111,14 +111,16 @@ sub add_members {
     }
   };
 
+  #$self->app->log->debug("XXXXXXXXXX adding " . $self->app->dumper($members));
+
   my $r;
   for my $m (@{$members->{members}}) {
     $r = $self->mongo->get_collection('lists')->update_one({"listid" => $lid, "owner" => $owner}, {'$push' => {'members' => $m}, '$set' => {"updated" => time}});
   }
 
-  # $self->app->log->debug("XXXXXXXXXX " . $self->app->dumper($r));
+  #$self->app->log->debug("XXXXXXXXXX " . $self->app->dumper($r));
 
-  if ($r->{ok} || $r->{acknowledged}) {
+  if ($r->{matched_count} && ($r->{matched_count} > 0)) {
     $self->render(json => {status => 200, alerts => []}, status => 200);
   }
   else {
@@ -158,7 +160,7 @@ sub remove_members {
     $r = $self->mongo->get_collection('lists')->update_one({"listid" => $lid, "owner" => $owner}, {'$pull' => {'members' => {'pid' => $pid}}, '$set' => {"updated" => time}});
   }
 #$self->app->log->debug('XXXXXXXXXXXXXXX: '.$self->app->dumper($r));
-  if ($r->{acknowledged} && $r->{matched_count}) {
+  if ($r->{matched_count} && ($r->{matched_count} > 0)) {
     $self->render(json => {status => 200, alerts => []}, status => 200);
   }
   else {
@@ -178,7 +180,7 @@ sub token_create {
 
   my $r = $self->mongo->get_collection('lists')->update_one({"listid" => $lid, "owner" => $owner}, {'$set' => {'token' => $token, "updated" => time}});
 
-  if ($r->{acknowledged}) {
+  if ($r->{matched_count} && ($r->{matched_count} > 0)) {
     $self->render(json => {token => $token, status => 200, alerts => []}, status => 200);
   }
   else {
@@ -194,7 +196,7 @@ sub token_delete {
 
   my $r = $self->mongo->get_collection('lists')->update_one({"listid" => $lid, "owner" => $owner}, {'$set' => {'token' => '', "updated" => time}});
 
-  if ($r->{acknowledged}) {
+  if ($r->{matched_count} && ($r->{matched_count} > 0)) {
     $self->render(json => {status => 200, alerts => []}, status => 200);
   }
   else {
