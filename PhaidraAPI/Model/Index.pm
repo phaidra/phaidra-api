@@ -463,9 +463,11 @@ sub get_doc_from_core {
 }
 
 sub getSolrUpdateUrl {
-  my ($self, $c, $cmodel) = @_;
+  my ($self, $c, $cmodel, $core) = @_;
 
-  my $core = $c->app->config->{solr}->{core};
+  unless ($core) {
+   $core = $c->app->config->{solr}->{core};
+  }
   if (exists($c->app->config->{solr}->{core_pages}) and $c->app->config->{solr}->{core_pages} ne '' and $cmodel eq 'Page') {
     $core = $c->app->config->{solr}->{core_pages};
   }
@@ -487,7 +489,7 @@ sub getSolrUpdateUrl {
 }
 
 sub update {
-  my ($self, $c, $pid, $dc_model, $search_model, $object_model, $ignorestatus, $norecursion) = @_;
+  my ($self, $c, $pid, $dc_model, $search_model, $object_model, $ignorestatus, $norecursion, $core) = @_;
 
   my $res = {status => 200};
 
@@ -500,7 +502,7 @@ sub update {
       return $cmodel_res;
     }
 
-    my $updateurl = $self->getSolrUpdateUrl($c, $cmodel_res->{cmodel});
+    my $updateurl = $self->getSolrUpdateUrl($c, $cmodel_res->{cmodel}, $core);
 
     my $ua = Mojo::UserAgent->new;
 
