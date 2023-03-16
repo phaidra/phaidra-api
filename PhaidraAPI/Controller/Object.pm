@@ -10,6 +10,7 @@ use Mojo::Util qw(encode decode);
 use Mojo::ByteStream qw(b);
 use Mojo::Upload;
 use Mojo::Path;
+use Mojo::IOLoop;
 use Scalar::Util qw(looks_like_number);
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Collection;
@@ -377,8 +378,22 @@ sub preview {
         $self->app->log->info("Imageserver job not found: creating imageserver job pid[$pid] cm[$cmodel]");
         my $hash = hmac_sha1_hex($pid, $self->app->config->{imageserver}->{hash_secret});
         $self->paf_mongo->get_collection('jobs')->insert_one({pid => $pid, cmodel => $cmodel, agent => "pige", status => "new", idhash => $hash, created => time});
-        $self->render(text => "Image processing status: queued. Please try again later.", status => 200);
-        return;
+        $self->app->log->info("Imageserver job queued: sleeping... pid[$pid] cm[$cmodel]");
+        Mojo::IOLoop->timer(8 => sub {}); Mojo::IOLoop->start;
+        $self->app->log->info("Imageserver job queued: waking up... pid[$pid] cm[$cmodel]");
+        $imgsrvjobstatus = $self->imageserver_job_status($pid);
+        $self->app->log->info("Imageserver job queued: job status [$imgsrvjobstatus] pid[$pid] cm[$cmodel]");
+        if ($imgsrvjobstatus ne 'finished') {
+          $self->render(text => "Image processing status: queued. Please try again later.", status => 200);
+          return;
+        }
+      }
+      if ($imgsrvjobstatus eq 'new' or $imgsrvjobstatus eq 'in_progess') {
+        $self->app->log->info("Imageserver job new/in_progess: sleeping... pid[$pid] cm[$cmodel]");
+        Mojo::IOLoop->timer(6 => sub {}); Mojo::IOLoop->start;
+        $self->app->log->info("Imageserver job new/in_progess: waking up... pid[$pid] cm[$cmodel]");
+        $imgsrvjobstatus = $self->imageserver_job_status($pid);
+        $self->app->log->info("Imageserver job new/in_progess: job status [$imgsrvjobstatus] pid[$pid] cm[$cmodel]");
       }
       if ($imgsrvjobstatus eq 'finished') {
         my $license = '';
