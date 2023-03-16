@@ -775,7 +775,7 @@ sub sendAdminEmail {
       <p>Title: $title</p>
       <p>Owner: $owner</p>
       <p>IR: <a href=\"https://$irbaseur/detail/$pid\" target=\"_blank\">https://$irbaseur/detail/$pid</a></p>
-      <p>Phaidra: <a href=\"https://$phaidrabaseurl/detail_object/$pid\" target=\"_blank\">https://$phaidrabaseurl/detail_object/$pid</a></p>		
+      <p>Phaidra: <a href=\"https://$phaidrabaseurl/detail/$pid\" target=\"_blank\">https://$phaidrabaseurl/detail/$pid</a></p>		
       <p>Requested license: $license</p>
     </body>
   </html>	
