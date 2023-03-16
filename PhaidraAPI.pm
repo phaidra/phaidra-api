@@ -499,6 +499,8 @@ sub startup {
 
   $r->route('oai')                                ->via('get')    ->to('oai#handler');
   $r->route('oai')                                ->via('post')   ->to('oai#handler');
+  $r->route('oaitest')                            ->via('get')    ->to('oaitest#handler');
+  $r->route('oaitest')                            ->via('post')   ->to('oaitest#handler');
 
   $r->route('termsofuse')                         ->via('get')    ->to('termsofuse#get');
 
