@@ -2331,7 +2331,7 @@ sub _add_uwm_index {
     }
   }
 
-  # reference numbers -> get grants
+  # reference numbers
   my $histkult = $self->_find_first_uwm_node_rec($c, "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0", "histkult", $uwm);
   if ($histkult) {
     if ($histkult->{children}) {
@@ -2348,11 +2348,16 @@ sub _add_uwm_index {
                 $number = $refnumch->{ui_value};
               }
             }
+            # shelfmark/signatur
+            if ($reference eq 'http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0/voc_25/1552119') {
+              push @{$index->{"bf_shelfmark"}}, $number;
+            }
+            # get grants
             my $referenceLabel = $uwm_funder{$reference};
             if ($referenceLabel) {
               $index->{"uwm_funding"} = $referenceLabel . ': ' . $number;
             }
-            elsif ($reference eq '1557233') {    # unspecified grant number
+            elsif ($reference eq 'http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0/voc_25/1557233') {    # unspecified grant number
               $index->{"uwm_funding"} = $number;
             }
           }
