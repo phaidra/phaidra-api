@@ -1148,7 +1148,7 @@ sub _get {
     for my $dsid (@{$fres->{contains}}) {
       my $getdsres = $object_model->get_and_parse_xml_datastream($c, $pid, $dsid, undef, undef, 1);
       if ($getdsres->{status} ne 200) {
-        $c->app->log->debug("XXXXXXXXX" . $c->app->dumper($getdsres));
+        # $c->app->log->debug("XXXXXXXXX" . $c->app->dumper($getdsres));
         return $getdsres;
       }
       $datastreams{$dsid} = $getdsres->{xml};
@@ -1283,8 +1283,12 @@ sub _get {
         }
 
         # latlon -> latitude,longitude
-        if (exists($plm->{point})) {
-          $index{latlon} = $plm->{point}->{coordinates}->{latitude} . "," . $plm->{point}->{coordinates}->{longitude};
+        my $lon_dec = $plm->{point}->{coordinates}->{longitude};
+        my $lat_dec = $plm->{point}->{coordinates}->{latitude};
+        if ($lon_dec >= -180 and $lon_dec <= 180 and $lat_dec >= -90 and $lat_dec <= 90) {
+          if (exists($plm->{point})) {
+            $index{latlon} = "$lat_dec,$lon_dec";
+          }
         }
       }
     }
@@ -2043,9 +2047,9 @@ sub _add_jsonld_index {
     push @{$index->{"bib_published"}}, $jsonld->{'dcterms:issued'}[0];
   }
 
-  if (exists($jsonld->{'dcterms:dateSubmitted'}) && $jsonld->{'dcterms:dateSubmitted'} ne '') {
-    push @{$index->{"dcterms_datesubmitted"}}, $jsonld->{'dcterms:dateSubmitted'}[0];
-  }
+  # if (exists($jsonld->{'dcterms:dateSubmitted'}) && $jsonld->{'dcterms:dateSubmitted'} ne '') {
+  #   push @{$index->{"dcterms_datesubmitted"}}, $jsonld->{'dcterms:dateSubmitted'}[0];
+  # }
 
   if (exists($jsonld->{'rdau:P60193'})) {
     for my $o (@{$jsonld->{'rdau:P60193'}}) {
@@ -2163,7 +2167,10 @@ sub _add_jsonld_index {
 
   if ($jsonld->{'phaidra:systemTag'}) {
     for my $o (@{$jsonld->{'phaidra:systemTag'}}) {
-      push @{$index->{"systemtag"}}, $o;
+      # org.apache.lucene.util.BytesRefHash$MaxBytesLengthExceededException: bytes can be at most 32766 in length; got 40045
+      if (length($o) <= 32766) {
+        push @{$index->{"systemtag"}}, $o;
+      }
     }
   }
 
@@ -2441,12 +2448,14 @@ sub _add_uwm_index {
       my $lat_sign = $8;
 
       my $lon_dec = $lon_deg + ($lon_min / 60) + ($lon_sec / 3600);
-      $lon_dec = -$lon_dec if $lon_sign eq 'S';
+      $lon_dec = -$lon_dec if $lon_sign eq 'W';
 
       my $lat_dec = $lat_deg + ($lat_min / 60) + ($lat_sec / 3600);
-      $lat_dec = -$lat_dec if $lat_sign eq 'W';
+      $lat_dec = -$lat_dec if $lat_sign eq 'S';
 
-      push @{$index->{latlon}}, "$lat_dec,$lon_dec";
+      if ($lon_dec >= -180 and $lon_dec <= 180 and $lat_dec >= -90 and $lat_dec <= 90) {
+        push @{$index->{latlon}}, "$lat_dec,$lon_dec";
+      }
     }
   }
 
