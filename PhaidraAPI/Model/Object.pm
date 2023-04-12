@@ -1885,8 +1885,12 @@ sub add_relationship {
     }
     my $objectOwner = $owr->{ownerid};
     $objectOwner =~ s/"//g;
-    $c->app->log->debug("adding hasMember check: memberOwner[$objectOwner] username[$username]");
-    if (($username ne $c->app->config->{phaidra}->{adminusername}) && ($username ne $objectOwner)) {
+    my $currUser = $username;
+    if (exists($c->stash->{remote_user})) {
+      $currUser = $c->stash->{remote_user};
+    }
+    $c->app->log->debug("adding hasMember check: memberOwner[$objectOwner] currUser[$currUser]");
+    if (($username ne $c->app->config->{phaidra}->{adminusername}) && ($currUser ne $objectOwner)) {
       unshift @{$res->{alerts}}, {type => 'danger', msg => 'Forbidden'};
       $res->{status} = 403;
       return $res;
