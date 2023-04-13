@@ -69,7 +69,7 @@ sub check_rights {
     # no write rights pass this point
     if ($op and ($op eq 'rw' or $op eq 'w')) {
       $c->app->log->info("Authz op[$op] pid[$pid] currentuser[$currentuser] DENIED: no write permission");
-      $res->{alerts} = [{type => 'danger', msg => 'Forbidden'}];
+      $res->{alerts} = [{type => 'error', msg => 'Forbidden'}];
       $res->{status} = 403;
       return $res;
     }
@@ -191,7 +191,7 @@ sub check_rights {
     if (exists($rights->{'spl'}) or exists($rights->{'kennzahl'}) or exists($rights->{'perfunk'})) {
       $rightsAreEmpty = 0;
       $c->app->log->info("Authz op[$op] pid[$pid] currentuser[$currentuser] DENIED: deprecated definition");
-      $res->{alerts} = [{type => 'danger', msg => 'Forbidden'}];
+      $res->{alerts} = [{type => 'error', msg => 'Forbidden'}];
       $res->{status} = 403;
       return $res;
     }
@@ -204,7 +204,7 @@ sub check_rights {
     }
     else {
       $c->app->log->info("Authz op[$op] pid[$pid] currentuser[$currentuser] DENIED: no matching rule");
-      $res->{alerts} = [{type => 'danger', msg => 'Forbidden'}];
+      $res->{alerts} = [{type => 'error', msg => 'Forbidden'}];
       $res->{status} = 403;
       return $res;
     }
@@ -222,7 +222,7 @@ sub check_rights {
       $ds = 'READWRITE';
     }
     else {
-      $res->{alerts} = [{type => 'danger', msg => 'Unknown operation to check'}];
+      $res->{alerts} = [{type => 'error', msg => 'Unknown operation to check'}];
       $res->{status} = 400;
       return $res;
     }

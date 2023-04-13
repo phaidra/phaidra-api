@@ -18,7 +18,7 @@ sub descendants {
   my $res = {alerts => [], status => 200};
 
   unless (defined($self->stash('pid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -51,7 +51,7 @@ sub descendants {
   else {
     my $err = "[$pid] error getting root doc from solr: " . $getres->code . " " . $getres->message;
     $self->app->log->error($err);
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
     $res->{status} = $getres->code ? $getres->code : 500;
     return $res;
   }
@@ -90,7 +90,7 @@ sub add_collection_members {
   my $res = {alerts => [], status => 200};
 
   unless (defined($self->stash('pid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -98,7 +98,7 @@ sub add_collection_members {
 
   my $metadata = $self->param('metadata');
   unless (defined($metadata)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata sent'}]}, status => 400);
     return;
   }
 
@@ -118,26 +118,26 @@ sub add_collection_members {
 
   if ($@) {
     $self->app->log->error("Error: $@");
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $@};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $@};
     $res->{status} = 400;
     $self->render(json => $res, status => $res->{status});
     return;
   }
 
   unless (defined($metadata->{metadata})) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata found'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata found'}]}, status => 400);
     return;
   }
   $metadata = $metadata->{metadata};
   unless (defined($metadata->{members})) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No members sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No members sent'}]}, status => 400);
     return;
   }
   my $members = $metadata->{members};
 
   my $members_size = scalar @{$members};
   if ($members_size eq 0) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No members provided'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No members provided'}]}, status => 400);
     return;
   }
 
@@ -198,14 +198,14 @@ sub remove_collection_members {
   my $res = {alerts => [], status => 200};
 
   unless (defined($self->stash('pid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
   my $pid      = $self->stash('pid');
   my $metadata = $self->param('metadata');
   unless (defined($metadata)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata sent'}]}, status => 400);
     return;
   }
 
@@ -225,26 +225,26 @@ sub remove_collection_members {
 
   if ($@) {
     $self->app->log->error("Error: $@");
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $@};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $@};
     $res->{status} = 400;
     $self->render(json => $res, status => $res->{status});
     return;
   }
 
   unless (defined($metadata->{metadata})) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata found'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata found'}]}, status => 400);
     return;
   }
   $metadata = $metadata->{metadata};
   unless (defined($metadata->{members})) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No members sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No members sent'}]}, status => 400);
     return;
   }
   my $members = $metadata->{members};
 
   my $members_size = scalar @{$members};
   if ($members_size eq 0) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No members provided'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No members provided'}]}, status => 400);
     return;
   }
 
@@ -290,7 +290,7 @@ sub get_collection_members {
   my $nocache = $self->param('nocache');
 
   unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -308,7 +308,7 @@ sub create {
 
   my $metadata = $self->param('metadata');
   unless (defined($metadata)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata sent'}]}, status => 400);
     return;
   }
 
@@ -328,14 +328,14 @@ sub create {
 
   if ($@) {
     $self->app->log->error("Error: $@");
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $@};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $@};
     $res->{status} = 400;
     $self->render(json => $res, status => $res->{status});
     return;
   }
 
   unless (defined($metadata->{metadata})) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata found'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata found'}]}, status => 400);
     return;
   }
   $metadata = $metadata->{metadata};

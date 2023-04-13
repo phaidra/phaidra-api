@@ -127,7 +127,7 @@ sub info {
     my $r_hps = $index_model->get_haspart_size($c, $pid, $info->{cmodel});
     if ($r_hps->{status} ne 200) {
       push @{$res->{alerts}}, @{$r_hps->{alerts}} if scalar @{$r_hps->{alerts}} > 0;
-      push @{$res->{alerts}}, {type => 'danger', msg => 'Error getting haspart size'};
+      push @{$res->{alerts}}, {type => 'error', msg => 'Error getting haspart size'};
     }
     else {
       $info->{haspartsize} = $r_hps->{haspartsize};
@@ -138,7 +138,7 @@ sub info {
     my $r_mmbrs = $index_model->get_object_members($c, $pid, $info->{cmodel});
     if ($r_mmbrs->{status} ne 200) {
       push @{$res->{alerts}}, @{$r_mmbrs->{alerts}} if scalar @{$r_mmbrs->{alerts}} > 0;
-      push @{$res->{alerts}}, {type => 'danger', msg => 'Error getting object members'};
+      push @{$res->{alerts}}, {type => 'error', msg => 'Error getting object members'};
     }
     else {
       $info->{members} = $r_mmbrs->{members};
@@ -148,7 +148,7 @@ sub info {
   my $r_rels = $index_model->get_relationships($c, $pid, $info->{cmodel});
   if ($r_rels->{status} ne 200) {
     push @{$res->{alerts}}, @{$r_rels->{alerts}} if scalar @{$r_rels->{alerts}} > 0;
-    push @{$res->{alerts}}, {type => 'danger', msg => 'Error getting relationships'};
+    push @{$res->{alerts}}, {type => 'error', msg => 'Error getting relationships'};
   }
   else {
     $info->{relationships}       = $r_rels->{relationships};
@@ -181,7 +181,7 @@ sub info {
     my $r_jsonld     = $jsonld_model->get_object_jsonld_parsed($c, $pid, $username, $password);
     if ($r_jsonld->{status} ne 200) {
       push @{$res->{alerts}}, @{$r_jsonld->{alerts}} if scalar @{$r_jsonld->{alerts}} > 0;
-      push @{$res->{alerts}}, {type => 'danger', msg => 'Error getting JSON-LD'};
+      push @{$res->{alerts}}, {type => 'error', msg => 'Error getting JSON-LD'};
     }
     else {
       $info->{metadata}->{'JSON-LD'} = $r_jsonld->{'JSON-LD'};
@@ -193,7 +193,7 @@ sub info {
     my $r          = $mods_model->get_object_mods_json($c, $pid, 'basic', $username, $password);
     if ($r->{status} ne 200) {
       push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-      push @{$res->{alerts}}, {type => 'danger', msg => 'Error getting MODS'};
+      push @{$res->{alerts}}, {type => 'error', msg => 'Error getting MODS'};
     }
     else {
       $info->{metadata}->{mods} = $r->{mods};
@@ -205,7 +205,7 @@ sub info {
     my $r                = $uwmetadata_model->get_object_metadata($c, $pid, 'resolved', $username, $password);
     if ($r->{status} ne 200) {
       push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-      push @{$res->{alerts}}, {type => 'danger', msg => 'Error getting UWMETADATA'};
+      push @{$res->{alerts}}, {type => 'error', msg => 'Error getting UWMETADATA'};
     }
     else {
       $info->{metadata}->{uwmetadata} = $r->{uwmetadata};
@@ -219,7 +219,7 @@ sub info {
     my $r         = $geo_model->get_object_geo_json($c, $pid, $username, $password);
     if ($r->{status} ne 200) {
       push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-      push @{$res->{alerts}}, {type => 'danger', msg => 'Error getting GEO'};
+      push @{$res->{alerts}}, {type => 'error', msg => 'Error getting GEO'};
     }
     else {
       $info->{metadata}->{geo} = $r->{geo};
@@ -470,7 +470,7 @@ sub delete {
     return $res;
   }
   else {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $deleteres->message};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $deleteres->message};
     $res->{status} = $deleteres->code;
   }
 
@@ -536,7 +536,7 @@ sub modify {
     }
   }
   else {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $putres->message};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $putres->message};
     $res->{status} = $putres->{code} ? $putres->{code} : 500;
   }
 
@@ -681,7 +681,7 @@ sub create_simple {
   my $res = {alerts => [], status => 200};
 
   unless (defined($metadata)) {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'No metadata provided'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'No metadata provided'};
     $res->{status} = 400;
     return $res;
   }
@@ -695,7 +695,7 @@ sub create_simple {
     if ($r->{status} ne 200) {
       $res->{status} = 500;
       unshift @{$res->{alerts}}, @{$r->{alerts}};
-      unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error creating object'};
+      unshift @{$res->{alerts}}, {type => 'error', msg => 'Error creating object'};
       return $res;
     }
     $pid = $r->{pid};
@@ -734,7 +734,7 @@ sub create_simple {
 
   if ($cmodel eq 'cmodel:Resource') {
     unless (exists($metadata->{metadata}->{resourcelink})) {
-      unshift @{$res->{alerts}}, {type => 'danger', msg => 'No resource link provided'};
+      unshift @{$res->{alerts}}, {type => 'error', msg => 'No resource link provided'};
       $res->{status} = 400;
       return $res;
     }
@@ -746,7 +746,7 @@ sub create_simple {
       foreach my $a (@{$r->{alerts}}) {
         unshift @{$res->{alerts}}, $a;
       }
-      unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error saving link'};
+      unshift @{$res->{alerts}}, {type => 'error', msg => 'Error saving link'};
       return $res;
     }
   }
@@ -764,7 +764,7 @@ sub create_simple {
     foreach my $a (@{$r->{alerts}}) {
       unshift @{$res->{alerts}}, $a;
     }
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error saving metadata'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'Error saving metadata'};
     return $res;
   }
 
@@ -775,7 +775,7 @@ sub create_simple {
     foreach my $a (@{$r->{alerts}}) {
       unshift @{$res->{alerts}}, $a;
     }
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error activating object'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'Error activating object'};
     return $res;
   }
   else {
@@ -809,7 +809,7 @@ sub create_simple {
         foreach my $a (@{$r->{alerts}}) {
           unshift @{$res->{alerts}}, $a;
         }
-        unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error modifying ownership'};
+        unshift @{$res->{alerts}}, {type => 'error', msg => 'Error modifying ownership'};
       }
     }
   }
@@ -828,7 +828,7 @@ sub create_container {
   my $res = {alerts => [], status => 200};
 
   unless (defined($metadata)) {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'No metadata provided'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'No metadata provided'};
     $res->{status} = 400;
     return $res;
   }
@@ -844,7 +844,7 @@ sub create_container {
       if (($k ne 'container')) {
         my $childupload = $c->req->upload($k);
         unless (defined($childupload)) {
-          unshift @{$res->{alerts}}, {type => 'danger', msg => "Missing container member file [$k]"};
+          unshift @{$res->{alerts}}, {type => 'error', msg => "Missing container member file [$k]"};
           $res->{status} = 400;
           return $res;
         }
@@ -876,7 +876,7 @@ sub create_container {
           if ($r->{status} ne 200) {
             $res->{status} = 500;
             unshift @{$res->{alerts}}, @{$r->{alerts}};
-            unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error creating child object'};
+            unshift @{$res->{alerts}}, {type => 'error', msg => 'Error creating child object'};
             return $res;
           }
 
@@ -931,7 +931,7 @@ sub create_container {
     if ($r->{status} ne 200) {
       $res->{status} = 500;
       unshift @{$res->{alerts}}, @{$r->{alerts}};
-      unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error creating object'};
+      unshift @{$res->{alerts}}, {type => 'error', msg => 'Error creating object'};
       return $res;
     }
     $pid = $r->{pid};
@@ -975,7 +975,7 @@ sub create_container {
     foreach my $a (@{$r->{alerts}}) {
       unshift @{$res->{alerts}}, $a;
     }
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error saving metadata'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'Error saving metadata'};
     return $res;
   }
 
@@ -1032,7 +1032,7 @@ sub create_container {
     foreach my $a (@{$r->{alerts}}) {
       unshift @{$res->{alerts}}, $a;
     }
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error activating object'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'Error activating object'};
     return $res;
   }
   else {
@@ -1066,7 +1066,7 @@ sub create_container {
         foreach my $a (@{$r->{alerts}}) {
           unshift @{$res->{alerts}}, $a;
         }
-        unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error modifying ownership'};
+        unshift @{$res->{alerts}}, {type => 'error', msg => 'Error modifying ownership'};
       }
     }
   }
@@ -1160,7 +1160,7 @@ sub add_octets {
   }
   else {
     $c->app->log->error($postres->code . ": " . $postres->message);
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $postres->message};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $postres->message};
     $res->{status} = $postres->code ? $postres->code : 500;
   }
 
@@ -1196,7 +1196,7 @@ sub save_metadata {
         foreach my $a (@{$r->{alerts}}) {
           unshift @{$res->{alerts}}, $a;
         }
-        unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error saving uwmetadata'};
+        unshift @{$res->{alerts}}, {type => 'error', msg => 'Error saving uwmetadata'};
       }
       $found     = 1;
       $found_bib = 1;
@@ -1214,7 +1214,7 @@ sub save_metadata {
         foreach my $a (@{$r->{alerts}}) {
           unshift @{$res->{alerts}}, $a;
         }
-        unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error saving MODS'};
+        unshift @{$res->{alerts}}, {type => 'error', msg => 'Error saving MODS'};
       }
       $found     = 1;
       $found_bib = 1;
@@ -1232,7 +1232,7 @@ sub save_metadata {
       if ($r->{status} ne 200) {
         $res->{status} = $r->{status};
         push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-        unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error saving RGHTS datastream'};
+        unshift @{$res->{alerts}}, {type => 'error', msg => 'Error saving RGHTS datastream'};
       }
       $found = 1;
 
@@ -1249,7 +1249,7 @@ sub save_metadata {
       if ($r->{status} ne 200) {
         $res->{status} = $r->{status};
         push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-        unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error saving geo'};
+        unshift @{$res->{alerts}}, {type => 'error', msg => 'Error saving geo'};
       }
       $found = 1;
 
@@ -1269,7 +1269,7 @@ sub save_metadata {
       if ($r->{status} ne 200) {
         $res->{status} = $r->{status};
         push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-        unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error saving json-ld'};
+        unshift @{$res->{alerts}}, {type => 'error', msg => 'Error saving json-ld'};
       }
       $found     = 1;
       $found_bib = 1;
@@ -1290,7 +1290,7 @@ sub save_metadata {
       if ($r->{status} ne 200) {
         $res->{status} = $r->{status};
         push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-        unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error saving json-ld-private'};
+        unshift @{$res->{alerts}}, {type => 'error', msg => 'Error saving json-ld-private'};
       }
       $found     = 1;
       $found_bib = 1;
@@ -1338,18 +1338,18 @@ sub save_metadata {
     else {
       $c->app->log->error("Unknown or unsupported metadata format: $f");
       $found = 1;
-      unshift @{$res->{alerts}}, {type => 'danger', msg => "Unknown or unsupported metadata format: $f"};
+      unshift @{$res->{alerts}}, {type => 'error', msg => "Unknown or unsupported metadata format: $f"};
     }
 
   }
 
   unless ($found) {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'No metadata provided'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'No metadata provided'};
     $res->{status} = 400;
   }
 
   if (!$found_bib && $check_bib) {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'No bibliographical metadata provided'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'No bibliographical metadata provided'};
     $res->{status} = 400;
   }
 
@@ -1385,7 +1385,7 @@ sub get_dissemination {
   }
   else {
     my ($err, $code) = $get->error;
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
     $res->{status} = $code ? $code : 500;
   }
 
@@ -1418,7 +1418,7 @@ sub get_foxml {
   }
   else {
     $c->app->log->error("Error getting foxml: " . $get->message);
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $get->message};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $get->message};
     $res->{status} = $get->code ? $get->code : 500;
   }
 
@@ -1480,7 +1480,7 @@ sub get_datastream {
     $res->{$dsid} = $getres->body;
   }
   else {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $getres->message};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $getres->message};
     $res->{status} = $getres->code ? $getres->code : 500;
   }
 
@@ -1618,7 +1618,7 @@ sub add_datastream {
   }
   else {
     $c->app->log->error($post->code . ": " . $post->message);
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $post->message};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $post->message};
     $res->{status} = $post->code ? $post->code : 500;
   }
 
@@ -1707,7 +1707,7 @@ sub modify_datastream {
   }
   else {
     $c->app->log->error($put->code . ": " . $put->message);
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $put->message};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $put->message};
     $res->{status} = $put->code ? $put->code : 500;
   }
 
@@ -1847,7 +1847,7 @@ sub create_empty {
   else {
     my ($err, $code) = $put->error;
     $c->app->log->error("Cannot create fedora object: code:" . $err->{code} . " message:" . $err->{message});
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $err->{message}};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $err->{message}};
     $res->{status} = $err->{code} ? $err->{code} : 500;
     return $res;
   }
@@ -1891,7 +1891,7 @@ sub add_relationship {
     }
     $c->app->log->debug("adding hasMember check: memberOwner[$objectOwner] currUser[$currUser]");
     if (($username ne $c->app->config->{phaidra}->{adminusername}) && ($currUser ne $objectOwner)) {
-      unshift @{$res->{alerts}}, {type => 'danger', msg => 'Forbidden'};
+      unshift @{$res->{alerts}}, {type => 'error', msg => 'Forbidden'};
       $res->{status} = 403;
       return $res;
     }
@@ -1923,7 +1923,7 @@ sub add_relationship {
     }
     else {
       my ($err, $code) = $post->error;
-      unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+      unshift @{$res->{alerts}}, {type => 'error', msg => $err};
       $res->{status} = $code ? $code : 500;
     }
   }
@@ -2012,7 +2012,7 @@ sub purge_relationship {
     $self->add_upstream_headers($c, \%headers);
     my $postres = $ua->delete($url => \%headers)->result;
     if ($postres->is_error) {
-      unshift @{$res->{alerts}}, {type => 'danger', msg => $postres->message};
+      unshift @{$res->{alerts}}, {type => 'error', msg => $postres->message};
       $res->{status} = $postres->{code} ? $postres->{code} : 500;
     }
   }

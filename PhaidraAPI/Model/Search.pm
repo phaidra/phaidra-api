@@ -59,7 +59,7 @@ sub triples {
 
   }
   else {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $txres->message};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $txres->message};
     $res->{status} = $txres->code;
   }
 
@@ -190,7 +190,7 @@ sub risearch_tuple ($$$) {
   }
   else {
     my ($err, $code) = $tx->error;
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $err->{message}};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $err->{message}};
     $res->{status} = $err->{code};
   }
 
@@ -225,7 +225,7 @@ sub related_objects_mptmysql() {
   # if tripplestore does not know the relation or relation is no provided
   # then there are no related objects
   if (defined($relation) && !(exists($relmap{"<$relation>"}))) {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => "Unknown relation"};
+    unshift @{$res->{alerts}}, {type => 'error', msg => "Unknown relation"};
     $res->{status} = 400;
     return $res;
   }
@@ -552,7 +552,7 @@ sub datastream_exists {
     $res->{'exists'} = scalar($txres->body);
   }
   else {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $txres->message};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $txres->message};
     $res->{status} = $txres->code;
   }
 
@@ -580,7 +580,7 @@ sub get_state {
     }
   }
 
-  unshift @{$res->{alerts}}, {type => 'danger', msg => "Cannot determine status"};
+  unshift @{$res->{alerts}}, {type => 'error', msg => "Cannot determine status"};
   $res->{status} = 500;
   return $res;
 
@@ -605,7 +605,7 @@ sub get_ownerid {
     return $res;
   }
 
-  unshift @{$res->{alerts}}, {type => 'danger', msg => "Cannot determine status"};
+  unshift @{$res->{alerts}}, {type => 'error', msg => "Cannot determine status"};
   $res->{status} = 500;
   return $res;
 }
@@ -631,7 +631,7 @@ sub get_last_modified_date {
     }
   }
 
-  unshift @{$res->{alerts}}, {type => 'danger', msg => "Cannot get lastModifiedDate"};
+  unshift @{$res->{alerts}}, {type => 'error', msg => "Cannot get lastModifiedDate"};
   $res->{status} = 500;
   return $res;
 }
@@ -949,7 +949,7 @@ sub search_call() {
   }
   else {
     my ($err, $code) = $tx->error;
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $err->{message}};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $err->{message}};
     $res->{status} = $err->{code};
   }
 
@@ -986,8 +986,8 @@ sub get_pids {
   else {
     my ($err, $code) = $get->error;
     $c->app->log->error("error getting count " . $c->app->dumper($err));
-    unshift @{$res->{alerts}}, {type => 'danger', msg => "error getting count"};
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+    unshift @{$res->{alerts}}, {type => 'error', msg => "error getting count"};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
     $res->{status} = $code ? $code : 500;
     return $res;
   }
@@ -1016,8 +1016,8 @@ sub get_pids {
     my ($err, $code) = $get->error;
     $c->app->log->error($urlget);
     $c->app->log->error("error getting results " . $c->app->dumper($err));
-    unshift @{$res->{alerts}}, {type => 'danger', msg => "error getting results"};
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+    unshift @{$res->{alerts}}, {type => 'error', msg => "error getting results"};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
     $res->{status} = $code ? $code : 500;
     return $res;
   }

@@ -21,7 +21,7 @@ sub get_licenses {
     my $path  = Mojo::File->new($c->app->config->{licenses_file});
     my $bytes = $path->slurp;
     unless (defined($bytes)) {
-      push @{$res->{alerts}}, {type => 'danger', msg => "Error reading licenses_file, no content"};
+      push @{$res->{alerts}}, {type => 'error', msg => "Error reading licenses_file, no content"};
       $res->{status} = 500;
       return $res;
     }
@@ -55,7 +55,7 @@ sub get_licenses {
       my $path  = Mojo::File->new($c->app->config->{licenses_file});
       my $bytes = $path->slurp;
       unless (defined($bytes)) {
-        push @{$res->{alerts}}, {type => 'danger', msg => "Error reading licenses_file, no content"};
+        push @{$res->{alerts}}, {type => 'error', msg => "Error reading licenses_file, no content"};
         $res->{status} = 500;
         return $res;
       }

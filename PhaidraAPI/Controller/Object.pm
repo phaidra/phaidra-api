@@ -41,7 +41,7 @@ sub mint_pid {
   if (my $msg = $dbh->errstr) {
     $self->app->log->error($msg);
     $res->{status} = 500;
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $msg};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $msg};
     return $res;
   }
 
@@ -55,7 +55,7 @@ sub info {
   my $password = $self->stash->{basic_auth_credentials}->{password};
 
   unless (defined($self->stash('pid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -116,7 +116,7 @@ sub thumbnail {
   my $self = shift;
 
   unless (defined($self->stash('pid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
   my $pid = $self->stash('pid');
@@ -289,7 +289,7 @@ sub preview {
   my $self = shift;
 
   unless (defined($self->stash('pid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
   my $pid = $self->stash('pid');
@@ -654,7 +654,7 @@ sub delete {
   my $self = shift;
 
   unless (defined($self->stash('pid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -668,7 +668,7 @@ sub modify {
   my $self = shift;
 
   unless (defined($self->stash('pid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -688,7 +688,7 @@ sub get_state {
   my $self = shift;
 
   unless (defined($self->stash('pid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -709,7 +709,7 @@ sub get_cmodel {
   my $self = shift;
 
   unless (defined($self->stash('pid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -747,7 +747,7 @@ sub create_simple {
 
   if ($self->req->is_limit_exceeded) {
     $self->app->log->debug("Size limit exceeded. Current max_message_size:" . $self->req->max_message_size);
-    $self->render(json => {alerts => [{type => 'danger', msg => 'File is too big'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'File is too big'}]}, status => 400);
     return;
   }
 
@@ -755,7 +755,7 @@ sub create_simple {
 
   my $metadata = $self->param('metadata');
   unless ($metadata) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata sent.'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata sent.'}]}, status => 400);
     return;
   }
 
@@ -775,7 +775,7 @@ sub create_simple {
 
   if ($@) {
     $self->app->log->error("Error: $@");
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $@};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $@};
     $res->{status} = 400;
     $self->render(json => $res, status => $res->{status});
     return;
@@ -788,7 +788,7 @@ sub create_simple {
     if ($pullupload) {
       if (!$self->app->config->{'pullupload'}) {
         $self->app->log->error("Error: pullupload sent [$pullupload] but pullupload [" . $self->app->config->{'pullupload'} . "] was not configured.");
-        unshift @{$res->{alerts}}, {type => 'danger', msg => $@};
+        unshift @{$res->{alerts}}, {type => 'error', msg => $@};
         $res->{status} = 400;
         $self->render(json => $res, status => $res->{status});
         return;
@@ -828,7 +828,7 @@ sub create_simple {
             }
             else {
               $self->app->log->error("Error: pullupload [$pullupload] not readable.");
-              unshift @{$res->{alerts}}, {type => 'danger', msg => $@};
+              unshift @{$res->{alerts}}, {type => 'error', msg => $@};
               $res->{status} = 400;
               $self->render(json => $res, status => $res->{status});
               return;
@@ -840,7 +840,7 @@ sub create_simple {
           }
           else {
             $self->app->log->error("Error: pullupload [$pullupload] not found.");
-            unshift @{$res->{alerts}}, {type => 'danger', msg => $@};
+            unshift @{$res->{alerts}}, {type => 'error', msg => $@};
             $res->{status} = 400;
             $self->render(json => $res, status => $res->{status});
             return;
@@ -859,7 +859,7 @@ sub create_simple {
       unshift @{$res->{alerts}}, $a;
     }
 
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error creating ' . $self->stash('cmodel') . ' object'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'Error creating ' . $self->stash('cmodel') . ' object'};
     $self->render(json => $res, status => $res->{status});
     return;
   }
@@ -890,13 +890,13 @@ sub create_container {
 
   if ($self->req->is_limit_exceeded) {
     $self->app->log->debug("Size limit exceeded. Current max_message_size:" . $self->req->max_message_size);
-    $self->render(json => {alerts => [{type => 'danger', msg => 'File is too big'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'File is too big'}]}, status => 400);
     return;
   }
 
   my $metadata = $self->param('metadata');
   unless ($metadata) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata sent.'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata sent.'}]}, status => 400);
     return;
   }
 
@@ -916,7 +916,7 @@ sub create_container {
 
   if ($@) {
     $self->app->log->error("Error: $@");
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $@};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $@};
     $res->{status} = 400;
     $self->render(json => $res, status => $res->{status});
     return;
@@ -929,7 +929,7 @@ sub create_container {
     foreach my $a (@{$r->{alerts}}) {
       unshift @{$res->{alerts}}, $a;
     }
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error creating ' . $self->stash('cmodel') . ' object'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'Error creating ' . $self->stash('cmodel') . ' object'};
     $self->render(json => $res, status => $res->{status});
     return;
   }
@@ -948,7 +948,7 @@ sub add_relationship {
   my $self = shift;
 
   unless (defined($self->stash('pid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -966,7 +966,7 @@ sub purge_relationship {
 
   my $self = shift;
   unless (defined($self->stash('pid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -986,13 +986,13 @@ sub add_or_remove_identifier {
 
   my $pid = $self->stash('pid');
   unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
   my $operation = $self->stash('operation');
   unless ($operation) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Unknown operation'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Unknown operation'}]}, status => 400);
     return;
   }
 
@@ -1008,7 +1008,7 @@ sub add_or_remove_identifier {
   }
 
   unless (scalar @ids > 0) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No known identifier sent (param should be [hdl|doi|urn])'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No known identifier sent (param should be [hdl|doi|urn])'}]}, status => 400);
     return;
   }
 
@@ -1050,12 +1050,12 @@ sub add_octets {
   my $upload = $self->req->upload('file');
 
   if ($self->req->is_limit_exceeded) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'File is too big'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'File is too big'}]}, status => 400);
     return;
   }
 
   unless (defined($self->stash('pid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -1084,17 +1084,17 @@ sub add_or_modify_datastream {
   my $self = shift;
 
   unless (defined($self->stash('pid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
   unless (defined($self->stash('dsid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined dsid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined dsid'}]}, status => 400);
     return;
   }
 
   unless (defined($self->param('mimetype'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined mimetype'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined mimetype'}]}, status => 400);
     return;
   }
 
@@ -1156,7 +1156,7 @@ sub get_metadata {
     my $r_jsonld     = $jsonld_model->get_object_jsonld_parsed($self, $pid, $username, $password);
     if ($r_jsonld->{status} ne 200) {
       push @{$res->{alerts}}, @{$r_jsonld->{alerts}} if scalar @{$r_jsonld->{alerts}} > 0;
-      push @{$res->{alerts}}, {type => 'danger', msg => 'Error getting JSON-LD'};
+      push @{$res->{alerts}}, {type => 'error', msg => 'Error getting JSON-LD'};
     }
     else {
       $res->{metadata}->{'JSON-LD'} = $r_jsonld->{'JSON-LD'};
@@ -1173,7 +1173,7 @@ sub get_metadata {
       }
       else {
         push @{$res->{alerts}}, @{$r_jsonldprivate->{alerts}} if scalar @{$r_jsonldprivate->{alerts}} > 0;
-        push @{$res->{alerts}}, {type => 'danger', msg => 'Error getting JSON-LD-PRIVATE'};
+        push @{$res->{alerts}}, {type => 'error', msg => 'Error getting JSON-LD-PRIVATE'};
       }
     }
     else {
@@ -1186,7 +1186,7 @@ sub get_metadata {
     my $r          = $mods_model->get_object_mods_json($self, $pid, $mode, $username, $password);
     if ($r->{status} ne 200) {
       push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-      push @{$res->{alerts}}, {type => 'danger', msg => 'Error getting MODS'};
+      push @{$res->{alerts}}, {type => 'error', msg => 'Error getting MODS'};
     }
     else {
       $res->{metadata}->{mods} = $r->{mods};
@@ -1198,7 +1198,7 @@ sub get_metadata {
     my $r                = $uwmetadata_model->get_object_metadata($self, $pid, $mode, $username, $password);
     if ($r->{status} ne 200) {
       push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-      push @{$res->{alerts}}, {type => 'danger', msg => 'Error getting UWMETADATA'};
+      push @{$res->{alerts}}, {type => 'error', msg => 'Error getting UWMETADATA'};
     }
     else {
       $res->{metadata}->{uwmetadata} = $r->{uwmetadata};
@@ -1210,7 +1210,7 @@ sub get_metadata {
     my $r         = $geo_model->get_object_geo_json($self, $pid, $username, $password);
     if ($r->{status} ne 200) {
       push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-      push @{$res->{alerts}}, {type => 'danger', msg => 'Error getting GEO'};
+      push @{$res->{alerts}}, {type => 'error', msg => 'Error getting GEO'};
     }
     else {
       $res->{metadata}->{geo} = $r->{geo};
@@ -1227,7 +1227,7 @@ sub get_metadata {
       }
       else {
         push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-        push @{$res->{alerts}}, {type => 'danger', msg => 'Error getting RIGHTS'};
+        push @{$res->{alerts}}, {type => 'error', msg => 'Error getting RIGHTS'};
       }
     }
     else {
@@ -1249,7 +1249,7 @@ sub metadata {
 
   my $metadata = $self->param('metadata');
   unless (defined($metadata)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata sent'}]}, status => 400);
     return;
   }
 
@@ -1269,20 +1269,20 @@ sub metadata {
 
   if ($@) {
     $self->app->log->error("Error: $@");
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $@};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $@};
     $res->{status} = 400;
     $self->render(json => $res, status => $res->{status});
     return;
   }
 
   unless (defined($metadata->{metadata})) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata found'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata found'}]}, status => 400);
     return;
   }
   $metadata = $metadata->{metadata};
 
   unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -1292,7 +1292,7 @@ sub metadata {
   if ($res_cmodel->{status} ne 200) {
     my $err = "ERROR saving metadata for object $pid, could not get cmodel:" . $self->app->dumper($res_cmodel);
     $self->app->log->error($err);
-    $self->render(json => {alerts => [{type => 'danger', msg => $err}]}, status => 500);
+    $self->render(json => {alerts => [{type => 'error', msg => $err}]}, status => 500);
     return;
   }
   else {
@@ -1306,7 +1306,7 @@ sub metadata {
     foreach my $a (@{$r->{alerts}}) {
       unshift @{$res->{alerts}}, $a;
     }
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error saving metadata'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'Error saving metadata'};
 
   }
   else {
@@ -1325,7 +1325,7 @@ sub get_iiif_manifest {
   my $pid = $self->stash('pid');
 
   unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}], status => 404}, status => 404);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}], status => 404}, status => 404);
     return;
   }
 
@@ -1340,13 +1340,13 @@ sub get_legacy_container_member {
 
   my $pid = $self->stash('pid');
   unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}], status => 404}, status => 404);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}], status => 404}, status => 404);
     return;
   }
 
   my $ds = $self->stash('ds');
   unless (defined($ds)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined ds'}], status => 404}, status => 404);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined ds'}], status => 404}, status => 404);
     return;
   }
 
@@ -1406,7 +1406,7 @@ sub diss {
   my $method = $self->stash('method');
 
   unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -1418,7 +1418,7 @@ sub diss {
     $self->app->log->info("pid[$pid] read rights: " . $res->{status});
     unless ($res->{status} eq '404') {
       $self->res->headers->www_authenticate('Basic');
-      $self->render(json => {alerts => [{type => 'danger', msg => 'authentication needed'}]}, status => 401);
+      $self->render(json => {alerts => [{type => 'error', msg => 'authentication needed'}]}, status => 401);
       return;
     }
   }
@@ -1439,7 +1439,7 @@ sub diss {
       return;
     }
     else {
-      $self->render(json => {alerts => [{type => 'danger', msg => $redres->message}]}, status => $redres->code);
+      $self->render(json => {alerts => [{type => 'error', msg => $redres->message}]}, status => $redres->code);
       return;
     }
   }

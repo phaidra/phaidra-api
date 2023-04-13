@@ -13,12 +13,12 @@ sub get {
   my $format = $self->param('format');
 
   unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}], status => 404}, status => 404);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}], status => 404}, status => 404);
     return;
   }
 
   if ($format ne 'txt') {
-    $self->render(json => {alerts => [{type => 'danger', msg => "Only txt format is supported. Please send the request with the format=txt parameter."}], status => 400}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => "Only txt format is supported. Please send the request with the format=txt parameter."}], status => 400}, status => 400);
     return;
   }
 

@@ -145,31 +145,31 @@ sub validate() {
   unless (($cmodel eq 'Container') || ($cmodel eq 'Collection') || ($cmodel eq 'Resource')) {
     unless (exists($metadata->{'edm:rights'})) {
       $res->{status} = 400;
-      push @{$res->{alerts}}, {type => 'danger', msg => "Missing edm:rights"};
+      push @{$res->{alerts}}, {type => 'error', msg => "Missing edm:rights"};
       return $res;
     }
   }
   unless (exists($metadata->{'dcterms:type'})) {
     $res->{status} = 400;
-    push @{$res->{alerts}}, {type => 'danger', msg => "Missing dcterms:type"};
+    push @{$res->{alerts}}, {type => 'error', msg => "Missing dcterms:type"};
     return $res;
   }
   for my $type (@{$metadata->{'dcterms:type'}}) {
     unless (exists($type->{'skos:exactMatch'})) {
       $res->{status} = 400;
-      push @{$res->{alerts}}, {type => 'danger', msg => "Missing dcterms:type -> skos:exactMatch"};
+      push @{$res->{alerts}}, {type => 'error', msg => "Missing dcterms:type -> skos:exactMatch"};
       return $res;
     }
     for my $typeId (@{$type->{'skos:exactMatch'}}) {
       my $rt = $cm2rt{$cmodel};
       unless ($rt) {
         $res->{status} = 400;
-        push @{$res->{alerts}}, {type => 'danger', msg => "Internal error: no resource type defined for cmodel[$cmodel]"};
+        push @{$res->{alerts}}, {type => 'error', msg => "Internal error: no resource type defined for cmodel[$cmodel]"};
         return $res;
       }
       if ($typeId ne $rt->{'@id'}) {
         $res->{status} = 400;
-        push @{$res->{alerts}}, {type => 'danger', msg => "dcterms:type[$typeId] cmodel[$cmodel] mismatch"};
+        push @{$res->{alerts}}, {type => 'error', msg => "dcterms:type[$typeId] cmodel[$cmodel] mismatch"};
         return $res;
       }
     }

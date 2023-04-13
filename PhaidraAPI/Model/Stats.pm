@@ -48,7 +48,7 @@ sub disciplines {
   unless (defined($disciplines)) {
     my $msg = "Error reading disciplines";
     $c->app->log->error($msg);
-    push @{$res->{alerts}}, {type => 'danger', msg => $msg};
+    push @{$res->{alerts}}, {type => 'error', msg => $msg};
     $res->{status} = 500;
     return $res;
   }

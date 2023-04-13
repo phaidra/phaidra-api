@@ -86,14 +86,14 @@ sub metadata_tree {
 
       unless (-e $c->app->config->{local_uwmetadata_tree}) {
         $c->app->log->error("Error reading local_uwmetadata_tree, file " . $c->app->config->{local_uwmetadata_tree} . " does not exist");
-        push @{$res->{alerts}}, {type => 'danger', msg => "Error reading local_uwmetadata_tree"};
+        push @{$res->{alerts}}, {type => 'error', msg => "Error reading local_uwmetadata_tree"};
         $res->{status} = 500;
         return $res;
       }
 
       # read metadata tree from file
       my $content;
-      open my $fh, "<", $c->app->config->{local_uwmetadata_tree} or push @{$res->{alerts}}, {type => 'danger', msg => "Error reading local_uwmetadata_tree, " . $!};
+      open my $fh, "<", $c->app->config->{local_uwmetadata_tree} or push @{$res->{alerts}}, {type => 'error', msg => "Error reading local_uwmetadata_tree, " . $!};
       local $/;
       $content = <$fh>;
       close $fh;
@@ -101,7 +101,7 @@ sub metadata_tree {
       unless (defined($content)) {
         my $msg = "Error reading local_uwmetadata_tree, no content";
         $c->app->log->error($msg);
-        push @{$res->{alerts}}, {type => 'danger', msg => $msg};
+        push @{$res->{alerts}}, {type => 'error', msg => $msg};
         $res->{status} = 500;
         return $res;
       }
@@ -1542,7 +1542,7 @@ sub save_to_object() {
 
   unless ($uwmetadata) {
     $res->{status} = 500;
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error converting metadata'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'Error converting metadata'};
     return $res;
   }
 

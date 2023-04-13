@@ -124,7 +124,7 @@ sub save_to_object() {
   my $annotations = $self->json_2_xml($c, $metadata);
   unless ($annotations) {
     $res->{status} = 500;
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error converting ANNOTATIONS metadata'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'Error converting ANNOTATIONS metadata'};
     return $res;
   }
 

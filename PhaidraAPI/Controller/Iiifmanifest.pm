@@ -21,7 +21,7 @@ sub update_manifest_metadata {
   if ($r->{status} ne 200) {
 
     # just log but don't change status, this isn't fatal
-    push @{$res->{alerts}}, {type => 'danger', msg => 'Error updating IIIF-MANIFEST metadata'};
+    push @{$res->{alerts}}, {type => 'error', msg => 'Error updating IIIF-MANIFEST metadata'};
     push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
   }
 
@@ -37,7 +37,7 @@ sub post {
 
   my $metadata = $self->param('metadata');
   unless (defined($metadata)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata sent'}]}, status => 400);
     return;
   }
 
@@ -57,23 +57,23 @@ sub post {
 
   if ($@) {
     $self->app->log->error("Error: $@");
-    $self->render(json => {alerts => [{type => 'danger', msg => $@}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => $@}]}, status => 400);
     return;
   }
 
   unless (defined($metadata->{metadata})) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata found'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata found'}]}, status => 400);
     return;
   }
   $metadata = $metadata->{metadata};
 
   unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
   unless (defined($metadata->{'iiif-manifest'}) || defined($metadata->{'IIIF-MANIFEST'})) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No IIIF-MANIFEST sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No IIIF-MANIFEST sent'}]}, status => 400);
     return;
   }
 

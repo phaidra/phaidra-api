@@ -89,11 +89,11 @@ sub org_get_subunits {
       }
       $res->{subunits} = \@subunits;
     } else {
-      push @{$res->{alerts}}, { type => 'danger', msg => "Internal error when requesting subunits of $id" };
+      push @{$res->{alerts}}, { type => 'error', msg => "Internal error when requesting subunits of $id" };
       $res->{status} = 500;
     }
   } else {
-    push @{$res->{alerts}}, { type => 'danger', msg => "$id not found" };
+    push @{$res->{alerts}}, { type => 'error', msg => "$id not found" };
     $res->{status} = 404;
   }
   return $res;
@@ -113,16 +113,16 @@ sub org_get_superunits {
 	}
 	$res->{superunits} = \@superunits;
       } else {
-	push @{$res->{alerts}}, { type => 'danger', msg => "Internal error when requesting superunits of $id" };
+	push @{$res->{alerts}}, { type => 'error', msg => "Internal error when requesting superunits of $id" };
 	$res->{status} = 500;
       }
     } else {
-      push @{$res->{alerts}}, { type => 'danger', msg => "$id not found" };
+      push @{$res->{alerts}}, { type => 'error', msg => "$id not found" };
       $res->{status} = 404;
     }
 
   } else {
-    push @{$res->{alerts}}, { type => 'danger', msg => "No id provided when requesting superunits" };
+    push @{$res->{alerts}}, { type => 'error', msg => "No id provided when requesting superunits" };
     $res->{status} = 400;
   }
   return $res;
@@ -214,7 +214,7 @@ sub get_ldap {
 
   my $ldap = Net::LDAP->new($LDAP_SERVER, port => $LDAP_SSL_PORT);
   unless (defined($ldap)) {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $!};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $!};
     return $res;
   }
 
@@ -224,7 +224,7 @@ sub get_ldap {
   my $ldapMsg = $ldap->bind($secDN, password => $secPASS);
 
   if ($ldapMsg->is_error) {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $ldapMsg->error};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $ldapMsg->error};
     return $res;
   }
 
@@ -306,7 +306,7 @@ sub authenticate() {
 
   my $ldap = Net::LDAP->new($LDAP_SERVER, port => $LDAP_SSL_PORT);
   unless (defined($ldap)) {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $!};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $!};
     $c->stash({phaidra_auth_result => $res});
     return undef;
   }
@@ -335,7 +335,7 @@ sub authenticate() {
 
   unless ($dn) {
     $c->app->log->debug("auth: dn not found");
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'user not found'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'user not found'};
     $res->{status} = 401;
     $c->stash({phaidra_auth_result => $res});
     return undef;
@@ -347,7 +347,7 @@ sub authenticate() {
   $c->app->log->debug("Auth for user $dn:\n" . $c->app->dumper($ldapMsg) . "\nis error:" . $ldapMsg->is_error());
 
   if ($ldapMsg->is_error) {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $ldapMsg->error};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $ldapMsg->error};
     $res->{status} = 401;
     $c->stash({phaidra_auth_result => $res});
     return undef;

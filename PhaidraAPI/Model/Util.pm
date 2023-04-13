@@ -16,7 +16,7 @@ sub validate_xml() {
   my $res = {alerts => [], status => 200};
 
   unless (-f $xsdpath) {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => "Cannot find XSD files: $xsdpath"};
+    unshift @{$res->{alerts}}, {type => 'error', msg => "Cannot find XSD files: $xsdpath"};
     $res->{status} = 500;
   }
 
@@ -36,7 +36,7 @@ sub validate_xml() {
 
   if ($@) {
     $c->app->log->error("Error: $@");
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $@};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $@};
     $res->{status} = 400;
   }
   else {
@@ -109,7 +109,7 @@ sub get_video_key {
     $res->{status} = 404;
   }
   if ($errormsg) {
-    push @{$res->{alerts}}, {type => 'danger', msg => $errormsg};
+    push @{$res->{alerts}}, {type => 'error', msg => $errormsg};
   }
   return $res;
 }

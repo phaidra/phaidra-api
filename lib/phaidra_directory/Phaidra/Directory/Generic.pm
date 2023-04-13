@@ -40,7 +40,7 @@ sub authenticate($$$$) {
     }
   }
 
-  unshift @{$res->{alerts}}, {type => 'danger', msg => "User not found"};
+  unshift @{$res->{alerts}}, {type => 'error', msg => "User not found"};
   $res->{status} = 401;
   $c->stash({phaidra_auth_result => $res});
   return undef;

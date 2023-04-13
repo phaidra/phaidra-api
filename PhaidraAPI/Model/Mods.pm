@@ -31,7 +31,7 @@ sub metadata_tree {
     my $path  = Mojo::File->new($c->app->config->{local_mods_tree});
     my $bytes = $path->slurp;
     unless (defined($bytes)) {
-      push @{$res->{alerts}}, {type => 'danger', msg => "Error reading local_mods_tree, no content"};
+      push @{$res->{alerts}}, {type => 'error', msg => "Error reading local_mods_tree, no content"};
       $res->{status} = 500;
       return $res;
     }
@@ -67,7 +67,7 @@ sub metadata_tree {
       my $path  = Mojo::File->new($c->app->config->{local_mods_tree});
       my $bytes = $path->slurp;
       unless (defined($bytes)) {
-        push @{$res->{alerts}}, {type => 'danger', msg => "Error reading local_mods_tree, no content"};
+        push @{$res->{alerts}}, {type => 'error', msg => "Error reading local_mods_tree, no content"};
         $res->{status} = 500;
         return $res;
       }
@@ -274,7 +274,7 @@ sub validate_mods() {
   my $xsdpath = $c->app->config->{validate_mods};
 
   unless (-f $xsdpath) {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => "Cannot find XSD files: $xsdpath"};
+    unshift @{$res->{alerts}}, {type => 'error', msg => "Cannot find XSD files: $xsdpath"};
     $res->{status} = 500;
   }
 
@@ -291,7 +291,7 @@ sub validate_mods() {
 
   if ($@) {
     $c->app->log->error("Error validating MODS: $@");
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $@};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $@};
     $res->{status} = 400;
   }
 
@@ -332,7 +332,7 @@ sub save_to_object() {
 
   unless ($mods) {
     $res->{status} = 500;
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error converting MODS metadata'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'Error converting MODS metadata'};
     return $res;
   }
 

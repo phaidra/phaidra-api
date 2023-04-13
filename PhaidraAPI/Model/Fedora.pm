@@ -72,7 +72,7 @@ sub getObjectProperties {
     }
   }
   else {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $getres->message};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $getres->message};
     $res->{status} = $getres->{code};
     return $res;
   }

@@ -74,7 +74,7 @@ sub process_pids {
   my $skipexisting = $self->param('skipexisting');
   my $pids         = $self->param('pids');
   unless (defined($pids)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No pids sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No pids sent'}]}, status => 400);
     return;
   }
 
@@ -93,7 +93,7 @@ sub process_pids {
 
   if ($@) {
     $self->app->log->error("Error: $@");
-    $self->render(json => {alerts => [{type => 'danger', msg => $@}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => $@}]}, status => 400);
     return;
   }
 

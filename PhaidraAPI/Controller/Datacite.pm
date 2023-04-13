@@ -17,7 +17,7 @@ sub get {
   my $format = $self->param('format');
 
   unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 

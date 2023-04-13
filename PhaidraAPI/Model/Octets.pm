@@ -20,7 +20,7 @@ sub _get_ds_path() {
     my $msg = $c->app->db_fedora->dbh->errstr;
     $c->app->log->error($msg);
     $res->{status} = 500;
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $msg};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $msg};
     return $res;
   }
   my $ex = $sth->execute();
@@ -28,7 +28,7 @@ sub _get_ds_path() {
     my $msg = $c->app->db_fedora->dbh->errstr;
     $c->app->log->error($msg);
     $res->{status} = 500;
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $msg};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $msg};
     return $res;
   }
 
@@ -50,7 +50,7 @@ sub _get_ds_path() {
   }
   else {
     $res->{status} = 404;
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $ds . ' datastream path not found'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $ds . ' datastream path not found'};
   }
 
   return $res;

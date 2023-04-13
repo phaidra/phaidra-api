@@ -29,7 +29,7 @@ sub post_settings {
   $self->app->log->debug("writing settings of " . $self->stash->{basic_auth_credentials}->{username});
   my $settings = $self->param('settings');
   unless (defined($settings)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No settings sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No settings sent'}]}, status => 400);
     return;
   }
 
@@ -46,7 +46,7 @@ sub post_settings {
 
   if ($@) {
     $self->app->log->error("Error: $@");
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $@};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $@};
     $res->{status} = 400;
     $self->render(json => $res, status => $res->{status});
     return;

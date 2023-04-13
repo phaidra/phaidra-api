@@ -17,7 +17,7 @@ sub json2xml {
 
   my $metadata = $self->param('metadata');
   unless (defined($metadata)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata sent'}]}, status => 400);
     return;
   }
 
@@ -37,14 +37,14 @@ sub json2xml {
 
   if ($@) {
     $self->app->log->error("Error: $@");
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $@};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $@};
     $res->{status} = 400;
     $self->render(json => $res, status => $res->{status});
     return;
   }
 
   unless (defined($metadata->{metadata})) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata found'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata found'}]}, status => 400);
     return;
   }
   $metadata = $metadata->{metadata};
@@ -74,7 +74,7 @@ sub get {
   my $pid = $self->stash('pid');
 
   unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -97,14 +97,14 @@ sub post {
   my $res = {alerts => [], status => 200};
 
   unless (defined($self->stash('pid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
   my $pid      = $self->stash('pid');
   my $metadata = $self->param('metadata');
   unless (defined($metadata)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata sent'}]}, status => 400);
     return;
   }
 
@@ -124,7 +124,7 @@ sub post {
 
   if ($@) {
     $self->app->log->error("Error: $@");
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $@};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $@};
     $res->{status} = 400;
     $self->render(json => $res, status => $res->{status});
     return;
@@ -132,13 +132,13 @@ sub post {
 
   unless (defined($metadata->{metadata})) {
     $self->app->log->error("No metadata found");
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata found'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata found'}]}, status => 400);
     return;
   }
   $metadata = $metadata->{metadata};
   unless (defined($metadata->{members})) {
     $self->app->log->error("No members sent");
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No members sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No members sent'}]}, status => 400);
     return;
   }
   my $members = $metadata->{members};
@@ -146,7 +146,7 @@ sub post {
   my $members_size = scalar @{$members};
   if ($members_size eq 0) {
     $self->app->log->error("Members array empty");
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Members array empty'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Members array empty'}]}, status => 400);
     return;
   }
 
@@ -180,22 +180,22 @@ sub order_object_member {
   my $res = {alerts => [], status => 200};
 
   unless (defined($self->stash('pid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined collection pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined collection pid'}]}, status => 400);
     return;
   }
 
   unless (defined($self->stash('itempid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined item pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined item pid'}]}, status => 400);
     return;
   }
 
   unless (defined($self->stash('position'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined position'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined position'}]}, status => 400);
     return;
   }
 
   unless ($self->stash('position') =~ m/\d+/) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Position must be a numeric value'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Position must be a numeric value'}]}, status => 400);
     return;
   }
 

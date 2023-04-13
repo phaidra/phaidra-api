@@ -108,7 +108,7 @@ sub create {
         foreach my $a (@{$r->{alerts}}) {
           unshift @{$res->{alerts}}, $a;
         }
-        unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error modifying ownership'};
+        unshift @{$res->{alerts}}, {type => 'error', msg => 'Error modifying ownership'};
       }
     }
   }
@@ -141,14 +141,14 @@ sub get_members {
 
   unless ($cmodel) {
     $c->app->log->error("Collection->get_members: pid[$pid] Undefined cmodel");
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'Object content model is undefined'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'Object content model is undefined'};
     $res->{status} = 400;
     return $res;
   }
 
   if ($cmodel ne 'Collection') {
     $c->app->log->error("Collection->get_members: pid[$pid] cmodel[$cmodel] is not Collection");
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'Object content model is not Collection'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'Object content model is not Collection'};
     $res->{status} = 400;
     return $res;
   }

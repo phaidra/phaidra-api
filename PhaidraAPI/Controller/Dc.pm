@@ -19,7 +19,7 @@ sub get {
   my $format = $self->param('format');
 
   unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}], status => 404}, status => 404);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}], status => 404}, status => 404);
     return;
   }
 
@@ -69,7 +69,7 @@ sub uwmetadata_2_dc_index {
   #my $t0 = [gettimeofday];
   my $metadata = $self->param('metadata');
   unless (defined($metadata)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata sent'}]}, status => 400);
     return;
   }
 
@@ -89,14 +89,14 @@ sub uwmetadata_2_dc_index {
 
   if ($@) {
     $self->app->log->error("Error: $@");
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $@};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $@};
     $res->{status} = 400;
     $self->render(json => $res, status => $res->{status});
     return;
   }
 
   unless (defined($metadata->{metadata})) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata found'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata found'}]}, status => 400);
     return;
   }
   $metadata = $metadata->{metadata};
@@ -156,7 +156,7 @@ sub update {
     my $pids = $self->param('pids');
 
     unless (defined($pids)) {
-      $self->render(json => {alerts => [{type => 'danger', msg => 'No pids sent'}]}, status => 400);
+      $self->render(json => {alerts => [{type => 'error', msg => 'No pids sent'}]}, status => 400);
       return;
     }
 
@@ -175,12 +175,12 @@ sub update {
 
     if ($@) {
       $self->app->log->error("Error: $@");
-      $self->render(json => {alerts => [{type => 'danger', msg => $@}]}, status => 400);
+      $self->render(json => {alerts => [{type => 'error', msg => $@}]}, status => 400);
       return;
     }
 
     unless (defined($pids->{pids})) {
-      $self->render(json => {alerts => [{type => 'danger', msg => 'No pids found'}]}, status => 400);
+      $self->render(json => {alerts => [{type => 'error', msg => 'No pids found'}]}, status => 400);
       return;
     }
 

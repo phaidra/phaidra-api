@@ -54,7 +54,7 @@ sub extract_credentials {
       }
       else {
         # the request contains the principal header with a remote user definition but it has wrong upstream auth credentials
-        $self->render(json => {status => 500, alerts => [{type => 'danger', msg => 'upstream authentication failed'}]}, status => 500);
+        $self->render(json => {status => 500, alerts => [{type => 'error', msg => 'upstream authentication failed'}]}, status => 500);
         return 0;
       }
 
@@ -114,7 +114,7 @@ sub extract_credentials {
         # If I use the realm the browser does not want to show the prompt!
         # $self->res->headers->www_authenticate('Basic "'.$self->app->config->{authentication}->{realm}.'"');
         $self->res->headers->www_authenticate('Basic');
-        $self->render(json => {status => 401, alerts => [{type => 'danger', msg => $errmsg}]}, status => 401);
+        $self->render(json => {status => 401, alerts => [{type => 'error', msg => $errmsg}]}, status => 401);
         return 0;
       }
     }
@@ -147,7 +147,7 @@ sub keepalive {
   }
   else {
     $self->res->headers->www_authenticate('Basic');
-    $self->render(json => {status => 401, alerts => [{type => 'danger', msg => 'session invalid or expired'}]}, status => 401);
+    $self->render(json => {status => 401, alerts => [{type => 'error', msg => 'session invalid or expired'}]}, status => 401);
   }
 }
 
@@ -194,7 +194,7 @@ sub authenticate_admin {
 
   unless (($username eq $self->app->config->{phaidra}->{adminusername}) && ($password eq $self->app->config->{phaidra}->{adminpassword})) {
     $self->app->log->info("Not authenticated");
-    $self->render(json => {status => 403, alerts => [{type => 'danger', msg => "Not authenticated"}]}, status => 403);
+    $self->render(json => {status => 403, alerts => [{type => 'error', msg => "Not authenticated"}]}, status => 403);
     return 0;
   }
   $self->app->log->info("Admin successfully authenticated");
@@ -209,7 +209,7 @@ sub signin {
   my $auth_header = $self->req->headers->authorization;
   unless ($auth_header) {
     $self->res->headers->www_authenticate('Basic "' . $self->app->config->{authentication}->{realm} . '"');
-    $self->render(json => {status => 401, alerts => [{type => 'danger', msg => 'please authenticate'}]}, status => 401);
+    $self->render(json => {status => 401, alerts => [{type => 'error', msg => 'please authenticate'}]}, status => 401);
     return;
   }
   my ($method,   $str)      = split(/ /, $auth_header);

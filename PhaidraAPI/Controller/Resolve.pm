@@ -55,7 +55,7 @@ sub _resolve {
     return $self->_resolve_geonames($uri);
   }
   else {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'Unknown resolver'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'Unknown resolver'};
     $res->{status} = 500;
     return $res;
   }
@@ -91,7 +91,7 @@ sub _resolve_gnd {
   }
   else {
     $self->app->log->error("[$uri] error resolving uri " . $res->code . ": " . $res->message);
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $res->code . ": " . $res->message};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $res->code . ": " . $res->message};
     $res->{status} = $res->code ? $res->code : 500;
     return $res;
   }
@@ -111,13 +111,13 @@ sub _resolve_geonames {
   unless ($self->config->{apis}) {
     my $err = "resolve apis are not configured";
     $self->app->log->error($err);
-    return {alerts => [{type => 'danger', msg => $err}], status => 500};
+    return {alerts => [{type => 'error', msg => $err}], status => 500};
   }
 
   unless ($self->config->{apis}->{geonames}) {
     my $err = "geonames api is not configured";
     $self->app->log->error($err);
-    return {alerts => [{type => 'danger', msg => $err}], status => 500};
+    return {alerts => [{type => 'error', msg => $err}], status => 500};
   }
 
   my $insecure = 0;
@@ -171,7 +171,7 @@ sub _resolve_geonames {
   else {
     my ($err, $code) = $get->error;
     $self->app->log->error("[$uri] error resolving uri " . $self->app->dumper($err));
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $self->app->dumper($err)};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $self->app->dumper($err)};
     $res->{status} = $code ? $code : 500;
     return $res;
   }

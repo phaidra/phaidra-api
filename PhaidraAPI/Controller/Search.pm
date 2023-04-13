@@ -26,7 +26,7 @@ sub id {
   my $res = {alerts => [], status => 200};
 
   unless (defined($self->stash('pid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -58,7 +58,7 @@ sub related {
   my @fields;
 
   unless (defined($self->stash('pid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -66,7 +66,7 @@ sub related {
     $relation = $self->param('relation');
   }
   else {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined relation'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined relation'}]}, status => 400);
     return;
   }
 
@@ -126,7 +126,7 @@ sub search {
     $query = $self->param('q');
   }
   unless (defined($query)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined query'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined query'}]}, status => 400);
     return;
   }
 
@@ -192,7 +192,7 @@ sub search_lucene {
     $query = $self->param('q');
   }
   unless (defined($query)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined query'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined query'}]}, status => 400);
     return;
   }
 
@@ -249,7 +249,7 @@ sub get_pids {
   my $self = shift;
 
   unless (defined($self->param('q'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined query'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined query'}]}, status => 400);
     return;
   }
 
@@ -280,7 +280,7 @@ sub owner {
   my @fields;
 
   unless (defined($self->stash('username'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined username'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined username'}]}, status => 400);
     return;
   }
 
@@ -344,7 +344,7 @@ sub collections_owner {
   my $limit = 10;
 
   unless (defined($self->stash('username'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined username'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined username'}]}, status => 400);
     return;
   }
 

@@ -16,7 +16,7 @@ sub proxy {
   my $pid = $self->stash('pid');
 
   unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -31,12 +31,12 @@ sub get {
 
   my $pid = $self->stash('pid');
   unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
   my $operation = $self->stash('operation');
   unless (defined($operation)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined operation'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined operation'}]}, status => 400);
     return;
   }
 

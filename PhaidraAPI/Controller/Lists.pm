@@ -25,11 +25,11 @@ sub get_token_list {
 
   my $token = $self->stash('token');
   unless ($token) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No token sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No token sent'}]}, status => 400);
     return;
   }
   unless ($token =~ /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Invalid token'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Invalid token'}]}, status => 400);
     return;
   }
 
@@ -94,7 +94,7 @@ sub add_members {
 
   my $members = $self->param('members');
   unless (defined($members)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No members sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No members sent'}]}, status => 400);
     return;
   }
 
@@ -124,7 +124,7 @@ sub add_members {
     $self->render(json => {status => 200, alerts => []}, status => 200);
   }
   else {
-    $self->render(json => {alerts => [{type => 'danger', msg => $r->{err}}]}, status => 500);
+    $self->render(json => {alerts => [{type => 'error', msg => $r->{err}}]}, status => 500);
   }
 }
 
@@ -136,7 +136,7 @@ sub remove_members {
 
   my $members = $self->param('members');
   unless (defined($members)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No members sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No members sent'}]}, status => 400);
     return;
   }
 #$self->app->log->debug('XXXXXXXXXXXXXXX: '.$self->app->dumper($members));
@@ -164,7 +164,7 @@ sub remove_members {
     $self->render(json => {status => 200, alerts => []}, status => 200);
   }
   else {
-    $self->render(json => {alerts => [{type => 'danger', msg => $r->{err}}]}, status => 500);
+    $self->render(json => {alerts => [{type => 'error', msg => $r->{err}}]}, status => 500);
   }
 }
 
@@ -184,7 +184,7 @@ sub token_create {
     $self->render(json => {token => $token, status => 200, alerts => []}, status => 200);
   }
   else {
-    $self->render(json => {alerts => [{type => 'danger', msg => $r->{err}}]}, status => 500);
+    $self->render(json => {alerts => [{type => 'error', msg => $r->{err}}]}, status => 500);
   }
 }
 
@@ -200,7 +200,7 @@ sub token_delete {
     $self->render(json => {status => 200, alerts => []}, status => 200);
   }
   else {
-    $self->render(json => {alerts => [{type => 'danger', msg => $r->{err}}]}, status => 500);
+    $self->render(json => {alerts => [{type => 'error', msg => $r->{err}}]}, status => 500);
   }
 }
 

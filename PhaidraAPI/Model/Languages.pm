@@ -220,7 +220,7 @@ sub get_languages {
     my $path  = Mojo::File->new($c->app->config->{languages_file});
     my $bytes = $path->slurp;
     unless (defined($bytes)) {
-      push @{$res->{alerts}}, {type => 'danger', msg => "Error reading languages_file, no content"};
+      push @{$res->{alerts}}, {type => 'error', msg => "Error reading languages_file, no content"};
       $res->{status} = 500;
       return $res;
     }
@@ -254,7 +254,7 @@ sub get_languages {
       my $path  = Mojo::File->new($c->app->config->{languages_file});
       my $bytes = $path->slurp;
       unless (defined($bytes)) {
-        push @{$res->{alerts}}, {type => 'danger', msg => "Error reading languages_file, no content"};
+        push @{$res->{alerts}}, {type => 'error', msg => "Error reading languages_file, no content"};
         $res->{status} = 500;
         return $res;
       }

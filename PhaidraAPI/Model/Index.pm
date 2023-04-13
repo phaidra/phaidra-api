@@ -441,7 +441,7 @@ sub get_doc_from_core {
     if ($getres->json->{response}->{numFound} eq 0) {
       my $err = "[$pid] object not found in index";
       $c->app->log->error($err);
-      unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+      unshift @{$res->{alerts}}, {type => 'error', msg => $err};
       $res->{status} = 404;
       return $res;
     }
@@ -453,7 +453,7 @@ sub get_doc_from_core {
   else {
     my $err = "[$pid] error getting object info from solr host[" . $c->app->config->{solr}->{host} . "] core[$core]: " . $getres->code . " " . $getres->message;
     $c->app->log->error($err);
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
     $res->{status} = $getres->code ? $getres->code : 500;
     return $res;
   }
@@ -518,7 +518,7 @@ sub update {
         }
         else {
           my ($err, $code) = $post->error;
-          unshift @{$res->{alerts}}, {type => 'danger', msg => "[$pid] Error deleting document from solr: " . $c->app->dumper($err)};
+          unshift @{$res->{alerts}}, {type => 'error', msg => "[$pid] Error deleting document from solr: " . $c->app->dumper($err)};
           $res->{status} = $code ? $code : 500;
         }
       }
@@ -564,7 +564,7 @@ sub update {
             $c->app->log->debug("[$pid] solr document updated");
           }
           else {
-            unshift @{$res->{alerts}}, {type => 'danger', msg => "[$pid] Error updating solr code[" . $post->code . "] message [" . $post->message . "]"};
+            unshift @{$res->{alerts}}, {type => 'error', msg => "[$pid] Error updating solr code[" . $post->code . "] message [" . $post->message . "]"};
             $res->{status} = $post->code ? $post->code : 500;
           }
 
@@ -582,7 +582,7 @@ sub update {
           }
           else {
             my ($err, $code) = $post->error;
-            unshift @{$res->{alerts}}, {type => 'danger', msg => "[$pid] Error deleting document from solr: " . $c->app->dumper($err)};
+            unshift @{$res->{alerts}}, {type => 'error', msg => "[$pid] Error deleting document from solr: " . $c->app->dumper($err)};
             $res->{status} = $code ? $code : 500;
           }
         }
@@ -714,8 +714,8 @@ sub _update_membersorder {
   else {
     my ($err, $code) = $get->error;
     $c->app->log->error("[$pid] error getting object $field relations count " . $c->app->dumper($err));
-    unshift @{$res->{alerts}}, {type => 'danger', msg => "error getting object $field relations count"};
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+    unshift @{$res->{alerts}}, {type => 'error', msg => "error getting object $field relations count"};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
     $res->{status} = $code ? $code : 500;
     return $res;
   }
@@ -734,8 +734,8 @@ sub _update_membersorder {
     my ($err, $code) = $get->error;
     $c->app->log->error($urlget);
     $c->app->log->error("[$pid] error getting object $field relations " . $c->app->dumper($err));
-    unshift @{$res->{alerts}}, {type => 'danger', msg => "error getting object $field relations"};
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+    unshift @{$res->{alerts}}, {type => 'error', msg => "error getting object $field relations"};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
     $res->{status} = $code ? $code : 500;
     return $res;
   }
@@ -864,7 +864,7 @@ sub _update_value_post {
   }
   else {
     my ($err, $code) = $post->error;
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
     $res->{status} = $code ? $code : 500;
   }
 
@@ -896,8 +896,8 @@ sub _update_members {
   else {
     my ($err, $code) = $get->error;
     $c->app->log->error("[$pid] error getting object $relation relations count " . $c->app->dumper($err));
-    unshift @{$res->{alerts}}, {type => 'danger', msg => "error getting object $relation relations count"};
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+    unshift @{$res->{alerts}}, {type => 'error', msg => "error getting object $relation relations count"};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
     $res->{status} = $code ? $code : 500;
     return $res;
   }
@@ -916,8 +916,8 @@ sub _update_members {
     my ($err, $code) = $get->error;
     $c->app->log->error($urlget);
     $c->app->log->error("[$pid] error getting object $relation relations " . $c->app->dumper($err));
-    unshift @{$res->{alerts}}, {type => 'danger', msg => "error getting object $relation relations"};
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+    unshift @{$res->{alerts}}, {type => 'error', msg => "error getting object $relation relations"};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
     $res->{status} = $code ? $code : 500;
     return $res;
   }
@@ -1028,7 +1028,7 @@ sub _update_relation_post {
   }
   else {
     my ($err, $code) = $post->error;
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
     $res->{status} = $code ? $code : 500;
   }
 
@@ -1072,7 +1072,7 @@ sub _get {
     if ($state ne 'Active') {
       my $errmsg = "[_get index] $pid is $state, deleting from index.";
       $c->app->log->warn($errmsg);
-      push @{$res->{alerts}}, {type => 'danger', msg => $errmsg};
+      push @{$res->{alerts}}, {type => 'error', msg => $errmsg};
       if ($state eq 'Deleted') {
         $res->{status} = 301;
       }
@@ -1196,7 +1196,7 @@ sub _get {
 
       my $r_relsext = $self->_index_relsext($c, $datastreams{'RELS-EXT'}->find('foxml\:xmlContent')->first, \%index);
       if ($r_relsext->{status} ne 200) {
-        push @{$res->{alerts}}, {type => 'danger', msg => "Error indexing RELS-EXT for $pid"};
+        push @{$res->{alerts}}, {type => 'error', msg => "Error indexing RELS-EXT for $pid"};
         push @{$res->{alerts}}, @{$r_relsext->{alerts}} if scalar @{$r_relsext->{alerts}} > 0;
       }
 
@@ -1215,7 +1215,7 @@ sub _get {
             if ($state ne 'Active') {
               my $errmsg = "[_get index] $pid is $state, deleting from index.";
               $c->app->log->warn($errmsg);
-              push @{$res->{alerts}}, {type => 'danger', msg => $errmsg};
+              push @{$res->{alerts}}, {type => 'error', msg => $errmsg};
               if ($state eq 'Deleted') {
                 $res->{status} = 301;
               }
@@ -1252,7 +1252,7 @@ sub _get {
     my $r_geo     = $geo_model->xml_2_json($c, $datastreams{'GEO'}->find('foxml\:xmlContent')->first);
     if ($r_geo->{status} ne 200) {
 
-      push @{$res->{alerts}}, {type => 'danger', msg => "Error adding GEO fields from $pid"};
+      push @{$res->{alerts}}, {type => 'error', msg => "Error adding GEO fields from $pid"};
       push @{$res->{alerts}}, @{$r_geo->{alerts}} if scalar @{$r_geo->{alerts}} > 0;
 
     }
@@ -1299,13 +1299,13 @@ sub _get {
     my $mods_model = PhaidraAPI::Model::Mods->new;
     my $r_mods     = $mods_model->xml_2_json($c, $datastreams{'MODS'}->find('foxml\:xmlContent')->first, 'basic');
     if ($r_mods->{status} ne 200) {
-      push @{$res->{alerts}}, {type => 'danger', msg => "Error converting MODS xml to json for $pid"};
+      push @{$res->{alerts}}, {type => 'error', msg => "Error converting MODS xml to json for $pid"};
       push @{$res->{alerts}}, @{$r_mods->{alerts}} if scalar @{$r_mods->{alerts}} > 0;
     }
     else {
       my $r_add_mods = $self->_add_mods_index($c, $pid, $r_mods->{mods}, \%index);
       if ($r_add_mods->{status} ne 200) {
-        push @{$res->{alerts}}, {type => 'danger', msg => "Error adding MODS fields for $pid"};
+        push @{$res->{alerts}}, {type => 'error', msg => "Error adding MODS fields for $pid"};
         push @{$res->{alerts}}, @{$r_add_mods->{alerts}} if scalar @{$r_add_mods->{alerts}} > 0;
       }
       else {
@@ -1322,7 +1322,7 @@ sub _get {
 
     #$c->app->log->debug("XXXXXXXXX found JSON-LD: ".$c->app->dumper($r_jsonld));
     if ($r_jsonld->{status} ne 200) {
-      push @{$res->{alerts}}, {type => 'danger', msg => "Error getting JSON-LD for $pid"};
+      push @{$res->{alerts}}, {type => 'error', msg => "Error getting JSON-LD for $pid"};
       push @{$res->{alerts}}, @{$r_jsonld->{alerts}} if scalar @{$r_jsonld->{alerts}} > 0;
     }
     else {
@@ -1331,7 +1331,7 @@ sub _get {
 
       my $r_add_jsonld = $self->_add_jsonld_index($c, $pid, $jsonld, \%index);
       if ($r_add_jsonld->{status} ne 200) {
-        push @{$res->{alerts}}, {type => 'danger', msg => "Error adding JSON-LD fields for $pid"};
+        push @{$res->{alerts}}, {type => 'error', msg => "Error adding JSON-LD fields for $pid"};
         push @{$res->{alerts}}, @{$r_add_jsonld->{alerts}} if scalar @{$r_add_jsonld->{alerts}} > 0;
       }
       else {
@@ -1347,7 +1347,7 @@ sub _get {
     my $r_add_uwm    = $self->_add_uwm_index($c, $pid, $datastreams{'UWMETADATA'}->find('foxml\:xmlContent')->first, \%index);
     $c->app->log->debug("_add_uwm_index took " . tv_interval($tadduwmindex));
     if ($r_add_uwm->{status} ne 200) {
-      push @{$res->{alerts}}, {type => 'danger', msg => "Error adding UWMETADATA fields for $pid"};
+      push @{$res->{alerts}}, {type => 'error', msg => "Error adding UWMETADATA fields for $pid"};
       push @{$res->{alerts}}, @{$r_add_uwm->{alerts}} if scalar @{$r_add_uwm->{alerts}} > 0;
     }
 
@@ -1358,7 +1358,7 @@ sub _get {
     $c->app->log->debug("getting metadata_tree took " . tv_interval($tgetuwmtree));
 
     if ($r0->{status} ne 200) {
-      push @{$res->{alerts}}, {type => 'danger', msg => "Error getting UWMETADATA tree for $pid"};
+      push @{$res->{alerts}}, {type => 'error', msg => "Error getting UWMETADATA tree for $pid"};
       push @{$res->{alerts}}, @{$r0->{alerts}} if scalar @{$r0->{alerts}} > 0;
     }
     else {
@@ -1376,7 +1376,7 @@ sub _get {
     my $ann_model = PhaidraAPI::Model::Annotations->new;
     my $r_ann     = $ann_model->xml_2_json($c, $datastreams{'ANNOTATIONS'}->find('foxml\:xmlContent')->first);
     if ($r_ann->{status} ne 200) {
-      push @{$res->{alerts}}, {type => 'danger', msg => "Error adding ANNOTATIONS from $pid"};
+      push @{$res->{alerts}}, {type => 'error', msg => "Error adding ANNOTATIONS from $pid"};
       push @{$res->{alerts}}, @{$r_ann->{alerts}} if scalar @{$r_ann->{alerts}} > 0;
     }
     else {
@@ -1399,7 +1399,7 @@ sub _get {
     my $rights_model = PhaidraAPI::Model::Rights->new;
     my $r_rights     = $rights_model->xml_2_json($c, $datastreams{'RIGHTS'}->find('foxml\:xmlContent')->first);
     if ($r_rights->{status} ne 200) {
-      push @{$res->{alerts}}, {type => 'danger', msg => "Error indexing RIGHTS from $pid"};
+      push @{$res->{alerts}}, {type => 'error', msg => "Error indexing RIGHTS from $pid"};
       push @{$res->{alerts}}, @{$r_rights->{alerts}} if scalar @{$r_rights->{alerts}} > 0;
     }
     else {
@@ -1428,7 +1428,7 @@ sub _get {
     my $membersorder_model = PhaidraAPI::Model::Membersorder->new;
     my $r_mo               = $membersorder_model->xml_2_json($c, $datastreams{'COLLECTIONORDER'}->find('foxml\:xmlContent')->first);
     if ($r_mo->{status} ne 200) {
-      push @{$res->{alerts}}, {type => 'danger', msg => "Error adding COLLECTIONORDER from $pid"};
+      push @{$res->{alerts}}, {type => 'error', msg => "Error adding COLLECTIONORDER from $pid"};
       push @{$res->{alerts}}, @{$r_mo->{alerts}} if scalar @{$r_mo->{alerts}} > 0;
     }
     else {
@@ -1440,7 +1440,7 @@ sub _get {
   # relations
   my $r_add_rrels = $self->_add_reverse_relations($c, $pid, $index{cmodel}, $search_model, \%index);
   if ($r_add_rrels->{status} ne 200) {
-    push @{$res->{alerts}}, {type => 'danger', msg => "Error adding reverse relationships for $pid"};
+    push @{$res->{alerts}}, {type => 'error', msg => "Error adding reverse relationships for $pid"};
     push @{$res->{alerts}}, @{$r_add_rrels->{alerts}} if scalar @{$r_add_rrels->{alerts}} > 0;
   }
 
@@ -2259,7 +2259,7 @@ sub _add_jsonld_roles {
         }
         else {
           $c->app->log->error("Unknown contributor type in jsonld for pid $pid");
-          push @{$res->{alerts}}, {type => 'danger', msg => "Unknown contributor type in jsonld for pid $pid"};
+          push @{$res->{alerts}}, {type => 'error', msg => "Unknown contributor type in jsonld for pid $pid"};
         }
         push @{$index->{"bib_roles_pers_$role"}}, trim $name unless ($name eq '' || $name eq ' ');
       }
@@ -2627,7 +2627,7 @@ sub get_haspart_size {
   }
   else {
     $c->app->log->error("[$pid] error getting haspart size: " . $r_num->code . " " . $r_num->message);
-    unshift @{$res->{alerts}}, {type => 'danger', msg => "error getting haspart size: " . $r_num->code . " " . $r_num->message};
+    unshift @{$res->{alerts}}, {type => 'error', msg => "error getting haspart size: " . $r_num->code . " " . $r_num->message};
   }
 
   return $res;
@@ -2652,7 +2652,7 @@ sub get_object_members {
   }
   else {
     $c->app->log->error("[$pid] error getting object members: " . $r_num->code . " " . $r_num->message);
-    unshift @{$res->{alerts}}, {type => 'danger', msg => "error getting object members: " . $r_num->code . " " . $r_num->message};
+    unshift @{$res->{alerts}}, {type => 'error', msg => "error getting object members: " . $r_num->code . " " . $r_num->message};
   }
 
   return $res;

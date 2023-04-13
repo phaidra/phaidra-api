@@ -308,14 +308,14 @@ sub _parse_uri {
   }
 
   unless ($xmlns) {
-    push @{$res->{alerts}}, {type => 'danger', msg => 'Cannot parse URI'};
+    push @{$res->{alerts}}, {type => 'error', msg => 'Cannot parse URI'};
     $res->{status} = 400;
     return $res;
   }
 
   if ($vid) {
     unless ($vid ~~ $voc_ids{$xmlns}) {
-      push @{$res->{alerts}}, {type => 'danger', msg => "The specified vocabulary ($vid) is unknown or is not allowed in the specified namespace ($xmlns)"};
+      push @{$res->{alerts}}, {type => 'error', msg => "The specified vocabulary ($vid) is unknown or is not allowed in the specified namespace ($xmlns)"};
       $res->{status} = 400;
       return $res;
     }
@@ -323,7 +323,7 @@ sub _parse_uri {
 
   if ($cid) {
     unless ($cid ~~ @cls_ids) {
-      push @{$res->{alerts}}, {type => 'danger', msg => "Unknown classification ($cid)"};
+      push @{$res->{alerts}}, {type => 'error', msg => "Unknown classification ($cid)"};
       $res->{status} = 400;
       return $res;
     }
@@ -369,7 +369,7 @@ sub children {
     }
 
     if ($r->{xmlns} ne $classification_ns) {
-      push @{$res->{alerts}}, {type => 'danger', msg => 'Children can only be obtained for a classification.'};
+      push @{$res->{alerts}}, {type => 'error', msg => 'Children can only be obtained for a classification.'};
       $res->{status} = 400;
       return $res;
     }
@@ -504,7 +504,7 @@ sub taxonpath_upstreamid {
   $c->app->log->debug("taxonpath_upstreamid cid[$cid] upstreamid[$upstreamid] tid[$tid]");
 
   unless ($tid) {
-    push @{$res->{alerts}}, {type => 'danger', msg => "Cannot find taxonid cid[$cid] upstreamid[$upstreamid] tid[$tid]"};
+    push @{$res->{alerts}}, {type => 'error', msg => "Cannot find taxonid cid[$cid] upstreamid[$upstreamid] tid[$tid]"};
     $res->{status} = 400;
     return $res;
   }
@@ -533,19 +533,19 @@ sub taxonpath {
     }
 
     if ($r->{xmlns} ne $classification_ns) {
-      push @{$res->{alerts}}, {type => 'danger', msg => 'Taxon path can only be obtained for a classification'};
+      push @{$res->{alerts}}, {type => 'error', msg => 'Taxon path can only be obtained for a classification'};
       $res->{status} = 400;
       return $res;
     }
 
     unless ($r->{cid}) {
-      push @{$res->{alerts}}, {type => 'danger', msg => 'To get taxon path the uri must specify the classification id'};
+      push @{$res->{alerts}}, {type => 'error', msg => 'To get taxon path the uri must specify the classification id'};
       $res->{status} = 400;
       return $res;
     }
 
     unless ($r->{tid}) {
-      push @{$res->{alerts}}, {type => 'danger', msg => 'To get taxon path the uri must specify the taxon id'};
+      push @{$res->{alerts}}, {type => 'error', msg => 'To get taxon path the uri must specify the taxon id'};
       $res->{status} = 400;
       return $res;
     }
@@ -561,7 +561,7 @@ sub taxonpath {
       if ($cnt > 50) {
 
         # nah..
-        push @{$res->{alerts}}, {type => 'danger', msg => 'Too many cycles'};
+        push @{$res->{alerts}}, {type => 'error', msg => 'Too many cycles'};
         $res->{status} = 500;
         return $res;
       }
@@ -634,19 +634,19 @@ sub parent {
     }
 
     if ($r->{xmlns} ne $classification_ns) {
-      push @{$res->{alerts}}, {type => 'danger', msg => 'Parent can only be obtained for a classification.'};
+      push @{$res->{alerts}}, {type => 'error', msg => 'Parent can only be obtained for a classification.'};
       $res->{status} = 400;
       return $res;
     }
 
     unless ($r->{cid}) {
-      push @{$res->{alerts}}, {type => 'danger', msg => 'To get the parent the uri must specify the classification id'};
+      push @{$res->{alerts}}, {type => 'error', msg => 'To get the parent the uri must specify the classification id'};
       $res->{status} = 400;
       return $res;
     }
 
     unless ($r->{tid}) {
-      push @{$res->{alerts}}, {type => 'danger', msg => 'To get the parent the uri must specify the taxon id'};
+      push @{$res->{alerts}}, {type => 'error', msg => 'To get the parent the uri must specify the taxon id'};
       $res->{status} = 400;
       return $res;
     }

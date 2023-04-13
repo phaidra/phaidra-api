@@ -53,7 +53,7 @@ sub add_or_modify_datastream_hooks {
         if ($rdshash->{status} ne 200) {
 
           # just log but don't change status, this isn't fatal
-          push @{$res->{alerts}}, {type => 'danger', msg => 'Error getting datastreams_hash when updating IIIF-MANIFEST metadata'};
+          push @{$res->{alerts}}, {type => 'error', msg => 'Error getting datastreams_hash when updating IIIF-MANIFEST metadata'};
           push @{$res->{alerts}}, @{$rdshash->{alerts}} if scalar @{$rdshash->{alerts}} > 0;
           return $res;
         }
@@ -64,7 +64,7 @@ sub add_or_modify_datastream_hooks {
           if ($r->{status} ne 200) {
 
             # just log but don't change status, this isn't fatal
-            push @{$res->{alerts}}, {type => 'danger', msg => 'Error updating IIIF-MANIFEST metadata'};
+            push @{$res->{alerts}}, {type => 'error', msg => 'Error updating IIIF-MANIFEST metadata'};
             push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
           }
         }

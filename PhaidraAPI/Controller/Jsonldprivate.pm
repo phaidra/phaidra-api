@@ -17,7 +17,7 @@ sub get {
   my $pid = $self->stash('pid');
 
   unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -37,7 +37,7 @@ sub post {
 
   my $metadata = $self->param('metadata');
   unless (defined($metadata)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata sent'}]}, status => 400);
     return;
   }
 
@@ -57,23 +57,23 @@ sub post {
 
   if ($@) {
     $self->app->log->error("Error: $@");
-    $self->render(json => {alerts => [{type => 'danger', msg => $@}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => $@}]}, status => 400);
     return;
   }
 
   unless (defined($metadata->{metadata})) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata found'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata found'}]}, status => 400);
     return;
   }
   $metadata = $metadata->{metadata};
 
   unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
   unless (defined($metadata->{'json-ld-private'}) || $metadata->{'JSON-LD-PRIVATE'}) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No JSON-LD-PRIVATE sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No JSON-LD-PRIVATE sent'}]}, status => 400);
     return;
   }
 

@@ -44,7 +44,7 @@ sub authenticate() {
     return $username;
   }
   else {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'Authentication failed'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'Authentication failed'};
     $res->{status} = 401;
     $c->stash({phaidra_auth_result => $res});
     return undef;

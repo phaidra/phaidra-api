@@ -47,7 +47,7 @@ sub feedback {
     my $err = "Error sending feedback email: " . $@;
     $self->app->log->error($err);
     $res->{status} = 500;
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
     $self->render(json => $res, status => $res->{status});
     return;
   }

@@ -37,7 +37,7 @@ sub get_url {
   unless ($p) {
     my $msg = 'Cannot find IIIF, Zoomify or DeepZoom parameter';
     $c->app->log->error($msg);
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $msg};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $msg};
     $res->{status} = 400;
     return $res;
   }
@@ -65,7 +65,7 @@ sub get_url {
 
     unless ($status_cacheval eq 404) {
       $c->app->log->info("imageserver::get username[" . $c->stash->{basic_auth_credentials}->{username} . "] pid[$pid] forbidden");
-      unshift @{$res->{alerts}}, {type => 'danger', msg => 'Forbidden'};
+      unshift @{$res->{alerts}}, {type => 'error', msg => 'Forbidden'};
       $res->{status} = 403;
       return;
     }

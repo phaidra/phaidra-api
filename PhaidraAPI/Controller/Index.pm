@@ -116,7 +116,7 @@ sub update {
     my $pids = $self->param('pids');
 
     unless (defined($pids)) {
-      $self->render(json => {alerts => [{type => 'danger', msg => 'No pids sent'}]}, status => 400);
+      $self->render(json => {alerts => [{type => 'error', msg => 'No pids sent'}]}, status => 400);
       return;
     }
 
@@ -135,12 +135,12 @@ sub update {
 
     if ($@) {
       $self->app->log->error("Error: $@");
-      $self->render(json => {alerts => [{type => 'danger', msg => $@}]}, status => 400);
+      $self->render(json => {alerts => [{type => 'error', msg => $@}]}, status => 400);
       return;
     }
 
     unless (defined($pids->{pids})) {
-      $self->render(json => {alerts => [{type => 'danger', msg => 'No pids found'}]}, status => 400);
+      $self->render(json => {alerts => [{type => 'error', msg => 'No pids found'}]}, status => 400);
       return;
     }
 

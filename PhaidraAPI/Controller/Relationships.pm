@@ -12,7 +12,7 @@ sub get {
 
   my $pid = $self->stash('pid');
   unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -51,7 +51,7 @@ sub get {
   my %rels;
   my $r_relsext = $index_model->_index_relsext($self, $datastreams{'RELS-EXT'}->find('foxml\:xmlContent')->first, \%rels);
   if ($r_relsext->{status} ne 200) {
-    push @{$res->{alerts}}, {type => 'danger', msg => "Error indexing RELS-EXT for $pid"};
+    push @{$res->{alerts}}, {type => 'error', msg => "Error indexing RELS-EXT for $pid"};
     push @{$res->{alerts}}, @{$r_relsext->{alerts}} if scalar @{$r_relsext->{alerts}} > 0;
   }
 

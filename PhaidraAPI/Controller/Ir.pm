@@ -40,7 +40,7 @@ sub notifications {
   my $pid = $self->param('pid');
 
   unless ($pid) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No pid sent.'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No pid sent.'}]}, status => 400);
     return;
   }
 
@@ -155,14 +155,14 @@ sub accept {
   my $password = $self->stash->{basic_auth_credentials}->{password};
 
   if ($username ne $self->config->{ir}->{iraccount}) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Not authorized.'}]}, status => 403);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Not authorized.'}]}, status => 403);
     return;
   }
 
   my $pid = $self->stash('pid');
 
   unless ($pid) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No pid sent.'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No pid sent.'}]}, status => 400);
     return;
   }
 
@@ -172,7 +172,7 @@ sub accept {
   if ($r->{status} ne 200) {
     $res->{status} = 500;
     unshift @{$res->{alerts}}, @{$r->{alerts}};
-    unshift @{$res->{alerts}}, {type => 'danger', msg => "Error accepting object $pid"};
+    unshift @{$res->{alerts}}, {type => 'error', msg => "Error accepting object $pid"};
     $self->render(json => $res, status => $res->{status});
     return;
   }
@@ -192,14 +192,14 @@ sub reject {
   my $password = $self->stash->{basic_auth_credentials}->{password};
 
   if ($username ne $self->config->{ir}->{iraccount}) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Not authorized.'}]}, status => 403);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Not authorized.'}]}, status => 403);
     return;
   }
 
   my $pid = $self->stash('pid');
 
   unless ($pid) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No pid sent.'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No pid sent.'}]}, status => 400);
     return;
   }
 
@@ -210,7 +210,7 @@ sub reject {
   if ($r->{status} ne 200) {
     $res->{status} = 500;
     unshift @{$res->{alerts}}, @{$r->{alerts}};
-    unshift @{$res->{alerts}}, {type => 'danger', msg => "Error rejecting object $pid"};
+    unshift @{$res->{alerts}}, {type => 'error', msg => "Error rejecting object $pid"};
     $self->render(json => $res, status => $res->{status});
     return;
   }
@@ -230,14 +230,14 @@ sub approve {
   my $password = $self->stash->{basic_auth_credentials}->{password};
 
   if ($username ne $self->config->{ir}->{iraccount}) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Not authorized.'}]}, status => 403);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Not authorized.'}]}, status => 403);
     return;
   }
 
   my $pid = $self->stash('pid');
 
   unless ($pid) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No pid sent.'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No pid sent.'}]}, status => 400);
     return;
   }
 
@@ -317,7 +317,7 @@ sub approve {
 
     # 200 - the object was approved, notification failure goes to alerts
     $res->{status} = 200;
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $err};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
     $self->render(json => $res, status => $res->{status});
     return;
   }
@@ -339,14 +339,14 @@ sub events {
   my $password = $self->stash->{basic_auth_credentials}->{password};
 
   if ($username ne $self->config->{ir}->{iraccount}) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Not authorized.'}]}, status => 403);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Not authorized.'}]}, status => 403);
     return;
   }
 
   my $pid = $self->stash('pid');
 
   unless ($pid) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No pid sent.'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No pid sent.'}]}, status => 400);
     return;
   }
 
@@ -381,7 +381,7 @@ sub adminlistdata {
   $self->app->log->debug("==============");
 
   if ($username ne $self->config->{ir}->{iraccount}) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Not authorized.'}]}, status => 403);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Not authorized.'}]}, status => 403);
     return;
   }
 
@@ -530,13 +530,13 @@ sub submit {
 
   if ($self->req->is_limit_exceeded) {
     $self->app->log->debug("Size limit exceeded. Current max_message_size:" . $self->req->max_message_size);
-    $self->render(json => {alerts => [{type => 'danger', msg => 'File is too big'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'File is too big'}]}, status => 400);
     return;
   }
 
   my $metadata = $self->param('metadata');
   unless ($metadata) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata sent.'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata sent.'}]}, status => 400);
     return;
   }
 
@@ -555,21 +555,21 @@ sub submit {
 
   if ($@) {
     $self->app->log->error("Error: $@");
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $@};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $@};
     $res->{status} = 400;
     $self->render(json => $res, status => $res->{status});
     return;
   }
 
   unless (exists($metadata->{metadata}->{'json-ld'}->{'ebucore:filename'})) {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => "Missing ebucore:filename"};
+    unshift @{$res->{alerts}}, {type => 'error', msg => "Missing ebucore:filename"};
     $res->{status} = 400;
     $self->render(json => $res, status => $res->{status});
     return;
   }
 
   unless (exists($metadata->{metadata}->{'json-ld'}->{'ebucore:hasMimeType'})) {
-    unshift @{$res->{alerts}}, {type => 'danger', msg => "Missing ebucore:hasMimeType"};
+    unshift @{$res->{alerts}}, {type => 'error', msg => "Missing ebucore:hasMimeType"};
     $res->{status} = 400;
     $self->render(json => $res, status => $res->{status});
     return;
@@ -627,7 +627,7 @@ sub submit {
       }
     }
     unless (defined($fileupload)) {
-      unshift @{$res->{alerts}}, {type => 'danger', msg => "Missing file [$filename]"};
+      unshift @{$res->{alerts}}, {type => 'error', msg => "Missing file [$filename]"};
       $res->{status} = 400;
       $self->render(json => $res, status => $res->{status});
       return;
@@ -686,7 +686,7 @@ sub submit {
     if ($r->{status} ne 200) {
       $res->{status} = 500;
       unshift @{$res->{alerts}}, @{$r->{alerts}};
-      unshift @{$res->{alerts}}, {type => 'danger', msg => "Error creating object [filename=$filename]"};
+      unshift @{$res->{alerts}}, {type => 'error', msg => "Error creating object [filename=$filename]"};
       $self->render(json => $res, status => $res->{status});
       return;
     }
@@ -1234,7 +1234,7 @@ sub puresearch {
   # already went through check_auth
   my $username = $self->stash->{basic_auth_credentials}->{username};
   if ($username ne $self->config->{ir}->{iraccount}) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Not authorized.'}]}, status => 403);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Not authorized.'}]}, status => 403);
     return;
   }
 
@@ -1276,7 +1276,7 @@ sub puresearch {
     $res->{response} = $getres->json;
   }
   else {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'error getting results from Pure ' . $getres->code . " " . $getres->message}]}, status => 500);
+    $self->render(json => {alerts => [{type => 'error', msg => 'error getting results from Pure ' . $getres->code . " " . $getres->message}]}, status => 500);
     return;
   }
 

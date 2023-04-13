@@ -13,12 +13,12 @@ sub get {
   my $format = $self->param('format');
 
   unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
   if ($format ne 'xml') {
-    $self->render(json => {alerts => [{type => 'danger', msg => "Only xml format is supported. Please send the request with the format=xml parameter."}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => "Only xml format is supported. Please send the request with the format=xml parameter."}]}, status => 400);
     return;
   }
 

@@ -3,6 +3,7 @@ package PhaidraAPI::Controller::Termsofuse;
 use strict;
 use warnings;
 use v5.10;
+use Scalar::Util qw(looks_like_number);
 use Mojo::ByteStream qw(b);
 use base 'Mojolicious::Controller';
 
@@ -12,6 +13,10 @@ sub get {
   my $lang = $self->param('lang');
   unless ($lang) {
     $lang = 'en';
+  }
+  unless (length($lang) == 2) {
+    $self->render(json => {alerts => [{type => 'error', msg => 'Error getting terms of use, invalid language'}]}, status => 500);
+    return;
   }
 
   my $ss  = "SELECT terms, added, version FROM terms_of_use WHERE isocode = '$lang' ORDER BY version DESC;";
@@ -34,7 +39,7 @@ sub get {
     $sth->finish();
 
     unless ($terms && $added && $version) {
-      $self->render(json => {alerts => [{type => 'danger', msg => 'Error getting terms of use'}]}, status => 500);
+      $self->render(json => {alerts => [{type => 'error', msg => 'Error getting terms of use'}]}, status => 500);
       return;
     }
   }
@@ -46,7 +51,11 @@ sub agree {
 
   my $version = $self->stash('version');
   unless ($version) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No version provided'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No version provided'}]}, status => 400);
+    return;
+  }
+  unless(looks_like_number($version)) {
+    $self->render(json => {alerts => [{type => 'error', msg => 'Invalid version provided'}]}, status => 400);
     return;
   }
 
@@ -58,7 +67,7 @@ sub agree {
   $sth->fetch();
   $sth->finish();
   unless ($versionexists) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Unknown version provided'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Unknown version provided'}]}, status => 400);
     return;
   }
 
@@ -72,7 +81,7 @@ sub agree {
   $sth->fetch();
   $sth->finish();
   if ($agreed) {
-    $self->render(json => {alerts => [{type => 'danger', msg => "Already agreeded to this version $agreed"}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => "Already agreeded to this version $agreed"}]}, status => 400);
     return;
   }
 
@@ -87,7 +96,7 @@ sub agree {
   else {
     my $msg = $self->app->db_user->dbh->errstr;
     $self->app->log->error($msg);
-    $self->render(json => {alerts => [{type => 'danger', msg => "Error agreeing to terms of use: $msg"}], status => 500}, status => 500);
+    $self->render(json => {alerts => [{type => 'error', msg => "Error agreeing to terms of use: $msg"}], status => 500}, status => 500);
   }
 }
 

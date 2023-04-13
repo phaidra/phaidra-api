@@ -40,14 +40,14 @@ sub taxonpath {
   my $res;
   if ($self->param('upstreamid')) {
     unless (defined($self->param('cid'))) {
-      $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined cid'}], status => 404}, status => 404);
+      $self->render(json => {alerts => [{type => 'error', msg => 'Undefined cid'}], status => 404}, status => 404);
       return;
     }
     $res = $terms_model->taxonpath_upstreamid($self, $self->param('cid'), $self->param('upstreamid'));
   }
   else {
     unless (defined($self->param('uri'))) {
-      $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined uri'}], status => 404}, status => 404);
+      $self->render(json => {alerts => [{type => 'error', msg => 'Undefined uri'}], status => 404}, status => 404);
       return;
     }
     $res = $terms_model->taxonpath($self, $self->param('uri'));

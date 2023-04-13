@@ -133,7 +133,7 @@ sub save_to_object() {
   my $rights = $self->json_2_xml($c, $metadata);
   unless ($rights) {
     $res->{status} = 500;
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error converting RIGHTS metadata'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'Error converting RIGHTS metadata'};
     return $res;
   }
 

@@ -18,7 +18,7 @@ sub get {
   my $header = $self->stash('header') eq '1' or $self->param('header') eq '1';
 
   unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
@@ -57,7 +57,7 @@ sub post {
 
   my $metadata = $self->param('metadata');
   unless (defined($metadata)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata sent'}]}, status => 400);
     return;
   }
 
@@ -77,23 +77,23 @@ sub post {
 
   if ($@) {
     $self->app->log->error("Error: $@");
-    $self->render(json => {alerts => [{type => 'danger', msg => $@}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => $@}]}, status => 400);
     return;
   }
 
   unless (defined($metadata->{metadata})) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No metadata found'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No metadata found'}]}, status => 400);
     return;
   }
   $metadata = $metadata->{metadata};
 
   unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined pid'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
 
   unless (defined($metadata->{'json-ld'}) || defined($metadata->{'JSON-LD'})) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No JSON-LD sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No JSON-LD sent'}]}, status => 400);
     return;
   }
 
@@ -111,7 +111,7 @@ sub post {
   if ($res_cmodel->{status} ne 200) {
     my $err = "ERROR saving json-ld for object $pid, could not get cmodel:" . $self->app->dumper($res_cmodel);
     $self->app->log->error($err);
-    $self->render(json => {alerts => [{type => 'danger', msg => $err}]}, status => 500);
+    $self->render(json => {alerts => [{type => 'error', msg => $err}]}, status => 500);
     return;
   }
   else {
@@ -136,13 +136,13 @@ sub add_template {
 
   my $name = $self->param('name');
   unless (defined($name)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No name sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No name sent'}]}, status => 400);
     return;
   }
 
   my $form = $self->param('form');
   unless (defined($form)) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'No form sent'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'No form sent'}]}, status => 400);
     return;
   }
 
@@ -161,7 +161,7 @@ sub add_template {
 
   if ($@) {
     $self->app->log->error("Error: $@");
-    unshift @{$res->{alerts}}, {type => 'danger', msg => $@};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $@};
     $res->{status} = 400;
     $self->render(json => $res, status => $res->{status});
     return;
@@ -184,7 +184,7 @@ sub get_template {
   my $res = {alerts => [], status => 200};
 
   unless (defined($self->stash('tid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined template id'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined template id'}]}, status => 400);
     return;
   }
   $self->app->log->debug($self->stash('tid') . " " . $self->stash->{basic_auth_credentials}->{username});
@@ -224,7 +224,7 @@ sub remove_template {
   my $res = {alerts => [], status => 200};
 
   unless (defined($self->stash('tid'))) {
-    $self->render(json => {alerts => [{type => 'danger', msg => 'Undefined template id'}]}, status => 400);
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined template id'}]}, status => 400);
     return;
   }
 

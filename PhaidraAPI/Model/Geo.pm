@@ -158,7 +158,7 @@ sub save_to_object() {
   my $geo = $self->json_2_xml($c, $metadata);
   unless ($geo) {
     $res->{status} = 500;
-    unshift @{$res->{alerts}}, {type => 'danger', msg => 'Error converting GEO metadata'};
+    unshift @{$res->{alerts}}, {type => 'error', msg => 'Error converting GEO metadata'};
     return $res;
   }
 
