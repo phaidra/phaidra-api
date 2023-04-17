@@ -12,6 +12,7 @@ use Mojo::Upload;
 use Mojo::Path;
 use Mojo::IOLoop;
 use Scalar::Util qw(looks_like_number);
+use Mojo::Util qw(url_escape);
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Collection;
 use PhaidraAPI::Model::Search;
@@ -58,11 +59,20 @@ sub info {
     $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
+  my $pid = $self->stash('pid');
+  unless ($pid =~ m/^o:\d+$/) {
+    $self->render(json => {alerts => [{type => 'error', msg => 'Invalid pid'}]}, status => 400);
+    return;
+  }
 
   my $mode = $self->param('mode');
 
   my $object_model = PhaidraAPI::Model::Object->new;
-  my $r            = $object_model->info($self, $self->stash('pid'), $mode, $username, $password);
+  my $r            = $object_model->info($self, $pid, $mode, $username, $password);
+
+  if ($r->{status} eq 200) {
+    $self->track_detail($pid);
+  }
 
   $self->render(json => $r, status => $r->{status});
 }
@@ -1393,6 +1403,79 @@ sub get_legacy_container_member {
 
   $self->res->content->asset($asset);
   $self->rendered($res->{status});
+}
+
+sub track_detail {
+  my ($self, $pid) = @_;
+
+  my $fr = undef;
+  if (exists($self->app->config->{sites})) {
+    for my $f (@{$self->app->config->{sites}}) {
+      if (defined($f->{site}) && $f->{site} eq 'phaidra') {
+        $fr = $f;
+      }
+    }
+  }
+
+  unless (defined($fr)) {
+    $self->app->log->debug("pid[$pid] Not tracking detail: Site is not configured");
+    return;
+  }
+  unless ($fr->{site} eq 'phaidra') {
+    $self->app->log->error("pid[$pid] Error tracking detail: Site [" . $fr->{site} . "] is not supported");
+    return;
+  }
+  unless (defined($fr->{stats})) {
+    $self->app->log->error("pid[$pid] Error tracking detail: Statistics source is not configured");
+    return;
+  }
+  unless (defined($fr->{stats}->{serverbaseurl})) {
+    $self->app->log->error("pid[$pid] Error tracking detail: serverbaseurl is not configured");
+    return;
+  }
+  unless (defined($fr->{stats}->{token})) {
+    $self->app->log->error("pid[$pid] Error tracking detail: token is not configured");
+    return;
+  }
+
+  # only piwik now
+  unless ($fr->{stats}->{type} eq 'piwik') {
+    $self->app->log->error("pid[$pid] Error tracking detail: Statistics source [" . $fr->{stats}->{type} . "] is not supported.");
+    return;
+  }
+
+  unless (defined($fr->{stats}->{siteid})) {
+    $self->app->log->error("pid[$pid] Error tracking detail: Piwik siteid is not configured.");
+    return;
+  }
+
+  my $siteid = $fr->{stats}->{siteid};
+  my $matomoapi = "https://".$fr->{stats}->{serverbaseurl}."/matomo.php";
+  my $matomotoken = $fr->{stats}->{token};
+  my $actionname = url_escape("detail/$pid");
+
+  my $trackurl = "https://".$self->app->config->{phaidra}->{baseurl}."/detail/$pid";
+  my $url = url_escape($trackurl);
+  my $cip = url_escape($self->tx->remote_address);
+  my $tracklink = "?idsite=$siteid&rec=1&url=$url&action_name=$actionname&cip=$cip";
+
+  my $ua  = Mojo::UserAgent->new;
+  $ua->request_timeout(1);
+
+  $ua->post_p("$matomoapi"=> json => {
+      "token_auth" => "$matomotoken",
+      "requests" => [ $tracklink ]
+    })->then(sub {
+      my ($tx) = @_;
+      if($tx->result->is_success) {
+        $self->app->log->debug("pid[$pid] tracking detail successful");
+      } else {
+        $self->app->log->error("pid[$pid] tracking detail failed");
+      }
+  })->catch(sub {
+    my $err = shift;
+    $self->app->log->error("pid[$pid] tracking detail failed: $err");
+  })->wait;
 }
 
 # Diss method is for calling the disseminator which is api-a access, so it can also be called without credentials.
