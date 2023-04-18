@@ -581,7 +581,11 @@ sub preview {
         }
         else {
           $self->app->log->error("Video key not available: " . $self->app->dumper($r));
-          $self->render(text => $self->app->dumper($r), status => $r->{status});
+	  if ($r->{status} eq 404) {
+            $self->render(text => "Video is being prepared for streaming, please try again later.", status => $r->{status});
+          } else {
+            $self->render(text => $self->app->dumper($r), status => $r->{status});
+	  }
           return;
         }
       }
