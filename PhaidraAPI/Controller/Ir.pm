@@ -810,7 +810,7 @@ sub stats {
   my $fr = undef;
   if (exists($self->app->config->{sites})) {
     for my $f (@{$self->app->config->{sites}}) {
-      if (defined($f->{site}) && $f->{site} eq 'ir') {
+      if (defined($f->{site}) && $f->{site} eq 'phaidra') {
         $fr = $f;
       }
     }
@@ -822,7 +822,7 @@ sub stats {
     $self->render(json => {alerts => [{type => 'info', msg => 'Site is not configured'}]}, status => 200);
     return;
   }
-  unless ($fr->{site} eq 'ir') {
+  unless ($fr->{site} eq 'ir' or $fr->{site} eq 'phaidra') {
 
     # return 200, this is just ok
     $self->render(json => {alerts => [{type => 'info', msg => 'Site [' . $fr->{site} . '] is not supported'}]}, status => 200);
@@ -887,7 +887,7 @@ sub stats_chart {
   my $fr = undef;
   if (exists($self->app->config->{sites})) {
     for my $f (@{$self->app->config->{sites}}) {
-      if (defined($f->{site}) && $f->{site} eq 'ir') {
+      if (defined($f->{site}) && $f->{site} eq 'phaidra') {
         $fr = $f;
       }
     }
@@ -899,7 +899,7 @@ sub stats_chart {
     $self->render(json => {alerts => [{type => 'info', msg => 'Site is not configured'}]}, status => 200);
     return;
   }
-  unless ($fr->{site} eq 'ir') {
+  unless ($fr->{site} eq 'ir' or $fr->{site} eq 'phaidra') {
 
     # return 200, this is just ok
     $self->render(json => {alerts => [{type => 'info', msg => 'Site [' . $fr->{site} . '] is not supported'}]}, status => 200);
