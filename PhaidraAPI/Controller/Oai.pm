@@ -632,7 +632,7 @@ sub handler {
     my $earliestDatestampStr = '1970-01-01T00:00:01Z';
     my $rec                  = $self->mongo->get_collection('oai_records')->find()->sort({"updated" => 1})->next;
     if ($rec) {
-      $earliestDatestampStr = $self->_epochMsToIso($rec->{created});
+      $earliestDatestampStr = $self->_epochMsToIso($rec->{inserted});
     }
     $self->stash(earliest_datestamp => $earliestDatestampStr);
     $self->render(template => 'oai/identify', format => 'xml', handler => 'ep');
@@ -674,12 +674,16 @@ sub handler {
 
     my %filter;
 
+    if ($from or $until) {
+      $filter{"updated"} = {};
+    }
+
     if ($from) {
-      $filter{"updated"} = {'$gte' => DateTime::Format::ISO8601->parse_datetime($from)->epoch * 1000};
+      $filter{"updated"}->{'$gte'} = DateTime::Format::ISO8601->parse_datetime($from)->epoch * 1000;
     }
 
     if ($until) {
-      $filter{"updated"} = {'$lte' => DateTime::Format::ISO8601->parse_datetime($until)->epoch * 1000};
+      $filter{"updated"}->{'$lte'} = DateTime::Format::ISO8601->parse_datetime($until)->epoch * 1000;
     }
 
     if ($params->{set}) {
