@@ -122,6 +122,16 @@ sub get_is_thumbnail_for {
   }
 }
 
+sub setNoCacheHeaders {
+  my $self = shift;
+
+  $self->res->headers->add('Pragma-Directive' => 'no-cache');
+  $self->res->headers->add('Cache-Directive' => 'no-cache');
+  $self->res->headers->add('Cache-Control' => 'no-cache');
+  $self->res->headers->add('Pragma' => 'no-cache');
+  $self->res->headers->add('Expires' => 0);
+}
+
 sub thumbnail {
   my $self = shift;
 
@@ -146,6 +156,7 @@ sub thumbnail {
   my $authz_model = PhaidraAPI::Model::Authorization->new;
   my $res         = $authz_model->check_rights($self, $pid, 'ro');
   unless ($res->{status} eq '200') {
+    $self->setNoCacheHeaders();
     $self->reply->static('images/locked.png');
     return;
   }
@@ -154,6 +165,7 @@ sub thumbnail {
   my $cmodelr      = $search_model->get_cmodel($self, $pid);
   if ($cmodelr->{status} ne 200) {
     $self->app->log->error("pid[$pid] could not get cmodel");
+    $self->setNoCacheHeaders();
     $self->reply->static('images/error.png');
     return;
   }
@@ -211,6 +223,7 @@ sub thumbnail {
       my $docres      = $index_model->get_doc($self, $pid);
       if ($docres->{status} ne 200) {
         $self->app->log->error("pid [$pid] error searching for firstpage: " . $self->app->dumper($docres));
+        $self->setNoCacheHeaders();
         $self->reply->static('images/error.png');
         return;
       }
@@ -292,6 +305,7 @@ sub thumbnail {
   }
 
   $self->app->log->error("pid[$pid] oops!");
+  $self->setNoCacheHeaders();
   $self->reply->static('images/error.png');
 }
 
@@ -309,6 +323,7 @@ sub preview {
   my $authz_model = PhaidraAPI::Model::Authorization->new;
   my $resro       = $authz_model->check_rights($self, $pid, 'ro');
   unless ($resro->{status} eq '200') {
+    $self->setNoCacheHeaders();
     $self->reply->static('images/locked.png');
     return;
   }
@@ -462,6 +477,7 @@ sub preview {
         $docres = $index_model->get_doc($self, $pid);
         if ($docres->{status} ne 200) {
           $self->app->log->error("pid[$pid] error searching for doc: " . $self->app->dumper($docres));
+          $self->setNoCacheHeaders();
           $self->reply->static('images/error.png');
           return;
         }
@@ -493,6 +509,7 @@ sub preview {
       unless ($docres) {
         if ($docres->{status} ne 200) {
           $self->app->log->error("pid[$pid] error searching for doc: " . $self->app->dumper($docres));
+          $self->setNoCacheHeaders();
           $self->reply->static('images/error.png');
           return;
         }
