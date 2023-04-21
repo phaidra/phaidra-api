@@ -598,7 +598,7 @@ sub preview {
         }
         else {
           $self->app->log->error("Video key not available: " . $self->app->dumper($r));
-          if ($r->{status} eq 404) {
+          if ($r->{status} eq 404 or $r->{status} eq 503) {
             $self->render(text => "Stream is not available. Reason: Video is being prepared for streaming, please try again later.", status => $r->{status});
           } else {
             $self->render(text => "Stream is not available. Reason: ".$r->{alerts}[0]->{msg}, status => $r->{status});
