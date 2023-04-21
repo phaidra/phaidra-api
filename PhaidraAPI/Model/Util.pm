@@ -109,7 +109,7 @@ sub get_video_key {
     $res->{status} = 404;
   }
   if ($errormsg) {
-    push @{$res->{alerts}}, {type => 'error', msg => $errormsg};
+    push @{$res->{alerts}}, {type => ($res->{status} == 500 or $res->{status} == 404) ? 'error' : 'info', msg => $errormsg};
   }
   return $res;
 }
