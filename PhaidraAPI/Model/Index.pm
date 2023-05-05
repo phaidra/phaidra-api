@@ -890,7 +890,7 @@ sub _update_members {
     $c->app->log->error("[$pid] error getting object $relation relations count " . $get->message);
     unshift @{$res->{alerts}}, {type => 'error', msg => "error getting object $relation relations count"};
     unshift @{$res->{alerts}}, {type => 'error', msg => $get->message};
-    $res->{status} = $code ? $code : 500;
+    $res->{status} = $get->code ? $get->code : 500;
     return $res;
   }
 
@@ -1017,8 +1017,8 @@ sub _update_relation_post {
     $c->app->log->debug("[$pid] updated " . (scalar @{$members}) . " documents");
   }
   else {
-    unshift @{$res->{alerts}}, {type => 'error', msg => $r->message};
-    $res->{status} = $r->code ? $r->code : 500;
+    unshift @{$res->{alerts}}, {type => 'error', msg => $post->message};
+    $res->{status} = $post->code ? $post->code : 500;
   }
 
   return $res;
@@ -2637,7 +2637,6 @@ sub get_object_members {
   my $ua = Mojo::UserAgent->new;
 
   my $r_num = $ua->get($urlget)->result;
-  $c->app->log->error($c->app->dumper($r_num));
   my $numFound;
   if ($r_num->is_success) {
     $res->{members} = $r_num->json->{response}->{docs};
