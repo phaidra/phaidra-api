@@ -370,141 +370,139 @@ sub startup {
   $r->namespaces(['PhaidraAPI::Controller']);
 
   #<<< perltidy ignore
-  $r->route('')                                   ->via('get')    ->to('authentication#signin_shib');
-  $r->route('languages')                          ->via('get')    ->to('languages#get_languages');
-  $r->route('licenses')                           ->via('get')    ->to('licenses#get_licenses');
+  $r->get('')                                       ->to('authentication#signin_shib');
+  $r->get('languages')                              ->to('languages#get_languages');
+  $r->get('licenses')                               ->to('licenses#get_licenses');
 
-  $r->route('uwmetadata/tree')                    ->via('get')    ->to('uwmetadata#tree');
-  $r->route('uwmetadata/json2xml')                ->via('post')   ->to('uwmetadata#json2xml');
-  $r->route('uwmetadata/xml2json')                ->via('post')   ->to('uwmetadata#xml2json');
-  $r->route('uwmetadata/validate')                ->via('post')   ->to('uwmetadata#validate');
-  $r->route('uwmetadata/json2xml_validate')       ->via('post')   ->to('uwmetadata#json2xml_validate');
-  $r->route('uwmetadata/compress')                ->via('post')   ->to('uwmetadata#compress');
-  $r->route('uwmetadata/decompress')              ->via('post')   ->to('uwmetadata#decompress');
+  $r->get('uwmetadata/tree')                        ->to('uwmetadata#tree');
+  $r->post('uwmetadata/json2xml')                   ->to('uwmetadata#json2xml');
+  $r->post('uwmetadata/xml2json')                   ->to('uwmetadata#xml2json');
+  $r->post('uwmetadata/validate')                   ->to('uwmetadata#validate');
+  $r->post('uwmetadata/json2xml_validate')          ->to('uwmetadata#json2xml_validate');
+  $r->post('uwmetadata/compress')                   ->to('uwmetadata#compress');
+  $r->post('uwmetadata/decompress')                 ->to('uwmetadata#decompress');
 
-  $r->route('mods/tree')                          ->via('get')    ->to('mods#tree');
-  $r->route('mods/json2xml')                      ->via('post')   ->to('mods#json2xml');
-  $r->route('mods/xml2json')                      ->via('post')   ->to('mods#xml2json');
-  $r->route('mods/validate')                      ->via('post')   ->to('mods#validate');
-  # possible parameters: fix, pid
-  $r->route('mods/json2xml_validate')             ->via('post')   ->to('mods#json2xml_validate');
+  $r->get('mods/tree')                              ->to('mods#tree');
+  $r->post('mods/json2xml')                         ->to('mods#json2xml');
+  $r->post('mods/xml2json')                         ->to('mods#xml2json');
+  $r->post('mods/validate')                         ->to('mods#validate');
+  $r->post('mods/json2xml_validate')                ->to('mods#json2xml_validate');
 
-  $r->route('rights/json2xml')                    ->via('post')   ->to('rights#json2xml');
-  $r->route('rights/xml2json')                    ->via('post')   ->to('rights#xml2json');
-  $r->route('rights/validate')                    ->via('post')   ->to('rights#validate');
-  $r->route('rights/json2xml_validate')           ->via('post')   ->to('rights#json2xml_validate');
+  $r->post('rights/json2xml')                       ->to('rights#json2xml');
+  $r->post('rights/xml2json')                       ->to('rights#xml2json');
+  $r->post('rights/validate')                       ->to('rights#validate');
+  $r->post('rights/json2xml_validate')              ->to('rights#json2xml_validate');
 
-  $r->route('geo/json2xml')                       ->via('post')   ->to('geo#json2xml');
-  $r->route('geo/xml2json')                       ->via('post')   ->to('geo#xml2json');
-  $r->route('geo/validate')                       ->via('post')   ->to('geo#validate');
-  $r->route('geo/json2xml_validate')              ->via('post')   ->to('geo#json2xml_validate');
+  $r->post('geo/json2xml')                          ->to('geo#json2xml');
+  $r->post('geo/xml2json')                          ->to('geo#xml2json');
+  $r->post('geo/validate')                          ->to('geo#validate');
+  $r->post('geo/json2xml_validate')                 ->to('geo#json2xml_validate');
 
-  $r->route('members/order/json2xml')             ->via('post')   ->to('membersorder#json2xml');
-  $r->route('members/order/xml2json')             ->via('post')   ->to('membersorder#xml2json');
+  $r->post('members/order/json2xml')                ->to('membersorder#json2xml');
+  $r->post('members/order/xml2json')                ->to('membersorder#xml2json');
 
-  $r->route('annotations/json2xml')               ->via('post')   ->to('annotations#json2xml');
-  $r->route('annotations/xml2json')               ->via('post')   ->to('annotations#xml2json');
-  $r->route('annotations/validate')               ->via('post')   ->to('annotations#validate');
-  $r->route('annotations/json2xml_validate')      ->via('post')   ->to('annotations#json2xml_validate');
+  $r->post('annotations/json2xml')                  ->to('annotations#json2xml');
+  $r->post('annotations/xml2json')                  ->to('annotations#xml2json');
+  $r->post('annotations/validate')                  ->to('annotations#validate');
+  $r->post('annotations/json2xml_validate')         ->to('annotations#json2xml_validate');
 
-  $r->route('help/tooltip')                       ->via('get')    ->to('help#tooltip');
+  $r->get('help/tooltip')                           ->to('help#tooltip');
 
-  $r->route('directory/get_study')                ->via('get')    ->to('directory#get_study');
-  $r->route('directory/get_study_plans')          ->via('get')    ->to('directory#get_study_plans');
-  $r->route('directory/get_study_name')           ->via('get')    ->to('directory#get_study_name');
+  $r->get('directory/get_study')                    ->to('directory#get_study');
+  $r->get('directory/get_study_plans')              ->to('directory#get_study_plans');
+  $r->get('directory/get_study_name')               ->to('directory#get_study_name');
   # old
-  $r->route('directory/get_org_units')            ->via('get')    ->to('directory#get_org_units');
-  $r->route('directory/get_parent_org_unit_id')   ->via('get')    ->to('directory#get_parent_org_unit_id');
+  $r->get('directory/get_org_units')                ->to('directory#get_org_units');
+  $r->get('directory/get_parent_org_unit_id')       ->to('directory#get_parent_org_unit_id');
   # new
-  $r->route('directory/org_get_subunits')         ->via('get')    ->to('directory#org_get_subunits');
-  $r->route('directory/org_get_superunits')       ->via('get')    ->to('directory#org_get_superunits');
-  $r->route('directory/org_get_parentpath')       ->via('get')    ->to('directory#org_get_parentpath');
-  $r->route('directory/org_get_units')            ->via('get')    ->to('directory#org_get_units');
+  $r->get('directory/org_get_subunits')             ->to('directory#org_get_subunits');
+  $r->get('directory/org_get_superunits')           ->to('directory#org_get_superunits');
+  $r->get('directory/org_get_parentpath')           ->to('directory#org_get_parentpath');
+  $r->get('directory/org_get_units')                ->to('directory#org_get_units');
 
-  $r->route('search/owner/#username')             ->via('get')    ->to('search#owner');
-  $r->route('search/collections/owner/#username') ->via('get')    ->to('search#collections_owner');
-  $r->route('search/triples')                     ->via('get')    ->to('search#triples');
-  $r->route('search')                             ->via('get')    ->to('search#search');
-  # lucene query can be long -> post
-  $r->route('search/lucene')                      ->via('post')   ->to('search#search_lucene');
+  $r->get('search/owner/#username')                 ->to('search#owner');
+  $r->get('search/collections/owner/#username')     ->to('search#collections_owner');
+  $r->get('search/triples')                         ->to('search#triples');
+  $r->get('search')                                 ->to('search#search');
+  $r->post('search/lucene')                         ->to('search#search_lucene');
 
-  $r->route('search/get_pids')                    ->via('post')   ->to('search#get_pids');
+  $r->post('search/get_pids')                       ->to('search#get_pids');
 
-  $r->route('utils/get_all_pids')                 ->via('get')    ->to('utils#get_all_pids');
+  $r->get('utils/get_all_pids')                     ->to('utils#get_all_pids');
 
-  $r->route('vocabulary')                         ->via('get')    ->to('vocabulary#get_vocabulary');
+  $r->get('vocabulary')                             ->to('vocabulary#get_vocabulary');
 
-  $r->route('terms/label')                   		  ->via('get')    ->to('terms#label');
-  $r->route('terms/children')                	    ->via('get')    ->to('terms#children');
-  $r->route('terms/search')                       ->via('get')    ->to('terms#search');
-  $r->route('terms/taxonpath')                    ->via('get')    ->to('terms#taxonpath');
-  $r->route('terms/parent')                       ->via('get')    ->to('terms#parent');
+  $r->get('terms/label')                   		      ->to('terms#label');
+  $r->get('terms/children')                	        ->to('terms#children');
+  $r->get('terms/search')                           ->to('terms#search');
+  $r->get('terms/taxonpath')                        ->to('terms#taxonpath');
+  $r->get('terms/parent')                           ->to('terms#parent');
 
-  $r->route('resolve')                            ->via('get')    ->to('resolve#resolve');
+  $r->get('resolve')                                ->to('resolve#resolve');
 
   # CORS
-  $r->any('*')                                    ->via('options')->to('authentication#cors_preflight');
+  $r->options('*')                                  ->to('authentication#cors_preflight');
 
-  $r->route('signin')                             ->via('get')    ->to('authentication#signin');
-  $r->route('signout')                            ->via('get')    ->to('authentication#signout');
-  $r->route('keepalive')                          ->via('get')    ->to('authentication#keepalive');
+  $r->get('signin')                                 ->to('authentication#signin');
+  $r->get('signout')                                ->to('authentication#signout');
+  $r->get('keepalive')                              ->to('authentication#keepalive');
 
-  $r->route('collection/:pid/members')            ->via('get')    ->to('collection#get_collection_members');
-  $r->route('collection/:pid/descendants')        ->via('get')    ->to('collection#descendants');
+  $r->get('collection/:pid/members')                ->to('collection#get_collection_members');
+  $r->get('collection/:pid/descendants')            ->to('collection#descendants');
 
   # does not show inactive objects, not specific to collection (but does ordering)
-  $r->route('object/:pid/related')                ->via('get')    ->to('search#related');
+  $r->get('object/:pid/related')                    ->to('search#related');
 
   # we will get this datastreams by using intcall credentials
   # (instead of defining a API-A disseminator for each of them)
-  $r->route('object/:pid/uwmetadata')             ->via('get')    ->to('uwmetadata#get');
-  $r->route('object/:pid/mods')                   ->via('get')    ->to('mods#get');
-  $r->route('object/:pid/jsonld')                 ->via('get')    ->to('jsonld#get');
-  $r->route('object/:pid/json-ld')                ->via('get')    ->to('jsonld#get', header => '1');
-  $r->route('object/:pid/geo')                    ->via('get')    ->to('geo#get');
-  $r->route('object/:pid/members/order')          ->via('get')    ->to('membersorder#get');
-  $r->route('object/:pid/annotations')            ->via('get')    ->to('annotations#get');
-  $r->route('object/:pid/techinfo')               ->via('get')    ->to('techinfo#get');
-  $r->route('object/:pid/dc')                     ->via('get')    ->to('dc#get', dsid => 'DC_P');
-  $r->route('object/:pid/oai_dc')                 ->via('get')    ->to('dc#get', dsid => 'DC_OAI');
-  $r->route('object/:pid/index')                  ->via('get')    ->to('index#get');
-  $r->route('object/:pid/index/dc')               ->via('get')    ->to('index#get_dc');
-  $r->route('object/:pid/index/relationships')    ->via('get')    ->to('index#get_relationships');
-  $r->route('object/:pid/index/members')          ->via('get')    ->to('index#get_object_members');
-  $r->route('object/:pid/datacite')               ->via('get')    ->to('datacite#get');
-  $r->route('object/:pid/state')                  ->via('get')    ->to('object#get_state');
-  $r->route('object/:pid/cmodel')                 ->via('get')    ->to('object#get_cmodel');
-  $r->route('object/:pid/relationships')          ->via('get')    ->to('relationships#get');
+  $r->get('object/:pid/uwmetadata')                 ->to('uwmetadata#get');
+  $r->get('object/:pid/mods')                       ->to('mods#get');
+  $r->get('object/:pid/jsonld')                     ->to('jsonld#get');
+  $r->get('object/:pid/json-ld')                    ->to('jsonld#get', header => '1');
+  $r->get('object/:pid/geo')                        ->to('geo#get');
+  $r->get('object/:pid/members/order')              ->to('membersorder#get');
+  $r->get('object/:pid/annotations')                ->to('annotations#get');
+  $r->get('object/:pid/techinfo')                   ->to('techinfo#get');
+  $r->get('object/:pid/dc')                         ->to('dc#get', dsid => 'DC_P');
+  $r->get('object/:pid/oai_dc')                     ->to('dc#get', dsid => 'DC_OAI');
+  $r->get('object/:pid/index')                      ->to('index#get');
+  $r->get('object/:pid/index/dc')                   ->to('index#get_dc');
+  $r->get('object/:pid/index/relationships')        ->to('index#get_relationships');
+  $r->get('object/:pid/index/members')              ->to('index#get_object_members');
+  $r->get('object/:pid/datacite')                   ->to('datacite#get');
+  $r->get('object/:pid/state')                      ->to('object#get_state');
+  $r->get('object/:pid/cmodel')                     ->to('object#get_cmodel');
+  $r->get('object/:pid/relationships')              ->to('relationships#get');
 
-  $r->route('object/:pid/id')                     ->via('get')    ->to('search#id');
+  $r->get('object/:pid/id')                         ->to('search#id');
 
-  $r->route('dc/uwmetadata_2_dc_index')           ->via('post')   ->to('dc#uwmetadata_2_dc_index');
+  $r->post('dc/uwmetadata_2_dc_index')              ->to('dc#uwmetadata_2_dc_index');
 
-  $r->route('stats/aggregates')                   ->via('get')    ->to('stats#aggregates');
-  $r->route('stats/disciplines')                  ->via('get')    ->to('stats#disciplines');
-  $r->route('stats/:pid')                         ->via('get')    ->to('stats#stats');
-  $r->route('stats/:pid/downloads')               ->via('get')    ->to('stats#stats', stats_param_key => 'downloads');
-  $r->route('stats/:pid/detail_page')             ->via('get')    ->to('stats#stats', stats_param_key => 'detail_page');
-  $r->route('stats/:pid/chart')                   ->via('get')    ->to('stats#chart');
+  $r->get('stats/aggregates')                       ->to('stats#aggregates');
+  $r->get('stats/disciplines')                      ->to('stats#disciplines');
+  $r->get('stats/:pid')                             ->to('stats#stats');
+  $r->get('stats/:pid/downloads')                   ->to('stats#stats', stats_param_key => 'downloads');
+  $r->get('stats/:pid/detail_page')                 ->to('stats#stats', stats_param_key => 'detail_page');
+  $r->get('stats/:pid/chart')                       ->to('stats#chart');
 
-  $r->route('ir/stats/topdownloads')              ->via('get')    ->to('ir#stats_topdownloads');
-  $r->route('ir/stats/:pid')                      ->via('get')    ->to('ir#stats');
-  $r->route('ir/stats/:pid/downloads')            ->via('get')    ->to('ir#stats', stats_param_key => 'downloads');
-  $r->route('ir/stats/:pid/detail_page')          ->via('get')    ->to('ir#stats', stats_param_key => 'detail_page');
-  $r->route('ir/stats/:pid/chart')                ->via('get')    ->to('ir#stats_chart');
+  $r->get('ir/stats/topdownloads')                  ->to('ir#stats_topdownloads');
+  $r->get('ir/stats/:pid')                          ->to('ir#stats');
+  $r->get('ir/stats/:pid/downloads')                ->to('ir#stats', stats_param_key => 'downloads');
+  $r->get('ir/stats/:pid/detail_page')              ->to('ir#stats', stats_param_key => 'detail_page');
+  $r->get('ir/stats/:pid/chart')                    ->to('ir#stats_chart');
 
-  $r->route('directory/user/#username/data')      ->via('get')    ->to('directory#get_user_data');
-  $r->route('directory/user/#username/name')      ->via('get')    ->to('directory#get_user_name');
-  $r->route('directory/user/#username/email')     ->via('get')    ->to('directory#get_user_email');
+  $r->get('directory/user/#username/data')          ->to('directory#get_user_data');
+  $r->get('directory/user/#username/name')          ->to('directory#get_user_name');
+  $r->get('directory/user/#username/email')         ->to('directory#get_user_email');
 
-  $r->route('oai')                                ->via('get')    ->to('oai#handler');
-  $r->route('oai')                                ->via('post')   ->to('oai#handler');
-  $r->route('oaitest')                            ->via('get')    ->to('oaitest#handler');
-  $r->route('oaitest')                            ->via('post')   ->to('oaitest#handler');
+  $r->get('oai')                                    ->to('oai#handler');
+  $r->post('oai')                                   ->to('oai#handler');
+  $r->get('oaitest')                                ->to('oaitest#handler');
+  $r->post('oaitest')                               ->to('oaitest#handler');
 
-  $r->route('termsofuse')                         ->via('get')    ->to('termsofuse#get');
+  $r->get('termsofuse')                             ->to('termsofuse#get');
 
-  $r->route('list/token/:token')                  ->via('get')    ->to('lists#get_token_list');
+  $r->get('list/token/:token')                      ->to('lists#get_token_list');
 
   # this just extracts the credentials - authentication will be done by fedora
   my $proxyauth = $r->under('/')->to('authentication#extract_credentials', creds_must_be_present => 1);
@@ -521,137 +519,137 @@ sub startup {
   my $check_admin_auth = $proxyauth->under('/')->to('authentication#authenticate_admin');
 
   if($self->app->config->{allow_userdata_queries}){
-    $check_auth->route('directory/user/search')                           ->via('get')      ->to('directory#search_user');
+    $check_auth->get('directory/user/search')                                 ->to('directory#search_user');
   }
 
-  $check_auth->route('directory/user/data')                               ->via('get')      ->to('directory#get_user_data');
+  $check_auth->get('directory/user/data')                                     ->to('directory#get_user_data');
 
-  $check_auth->route('settings')                                          ->via('get')      ->to('settings#get_settings');
+  $check_auth->get('settings')                                                ->to('settings#get_settings');
 
-  $check_auth->route('groups')                                            ->via('get')      ->to('groups#get_users_groups');
-  $check_auth->route('group/:gid')                                        ->via('get')      ->to('groups#get_group');
+  $check_auth->get('groups')                                                  ->to('groups#get_users_groups');
+  $check_auth->get('group/:gid')                                              ->to('groups#get_group');
 
-  $check_auth->route('lists')                                             ->via('get')      ->to('lists#get_lists');
-  $check_auth->route('list/:lid')                                         ->via('get')      ->to('lists#get_list');
+  $check_auth->get('lists')                                                   ->to('lists#get_lists');
+  $check_auth->get('list/:lid')                                               ->to('lists#get_list');
 
-  $check_auth->route('jsonld/templates')                                  ->via('get')      ->to('jsonld#get_users_templates');
-  $check_auth->route('jsonld/template/:tid')                              ->via('get')      ->to('jsonld#get_template');
+  $check_auth->get('jsonld/templates')                                        ->to('jsonld#get_users_templates');
+  $check_auth->get('jsonld/template/:tid')                                    ->to('jsonld#get_template');
 
-  $proxyauth_optional->route('authz/check/:pid/:op')                      ->via('get')      ->to('authorization#check_rights');
+  $proxyauth_optional->get('authz/check/:pid/:op')                            ->to('authorization#check_rights');
 
-  $proxyauth_optional->route('streaming/:pid')                            ->via('get')      ->to('utils#streamingplayer');
-  $proxyauth_optional->route('streaming/:pid/key')                        ->via('get')      ->to('utils#streamingplayer_key');
+  $proxyauth_optional->get('streaming/:pid')                                  ->to('utils#streamingplayer');
+  $proxyauth_optional->get('streaming/:pid/key')                              ->to('utils#streamingplayer_key');
 
-  $proxyauth_optional->route('imageserver')                               ->via('get')      ->to('imageserver#get');
+  $proxyauth_optional->get('imageserver')                                     ->to('imageserver#get');
 
-  $proxyauth_optional->route('object/:pid/diss/:bdef/:method')            ->via('get')      ->to('object#diss');
-  $proxyauth_optional->route('object/:pid/fulltext')                      ->via('get')      ->to('fulltext#get');
-  $proxyauth_optional->route('object/:pid/iiifmanifest')                  ->via('get')      ->to('object#get_iiif_manifest');
-  $proxyauth_optional->route('object/:pid/metadata')                      ->via('get')      ->to('object#get_metadata');
-  $proxyauth_optional->route('object/:pid/info')                          ->via('get')      ->to('object#info');
-  $proxyauth_optional->route('object/:pid/thumbnail')                     ->via('get')      ->to('object#thumbnail');
-  $proxyauth_optional->route('object/:pid/preview')                       ->via('get')      ->to('object#preview');
-  $proxyauth_optional->route('object/:pid/md5')                           ->via('get')      ->to('inventory#get_md5');
-  $proxyauth_optional->route('object/:pid/octets')                        ->via('get')      ->to('octets#proxy');
-  $proxyauth_optional->route('object/:pid/download')                      ->via('get')      ->to('octets#get', operation => 'download');
-  $proxyauth_optional->route('object/:pid/get')                           ->via('get')      ->to('octets#get', operation => 'get');
-  $proxyauth_optional->route('object/:pid/comp/:ds')                      ->via('get')      ->to('object#get_legacy_container_member');
+  $proxyauth_optional->get('object/:pid/diss/:bdef/:method')                  ->to('object#diss');
+  $proxyauth_optional->get('object/:pid/fulltext')                            ->to('fulltext#get');
+  $proxyauth_optional->get('object/:pid/iiifmanifest')                        ->to('object#get_iiif_manifest');
+  $proxyauth_optional->get('object/:pid/metadata')                            ->to('object#get_metadata');
+  $proxyauth_optional->get('object/:pid/info')                                ->to('object#info');
+  $proxyauth_optional->get('object/:pid/thumbnail')                           ->to('object#thumbnail');
+  $proxyauth_optional->get('object/:pid/preview')                             ->to('object#preview');
+  $proxyauth_optional->get('object/:pid/md5')                                 ->to('inventory#get_md5');
+  $proxyauth_optional->get('object/:pid/octets')                              ->to('octets#proxy');
+  $proxyauth_optional->get('object/:pid/download')                            ->to('octets#get', operation => 'download');
+  $proxyauth_optional->get('object/:pid/get')                                 ->to('octets#get', operation => 'get');
+  $proxyauth_optional->get('object/:pid/comp/:ds')                            ->to('object#get_legacy_container_member');
 
-  $proxyauth_optional->route('imageserver/:pid/status')                   ->via('get')      ->to('imageserver#status');
+  $proxyauth_optional->get('imageserver/:pid/status')                         ->to('imageserver#status');
 
-  $proxyauth->route('object/:pid/jsonldprivate')                          ->via('get')      ->to('jsonldprivate#get');
-  $proxyauth->route('object/:pid/rights')                                 ->via('get')      ->to('rights#get');
+  $proxyauth->get('object/:pid/jsonldprivate')                                ->to('jsonldprivate#get');
+  $proxyauth->get('object/:pid/rights')                                       ->to('rights#get');
 
-  $check_auth->route('ir/requestedlicenses')                              ->via('post')     ->to('ir#adminlistdata'); # remove
-  $check_auth->route('ir/adminlistdata')                                  ->via('post')     ->to('ir#adminlistdata');
-  $check_auth->route('ir/:pid/events')                                    ->via('get')      ->to('ir#events');
-  $check_auth->route('ir/allowsubmit')                                    ->via('get')      ->to('ir#allowsubmit');
-  $check_auth->route('ir/puresearch')                                     ->via('get')      ->to('ir#puresearch');
+  $check_auth->post('ir/requestedlicenses')                                   ->to('ir#adminlistdata'); # remove
+  $check_auth->post('ir/adminlistdata')                                       ->to('ir#adminlistdata');
+  $check_auth->get('ir/:pid/events')                                          ->to('ir#events');
+  $check_auth->get('ir/allowsubmit')                                          ->to('ir#allowsubmit');
+  $check_auth->get('ir/puresearch')                                           ->to('ir#puresearch');
 
-  $check_auth->route('termsofuse/getagreed')                              ->via('get')      ->to('termsofuse#getagreed');
+  $check_auth->get('termsofuse/getagreed')                                    ->to('termsofuse#getagreed');
 
-  $check_admin_auth->route('test/error')                                  ->via('get')      ->to('utils#testerror');
+  $check_admin_auth->get('test/error')                                        ->to('utils#testerror');
 
   unless($self->app->config->{readonly}){
 
-    $check_admin_auth->route('index')                                     ->via('post')     ->to('index#update');
-    $check_admin_auth->route('dc')                                        ->via('post')     ->to('dc#update');
+    $check_admin_auth->post('index')                                          ->to('index#update');
+    $check_admin_auth->post('dc')                                             ->to('dc#update');
 
-    $check_auth->route('settings')                                        ->via('post')     ->to('settings#post_settings');
+    $check_auth->post('settings')                                             ->to('settings#post_settings');
 
-    $check_admin_auth->route('mint/pid')                                  ->via('post')     ->to('object#mint_pid');
-    $check_admin_auth->route('object/:pid/index')                         ->via('post')     ->to('index#update');
-    $check_admin_auth->route('object/:pid/dc')                            ->via('post')     ->to('dc#update');
+    $check_admin_auth->post('mint/pid')                                       ->to('object#mint_pid');
+    $check_admin_auth->post('object/:pid/index')                              ->to('index#update');
+    $check_admin_auth->post('object/:pid/dc')                                 ->to('dc#update');
 
-    $check_admin_auth->route('ir/embargocheck')                           ->via('post')     ->to('ir#embargocheck');
+    $check_admin_auth->post('ir/embargocheck')                                ->to('ir#embargocheck');
 
-    $check_admin_auth->route('imageserver/process')                       ->via('post')     ->to('imageserver#process_pids');
+    $check_admin_auth->post('imageserver/process')                            ->to('imageserver#process_pids');
 
-    $proxyauth->route('imageserver/:pid/process')                         ->via('post')     ->to('imageserver#process');
+    $proxyauth->post('imageserver/:pid/process')                              ->to('imageserver#process');
 
-    $proxyauth->route('object/:pid/updateiiifmanifest')                   ->via('post')     ->to('iiifmanifest#update_manifest_metadata');
-    $proxyauth->route('object/:pid/modify')                               ->via('post')     ->to('object#modify');
-    $proxyauth->route('object/:pid/delete')                               ->via('post')     ->to('object#delete');
-    $proxyauth->route('object/:pid/uwmetadata')                           ->via('post')     ->to('uwmetadata#post');
-    $proxyauth->route('object/:pid/mods')                                 ->via('post')     ->to('mods#post');
-    $proxyauth->route('object/:pid/jsonld')                               ->via('post')     ->to('jsonld#post');
-    $proxyauth->route('object/:pid/jsonldprivate')                        ->via('post')     ->to('jsonldprivate#post');
-    $proxyauth->route('object/:pid/geo')                                  ->via('post')     ->to('geo#post');
-    $proxyauth->route('object/:pid/annotations')                          ->via('post')     ->to('annotations#post');
-    $proxyauth->route('object/:pid/rights')                               ->via('post')     ->to('rights#post');
-    $proxyauth->route('object/:pid/iiifmanifest')                         ->via('post')     ->to('iiifmanifest#post');
-    $proxyauth->route('object/:pid/metadata')                             ->via('post')     ->to('object#metadata');
-    $proxyauth->route('object/create')                                    ->via('post')     ->to('object#create_empty');
-    $proxyauth->route('object/create/:cmodel')                            ->via('post')     ->to('object#create');
-    $proxyauth->route('object/:pid/relationship/add')                     ->via('post')     ->to('object#add_relationship');
-    $proxyauth->route('object/:pid/relationship/remove')                  ->via('post')     ->to('object#purge_relationship');
-    $proxyauth->route('object/:pid/id/add')                               ->via('post')     ->to('object#add_or_remove_identifier', operation => 'add');
-    $proxyauth->route('object/:pid/id/remove')                            ->via('post')     ->to('object#add_or_remove_identifier', operation => 'remove');
-    $proxyauth->route('object/:pid/datastream/:dsid')                     ->via('post')     ->to('object#add_or_modify_datastream');
-    $proxyauth->route('object/:pid/data')                                 ->via('post')     ->to('object#add_octets');
+    $proxyauth->post('object/:pid/updateiiifmanifest')                        ->to('iiifmanifest#update_manifest_metadata');
+    $proxyauth->post('object/:pid/modify')                                    ->to('object#modify');
+    $proxyauth->post('object/:pid/delete')                                    ->to('object#delete');
+    $proxyauth->post('object/:pid/uwmetadata')                                ->to('uwmetadata#post');
+    $proxyauth->post('object/:pid/mods')                                      ->to('mods#post');
+    $proxyauth->post('object/:pid/jsonld')                                    ->to('jsonld#post');
+    $proxyauth->post('object/:pid/jsonldprivate')                             ->to('jsonldprivate#post');
+    $proxyauth->post('object/:pid/geo')                                       ->to('geo#post');
+    $proxyauth->post('object/:pid/annotations')                               ->to('annotations#post');
+    $proxyauth->post('object/:pid/rights')                                    ->to('rights#post');
+    $proxyauth->post('object/:pid/iiifmanifest')                              ->to('iiifmanifest#post');
+    $proxyauth->post('object/:pid/metadata')                                  ->to('object#metadata');
+    $proxyauth->post('object/create')                                         ->to('object#create_empty');
+    $proxyauth->post('object/create/:cmodel')                                 ->to('object#create');
+    $proxyauth->post('object/:pid/relationship/add')                          ->to('object#add_relationship');
+    $proxyauth->post('object/:pid/relationship/remove')                       ->to('object#purge_relationship');
+    $proxyauth->post('object/:pid/id/add')                                    ->to('object#add_or_remove_identifier', operation => 'add');
+    $proxyauth->post('object/:pid/id/remove')                                 ->to('object#add_or_remove_identifier', operation => 'remove');
+    $proxyauth->post('object/:pid/datastream/:dsid')                          ->to('object#add_or_modify_datastream');
+    $proxyauth->post('object/:pid/data')                                      ->to('object#add_octets');
 
-    $proxyauth->route('picture/create')                                   ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Picture');
-    $proxyauth->route('document/create')                                  ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:PDFDocument');
-    $proxyauth->route('video/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Video');
-    $proxyauth->route('audio/create')                                     ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Audio');
-    $proxyauth->route('unknown/create')                                   ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Asset');
-    $proxyauth->route('resource/create')                                  ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Resource');
-    $proxyauth->route('page/create')                                      ->via('post')     ->to('object#create_simple', cmodel => 'cmodel:Page');
+    $proxyauth->post('picture/create')                                        ->to('object#create_simple', cmodel => 'cmodel:Picture');
+    $proxyauth->post('document/create')                                       ->to('object#create_simple', cmodel => 'cmodel:PDFDocument');
+    $proxyauth->post('video/create')                                          ->to('object#create_simple', cmodel => 'cmodel:Video');
+    $proxyauth->post('audio/create')                                          ->to('object#create_simple', cmodel => 'cmodel:Audio');
+    $proxyauth->post('unknown/create')                                        ->to('object#create_simple', cmodel => 'cmodel:Asset');
+    $proxyauth->post('resource/create')                                       ->to('object#create_simple', cmodel => 'cmodel:Resource');
+    $proxyauth->post('page/create')                                           ->to('object#create_simple', cmodel => 'cmodel:Page');
 
-    $proxyauth->route('container/create')                                 ->via('post')     ->to('object#create_container');
-    $proxyauth->route('container/:pid/members/order')                     ->via('post')     ->to('membersorder#post');
-    $proxyauth->route('container/:pid/members/:itempid/order/:position')  ->via('post')     ->to('membersorder#order_object_member');
+    $proxyauth->post('container/create')                                      ->to('object#create_container');
+    $proxyauth->post('container/:pid/members/order')                          ->to('membersorder#post');
+    $proxyauth->post('container/:pid/members/:itempid/order/:position')       ->to('membersorder#order_object_member');
 
-    $proxyauth->route('collection/create')                                ->via('post')     ->to('collection#create');
-    $proxyauth->route('collection/:pid/members/remove')                   ->via('post')     ->to('collection#remove_collection_members');
-    $proxyauth->route('collection/:pid/members/add')                      ->via('post')     ->to('collection#add_collection_members');
-    $proxyauth->route('collection/:pid/members/order')                    ->via('post')     ->to('membersorder#post');
-    $proxyauth->route('collection/:pid/members/:itempid/order/:position') ->via('post')     ->to('membersorder#order_object_member');
+    $proxyauth->post('collection/create')                                     ->to('collection#create');
+    $proxyauth->post('collection/:pid/members/remove')                        ->to('collection#remove_collection_members');
+    $proxyauth->post('collection/:pid/members/add')                           ->to('collection#add_collection_members');
+    $proxyauth->post('collection/:pid/members/order')                         ->to('membersorder#post');
+    $proxyauth->post('collection/:pid/members/:itempid/order/:position')      ->to('membersorder#order_object_member');
 
-    $check_auth->route('group/add')                                       ->via('post')     ->to('groups#add_group');
-    $check_auth->route('group/:gid/remove')                               ->via('post')     ->to('groups#remove_group');
-    $check_auth->route('group/:gid/members/add')                          ->via('post')     ->to('groups#add_members');
-    $check_auth->route('group/:gid/members/remove')                       ->via('post')     ->to('groups#remove_members');
+    $check_auth->post('group/add')                                            ->to('groups#add_group');
+    $check_auth->post('group/:gid/remove')                                    ->to('groups#remove_group');
+    $check_auth->post('group/:gid/members/add')                               ->to('groups#add_members');
+    $check_auth->post('group/:gid/members/remove')                            ->to('groups#remove_members');
 
-    $check_auth->route('list/add')                                        ->via('post')     ->to('lists#add_list');
-    $check_auth->route('list/:lid/token/create')                          ->via('post')     ->to('lists#token_create');
-    $check_auth->route('list/:lid/token/delete')                          ->via('post')     ->to('lists#token_delete');
-    $check_auth->route('list/:lid/remove')                                ->via('post')     ->to('lists#remove_list');
-    $check_auth->route('list/:lid/members/add')                           ->via('post')     ->to('lists#add_members');
-    $check_auth->route('list/:lid/members/remove')                        ->via('post')     ->to('lists#remove_members');
+    $check_auth->post('list/add')                                             ->to('lists#add_list');
+    $check_auth->post('list/:lid/token/create')                               ->to('lists#token_create');
+    $check_auth->post('list/:lid/token/delete')                               ->to('lists#token_delete');
+    $check_auth->post('list/:lid/remove')                                     ->to('lists#remove_list');
+    $check_auth->post('list/:lid/members/add')                                ->to('lists#add_members');
+    $check_auth->post('list/:lid/members/remove')                             ->to('lists#remove_members');
 
-    $check_auth->route('jsonld/template/add')                             ->via('post')     ->to('jsonld#add_template');
-    $check_auth->route('jsonld/template/:tid/remove')                     ->via('post')     ->to('jsonld#remove_template');
+    $check_auth->post('jsonld/template/add')                                  ->to('jsonld#add_template');
+    $check_auth->post('jsonld/template/:tid/remove')                          ->to('jsonld#remove_template');
 
-    $proxyauth->route('ir/submit')                                        ->via('post')     ->to('ir#submit');
-    $check_auth->route('ir/notifications')                                ->via('post')     ->to('ir#notifications');
-    $check_auth->route('ir/:pid/accept')                                  ->via('post')     ->to('ir#accept');
-    $check_auth->route('ir/:pid/reject')                                  ->via('post')     ->to('ir#reject');
-    $check_auth->route('ir/:pid/approve')                                 ->via('post')     ->to('ir#approve');
+    $proxyauth->post('ir/submit')                                             ->to('ir#submit');
+    $check_auth->post('ir/notifications')                                     ->to('ir#notifications');
+    $check_auth->post('ir/:pid/accept')                                       ->to('ir#accept');
+    $check_auth->post('ir/:pid/reject')                                       ->to('ir#reject');
+    $check_auth->post('ir/:pid/approve')                                      ->to('ir#approve');
 
-    $check_auth->route('feedback')                                        ->via('post')     ->to('feedback#feedback');
+    $check_auth->post('feedback')                                             ->to('feedback#feedback');
 
-    $check_auth->route('termsofuse/agree/:version')                       ->via('post')     ->to('termsofuse#agree');
+    $check_auth->post('termsofuse/agree/:version')                            ->to('termsofuse#agree');
   }
   #>>>
 
