@@ -269,16 +269,6 @@ sub startup {
   $self->hook(
     'after_dispatch' => sub {
       my $self = shift;
-      my $json = $self->res->json;
-      if ($json) {
-        if (ref $json eq ref {}) {    # only if json is really a hash
-          if ($json->{alerts}) {
-            if (scalar(@{$json->{alerts}}) > 0) {
-              $self->app->log->debug("Alerts:\n" . $self->dumper($json->{alerts}));
-            }
-          }
-        }
-      }
 
       # CORS
       unless ($self->res->headers->header('Access-Control-Allow-Origin')) {
