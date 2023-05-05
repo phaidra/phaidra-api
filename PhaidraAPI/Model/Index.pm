@@ -466,7 +466,7 @@ sub getSolrUpdateUrl {
   my ($self, $c, $cmodel, $core) = @_;
 
   unless ($core) {
-   $core = $c->app->config->{solr}->{core};
+    $core = $c->app->config->{solr}->{core};
   }
   if (exists($c->app->config->{solr}->{core_pages}) and $c->app->config->{solr}->{core_pages} ne '' and $cmodel eq 'Page') {
     $core = $c->app->config->{solr}->{core_pages};
@@ -512,7 +512,7 @@ sub update {
       $c->app->log->debug("[$pid] no cmodel found, deleting from index");
       if (exists($c->app->config->{solr})) {
         my $post = $ua->post($updateurl => json => {delete => $pid});
-        my $r = $post->result;
+        my $r    = $post->result;
         if ($r->is_success) {
           $c->app->log->debug("[$pid] solr document deleted (not found in triplestore)");
         }
@@ -575,15 +575,13 @@ sub update {
         # 301 - object is in state Deleted
         # 302 - object is in state Inactive
         if (exists($c->app->config->{solr})) {
-          my $post = $ua->post($updateurl => json => {delete => $pid});
-          my $r = $post->result;
-          if ($r->is_success) {
+          my $post = $ua->post($updateurl => json => {delete => $pid})->result;
+          if ($post->is_success) {
             $c->app->log->debug("[$pid] solr document deleted getStatus[$getStatus]");
           }
           else {
-            my ($err, $code) = $post->error;
-            unshift @{$res->{alerts}}, {type => 'error', msg => "[$pid] Error deleting document from solr: " . $c->app->dumper($err)};
-            $res->{status} = $code ? $code : 500;
+            unshift @{$res->{alerts}}, {type => 'error', msg => "[$pid] Error deleting document from solr: " . $post->message};
+            $res->{status} = $post->code ? $post->code : 500;
           }
         }
 
@@ -705,38 +703,34 @@ sub _update_membersorder {
 
   my $ua = Mojo::UserAgent->new;
 
-  my $get = $ua->get($urlget);
+  my $get = $ua->get($urlget)->result;
   my $numFound;
-  my $r_num = $get->result;
-  if ($r_num->is_success) {
-    $numFound = $r_num->json->{response}->{numFound};
+  if ($get->is_success) {
+    $numFound = $get->json->{response}->{numFound};
   }
   else {
-    my ($err, $code) = $get->error;
-    $c->app->log->error("[$pid] error getting object $field relations count " . $c->app->dumper($err));
+    $c->app->log->error("[$pid] error getting object $field relations count " . $get->message);
     unshift @{$res->{alerts}}, {type => 'error', msg => "error getting object $field relations count"};
-    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
-    $res->{status} = $code ? $code : 500;
+    unshift @{$res->{alerts}}, {type => 'error', msg => $get->message};
+    $res->{status} = $get->code ? $get->code : 500;
     return $res;
   }
 
   $urlget->query(q => "$field:*", fl => "pid,$field", rows => $numFound, wt => "json");
 
-  $get = $ua->get($urlget);
+  $get = $ua->get($urlget)->result;
 
   my @curr_membersorder;
-  if (my $r_mem = $get->success) {
-    for my $c_m (@{$r_mem->json->{response}->{docs}}) {
+  if ($get->is_success) {
+    for my $c_m (@{$get->json->{response}->{docs}}) {
       push @curr_membersorder, {'pid' => $c_m->{pid}, 'pos' => $c_m->{$field}};
     }
   }
   else {
-    my ($err, $code) = $get->error;
-    $c->app->log->error($urlget);
-    $c->app->log->error("[$pid] error getting object $field relations " . $c->app->dumper($err));
+    $c->app->log->error("[$pid] error getting object $field relations " . $get->message);
     unshift @{$res->{alerts}}, {type => 'error', msg => "error getting object $field relations"};
-    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
-    $res->{status} = $code ? $code : 500;
+    unshift @{$res->{alerts}}, {type => 'error', msg => $get->message};
+    $res->{status} = $get->code ? $get->code : 500;
     return $res;
   }
 
@@ -857,15 +851,14 @@ sub _update_value_post {
   # plus the member might not exist for a reason, eg it's a Page, we don't want to add it
   $updateurl->query(commit => 'true', versions => 'true', _version_ => 1);
 
-  my $post = $ua->post($updateurl => json => \@update);
+  my $post = $ua->post($updateurl => json => \@update)->result;
 
-  if (my $r = $post->success) {
+  if ($post->is_success) {
     $c->app->log->debug("[$pid] updated " . (scalar @{$docsvalues}) . " documents");
   }
   else {
-    my ($err, $code) = $post->error;
-    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
-    $res->{status} = $code ? $code : 500;
+    unshift @{$res->{alerts}}, {type => 'error', msg => $post->message};
+    $res->{status} = $post->code ? $post->code : 500;
   }
 
   return $res;
@@ -888,37 +881,34 @@ sub _update_members {
 
   my $ua = Mojo::UserAgent->new;
 
-  my $get = $ua->get($urlget);
+  my $get = $ua->get($urlget)->result;
   my $numFound;
-  if (my $r_num = $get->success) {
-    $numFound = $r_num->json->{response}->{numFound};
+  if ($get->is_success) {
+    $numFound = $get->json->{response}->{numFound};
   }
   else {
-    my ($err, $code) = $get->error;
-    $c->app->log->error("[$pid] error getting object $relation relations count " . $c->app->dumper($err));
+    $c->app->log->error("[$pid] error getting object $relation relations count " . $get->message);
     unshift @{$res->{alerts}}, {type => 'error', msg => "error getting object $relation relations count"};
-    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $get->message};
     $res->{status} = $code ? $code : 500;
     return $res;
   }
 
   $urlget->query(q => "$relation:\"$pid\"", fl => "pid", rows => $numFound, wt => "json");
 
-  $get = $ua->get($urlget);
+  $get = $ua->get($urlget)->result;
 
   my @curr_members;
-  if (my $r_mem = $get->success) {
-    for my $c_m (@{$r_mem->json->{response}->{docs}}) {
+  if ($get->is_success) {
+    for my $c_m (@{$get->json->{response}->{docs}}) {
       push @curr_members, $c_m->{pid};
     }
   }
   else {
-    my ($err, $code) = $get->error;
-    $c->app->log->error($urlget);
-    $c->app->log->error("[$pid] error getting object $relation relations " . $c->app->dumper($err));
+    $c->app->log->error("[$pid] error getting object $relation relations " . $get->message);
     unshift @{$res->{alerts}}, {type => 'error', msg => "error getting object $relation relations"};
-    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
-    $res->{status} = $code ? $code : 500;
+    unshift @{$res->{alerts}}, {type => 'error', msg => $get->message};
+    $res->{status} = $get->code ? $get->code : 500;
     return $res;
   }
 
@@ -1021,15 +1011,14 @@ sub _update_relation_post {
   # plus the member might not exist for a reason, eg it's a Page, we don't want to add it
   $updateurl->query(commit => 'true', versions => 'true', _version_ => 1);
 
-  my $post = $ua->post($updateurl => json => \@update);
+  my $post = $ua->post($updateurl => json => \@update)->result;
 
-  if (my $r = $post->success) {
+  if ($post->is_success) {
     $c->app->log->debug("[$pid] updated " . (scalar @{$members}) . " documents");
   }
   else {
-    my ($err, $code) = $post->error;
-    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
-    $res->{status} = $code ? $code : 500;
+    unshift @{$res->{alerts}}, {type => 'error', msg => $r->message};
+    $res->{status} = $r->code ? $r->code : 500;
   }
 
   return $res;
@@ -1148,6 +1137,7 @@ sub _get {
     for my $dsid (@{$fres->{contains}}) {
       my $getdsres = $object_model->get_and_parse_xml_datastream($c, $pid, $dsid, undef, undef, 1);
       if ($getdsres->{status} ne 200) {
+
         # $c->app->log->debug("XXXXXXXXX" . $c->app->dumper($getdsres));
         return $getdsres;
       }
@@ -1643,36 +1633,35 @@ sub _index_relsext {
   return $res;
 }
 
-
 sub _add_dc_index {
-    my ($self, $c, $dc, $index) = @_;
-    while (my ($xmlname, $values) = each %{$dc}) {
-        for my $v (@{$values}) {
-            if (exists($v->{value}) && defined($v->{value}) && $v->{value} ne '') {
-                my $val = $v->{value};
-                if (exists($v->{lang})) {
-                    if (($xmlname eq 'title') || ($xmlname eq 'description')) {
-                        push @{$index->{'dc_' . $xmlname}}, $val;
-                    }
-                    my $lang = $v->{lang};
-                    if (length($v->{lang}) eq 2) {
-                        $lang = $PhaidraAPI::Model::Languages::iso639map{$v->{lang}};
-                    }
-                    push @{$index->{'dc_' . $xmlname . "_" . $lang}}, $val;
-                    if ($xmlname eq 'title') {
-                        $index->{sort_dc_title} = trim $val;
-                        $index->{'sort_' . $lang . '_dc_title'} = trim $val;
-                    }
-                }
-                else {
-                    push @{$index->{'dc_' . $xmlname}}, $val;
-                    if ($xmlname eq 'title') {
-                        $index->{sort_dc_title} = trim $val;
-                    }
-                }
-            }
+  my ($self, $c, $dc, $index) = @_;
+  while (my ($xmlname, $values) = each %{$dc}) {
+    for my $v (@{$values}) {
+      if (exists($v->{value}) && defined($v->{value}) && $v->{value} ne '') {
+        my $val = $v->{value};
+        if (exists($v->{lang})) {
+          if (($xmlname eq 'title') || ($xmlname eq 'description')) {
+            push @{$index->{'dc_' . $xmlname}}, $val;
+          }
+          my $lang = $v->{lang};
+          if (length($v->{lang}) eq 2) {
+            $lang = $PhaidraAPI::Model::Languages::iso639map{$v->{lang}};
+          }
+          push @{$index->{'dc_' . $xmlname . "_" . $lang}}, $val;
+          if ($xmlname eq 'title') {
+            $index->{sort_dc_title} = trim $val;
+            $index->{'sort_' . $lang . '_dc_title'} = trim $val;
+          }
         }
+        else {
+          push @{$index->{'dc_' . $xmlname}}, $val;
+          if ($xmlname eq 'title') {
+            $index->{sort_dc_title} = trim $val;
+          }
+        }
+      }
     }
+  }
 }
 
 sub _add_reverse_relations {
@@ -2167,6 +2156,7 @@ sub _add_jsonld_index {
 
   if ($jsonld->{'phaidra:systemTag'}) {
     for my $o (@{$jsonld->{'phaidra:systemTag'}}) {
+
       # org.apache.lucene.util.BytesRefHash$MaxBytesLengthExceededException: bytes can be at most 32766 in length; got 40045
       if (length($o) <= 32766) {
         push @{$index->{"systemtag"}}, $o;
@@ -2355,10 +2345,12 @@ sub _add_uwm_index {
                 $number = $refnumch->{ui_value};
               }
             }
+
             # shelfmark/signatur
             if ($reference eq 'http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0/voc_25/1552119') {
               push @{$index->{"bf_shelfmark"}}, $number;
             }
+
             # get grants
             my $referenceLabel = $uwm_funder{$reference};
             if ($referenceLabel) {
@@ -2666,7 +2658,7 @@ sub get_relationships {
   my $urlget = $self->_get_solrget_url($c, $cmodel);
 
   # $c->app->log->debug("getting doc of $pid");
-  my $idx  = $self->get_doc_from_ua($c, $ua, $urlget, $pid);
+  my $idx = $self->get_doc_from_ua($c, $ua, $urlget, $pid);
   return $res unless ($idx);
 
   my $rels = {

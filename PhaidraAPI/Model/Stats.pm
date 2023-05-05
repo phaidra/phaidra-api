@@ -68,10 +68,10 @@ sub disciplines {
     for my $kw (@{$disciplines->{$ds}->{kws}}) {
       $c->app->log->debug("querying ds[$ds] kw[$kw]");
       $urlget->query(q => '"' . $kw . '"', rows => "0", wt => "json");
-      my $get = $c->app->ua->get($urlget);
+      my $get = $c->app->ua->get($urlget)->result;
       my $numFound;
-      if (my $r_num = $get->success) {
-        $numFound = $r_num->json->{response}->{numFound};
+      if ($get->is_success) {
+        $numFound = $get->json->{response}->{numFound};
         $disciplines->{$ds}->{count} += $numFound;
       }
     }
@@ -169,7 +169,7 @@ sub stats {
 
     my $detail_page;
     $sth = $c->app->db_stats_phaidra->dbh->prepare("SELECT DATE_FORMAT(server_time,'%Y-%m-%d'), location_country FROM views_$siteid WHERE pid = '$pid';") or $c->app->log->error("Error querying piwik database for detail stats chart:" . $c->app->db_stats_phaidra->dbh->errstr);
-    $sth->execute()                                                                                                                                                or $c->app->log->error("Error querying piwik database for detail stats chart:" . $c->app->db_stats_phaidra->dbh->errstr);
+    $sth->execute()                                                                                                                                       or $c->app->log->error("Error querying piwik database for detail stats chart:" . $c->app->db_stats_phaidra->dbh->errstr);
     $sth->bind_columns(undef, \$date, \$country);
     while ($sth->fetch) {
       if ($detail_page->{$country}) {

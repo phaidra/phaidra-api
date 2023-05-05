@@ -136,9 +136,9 @@ sub _resolve_geonames {
     $params->{lang} = $lang;
   }
   my $url = Mojo::URL->new($self->config->{apis}->{geonames}->{url})->query($params);
-  my $get = $self->ua->insecure($insecure)->max_redirects(5)->get($url);
-  if (my $getres = $get->success) {
-    my $json = $getres->json;
+  my $get = $self->ua->insecure($insecure)->max_redirects(5)->get($url)->result;
+  if ($get->is_success) {
+    my $json = $get->json;
     $self->app->log->debug("geonames response: " . $self->app->dumper($json));
     push @{$res->{'skos:prefLabel'}}, {'@value' => $json->{name}};
     my $path = "";
@@ -169,10 +169,9 @@ sub _resolve_geonames {
 
   }
   else {
-    my ($err, $code) = $get->error;
-    $self->app->log->error("[$uri] error resolving uri " . $self->app->dumper($err));
-    unshift @{$res->{alerts}}, {type => 'error', msg => $self->app->dumper($err)};
-    $res->{status} = $code ? $code : 500;
+    $self->app->log->error("[$uri] error resolving uri " . $get->message);
+    unshift @{$res->{alerts}}, {type => 'error', msg => $get->message};
+    $res->{status} = $get->code ? $get->code : 500;
     return $res;
   }
 

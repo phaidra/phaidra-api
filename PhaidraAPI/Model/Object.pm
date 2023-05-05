@@ -1377,16 +1377,15 @@ sub get_dissemination {
   my %headers;
   $self->add_upstream_headers($c, \%headers);
 
-  my $get = Mojo::UserAgent->new->get($url => \%headers);
+  my $get = Mojo::UserAgent->new->get($url => \%headers)->result;
 
-  if (my $r = $get->success) {
+  if ($get->is_success) {
     $res->{status}  = 200;
-    $res->{content} = $r->body;
+    $res->{content} = $get->body;
   }
   else {
-    my ($err, $code) = $get->error;
-    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
-    $res->{status} = $code ? $code : 500;
+    unshift @{$res->{alerts}}, {type => 'error', msg => $get->message};
+    $res->{status} = $get->code ? $get->code : 500;
   }
 
   return $res;
@@ -1524,16 +1523,12 @@ sub proxy_datastream {
 sub _proxy_tx {
   my ($c, $tx) = @_;
 
-  #if (my $res = $tx->success) {
   if ($tx->result->is_success) {
     $c->tx->res($tx->result);
     $c->tx->res->headers->content_type($tx->res->headers->content_type . '; charset=utf-8');
     $c->rendered;
   }
   else {
-    #my $error = $tx->error;
-    #$c->tx->res->headers->add('X-Remote-Status', $error->{code} . ': ' . $error->{message});
-    #$c->render(status => 500, text => 'Failed to fetch data from Fedora: ' . $c->app->dumper($error));
     $c->tx->res->headers->add('X-Remote-Status', $tx->result->code . ': ' . $tx->result->message);
     $c->render(status => 500, text => 'Failed to fetch data from Fedora: ' . $tx->result->message);
   }

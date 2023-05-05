@@ -33,7 +33,7 @@ sub triples {
   $url->path("/fedora/risearch");
   $url->query(\%params);
 
-  my $ua = Mojo::UserAgent->new;
+  my $ua    = Mojo::UserAgent->new;
   my $txres = $ua->post($url)->result;
 
   if ($txres->is_success) {
@@ -182,16 +182,14 @@ sub risearch_tuple ($$$) {
   $url->query(\%params);
 
   my $ua = Mojo::UserAgent->new;
-  my $tx = $ua->post($url);
+  my $tx = $ua->post($url)->result;
 
-  if (my $reply = $tx->success) {
-    $res->{result} = $reply->body;
-
+  if ($tx->is_success) {
+    $res->{result} = $tx->body;
   }
   else {
-    my ($err, $code) = $tx->error;
-    unshift @{$res->{alerts}}, {type => 'error', msg => $err->{message}};
-    $res->{status} = $err->{code};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $tx->message};
+    $res->{status} = $tx->code;
   }
 
   return $res;
@@ -545,7 +543,7 @@ sub datastream_exists {
   $url->path("/fedora/risearch");
   $url->query(\%params);
 
-  my $ua = Mojo::UserAgent->new;
+  my $ua    = Mojo::UserAgent->new;
   my $txres = $ua->post($url)->result;
 
   if ($txres->is_success) {
@@ -694,8 +692,9 @@ sub get_book_for_page {
     $c->app->log->debug("[cache miss] $cachekey");
 
     my $search_model = PhaidraAPI::Model::Search->new;
+
     # todo: add hasMember as well (new books)
-    my $r            = $search_model->triples($c, "* <info:fedora/fedora-system:def/relations-external#hasCollectionMember> <info:fedora/$pagepid>");
+    my $r = $search_model->triples($c, "* <info:fedora/fedora-system:def/relations-external#hasCollectionMember> <info:fedora/$pagepid>");
     if ($r->{status} ne 200) {
       return $r;
     }
@@ -932,10 +931,10 @@ sub search_call() {
   my @result;
 
   my $ua = Mojo::UserAgent->new;
-  my $tx = $ua->get($url);
+  my $tx = $ua->get($url)->result;
 
-  if (my $reply = $tx->success) {
-    my $xml = $reply->body;
+  if ($tx->is_success) {
+    my $xml = $tx->body;
 
     $xml =~ s/<\?xml version="1.0" encoding="UTF-16"\?>/<?xml version="1.0" encoding="UTF-8"?>/;
 
@@ -948,9 +947,8 @@ sub search_call() {
 
   }
   else {
-    my ($err, $code) = $tx->error;
-    unshift @{$res->{alerts}}, {type => 'error', msg => $err->{message}};
-    $res->{status} = $err->{code};
+    unshift @{$res->{alerts}}, {type => 'error', msg => $tx->message};
+    $res->{status} = $tx->code;
   }
 
   return $res;
@@ -977,18 +975,17 @@ sub get_pids {
 
   # get numFound
   $urlget->query(q => $query, fl => "pid", rows => "0", wt => "json");
-  my $get = $ua->get($urlget);
+  my $get = $ua->get($urlget)->result;
   my $numFound;
-  if (my $r_num = $get->success) {
-    $numFound = $r_num->json->{response}->{numFound};
+  if ($get->is_success) {
+    $numFound = $get->json->{response}->{numFound};
     $c->app->log->debug("get_pids: found $numFound");
   }
   else {
-    my ($err, $code) = $get->error;
-    $c->app->log->error("error getting count " . $c->app->dumper($err));
+    $c->app->log->error("error getting count " . $get->message);
     unshift @{$res->{alerts}}, {type => 'error', msg => "error getting count"};
-    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
-    $res->{status} = $code ? $code : 500;
+    unshift @{$res->{alerts}}, {type => 'error', msg => $get->message};
+    $res->{status} = $get->code ? $get->code : 500;
     return $res;
   }
 
@@ -996,10 +993,10 @@ sub get_pids {
   $urlget->query(q => $query, fl => "pid", rows => $numFound, wt => "json");
 
   # $urlget->query(q => $query, fl => "pid,dc_identifier", rows => $numFound, wt => "json");
-  $get = $ua->get($urlget);
+  $get = $ua->get($urlget)->result;
 
-  if (my $r_mem = $get->success) {
-    for my $d (@{$r_mem->json->{response}->{docs}}) {
+  if ($get->is_success) {
+    for my $d (@{$get->json->{response}->{docs}}) {
 
       #			my $ac;
       #			for my $dcid (@{$d->{dc_identifier}}){
@@ -1013,12 +1010,10 @@ sub get_pids {
     }
   }
   else {
-    my ($err, $code) = $get->error;
-    $c->app->log->error($urlget);
-    $c->app->log->error("error getting results " . $c->app->dumper($err));
+    $c->app->log->error("error getting results " . $get->message);
     unshift @{$res->{alerts}}, {type => 'error', msg => "error getting results"};
-    unshift @{$res->{alerts}}, {type => 'error', msg => $err};
-    $res->{status} = $code ? $code : 500;
+    unshift @{$res->{alerts}}, {type => 'error', msg => $get->message};
+    $res->{status} = $get->code ? $get->code : 500;
     return $res;
   }
 
