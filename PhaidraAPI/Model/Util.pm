@@ -75,6 +75,10 @@ sub get_video_key {
                 $errormsg = 'currently processed:' . $map_record->{job_id};
                 $res->{status} = 503;
               }
+              elsif ($map_record->{job_action} eq 'fehlgeschlagen') {
+                $errormsg = 'processing failed:' . $map_record->{job_id};
+                $res->{status} = 500;
+              }
               else {
                 $errormsg = 'not yet available: ' . $map_record->{job_action};
                 $res->{status} = 503;
