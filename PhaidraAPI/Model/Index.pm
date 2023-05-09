@@ -2763,6 +2763,8 @@ sub get_relationships {
     }
   }
   $self->add_set_rec($c, $ua, $urlget, 'hassuccessor', $pid, \@versions, $versionsCheck);
+  @versions = grep defined, @versions;
+  @versions= grep { $_ ne '' } @versions;
   @versions = sort {$a->{created} cmp $b->{created}} @versions;
   $res->{versions} = \@versions;
 
@@ -2865,13 +2867,15 @@ sub add_set_rec {
         $relatedCheck->{$relpid}->{loaded} = 1;
 
         # add found relationships
-        if ($d->{$relationfield}) {
-          for my $r (@{$d->{$relationfield}}) {
-            unless ($relatedCheck->{$r}) {
-              $relatedCheck->{$r} = {
-                loaded  => 0,
-                checked => 0
-              };
+	if ($d) {
+          if ($d->{$relationfield}) {
+            for my $r (@{$d->{$relationfield}}) {
+              unless ($relatedCheck->{$r}) {
+                $relatedCheck->{$r} = {
+                  loaded  => 0,
+                  checked => 0
+                };
+              }
             }
           }
         }
