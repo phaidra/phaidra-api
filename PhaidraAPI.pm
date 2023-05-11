@@ -414,6 +414,7 @@ sub startup {
   $r->get('search/collections/owner/#username')     ->to('search#collections_owner');
   $r->get('search/triples')                         ->to('search#triples');
   $r->get('search')                                 ->to('search#search');
+  $r->post('search/select')                         ->to('search#search_solr');
   $r->post('search/lucene')                         ->to('search#search_lucene');
 
   $r->post('search/get_pids')                       ->to('search#get_pids');

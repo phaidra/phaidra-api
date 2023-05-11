@@ -380,4 +380,57 @@ sub collections_owner {
 
 }
 
+sub search_solr {
+  my $self = shift;
+
+  my $url = Mojo::URL->new;
+
+  $url->scheme($self->app->config->{solr}->{scheme});
+  $url->host($self->app->config->{solr}->{host});
+  $url->port($self->app->config->{solr}->{port});
+  my $core = $self->app->config->{solr}->{core};
+  if ($self->app->config->{solr}->{path}) {
+    $url->path("/" . $self->app->config->{solr}->{path} . "/solr/$core/select");
+  }
+  else {
+    $url->path("/solr/$core/select");
+  }
+
+  $self->app->log->info("proxying solr request");
+  $self->app->log->info($url);
+  $self->app->log->info($self->app->dumper($self->req->params->to_hash));
+
+  if (Mojo::IOLoop->is_running) {
+    $self->render_later;
+    $self->ua->post(
+      $url => form => $self->req->params->to_hash,
+      sub {
+        my ($c, $tx) = @_;
+        _proxy_tx($self, $tx);
+      }
+    );
+  }
+  else {
+    my $tx = $self->ua->post($url => form => $self->req->params->to_hash);
+    _proxy_tx($self, $tx);
+  }
+
+}
+
+
+sub _proxy_tx {
+ my ($self, $tx) = @_;
+  if (!$tx->error) {
+    my $res = $tx->res;
+    $self->tx->res($res);
+    $self->rendered;
+  }
+  else {
+    my $error = $tx->error;
+    $self->tx->res->headers->add('X-Remote-Status',
+      $error->{code} . ': ' . $error->{message});
+    $self->render(status => 500, text => 'Failed to fetch data from backend');
+  }
+}
+
 1;
