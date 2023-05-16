@@ -739,6 +739,11 @@ sub create_simple {
       return $res;
     }
 
+    if ($metadata->{metadata}->{resourcelink} eq "pfsa") {
+      my $pido   = $pid =~ s/\:/_/r;
+      $metadata->{metadata}->{resourcelink} = 'https://' . $c->app->config->{phaidra}->{baseurl} . '/pfsa/' . $pido;
+    }
+
     # save link
     $r = $self->add_datastream($c, $pid, "LINK", "text/html", $metadata->{metadata}->{resourcelink}, "Link to external resource", undef, "R", undef, undef, $username, $password);
     if ($r->{status} ne 200) {
@@ -1334,6 +1339,11 @@ sub save_metadata {
       $found = 1;
 
       # noop - this is handled later because it's the last step (after activating object)
+    }
+    elsif (lc($f) eq "resourcelink") {
+      $found = 1;
+
+      # noop - this was handled in create_simple
     }
     else {
       $c->app->log->error("Unknown or unsupported metadata format: $f");
