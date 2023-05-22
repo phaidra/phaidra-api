@@ -2002,27 +2002,29 @@ sub _add_jsonld_index {
 
   if (exists($jsonld->{'frapo:isOutputOf'})) {
     for my $proj (@{$jsonld->{'frapo:isOutputOf'}}) {
-      if ($proj->{'@type'} eq 'foaf:Project') {
-        if (exists($proj->{'skos:exactMatch'})) {
-          for my $projId (@{$proj->{'skos:exactMatch'}}) {
-            push @{$index->{"project_id"}}, $projId;
+      if (defined ($proj->{'@type'})) {
+        if ($proj->{'@type'} eq 'foaf:Project') {
+          if (exists($proj->{'skos:exactMatch'})) {
+            for my $projId (@{$proj->{'skos:exactMatch'}}) {
+              push @{$index->{"project_id"}}, $projId;
+            }
+          }
+          if (exists($proj->{'skos:prefLabel'})) {
+            for my $l (@{$proj->{'skos:prefLabel'}}) {
+              push @{$index->{"project"}}, $l->{'@value'};
+            }
           }
         }
-        if (exists($proj->{'skos:prefLabel'})) {
-          for my $l (@{$proj->{'skos:prefLabel'}}) {
-            push @{$index->{"project"}}, $l->{'@value'};
+        if ($proj->{'@type'} eq 'aaiso:Programme') {
+          if (exists($proj->{'skos:exactMatch'})) {
+            for my $projId (@{$proj->{'skos:exactMatch'}}) {
+              push @{$index->{"programme_id"}}, $projId;
+            }
           }
-        }
-      }
-      if ($proj->{'@type'} eq 'aaiso:Programme') {
-        if (exists($proj->{'skos:exactMatch'})) {
-          for my $projId (@{$proj->{'skos:exactMatch'}}) {
-            push @{$index->{"programme_id"}}, $projId;
-          }
-        }
-        if (exists($proj->{'skos:prefLabel'})) {
-          for my $l (@{$proj->{'skos:prefLabel'}}) {
-            push @{$index->{"programme"}}, $l->{'@value'};
+          if (exists($proj->{'skos:prefLabel'})) {
+            for my $l (@{$proj->{'skos:prefLabel'}}) {
+              push @{$index->{"programme"}}, $l->{'@value'};
+            }
           }
         }
       }
