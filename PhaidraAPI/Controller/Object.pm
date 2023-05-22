@@ -1312,7 +1312,7 @@ sub metadata {
   }
 
   my $object_model = PhaidraAPI::Model::Object->new;
-  my $r            = $object_model->save_metadata($self, $pid, $cmodel, $metadata, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, undef, 0);
+  my $r            = $object_model->save_metadata($self, $pid, $cmodel, $metadata, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 0, 0);
   if ($r->{status} ne 200) {
     $res->{status} = $r->{status};
     foreach my $a (@{$r->{alerts}}) {
