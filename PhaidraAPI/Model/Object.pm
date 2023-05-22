@@ -597,8 +597,12 @@ sub create {
   $c->app->log->debug("Created object: $pid");
   $res->{pid} = $pid;
 
+  my $oaiid = "oai:" . $c->app->config->{phaidra}->{proaiRepositoryIdentifier} . ":" . $pid;
   my @relationships;
   push @relationships, {predicate => "info:fedora/fedora-system:def/model#hasModel", object => "info:fedora/" . $contentmodel};
+  unless (exists($c->app->config->{phaidra}->{nolegacyds}) and $c->app->config->{phaidra}->{nolegacyds} == 1) {
+    push @relationships, {predicate => "http://www.openarchives.org/OAI/2.0/itemID", object => $oaiid};
+  }
 
   # set cmodel
   $c->app->log->debug("Set cmodel ($contentmodel)");
