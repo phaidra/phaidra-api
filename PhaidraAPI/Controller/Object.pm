@@ -30,25 +30,6 @@ use Digest::SHA qw(hmac_sha1_hex);
 use Time::HiRes qw/tv_interval gettimeofday/;
 use File::Find::utf8;
 
-sub mint_pid {
-  my $self = shift;
-
-  my $res = {alerts => [], status => 200};
-  my $dbh = $self->app->db_fedora->dbh;
-  $dbh->do("UPDATE pidGen SET highestID = LAST_INSERT_ID(highestID) + 1 WHERE namespace = '" . $self->app->config->{fedora}->{pidnamespace} . "';");
-  my $highestID = $dbh->last_insert_id(undef, undef, 'pidGen', 'highestID');
-  $highestID++;
-  my $pid = $self->app->config->{fedora}->{pidnamespace} . ':' . $highestID;
-  if (my $msg = $dbh->errstr) {
-    $self->app->log->error($msg);
-    $res->{status} = 500;
-    unshift @{$res->{alerts}}, {type => 'error', msg => $msg};
-    return $res;
-  }
-
-  $self->render(json => {pid => $pid}, status => $res->{status});
-}
-
 sub info {
   my $self = shift;
 
@@ -1103,7 +1084,7 @@ sub add_octets {
   my $checksumtype = $self->param('checksumtype');
   my $checksum     = $self->param('checksum');
 
-  my $addres = $object_model->add_octets($self, $pid, $upload, $mimetype, $checksumtype, $checksum);
+  my $addres = $object_model->add_octets($self, $pid, $upload, $mimetype, $checksumtype, $checksum, undef);
   push @{$res->{alerts}}, @{$addres->{alerts}} if scalar @{$addres->{alerts}} > 0;
   $res->{status} = $addres->{status};
 
@@ -1155,7 +1136,7 @@ sub add_or_modify_datastream {
 
   my $object_model = PhaidraAPI::Model::Object->new;
 
-  my $r = $object_model->add_or_modify_datastream($self, $self->stash('pid'), $self->stash('dsid'), $mimetype, $location, $label, $dscontent, $controlgroup, $checksumtype, $checksum, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  my $r = $object_model->add_or_modify_datastream($self, $self->stash('pid'), $self->stash('dsid'), $mimetype, $location, $label, $dscontent, $controlgroup, $checksumtype, $checksum, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 0, 0);
 
   $self->render(json => $r, status => $r->{status});
 }
@@ -1331,7 +1312,7 @@ sub metadata {
   }
 
   my $object_model = PhaidraAPI::Model::Object->new;
-  my $r            = $object_model->save_metadata($self, $pid, $cmodel, $metadata, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  my $r            = $object_model->save_metadata($self, $pid, $cmodel, $metadata, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, undef, 0);
   if ($r->{status} ne 200) {
     $res->{status} = $r->{status};
     foreach my $a (@{$r->{alerts}}) {

@@ -24,6 +24,17 @@ use PhaidraAPI::Model::Octets;
 use PhaidraAPI::Model::Fedora;
 use Scalar::Util qw/reftype/;
 
+our %indexed_datastreams_xml = (
+  "UWMETADATA"      => 1,
+  "MODS"            => 1,
+  "ANNOTATIONS"     => 1,
+  "GEO"             => 1,
+  "RELS-EXT"        => 1,
+  "COLLECTIONORDER" => 1,
+  "RIGHTS"          => 1,
+  "BOOKINFO"        => 1
+);
+
 our %indexed_datastreams = (
   "UWMETADATA"      => 1,
   "MODS"            => 1,
@@ -1071,6 +1082,7 @@ sub _get {
       return $res;
     }
     $index{owner}    = $fres->{owner};
+    $index{cmodel}   = $fres->{cmodel};
     $index{created}  = $fres->{created};
     $index{modified} = $fres->{modified};
     if ($fres->{identifier}) {
@@ -1135,13 +1147,22 @@ sub _get {
     }
 
     for my $dsid (@{$fres->{contains}}) {
-      my $getdsres = $object_model->get_and_parse_xml_datastream($c, $pid, $dsid, undef, undef, 1);
-      if ($getdsres->{status} ne 200) {
+      if ($indexed_datastreams{$dsid}) {
+        if ($indexed_datastreams_xml{$dsid}) {
+          my $getdsres = $fedora_model->getDatastream($c, $pid, $dsid);
+          if ($getdsres->{status} != 200) {
+            return $getdsres;
+          }
 
-        # $c->app->log->debug("XXXXXXXXX" . $c->app->dumper($getdsres));
-        return $getdsres;
+          my $dom = Mojo::DOM->new();
+          $dom->xml(1);
+          $dom->parse($getdsres->{$dsid});
+          $datastreams{$dsid} = $dom;
+        }
+        else {
+          $datastreams{$dsid} = 1;
+        }
       }
-      $datastreams{$dsid} = $getdsres->{xml};
     }
   }
   else {
@@ -1310,7 +1331,6 @@ sub _get {
     my $jsonld_model = PhaidraAPI::Model::Jsonld->new;
     my $r_jsonld     = $jsonld_model->get_object_jsonld_parsed($c, $pid, $c->app->config->{phaidra}->{intcallusername}, $c->app->config->{phaidra}->{intcallpassword});
 
-    #$c->app->log->debug("XXXXXXXXX found JSON-LD: ".$c->app->dumper($r_jsonld));
     if ($r_jsonld->{status} ne 200) {
       push @{$res->{alerts}}, {type => 'error', msg => "Error getting JSON-LD for $pid"};
       push @{$res->{alerts}}, @{$r_jsonld->{alerts}} if scalar @{$r_jsonld->{alerts}} > 0;
@@ -1326,8 +1346,6 @@ sub _get {
       }
       else {
         my ($dc_p, $dc_oai) = $dc_model->map_jsonld_2_dc_hash($c, $pid, $index{cmodel}, $jsonld, $jsonld_model, 1);
-
-        # $c->app->log->debug("found JSON-LD: ".$c->app->dumper($dc_p));
         $self->_add_dc_index($c, $dc_p, \%index);
       }
     }
@@ -1435,18 +1453,28 @@ sub _get {
   }
 
   # inventory
-  if (exists($c->app->config->{paf_mongodb})) {
-    my $inv_coll = $c->paf_mongo->get_collection('foxml.ds');
-    if ($inv_coll) {
-      my $ds_doc = $inv_coll->find_one({pid => $pid}, {}, {"sort" => {"updated_at" => -1}});
-      $index{size} = $ds_doc->{ds_sizes}->{OCTETS};
+  if ($c->app->config->{fedora}->{version} >= 6) {
+
+    my $fedora_model = PhaidraAPI::Model::Fedora->new;
+    my $dssres       = $fedora_model->getDatastreamSize($c, $pid, 'OCTETS');
+    if ($dssres->{status} == 200) {
+      $index{size} = $dssres->{size};
     }
   }
-  unless ($index{size}) {
-    my $octets_model = PhaidraAPI::Model::Octets->new;
-    my $parthres     = $octets_model->_get_ds_path($c, $pid, 'OCTETS');
-    if ($parthres->{status} == 200) {
-      $index{size} = -s $parthres->{path};
+  else {
+    if (exists($c->app->config->{paf_mongodb})) {
+      my $inv_coll = $c->paf_mongo->get_collection('foxml.ds');
+      if ($inv_coll) {
+        my $ds_doc = $inv_coll->find_one({pid => $pid}, {}, {"sort" => {"updated_at" => -1}});
+        $index{size} = $ds_doc->{ds_sizes}->{OCTETS};
+      }
+    }
+    unless ($index{size}) {
+      my $octets_model = PhaidraAPI::Model::Octets->new;
+      my $parthres     = $octets_model->_get_ds_path($c, $pid, 'OCTETS');
+      if ($parthres->{status} == 200) {
+        $index{size} = -s $parthres->{path};
+      }
     }
   }
 
@@ -1529,10 +1557,10 @@ sub _get {
     }
   }
 
-  # $c->app->log->debug("XXXXXXXXXXXXX title_suggest_ir: ".$c->app->dumper($index{title_suggest_ir}));
-
   # ts
   $index{_updated} = time;
+
+  $c->app->log->debug("XXXXXXXXXXXXX index: " . $c->app->dumper(\%index));
 
   $c->app->log->debug("_get indexing took " . tv_interval($t0));
   return $res;
@@ -2763,9 +2791,9 @@ sub get_relationships {
     }
   }
   $self->add_set_rec($c, $ua, $urlget, 'hassuccessor', $pid, \@versions, $versionsCheck);
-  @versions = grep defined, @versions;
-  @versions= grep { $_ ne '' } @versions;
-  @versions = sort {$a->{created} cmp $b->{created}} @versions;
+  @versions        = grep defined, @versions;
+  @versions        = grep {$_ ne ''} @versions;
+  @versions        = sort {$a->{created} cmp $b->{created}} @versions;
   $res->{versions} = \@versions;
 
   my @altformats;
@@ -2867,7 +2895,7 @@ sub add_set_rec {
         $relatedCheck->{$relpid}->{loaded} = 1;
 
         # add found relationships
-	if ($d) {
+        if ($d) {
           if ($d->{$relationfield}) {
             for my $r (@{$d->{$relationfield}}) {
               unless ($relatedCheck->{$r}) {

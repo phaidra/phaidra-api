@@ -162,7 +162,7 @@ sub post {
 
     # $self->app->log->debug("Saving ordered members: ".$self->app->dumper(\@ordered_members));
     my $membersorder_model = PhaidraAPI::Model::Membersorder->new;
-    my $r                  = $membersorder_model->save_to_object($self, $pid, \@ordered_members, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+    my $r                  = $membersorder_model->save_to_object($self, $pid, \@ordered_members, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 0);
     push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
     $res->{status} = $r->{status};
     if ($r->{status} ne 200) {
@@ -241,7 +241,7 @@ sub order_object_member {
   }
 
   my $membersorder_model = PhaidraAPI::Model::Membersorder->new;
-  $r = $membersorder_model->save_to_object($self, $pid, \@new_order, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  $r = $membersorder_model->save_to_object($self, $pid, \@new_order, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 0);
   push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
   $res->{status} = $r->{status};
   if ($r->{status} ne 200) {

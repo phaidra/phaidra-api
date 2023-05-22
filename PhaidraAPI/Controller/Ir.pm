@@ -130,10 +130,10 @@ sub getAlertForPid {
   my $ss  = qq/SELECT id, username, pids FROM alert WHERE alert_type = ? AND processed = 0 AND alert.pids LIKE ?;/;
   my $sth = $self->app->db_ir->dbh->prepare($ss) or $self->app->log->error($self->app->db_ir->dbh->errstr);
   $sth->execute($alerttype, $pids) or $self->app->log->error($self->app->db_ir->dbh->errstr);
-  my ($id, $username, $pids);
-  $sth->bind_columns(\$id, \$username, \$pids) or $self->app->log->error($self->app->db_ir->dbh->errstr);
+  my ($id, $username, $pids_out);
+  $sth->bind_columns(\$id, \$username, \$pids_out) or $self->app->log->error($self->app->db_ir->dbh->errstr);
   while ($sth->fetch()) {
-    return {id => $id, username => $username, pids => $pids};
+    return {id => $id, username => $username, pids => $pids_out};
   }
 }
 
@@ -254,7 +254,7 @@ sub approve {
   }
 
   my $jsonld_model = PhaidraAPI::Model::Jsonld->new;
-  my $res          = $jsonld_model->get_object_jsonld_parsed($self, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  $res = $jsonld_model->get_object_jsonld_parsed($self, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
   if ($res->{status} ne 200) {
     $self->app->log->error("ERROR getting json-ld for object $pid:\n" . $self->app->dumper($res));
     return;
@@ -267,7 +267,7 @@ sub approve {
 
   $res->{'JSON-LD'}->{'phaidra:systemTag'} = [$self->config->{ir}->{adminset} . ':approved'];
 
-  my $saveres = $jsonld_model->save_to_object($self, $pid, $cmodel, $res->{'JSON-LD'}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  my $saveres = $jsonld_model->save_to_object($self, $pid, $cmodel, $res->{'JSON-LD'}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 0);
   if ($saveres->{status} ne 200) {
     $self->app->log->error("ERROR saving json-ld for object $pid:\n" . $self->app->dumper($res));
     return;
@@ -354,10 +354,10 @@ sub events {
   my $ss  = qq/SELECT event_type, user_id, gmtimestamp FROM event WHERE pid = ? ORDER BY gmtimestamp DESC;/;
   my $sth = $self->app->db_ir->dbh->prepare($ss) or $self->app->log->error($self->app->db_ir->dbh->errstr);
   $sth->execute($pid) or $self->app->log->error($self->app->db_ir->dbh->errstr);
-  my ($event, $username, $ts);
-  $sth->bind_columns(\$event, \$username, \$ts) or $self->app->log->error($self->app->db_ir->dbh->errstr);
+  my ($event, $username_out, $ts);
+  $sth->bind_columns(\$event, \$username_out, \$ts) or $self->app->log->error($self->app->db_ir->dbh->errstr);
   while ($sth->fetch()) {
-    push @events, {event => $event, username => $username, ts => $ts};
+    push @events, {event => $event, username => $username_out, ts => $ts};
   }
 
   $res->{events} = \@events;
@@ -421,10 +421,10 @@ sub adminlistdata {
   $ss  = "SELECT pid, user_id FROM event WHERE event_type = 'submit' AND pid IN ($pidsparam)";
   $sth = $self->app->db_ir->dbh->prepare($ss) or $self->app->log->error($self->app->db_ir->dbh->errstr);
   $sth->execute() or $self->app->log->error($self->app->db_ir->dbh->errstr);
-  my $username;
-  $sth->bind_columns(undef, \$pid, \$username) or $self->app->log->error($self->app->db_ir->dbh->errstr);
+  my $username_out;
+  $sth->bind_columns(undef, \$pid, \$username_out) or $self->app->log->error($self->app->db_ir->dbh->errstr);
   while ($sth->fetch()) {
-    push @submits, {pid => $pid, user => {username => $username}};
+    push @submits, {pid => $pid, user => {username => $username_out}};
   }
 
   my $namesCache;
@@ -1077,7 +1077,7 @@ sub changeEmbargoedToOpenAccess {
         last;
       }
     }
-    my $saveres = $jsonld_model->save_to_object($self, $pid, $cmodel, $res->{'JSON-LD'}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+    my $saveres = $jsonld_model->save_to_object($self, $pid, $cmodel, $res->{'JSON-LD'}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 0);
     if ($saveres->{status} ne 200) {
       $self->app->log->error("ERROR saving json-ld for object $pid:\n" . $self->app->dumper($res));
       return;

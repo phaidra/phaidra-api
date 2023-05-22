@@ -131,21 +131,21 @@ sub generate_dc_from_mods {
   my ($dc_p, $dc_oai) = $self->map_mods_2_dc($c, $pid, $cmodel, $dscontent, $mods_model);
 
   # Phaidra DC
-  my $r1 = $object_model->add_or_modify_datastream($c, $pid, "DC_P", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", undef, undef, $username, $password, 1);
+  my $r1 = $object_model->add_or_modify_datastream($c, $pid, "DC_P", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", undef, undef, $username, $password, 1, 0);
   push @{$res->{alerts}}, @{$r1->{alerts}} if scalar @{$r1->{alerts}} > 0;
   if ($r1->{status} ne 200) {
     $res->{status} = $r1->{status};
   }
 
   # OAI DC - unqualified
-  my $r2 = $object_model->add_or_modify_datastream($c, $pid, "DC_OAI", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_oai, "X", undef, undef, $username, $password, 1);
+  my $r2 = $object_model->add_or_modify_datastream($c, $pid, "DC_OAI", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_oai, "X", undef, undef, $username, $password, 1, 0);
   push @{$res->{alerts}}, @{$r2->{alerts}} if scalar @{$r2->{alerts}} > 0;
   if ($r2->{status} ne 200) {
     $res->{status} = $r2->{status};
   }
 
   # we have to add this because we need that info in triplestore and old hooks won't update DC for MODS
-  $r1 = $object_model->add_or_modify_datastream($c, $pid, "DC", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", undef, undef, $username, $password, 1);
+  $r1 = $object_model->add_or_modify_datastream($c, $pid, "DC", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", undef, undef, $username, $password, 1, 0);
   push @{$res->{alerts}}, @{$r1->{alerts}} if scalar @{$r1->{alerts}} > 0;
   if ($r1->{status} ne 200) {
     $res->{status} = $r1->{status};
@@ -400,14 +400,14 @@ sub generate_dc_from_uwmetadata {
   my ($dc_p, $dc_oai) = $self->map_uwmetadata_2_dc($c, $pid, $cmodel, $dscontent, $r0->{metadata_tree}, $metadata_model);
 
   # Phaidra DC
-  my $r1 = $object_model->add_or_modify_datastream($c, $pid, "DC_P", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", undef, undef, $username, $password, 1);
+  my $r1 = $object_model->add_or_modify_datastream($c, $pid, "DC_P", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", undef, undef, $username, $password, 1, 0);
   push @{$res->{alerts}}, @{$r1->{alerts}} if scalar @{$r1->{alerts}} > 0;
   if ($r1->{status} ne 200) {
     $res->{status} = $r1->{status};
   }
 
   # OAI DC - unqualified
-  my $r2 = $object_model->add_or_modify_datastream($c, $pid, "DC_OAI", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_oai, "X", undef, undef, $username, $password, 1);
+  my $r2 = $object_model->add_or_modify_datastream($c, $pid, "DC_OAI", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_oai, "X", undef, undef, $username, $password, 1, 0);
   push @{$res->{alerts}}, @{$r2->{alerts}} if scalar @{$r2->{alerts}} > 0;
   if ($r2->{status} ne 200) {
     $res->{status} = $r2->{status};
@@ -415,7 +415,7 @@ sub generate_dc_from_uwmetadata {
 
   # Fedora's DC - for backward compatibility with frontend which only updates DC (see Hooks)
 
-  my $r3 = $object_model->add_or_modify_datastream($c, $pid, "DC", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", undef, undef, $username, $password, 1);
+  my $r3 = $object_model->add_or_modify_datastream($c, $pid, "DC", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $dc_p, "X", undef, undef, $username, $password, 1, 0);
   push @{$res->{alerts}}, @{$r3->{alerts}} if scalar @{$r3->{alerts}} > 0;
   if ($r3->{status} ne 200) {
     $res->{status} = $r3->{status};

@@ -30,7 +30,7 @@ sub create {
   }
   $pid = $res_create->{pid};
 
-  my $res_md = $object_model->save_metadata($c, $pid, 'cmodel:Collection', $metadata, $username, $password);
+  my $res_md = $object_model->save_metadata($c, $pid, 'cmodel:Collection', $metadata, $username, $password, undef, 1);
   if ($res_md->{status} ne 200) {
     return $res_md;
   }
@@ -72,7 +72,7 @@ sub create {
     if ($ordered_members_size > 0) {
       my $membersorder_model = PhaidraAPI::Model::Membersorder->new;
       $c->app->log->debug("Saving collectionorder: " . $c->app->dumper(\@ordered_members));
-      my $r = $membersorder_model->save_to_object($c, $pid, \@ordered_members, $username, $password);
+      my $r = $membersorder_model->save_to_object($c, $pid, \@ordered_members, $username, $password, 0);
       push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
       $res->{status} = $r->{status};
       if ($r->{status} ne 200) {

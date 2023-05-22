@@ -220,13 +220,27 @@ sub startup {
   if (exists($config->{irma})) {
     $self->helper(
       irma_mongo => sub {
-        state $paf_mongo = MongoDB::MongoClient->new(
+        state $irma_mongo = MongoDB::MongoClient->new(
           host     => $config->{irma}->{host},
           port     => $config->{irma}->{port},
           username => $config->{irma}->{username},
           password => $config->{irma}->{password},
           db_name  => $config->{irma}->{database}
         )->get_database($config->{irma}->{database});
+      }
+    );
+  }
+
+  if ($config->{fedora}->{version} > 6) {
+    $self->helper(
+      fedoraurl => sub {
+        my $url = Mojo::URL->new;
+        $url->scheme($config->{fedora}->{scheme});
+        $url->host($config->{fedora}->{host});
+        $url->port($config->{fedora}->{port}) if $config->{fedora}->{port};
+        $url->path($config->{fedora}->{path});
+        $url->userinfo($config->{fedora}->{adminuser}.":".$config->{fedora}->{adminpass});
+        return $url;
       }
     );
   }
@@ -568,7 +582,6 @@ sub startup {
 
     $check_auth->post('settings')                                             ->to('settings#post_settings');
 
-    $check_admin_auth->post('mint/pid')                                       ->to('object#mint_pid');
     $check_admin_auth->post('object/:pid/index')                              ->to('index#update');
     $check_admin_auth->post('object/:pid/dc')                                 ->to('dc#update');
 

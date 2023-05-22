@@ -72,7 +72,7 @@ sub _epochMsToIso {
 
 sub _get_metadata_dc {
   my ($self, $rec, $set) = @_;
-  my @el          = qw(contributor, coverage, creator, date, description, format, identifier, language, publisher, relation, rights, source, subject, title, type);
+  my @el          = qw/contributor coverage creator date description format identifier language publisher relation rights source subject title type/;
   my %valuesCheck = map {$_ => {}} @el;
   my @metadata;
 

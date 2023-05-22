@@ -210,7 +210,7 @@ sub xml2json {
   my $self = shift;
 
   #my $t0 = [gettimeofday];
-  
+
   my $mode = $self->param('mode');
 
   my $uwmetadataxml = $self->req->body;
@@ -218,7 +218,7 @@ sub xml2json {
   $uwmetadataxml = b($uwmetadataxml)->decode('UTF-8');
 
   my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
-  
+
   my $res;
   if ($mode && $mode eq 'full') {
     $res = $metadata_model->uwmetadata_2_json($self, $uwmetadataxml);
@@ -227,7 +227,7 @@ sub xml2json {
     # uwmetadata_2_json_basic doesn't insert empty nodes which can break validation
     $res = $metadata_model->uwmetadata_2_json_basic($self, $uwmetadataxml);
   }
-  
+
   #my $t1 = tv_interval($t0);
   #$self->app->log->debug("xml2json took $t1 s");
   #$self->app->log->debug("XXXXXXXXXXX: ".$self->app->dumper($res));
@@ -352,7 +352,7 @@ sub post {
   }
 
   my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
-  my $res            = $metadata_model->save_to_object($self, $pid, $metadata->{uwmetadata}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  my $res            = $metadata_model->save_to_object($self, $pid, $metadata->{uwmetadata}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 0);
 
   my $t1 = tv_interval($t0);
   if ($res->{status} eq 200) {

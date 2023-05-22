@@ -197,7 +197,7 @@ sub post {
   }
 
   my $geo_model = PhaidraAPI::Model::Geo->new;
-  my $res       = $geo_model->save_to_object($self, $pid, $metadata->{geo}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  my $res       = $geo_model->save_to_object($self, $pid, $metadata->{geo}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 0);
 
   my $t1 = tv_interval($t0);
   if ($res->{status} eq 200) {

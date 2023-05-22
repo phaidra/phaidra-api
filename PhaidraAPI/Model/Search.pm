@@ -28,7 +28,7 @@ sub triples {
   $params{type}   = 'triples';
 
   my $url = Mojo::URL->new;
-  $url->scheme('https');
+  $url->scheme($c->app->config->{fedora}->{scheme} ? $c->app->config->{fedora}->{scheme} : 'https');
   $url->host($c->app->config->{phaidra}->{fedorabaseurl});
   $url->path("/fedora/risearch");
   $url->query(\%params);
@@ -176,7 +176,7 @@ sub risearch_tuple ($$$) {
   $params{query}  = $query;
 
   my $url = Mojo::URL->new;
-  $url->scheme('https');
+  $url->scheme($c->app->config->{fedora}->{scheme} ? $c->app->config->{fedora}->{scheme} : 'https');
   $url->host($c->app->config->{phaidra}->{fedorabaseurl});
   $url->path("/fedora/risearch");
   $url->query(\%params);
@@ -527,31 +527,51 @@ sub datastream_exists {
 
   my $res = {alerts => [], status => 200};
 
-  my $triplequery = "<info:fedora/$pid> <info:fedora/fedora-system:def/view#disseminates> <info:fedora/$pid/$dsid>";
-
-  my %params;
-  $params{dt}     = 'on';
-  $params{format} = 'count';
-  $params{lang}   = 'spo';
-  $params{limit}  = '1';
-  $params{query}  = $triplequery;
-  $params{type}   = 'triples';
-
-  my $url = Mojo::URL->new;
-  $url->scheme('https');
-  $url->host($c->app->config->{phaidra}->{fedorabaseurl});
-  $url->path("/fedora/risearch");
-  $url->query(\%params);
-
-  my $ua    = Mojo::UserAgent->new;
-  my $txres = $ua->post($url)->result;
-
-  if ($txres->is_success) {
-    $res->{'exists'} = scalar($txres->body);
+  if ($c->app->config->{fedora}->{version} >= 6) {
+    my $exists       = 0;
+    my $fedora_model = PhaidraAPI::Model::Fedora->new;
+    my $propres      = $fedora_model->getObjectProperties($c, $pid);
+    if ($propres->{status} ne 200) {
+      return $propres;
+    }
+    if (exists($propres->{contains})) {
+      for my $contains (@{$propres->{contains}}) {
+        if ($contains eq $dsid) {
+          $exists = 1;
+          last;
+        }
+      }
+    }
+    $res->{'exists'} = $exists;
   }
   else {
-    unshift @{$res->{alerts}}, {type => 'error', msg => $txres->message};
-    $res->{status} = $txres->code;
+
+    my $triplequery = "<info:fedora/$pid> <info:fedora/fedora-system:def/view#disseminates> <info:fedora/$pid/$dsid>";
+
+    my %params;
+    $params{dt}     = 'on';
+    $params{format} = 'count';
+    $params{lang}   = 'spo';
+    $params{limit}  = '1';
+    $params{query}  = $triplequery;
+    $params{type}   = 'triples';
+
+    my $url = Mojo::URL->new;
+    $url->scheme($c->app->config->{fedora}->{scheme} ? $c->app->config->{fedora}->{scheme} : 'https');
+    $url->host($c->app->config->{phaidra}->{fedorabaseurl});
+    $url->path("/fedora/risearch");
+    $url->query(\%params);
+
+    my $ua    = Mojo::UserAgent->new;
+    my $txres = $ua->post($url)->result;
+
+    if ($txres->is_success) {
+      $res->{'exists'} = scalar($txres->body);
+    }
+    else {
+      unshift @{$res->{alerts}}, {type => 'error', msg => $txres->message};
+      $res->{status} = $txres->code;
+    }
   }
 
   return $res;
@@ -591,6 +611,16 @@ sub get_ownerid {
 
   my $res = {alerts => [], status => 200};
 
+  if ($c->app->config->{fedora}->{version} >= 6) {
+    my $fedora_model = PhaidraAPI::Model::Fedora->new;
+    my $r            = $fedora_model->getObjectProperties($c, $pid);
+    if ($r->{status} ne 200) {
+      return $r;
+    }
+    $res->{ownerid} = $r->{owner};
+    return $res;
+  }
+
   my $sr = $self->triples($c, "<info:fedora/$pid> <info:fedora/fedora-system:def/model#ownerId> *");
   push @{$res->{alerts}}, @{$sr->{alerts}} if scalar @{$sr->{alerts}} > 0;
   $res->{status} = $sr->{status};
@@ -603,7 +633,7 @@ sub get_ownerid {
     return $res;
   }
 
-  unshift @{$res->{alerts}}, {type => 'error', msg => "Cannot determine status"};
+  unshift @{$res->{alerts}}, {type => 'error', msg => "Cannot determine ownerId"};
   $res->{status} = 500;
   return $res;
 }
@@ -721,6 +751,11 @@ sub datastreams_hash {
   my $pid  = shift;
 
   my $res = {alerts => [], status => 200};
+
+  if ($c->app->config->{fedora}->{version} >= 6) {
+    my $fedora_model = PhaidraAPI::Model::Fedora->new;
+    return $fedora_model->getDatastreamsHash($c, $pid);
+  }
 
   my $sr = $self->triples($c, "<info:fedora/$pid> <info:fedora/fedora-system:def/view#disseminates> *");
   push @{$res->{alerts}}, @{$sr->{alerts}} if scalar @{$sr->{alerts}} > 0;
@@ -913,7 +948,7 @@ sub search_call() {
   my $res = {alerts => [], status => 200};
 
   my $url = Mojo::URL->new;
-  $url->scheme('https');
+  $url->scheme($c->app->config->{fedora}->{scheme} ? $c->app->config->{fedora}->{scheme} : 'https');
   $url->host($c->app->config->{phaidra}->{fedorabaseurl});
   $url->path("/gsearch/rest/");
   $url->query(

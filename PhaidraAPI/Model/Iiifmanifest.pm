@@ -145,15 +145,15 @@ sub update_manifest_metadata {
   # $c->app->log->debug("XXXXXXXXXXXXXXXXXXXX " . $c->app->dumper($manifest));
 
   my $json = JSON->new->utf8->pretty->encode($manifest);
-  return $object_model->add_or_modify_datastream($c, $pid, "IIIF-MANIFEST", "application/json", undef, $c->app->config->{phaidra}->{defaultlabel}, $json, "M", undef, undef, $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password});
+  return $object_model->add_or_modify_datastream($c, $pid, "IIIF-MANIFEST", "application/json", undef, $c->app->config->{phaidra}->{defaultlabel}, $json, "M", undef, undef, $c->stash->{basic_auth_credentials}->{username}, $c->stash->{basic_auth_credentials}->{password}, 0, 0);
 }
 
 sub save_to_object {
-  my ($self, $c, $pid, $manifest, $username, $password) = @_;
+  my ($self, $c, $pid, $manifest, $username, $password, $skiphook) = @_;
 
   my $json         = JSON->new->utf8->pretty->encode($manifest);
   my $object_model = PhaidraAPI::Model::Object->new;
-  return $object_model->add_or_modify_datastream($c, $pid, "IIIF-MANIFEST", "application/json", undef, $c->app->config->{phaidra}->{defaultlabel}, $json, "M", undef, undef, $username, $password);
+  return $object_model->add_or_modify_datastream($c, $pid, "IIIF-MANIFEST", "application/json", undef, $c->app->config->{phaidra}->{defaultlabel}, $json, "M", undef, undef, $username, $password, 0, $skiphook);
 }
 
 1;

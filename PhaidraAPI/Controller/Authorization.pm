@@ -35,7 +35,7 @@ sub authorize {
     return $res;
   }
 
-  my $pid          = $self->stash('pid');
+  my $pid          = $self->stash('pid') ? $self->stash('pid') : "";
   my $pidNamespace = $self->app->config->{fedora}->{pidnamespace};
   unless ($pid =~ m/^$pidNamespace:\d+$/) {
     if ($createActions{$self->stash('action')}) {
@@ -60,7 +60,7 @@ sub authorize {
   }
 
   my $authz_model = PhaidraAPI::Model::Authorization->new;
-  my $res         = $authz_model->check_rights($self, $pid, $op);
+  $res         = $authz_model->check_rights($self, $pid, $op);
 
   $self->render(json => {status => $res->{status}, alerts => $res->{alerts}}, status => $res->{status});
 
@@ -87,7 +87,7 @@ sub check_rights {
   }
 
   my $authz_model = PhaidraAPI::Model::Authorization->new;
-  my $res         = $authz_model->check_rights($self, $pid, $op);
+  $res         = $authz_model->check_rights($self, $pid, $op);
 
   $self->render(json => {status => $res->{status}, alerts => $res->{alerts}}, status => $res->{status});
 }

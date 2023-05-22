@@ -14,8 +14,8 @@ use Data::UUID;
 sub get {
   my $self = shift;
 
-  my $pid = $self->stash('pid');
-  my $header = $self->stash('header') eq '1' or $self->param('header') eq '1';
+  my $pid    = $self->stash('pid');
+  my $header = ($self->stash('header') eq '1') || ($self->param('header') eq '1');
 
   unless (defined($pid)) {
     $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
@@ -24,7 +24,7 @@ sub get {
 
   if ($header) {
     my $jsonld_model = PhaidraAPI::Model::Jsonld->new;
-    my $res = $jsonld_model->get_object_jsonld_parsed($self, $pid);
+    my $res          = $jsonld_model->get_object_jsonld_parsed($self, $pid);
     if ($res->{status} ne 200) {
       return $res;
     }
@@ -34,14 +34,15 @@ sub get {
       $context->{$ns} = $PhaidraAPI::Model::Jsonld::namespaces->{$ns}->{IRI};
     }
     $jsonld->{'@context'} = $context;
-    $jsonld->{'@id'} = 'https://'.$self->config->{phaidra}->{baseurl}.'/'.$pid;
+    $jsonld->{'@id'}      = 'https://' . $self->config->{phaidra}->{baseurl} . '/' . $pid;
     for my $pred (keys %{$jsonld}) {
       if ($pred =~ m/role:(\w+)/g) {
-        $jsonld->{'@context'}->{$pred} = { '@id' => 'http://id.loc.gov/vocabulary/relators', '@container' => '@list' };
+        $jsonld->{'@context'}->{$pred} = {'@id' => 'http://id.loc.gov/vocabulary/relators', '@container' => '@list'};
       }
     }
     $self->render(json => $jsonld, status => 200);
-  } else {
+  }
+  else {
     my $object_model = PhaidraAPI::Model::Object->new;
     $object_model->proxy_datastream($self, $pid, 'JSON-LD', undef, undef, 1);
     return;
@@ -119,7 +120,7 @@ sub post {
   }
 
   my $jsonld_model = PhaidraAPI::Model::Jsonld->new;
-  my $res          = $jsonld_model->save_to_object($self, $pid, $cmodel, $jsonld, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  my $res          = $jsonld_model->save_to_object($self, $pid, $cmodel, $jsonld, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 0);
 
   my $t1 = tv_interval($t0);
   if ($res->{status} eq 200) {

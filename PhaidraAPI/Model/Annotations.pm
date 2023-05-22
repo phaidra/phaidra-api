@@ -117,6 +117,7 @@ sub save_to_object() {
   my $metadata = shift;
   my $username = shift;
   my $password = shift;
+  my $skiphook = shift;
 
   my $res = {alerts => [], status => 200};
 
@@ -142,7 +143,7 @@ sub save_to_object() {
   }
 
   my $object_model = PhaidraAPI::Model::Object->new;
-  return $object_model->add_or_modify_datastream($c, $pid, "ANNOTATIONS", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $annotations, "X", undef, undef, $username, $password);
+  return $object_model->add_or_modify_datastream($c, $pid, "ANNOTATIONS", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $annotations, "X", undef, undef, $username, $password, 0, $skiphook);
 }
 
 1;

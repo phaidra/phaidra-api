@@ -148,6 +148,17 @@ sub add_octets_hook {
 
   my $res = {alerts => [], status => 200};
 
+  unless (defined($exists)) {
+    my $search_model = PhaidraAPI::Model::Search->new;
+    my $sr           = $search_model->datastream_exists($c, $pid, 'OCTETS');
+    if ($sr->{status} ne 200) {
+      unshift @{$res->{alerts}}, @{$sr->{alerts}};
+      $res->{status} = $sr->{status};
+      return $res;
+    }
+    $exists = $sr->{'exists'};
+  }
+
   if ($exists) {
 
     # $object_model->add_octets will re-index, so keep inventory cleanup above it to avoid indexing old data
@@ -165,7 +176,7 @@ sub add_octets_hook {
 }
 
 sub modify_hook {
-  my ($self, $c, $pid, $state, $ownerid) = @_;
+  my ($self, $c, $pid, $state) = @_;
 
   my $res = {alerts => [], status => 200};
 
@@ -203,7 +214,7 @@ sub _create_imageserver_job {
   my $search_model = PhaidraAPI::Model::Search->new;
   my $res_cmodel   = $search_model->get_cmodel($c, $pid);
   if ($res_cmodel->{status} ne 200) {
-    $c->app->log->error("modify_hook: could not get cmodel");
+    $c->app->log->error("_create_imageserver_job: could not get cmodel");
     return $res_cmodel;
   }
   my $cmodel = $res_cmodel->{cmodel};

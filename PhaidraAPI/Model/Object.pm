@@ -20,6 +20,7 @@ use PhaidraAPI::Model::Hooks;
 use PhaidraAPI::Model::Membersorder;
 use PhaidraAPI::Model::Index;
 use PhaidraAPI::Model::Stats;
+use PhaidraAPI::Model::Fedora;
 use IO::Scalar;
 use File::MimeInfo;
 use File::MimeInfo::Magic;
@@ -444,7 +445,7 @@ sub delete {
       $c->app->log->info("[$pid] Removing relationship to [$pid] from [" . $rel->{from} . "]");
 
       # use the array method purge_relationshipS, it triggers reindex
-      my $r = $self->purge_relationships($c, $rel->{from}, \@removerelationships, $username, $password);
+      my $r = $self->purge_relationships($c, $rel->{from}, \@removerelationships, $username, $password, 1);
     }
 
     # 2) relationships from this object are saved in this object, so the delete will remove them
@@ -455,7 +456,7 @@ sub delete {
 
   $c->app->log->debug("[$pid] Purging object...");
   my $url = Mojo::URL->new;
-  $url->scheme('https');
+  $url->scheme($c->app->config->{fedora}->{scheme} ? $c->app->config->{fedora}->{scheme} : 'https');
   $url->userinfo("$username:$password");
   $url->host($c->app->config->{phaidra}->{fedorabaseurl});
   $url->path("/fedora/objects/$pid");
@@ -504,6 +505,35 @@ sub modify {
 
   my $res = {alerts => [], status => 200};
 
+  if ($c->app->config->{fedora}->{version} >= 6) {
+    my $fedora_model = PhaidraAPI::Model::Fedora->new;
+    my @properties;
+    if ($state) {
+      push @properties, {predicate => "info:fedora/fedora-system:def/model#state", object => $state};
+    }
+    if ($ownerid) {
+      push @properties, {predicate => "info:fedora/fedora-system:def/model#ownerId", object => $ownerid};
+    }
+    if (scalar @properties) {
+      my $eres = $fedora_model->editTriples($c, $pid, \@properties);
+      if ($eres->{status} == 200) {
+        if ($state eq 'A') {
+          my $hooks_model = PhaidraAPI::Model::Hooks->new;
+          my $hr          = $hooks_model->modify_hook($c, $pid, 'A');
+          if ($hr->{status} ne 200) {
+            $c->app->log->error("pid[$pid] Error in modify_hook: " . $c->app->dumper($hr));
+          }
+        }
+      }
+    }
+    else {
+      my $msg = "pid[$pid] noop: found no known properties to update";
+      $c->app->log->info($msg);
+      unshift @{$res->{alerts}}, {type => 'info', msg => $msg};
+      return $res;
+    }
+  }
+
   my %params;
   $params{state}            = $state            if $state;
   $params{label}            = $label            if $label;
@@ -517,7 +547,7 @@ sub modify {
   }
 
   my $url = Mojo::URL->new;
-  $url->scheme('https');
+  $url->scheme($c->app->config->{fedora}->{scheme} ? $c->app->config->{fedora}->{scheme} : 'https');
   $url->userinfo("$username:$password");
   $url->host($c->app->config->{phaidra}->{fedorabaseurl});
   $url->path("/fedora/objects/$pid");
@@ -530,7 +560,7 @@ sub modify {
   my $putres = $ua->put($url => \%headers)->result;
   if ($putres->is_success) {
     my $hooks_model = PhaidraAPI::Model::Hooks->new;
-    my $hr          = $hooks_model->modify_hook($c, $pid, $state, $ownerid);
+    my $hr          = $hooks_model->modify_hook($c, $pid, $state);
     if ($hr->{status} ne 200) {
       $c->app->log->error("pid[$pid] Error in modify_hook: " . $c->app->dumper($hr));
     }
@@ -567,19 +597,16 @@ sub create {
   $c->app->log->debug("Created object: $pid");
   $res->{pid} = $pid;
 
-  my $oaiid = "oai:" . $c->app->config->{phaidra}->{proaiRepositoryIdentifier} . ":" . $pid;
   my @relationships;
   push @relationships, {predicate => "info:fedora/fedora-system:def/model#hasModel", object => "info:fedora/" . $contentmodel};
-  unless (exists($c->app->config->{phaidra}->{nolegacyds}) and $c->app->config->{phaidra}->{nolegacyds} == 1) {
-    push @relationships, {predicate => "http://www.openarchives.org/OAI/2.0/itemID", object => $oaiid};
-  }
 
-  # set cmodel and oai itemid
-  $c->app->log->debug("Set cmodel ($contentmodel) and oaiitemid ($oaiid)");
+  # set cmodel
+  $c->app->log->debug("Set cmodel ($contentmodel)");
   $r = $self->add_relationships($c, $pid, \@relationships, $username, $password, 1);
   push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
   $res->{status} = $r->{status};
   if ($r->{status} ne 200) {
+    $c->app->log->debug("Error setting cmodel ($contentmodel)");
     return $res;
   }
 
@@ -740,7 +767,7 @@ sub create_simple {
     }
 
     if ($metadata->{metadata}->{resourcelink} eq "pfsa") {
-      my $pido   = $pid =~ s/\:/_/r;
+      my $pido = $pid =~ s/\:/_/r;
       $metadata->{metadata}->{resourcelink} = 'https://' . $c->app->config->{phaidra}->{baseurl} . '/pfsa/' . $pido;
     }
 
@@ -756,14 +783,14 @@ sub create_simple {
     }
   }
   else {
-    my $aor = $self->add_octets($c, $pid, $upload, $mimetype, $checksumtype, $checksum, $username, $password);
+    my $aor = $self->add_octets($c, $pid, $upload, $mimetype, $checksumtype, $checksum, $username, $password, 0);
     if ($aor->{status} ne 200) {
       return $aor;
     }
   }
 
   # save metadata
-  $r = $self->save_metadata($c, $pid, $cmodel, $metadata->{metadata}, $username, $password, 1);
+  $r = $self->save_metadata($c, $pid, $cmodel, $metadata->{metadata}, $username, $password, 1, 1);
   if ($r->{status} ne 200) {
     $res->{status} = $r->{status};
     foreach my $a (@{$r->{alerts}}) {
@@ -974,7 +1001,7 @@ sub create_container {
   $res->{pid} = $pid;
 
   # save metadata
-  $r = $self->save_metadata($c, $pid, 'Container', $container_metadata, $username, $password, 1);
+  $r = $self->save_metadata($c, $pid, 'Container', $container_metadata, $username, $password, 1, 1);
   if ($r->{status} ne 200) {
     $res->{status} = $r->{status};
     foreach my $a (@{$r->{alerts}}) {
@@ -1019,7 +1046,7 @@ sub create_container {
     if ($nrcolor > 0) {
       my $membersorder_model = PhaidraAPI::Model::Membersorder->new;
       $c->app->log->debug("Saving collectionorder: " . $c->app->dumper(\@collectionorder));
-      my $r = $membersorder_model->save_to_object($c, $pid, \@collectionorder, $username, $password);
+      my $r = $membersorder_model->save_to_object($c, $pid, \@collectionorder, $username, $password, 1);
       push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
       $res->{status} = $r->{status};
       if ($r->{status} ne 200) {
@@ -1090,6 +1117,7 @@ sub add_octets {
   my $checksum     = shift;
   my $username     = shift;
   my $password     = shift;
+  my $exists       = shift;
 
   unless ($username) {
     $username = $c->stash->{basic_auth_credentials}->{username};
@@ -1101,15 +1129,6 @@ sub add_octets {
 
   my $res = {alerts => [], status => 200};
 
-  my $search_model = PhaidraAPI::Model::Search->new;
-  my $sr           = $search_model->datastream_exists($c, $pid, 'OCTETS');
-  if ($sr->{status} ne 200) {
-    unshift @{$res->{alerts}}, @{$sr->{alerts}};
-    $res->{status} = $sr->{status};
-    return $res;
-  }
-  my $exists = $sr->{'exists'};
-
   my $size = $upload->size;
   my $name = $upload->filename;
 
@@ -1119,55 +1138,67 @@ sub add_octets {
   }
   $c->app->log->debug($logmsg);
 
-  my %params;
-  $params{controlGroup} = 'M';
-  $params{dsLabel}      = $name;
-  if ($checksumtype) {
-    $params{checksumType} = $checksumtype;
-  }
-  if ($checksum) {
-    $params{checksum} = $checksum;
-  }
-  if (defined($mimetype)) {
-    $c->app->log->info("Provided mimetype $mimetype");
-  }
-  else {
-    $mimetype = $self->get_mimetype($c, $upload->asset);
-    $c->app->log->info("Undefined mimetype, using magic: $mimetype");
-  }
-  $params{mimeType} = $mimetype;
-
-  my $url = Mojo::URL->new;
-  $url->scheme('https');
-  $url->userinfo("$username:$password");
-  $url->host($c->app->config->{phaidra}->{fedorabaseurl});
-  $url->path("/fedora/objects/$pid/datastreams/OCTETS");
-  $url->query(\%params);
-
-  my $ua = Mojo::UserAgent->new;
-  my %headers;
-  $self->add_upstream_headers($c, \%headers);
   if ($c->app->config->{fedora}->{version} >= 6) {
-    $headers{'Content-Type'} = 'multipart/form-data';
+    my $fedora_model = PhaidraAPI::Model::Fedora->new;
+    if (defined($mimetype)) {
+      $c->app->log->info("Provided mimetype $mimetype");
+    }
+    else {
+      $mimetype = $self->get_mimetype($c, $upload->asset);
+      $c->app->log->info("Undefined mimetype, using magic: $mimetype");
+    }
+    my $addres = $fedora_model->addOrModifyDatastream($c, $pid, 'OCTETS', undef, undef, $upload, $mimetype, $checksumtype, $checksum);
+    if ($addres->{status} != 200) {
+      return $addres;
+    }
   }
   else {
+
+    my %params;
+    $params{controlGroup} = 'M';
+    $params{dsLabel}      = $name;
+    if ($checksumtype) {
+      $params{checksumType} = $checksumtype;
+    }
+    if ($checksum) {
+      $params{checksum} = $checksum;
+    }
+    if (defined($mimetype)) {
+      $c->app->log->info("Provided mimetype $mimetype");
+    }
+    else {
+      $mimetype = $self->get_mimetype($c, $upload->asset);
+      $c->app->log->info("Undefined mimetype, using magic: $mimetype");
+    }
+    $params{mimeType} = $mimetype;
+
+    my $url = Mojo::URL->new;
+    $url->scheme($c->app->config->{fedora}->{scheme} ? $c->app->config->{fedora}->{scheme} : 'https');
+    $url->userinfo("$username:$password");
+    $url->host($c->app->config->{phaidra}->{fedorabaseurl});
+    $url->path("/fedora/objects/$pid/datastreams/OCTETS");
+    $url->query(\%params);
+
+    my $ua = Mojo::UserAgent->new;
+    my %headers;
+    $self->add_upstream_headers($c, \%headers);
     $headers{'Content-Type'} = $mimetype;
+
+    my $postres = $ua->post($url => \%headers => form => {file => {file => $upload->asset}})->result;
+    unless ($postres->is_success) {
+      $c->app->log->error($postres->code . ": " . $postres->message);
+      unshift @{$res->{alerts}}, {type => 'error', msg => $postres->message};
+      $res->{status} = $postres->code ? $postres->code : 500;
+      return $res;
+    }
   }
 
-  my $postres = $ua->post($url => \%headers => form => {file => {file => $upload->asset}})->result;
-  if ($postres->is_success) {
-    my $hooks_model = PhaidraAPI::Model::Hooks->new;
-    my $hr          = $hooks_model->add_octets_hook($c, $pid, $exists);
-    if ($hr->{status} ne 200) {
-      $c->app->log->error("pid[$pid] add_octets_hook error: " . $c->app->dumper($hr));
-    }
-    $c->app->log->info("pid[$pid] octets successfully uploaded: filename[$name] size[$size]");
+  my $hooks_model = PhaidraAPI::Model::Hooks->new;
+  my $hr          = $hooks_model->add_octets_hook($c, $pid, $exists);
+  if ($hr->{status} ne 200) {
+    $c->app->log->error("pid[$pid] add_octets_hook error: " . $c->app->dumper($hr));
   }
-  else {
-    $c->app->log->error($postres->code . ": " . $postres->message);
-    unshift @{$res->{alerts}}, {type => 'error', msg => $postres->message};
-    $res->{status} = $postres->code ? $postres->code : 500;
-  }
+  $c->app->log->info("pid[$pid] octets successfully uploaded: filename[$name] size[$size]");
 
   return $res;
 }
@@ -1182,10 +1213,12 @@ sub save_metadata {
   my $username  = shift;
   my $password  = shift;
   my $check_bib = shift;
+  my $skiphook  = shift;
 
   my $res = {alerts => [], status => 200};
-  $c->app->log->debug("Adding metadata");
-  $c->app->log->debug($c->app->dumper($metadata));
+  $c->app->log->debug("Adding metadata skiphook[$skiphook] check_bib[$check_bib]");
+
+  # $c->app->log->debug($c->app->dumper($metadata));
   my $found     = 0;
   my $found_bib = 0;
 
@@ -1195,7 +1228,7 @@ sub save_metadata {
       $c->app->log->debug("Adding uwmetadata");
       my $uwmetadata     = $metadata->{uwmetadata};
       my $metadata_model = PhaidraAPI::Model::Uwmetadata->new;
-      my $r              = $metadata_model->save_to_object($c, $pid, $uwmetadata, $username, $password);
+      my $r              = $metadata_model->save_to_object($c, $pid, $uwmetadata, $username, $password, $skiphook);
       if ($r->{status} ne 200) {
         $res->{status} = $r->{status};
         foreach my $a (@{$r->{alerts}}) {
@@ -1213,7 +1246,7 @@ sub save_metadata {
       my $mods       = $metadata->{mods};
       my $mods_model = PhaidraAPI::Model::Mods->new;
       my $xml        = $mods_model->json_2_xml($c, $mods);
-      my $r          = $mods_model->save_to_object($c, $pid, $mods, $username, $password);
+      my $r          = $mods_model->save_to_object($c, $pid, $mods, $username, $password, $skiphook);
       if ($r->{status} ne 200) {
         $res->{status} = $r->{status};
         foreach my $a (@{$r->{alerts}}) {
@@ -1233,7 +1266,7 @@ sub save_metadata {
 
       #my $xml = $rights_model->json_2_xml($c, $rights);
       #my $r = $self->add_datastream($c, $pid, "RIGHTS", "text/xml", undef, "Phaidra Permissions", $xml, "X", undef, undef, $username, $password);
-      my $r = $rights_model->save_to_object($c, $pid, $rights, $username, $password);
+      my $r = $rights_model->save_to_object($c, $pid, $rights, $username, $password, $skiphook);
       if ($r->{status} ne 200) {
         $res->{status} = $r->{status};
         push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
@@ -1250,7 +1283,7 @@ sub save_metadata {
 
       #my $xml = $geo_model->json_2_xml($c, $geo);
       #my $r = $self->add_datastream($c, $pid, "GEO", "text/xml", undef, "Georeferencing", $xml, "X", undef, undef, $username, $password);
-      my $r = $geo_model->save_to_object($c, $pid, $geo, $username, $password);
+      my $r = $geo_model->save_to_object($c, $pid, $geo, $username, $password, $skiphook);
       if ($r->{status} ne 200) {
         $res->{status} = $r->{status};
         push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
@@ -1270,7 +1303,7 @@ sub save_metadata {
         $jsonld = $metadata->{'JSON-LD'};
       }
       my $jsonld_model = PhaidraAPI::Model::Jsonld->new;
-      my $r            = $jsonld_model->save_to_object($c, $pid, $cmodel, $jsonld, $username, $password);
+      my $r            = $jsonld_model->save_to_object($c, $pid, $cmodel, $jsonld, $username, $password, $skiphook);
       if ($r->{status} ne 200) {
         $res->{status} = $r->{status};
         push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
@@ -1291,7 +1324,7 @@ sub save_metadata {
         $jsonldprivate = $metadata->{'JSON-LD-PRIVATE'};
       }
       my $jsonldprivate_model = PhaidraAPI::Model::Jsonldprivate->new;
-      my $r                   = $jsonldprivate_model->save_to_object($c, $pid, $jsonldprivate, $username, $password);
+      my $r                   = $jsonldprivate_model->save_to_object($c, $pid, $jsonldprivate, $username, $password, $skiphook);
       if ($r->{status} ne 200) {
         $res->{status} = $r->{status};
         push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
@@ -1325,7 +1358,7 @@ sub save_metadata {
         }
         for my $rel (@{$metadata->{'relationships'}}) {
           $c->app->log->debug("Adding relationship s[" . $rel->{'s'} . "] p[" . $rel->{'p'} . "] o[" . $rel->{'o'} . "]");
-          my $r = $self->add_relationship($c, $rel->{'s'}, $rel->{'p'}, $rel->{'o'}, $username, $password);
+          my $r = $self->add_relationship($c, $rel->{'s'}, $rel->{'p'}, $rel->{'o'}, $username, $password, $skiphook);
           push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
           $res->{status} = $r->{status};
           if ($r->{status} ne 200) {
@@ -1379,7 +1412,7 @@ sub get_dissemination {
   my $res = {alerts => [], status => 200};
 
   my $url = Mojo::URL->new;
-  $url->scheme('https');
+  $url->scheme($c->app->config->{fedora}->{scheme} ? $c->app->config->{fedora}->{scheme} : 'https');
   $url->userinfo("$username:$password");
   $url->host($c->app->config->{phaidra}->{fedorabaseurl});
   $url->path("/fedora/get/$pid/$bdef/$disseminator");
@@ -1411,7 +1444,7 @@ sub get_foxml {
   my $res = {alerts => [], status => 200};
 
   my $url = Mojo::URL->new;
-  $url->scheme('https');
+  $url->scheme($c->app->config->{fedora}->{scheme} ? $c->app->config->{fedora}->{scheme} : 'https');
   $url->userinfo($c->app->config->{phaidra}->{adminusername} . ':' . $c->app->config->{phaidra}->{adminpassword});
   $url->host($c->app->config->{phaidra}->{fedorabaseurl});
   $url->path("/fedora/objects/$pid/objectXML");
@@ -1434,24 +1467,6 @@ sub get_foxml {
   return $res;
 }
 
-sub get_and_parse_xml_datastream {
-  my ($self, $c, $pid, $dsid, $username, $password, $intcallauth) = @_;
-
-  my $res = {alerts => [], status => 200};
-
-  my $getres = $self->get_datastream($c, $pid, $dsid, $username, $password, $intcallauth);
-  if ($getres->{status} ne 200) {
-    return $getres;
-  }
-
-  my $dom = Mojo::DOM->new();
-  $dom->xml(1);
-  $dom->parse($res->{$dsid});
-
-  $res->{xml} = $dom;
-  return $res;
-}
-
 # by using intcallauth it is possible to bypass the 'owner' policies
 # this might be needed eg because fedora always requires authentication
 # (api property, it's not because of policies)
@@ -1461,12 +1476,17 @@ sub get_datastream {
 
   my $res = {alerts => [], status => 200};
 
+  if ($c->app->config->{fedora}->{version} >= 6) {
+    my $fedora_model = PhaidraAPI::Model::Fedora->new;
+    return $fedora_model->getDatastream($c, $pid, $dsid);
+  }
+
   $intcallauth = $intcallauth ? 1         : 0;
   $username    = $username    ? $username : '';
   $c->app->log->debug("get_datastream pid[$pid] dsid[$dsid] username[$username] instcallauth[$intcallauth]");
 
   my $url = Mojo::URL->new;
-  $url->scheme('https');
+  $url->scheme($c->app->config->{fedora}->{scheme} ? $c->app->config->{fedora}->{scheme} : 'https');
 
   if ($intcallauth) {
     $url->userinfo($c->app->config->{phaidra}->{intcallusername} . ':' . $c->app->config->{phaidra}->{intcallpassword});
@@ -1502,7 +1522,7 @@ sub proxy_datastream {
   my $res = {alerts => [], status => 200};
 
   my $url = Mojo::URL->new;
-  $url->scheme('https');
+  $url->scheme($c->app->config->{fedora}->{scheme} ? $c->app->config->{fedora}->{scheme} : 'https');
 
   if ($intcallauth) {
     $url->userinfo($c->app->config->{phaidra}->{intcallusername} . ':' . $c->app->config->{phaidra}->{intcallpassword});
@@ -1562,6 +1582,16 @@ sub add_datastream {
 
   my $res = {alerts => [], status => 200};
 
+  if ($c->app->config->{fedora}->{version} >= 6) {
+    my $fedora_model = PhaidraAPI::Model::Fedora->new;
+    if ($dscontent) {
+      if ($mimetype eq 'text/xml') {
+        $dscontent = encode 'UTF-8', $dscontent;
+      }
+    }
+    return $fedora_model->addOrModifyDatastream($c, $pid, $dsid, $location, $dscontent, undef, $mimetype, $checksumtype, $checksum);
+  }
+
   my %params;
   unless (defined($label)) {
 
@@ -1593,7 +1623,7 @@ sub add_datastream {
   $c->app->log->debug($logmsg);
 
   my $url = Mojo::URL->new;
-  $url->scheme('https');
+  $url->scheme($c->app->config->{fedora}->{scheme} ? $c->app->config->{fedora}->{scheme} : 'https');
   $url->userinfo("$username:$password");
   $url->host($c->app->config->{phaidra}->{fedorabaseurl});
   $url->path("/fedora/objects/$pid/datastreams/$dsid");
@@ -1608,9 +1638,6 @@ sub add_datastream {
   if ($dscontent) {
     if ($mimetype eq 'text/xml') {
       $dscontent = encode 'UTF-8', $dscontent;
-    }
-    if ($c->app->config->{fedora}->{version} >= 6) {
-      $headers{'Content-Type'} = $mimetype;
     }
     $post = $ua->post($url => \%headers => $dscontent)->result;
   }
@@ -1647,6 +1674,16 @@ sub modify_datastream {
 
   my $res = {alerts => [], status => 200};
 
+  if ($c->app->config->{fedora}->{version} >= 6) {
+    my $fedora_model = PhaidraAPI::Model::Fedora->new;
+    if ($dscontent) {
+      if ($mimetype eq 'text/xml') {
+        $dscontent = encode 'UTF-8', $dscontent;
+      }
+    }
+    return $fedora_model->addOrModifyDatastream($c, $pid, $dsid, $location, $dscontent, undef, $mimetype, $checksumtype, $checksum);
+  }
+
   my %params;
   $params{dsLocation} = $location if $location;
 
@@ -1681,7 +1718,7 @@ sub modify_datastream {
   $c->app->log->debug($logmsg);
 
   my $url = Mojo::URL->new;
-  $url->scheme('https');
+  $url->scheme($c->app->config->{fedora}->{scheme} ? $c->app->config->{fedora}->{scheme} : 'https');
   $url->userinfo("$username:$password");
   $url->host($c->app->config->{phaidra}->{fedorabaseurl});
   $url->path("/fedora/objects/$pid/datastreams/$dsid");
@@ -1696,9 +1733,6 @@ sub modify_datastream {
   if ($dscontent) {
     if ($mimetype eq 'text/xml') {
       $dscontent = encode 'UTF-8', $dscontent;
-    }
-    if ($c->app->config->{fedora}->{version} >= 6) {
-      $headers{'Content-Type'} = $mimetype;
     }
     $put = $ua->put($url => \%headers => $dscontent)->result;
   }
@@ -1735,63 +1769,96 @@ sub add_or_modify_datastream {
   my $username     = shift;
   my $password     = shift;
   my $useadmin     = shift;
+  my $skiphook     = shift;
 
   my $res = {alerts => [], status => 200};
 
-  #$c->app->log->debug("XXXXXXXXXX pid: ".$pid);
-  #$c->app->log->debug("XXXXXXXXXX dsid: ".$dsid);
-  #$c->app->log->debug("XXXXXXXXXX mimetype: ".$mimetype);
-  #$c->app->log->debug("XXXXXXXXXX location: ".$location);
-  #$c->app->log->debug("XXXXXXXXXX label: ".$label);
-  #$c->app->log->debug("XXXXXXXXXX dscontent: ".$dscontent);
-  #$c->app->log->debug("XXXXXXXXXX controlgroup: ".$controlgroup);
-  #$c->app->log->debug("XXXXXXXXXX username: ".$username);
-  #$c->app->log->debug("XXXXXXXXXX password: ".$password);
-  #$c->app->log->debug("XXXXXXXXXX useadmin: ".$useadmin);
-
-  my $search_model = PhaidraAPI::Model::Search->new;
-  my $sr           = $search_model->datastream_exists($c, $pid, $dsid);
-  if ($sr->{status} ne 200) {
-    unshift @{$res->{alerts}}, @{$sr->{alerts}};
-    $res->{status} = $sr->{status};
-    return $res;
-  }
-
-  #$c->app->log->debug("XXXXXXXXXX exists: ".$sr->{'exists'});
-
-  if ($useadmin) {
-    $username = $c->app->{config}->{phaidra}->{adminusername};
-    $password = $c->app->{config}->{phaidra}->{adminpassword};
-  }
-
-  my $exists = $sr->{'exists'};
-
-  # save
-  if ($exists) {
-    my $r = $self->modify_datastream($c, $pid, $dsid, $mimetype, $location, $label, $dscontent, $checksumtype, $checksum, $username, $password);
-    push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-    $res->{status} = $r->{status};
-    if ($r->{status} ne 200) {
-      return $res;
+  my $exists;
+  if ($c->app->config->{fedora}->{version} >= 6) {
+    my $fedora_model = PhaidraAPI::Model::Fedora->new;
+    if ($dscontent) {
+      if ($mimetype eq 'text/xml') {
+        $dscontent = encode 'UTF-8', $dscontent;
+      }
     }
-    $c->app->log->debug("Modifying $dsid for $pid successful.");
+    my $modres = $fedora_model->addOrModifyDatastream($c, $pid, $dsid, $location, $dscontent, undef, $mimetype, $checksumtype, $checksum);
+    if ($modres->{status} != 200) {
+      return $modres;
+    }
+
+    if ($dsid eq 'OCTETS') {
+      my $search_model = PhaidraAPI::Model::Search->new;
+      my $sr           = $search_model->datastream_exists($c, $pid, $dsid);
+      if ($sr->{status} ne 200) {
+        unshift @{$res->{alerts}}, @{$sr->{alerts}};
+        $res->{status} = $sr->{status};
+        return $res;
+      }
+      $exists = $sr->{'exists'};
+    }
   }
   else {
-    my $r = $self->add_datastream($c, $pid, $dsid, $mimetype, $location, $label, $dscontent, $controlgroup, $checksumtype, $checksum, $username, $password);
-    push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
-    $res->{status} = $r->{status};
-    if ($r->{status} ne 200) {
+
+    #$c->app->log->debug("XXXXXXXXXX pid: ".$pid);
+    #$c->app->log->debug("XXXXXXXXXX dsid: ".$dsid);
+    #$c->app->log->debug("XXXXXXXXXX mimetype: ".$mimetype);
+    #$c->app->log->debug("XXXXXXXXXX location: ".$location);
+    #$c->app->log->debug("XXXXXXXXXX label: ".$label);
+    #$c->app->log->debug("XXXXXXXXXX dscontent: ".$dscontent);
+    #$c->app->log->debug("XXXXXXXXXX controlgroup: ".$controlgroup);
+    #$c->app->log->debug("XXXXXXXXXX username: ".$username);
+    #$c->app->log->debug("XXXXXXXXXX password: ".$password);
+    #$c->app->log->debug("XXXXXXXXXX useadmin: ".$useadmin);
+
+    my $search_model = PhaidraAPI::Model::Search->new;
+    my $sr           = $search_model->datastream_exists($c, $pid, $dsid);
+    if ($sr->{status} ne 200) {
+      unshift @{$res->{alerts}}, @{$sr->{alerts}};
+      $res->{status} = $sr->{status};
       return $res;
     }
-    $c->app->log->debug("Adding $dsid for $pid successful.");
+
+    #$c->app->log->debug("XXXXXXXXXX exists: ".$sr->{'exists'});
+
+    if ($useadmin) {
+      $username = $c->app->{config}->{phaidra}->{adminusername};
+      $password = $c->app->{config}->{phaidra}->{adminpassword};
+    }
+
+    $exists = $sr->{'exists'};
+
+    # save
+    if ($exists) {
+      my $r = $self->modify_datastream($c, $pid, $dsid, $mimetype, $location, $label, $dscontent, $checksumtype, $checksum, $username, $password);
+      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+      $res->{status} = $r->{status};
+      if ($r->{status} ne 200) {
+        return $res;
+      }
+      $c->app->log->debug("Modifying $dsid for $pid successful.");
+    }
+    else {
+      my $r = $self->add_datastream($c, $pid, $dsid, $mimetype, $location, $label, $dscontent, $controlgroup, $checksumtype, $checksum, $username, $password);
+      push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
+      $res->{status} = $r->{status};
+      if ($r->{status} ne 200) {
+        return $res;
+      }
+      $c->app->log->debug("Adding $dsid for $pid successful.");
+    }
   }
 
-  my $hooks_model = PhaidraAPI::Model::Hooks->new;
-  my $hr          = $hooks_model->add_or_modify_datastream_hooks($c, $pid, $dsid, $dscontent, $exists, $username, $password);
-  push @{$res->{alerts}}, @{$hr->{alerts}} if scalar @{$hr->{alerts}} > 0;
-  $res->{status} = $hr->{status};
-  if ($hr->{status} ne 200) {
-    return $res;
+  if (defined($skiphook) and ($skiphook == 1)) {
+    $c->app->log->debug("Adding $dsid for $pid add_or_modify_datastream_hooks skipped.");
+  }
+  else {
+    my $hooks_model = PhaidraAPI::Model::Hooks->new;
+    my $hr          = $hooks_model->add_or_modify_datastream_hooks($c, $pid, $dsid, $dscontent, $exists, $username, $password);
+    push @{$res->{alerts}}, @{$hr->{alerts}} if scalar @{$hr->{alerts}} > 0;
+    $res->{status} = $hr->{status};
+    if ($hr->{status} ne 200) {
+      return $res;
+    }
   }
 
   return $res;
@@ -1806,6 +1873,11 @@ sub create_empty {
 
   my $res = {alerts => [], status => 200};
 
+  if ($c->app->config->{fedora}->{version} >= 6) {
+    my $fedora_model = PhaidraAPI::Model::Fedora->new;
+    return $fedora_model->createEmpty($c, $username);
+  }
+
   $username = xml_escape $username;
 
   my %params;
@@ -1816,13 +1888,13 @@ sub create_empty {
   $params{logMessage} = 'PhaidraAPI object/create_empty';
 
   my $url = Mojo::URL->new;
-  $url->scheme('https');
+  $url->scheme($c->app->config->{fedora}->{scheme} ? $c->app->config->{fedora}->{scheme} : 'https');
   $url->userinfo("$username:$password");
   $url->host($c->app->config->{phaidra}->{fedorabaseurl});
   $url->path("/fedora/objects/new");
   $url->query(\%params);
 
-  # have to sent xml, because without the foxml fedora creates a default empty object
+  # have to send xml, because without the foxml fedora creates a default empty object
   # but this is then automatically 'Active'!
   # http://www.fedora-commons.org/documentation/3.0/userdocs/server/webservices/apim/#methods.ingest
   my $ownerid = $username;
@@ -1877,7 +1949,7 @@ sub add_relationship {
     $c->app->chi->remove('cmodel_' . $pid);
   }
 
-  # only allow if object's owner is subject's owner
+  # only allow manipulating container members if object's owner is subject's owner
   if ($predicate eq 'http://pcdm.org/models#hasMember') {
     my $objectPid = $object;
     $objectPid =~ s/info:fedora\///;
@@ -1903,7 +1975,11 @@ sub add_relationship {
   }
 
   if ($c->app->config->{fedora}->{version} >= 6) {
-    die('not implemented');
+    my $fedora_model = PhaidraAPI::Model::Fedora->new;
+    my $addres       = $fedora_model->addRelationship($c, $pid, $predicate, $object, $skiphook);
+    if ($addres->{status} ne 200) {
+      return $addres;
+    }
   }
   else {
     my %params;
@@ -1912,7 +1988,7 @@ sub add_relationship {
     $params{object}    = $object;
 
     my $url = Mojo::URL->new;
-    $url->scheme('https');
+    $url->scheme($c->app->config->{fedora}->{scheme} ? $c->app->config->{fedora}->{scheme} : 'https');
     $url->userinfo("$username:$password");
     $url->host($c->app->config->{phaidra}->{fedorabaseurl});
     $url->path("/fedora/objects/$pid/relationships/new");
@@ -1958,11 +2034,20 @@ sub add_relationships {
 
   my $res = {alerts => [], status => 200};
 
-  for my $rel (@$relationships) {
-    my $rr = $self->add_relationship($c, $pid, $rel->{predicate}, $rel->{object}, $username, $password, 1);
-    if ($rr->{status} ne 200) {
-      $res = $rr;
-      last;
+  if ($c->app->config->{fedora}->{version} >= 6) {
+    my $fedora_model = PhaidraAPI::Model::Fedora->new;
+    my $addres       = $fedora_model->addRelationships($c, $pid, $relationships, $skiphook);
+    if ($addres->{status} != 200) {
+      return $addres;
+    }
+  }
+  else {
+    for my $rel (@$relationships) {
+      my $rr = $self->add_relationship($c, $pid, $rel->{predicate}, $rel->{object}, $username, $password, 1);
+      if ($rr->{status} ne 200) {
+        $res = $rr;
+        last;
+      }
     }
   }
 
@@ -1997,7 +2082,11 @@ sub purge_relationship {
   }
 
   if ($c->app->config->{fedora}->{version} >= 6) {
-    die('not implemented');
+    my $fedora_model = PhaidraAPI::Model::Fedora->new;
+    my $rres         = $fedora_model->removeRelationship($c, $pid, $predicate, $object, $skiphook);
+    if ($rres->{status} != 200) {
+      return $rres;
+    }
   }
   else {
     my %params;
@@ -2006,7 +2095,7 @@ sub purge_relationship {
     $params{object}    = $object;
 
     my $url = Mojo::URL->new;
-    $url->scheme('https');
+    $url->scheme($c->app->config->{fedora}->{scheme} ? $c->app->config->{fedora}->{scheme} : 'https');
     $url->userinfo("$username:$password");
     $url->host($c->app->config->{phaidra}->{fedorabaseurl});
     $url->path("/fedora/objects/$pid/relationships");
@@ -2044,14 +2133,24 @@ sub purge_relationships {
   my $relationships = shift;
   my $username      = shift;
   my $password      = shift;
+  my $skiphook      = shift;
 
   my $res = {alerts => [], status => 200};
 
-  for my $rel (@$relationships) {
-    my $rr = $self->purge_relationship($c, $pid, $rel->{predicate}, $rel->{object}, $username, $password, 1);
-    if ($rr->{status} ne 200) {
-      $res = $rr;
-      last;
+  if ($c->app->config->{fedora}->{version} >= 6) {
+    my $fedora_model = PhaidraAPI::Model::Fedora->new;
+    my $rres         = $fedora_model->removeRelationships($c, $pid, $relationships, $skiphook);
+    if ($rres->{status} != 200) {
+      return $rres;
+    }
+  }
+  else {
+    for my $rel (@$relationships) {
+      my $rr = $self->purge_relationship($c, $pid, $rel->{predicate}, $rel->{object}, $username, $password, $skiphook);
+      if ($rr->{status} ne 200) {
+        $res = $rr;
+        last;
+      }
     }
   }
 

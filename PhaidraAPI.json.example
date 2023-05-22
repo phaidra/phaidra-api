@@ -95,6 +95,22 @@
 
     },
 
+    "fedora": {
+      "version": "6.4",
+      "host": "localhost",
+      "port": "8080",
+      "path": "fcrepo/rest/",
+      "scheme": "http",
+      "adminuser": "fedoraAdmin",
+      "adminpass": "fedoraAdmin",
+      "pidnamespace": "o",
+      "fedora_db": {
+        "dsn": "dbi:mysql:db_name:db_host",
+        "username": "xxx",
+        "password": "xxx"
+      }
+    },
+
     "imageserver": {
       "hash_secret": "changeme" 
     },

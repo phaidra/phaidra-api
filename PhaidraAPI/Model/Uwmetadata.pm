@@ -50,6 +50,7 @@ sub metadata_tree {
   my $res = {alerts => [], status => 200};
 
   $nocache = $nocache ? $nocache : '';
+
   # $c->app->log->debug("metadata_tree nocache[$nocache]");
 
   if ($nocache) {
@@ -59,6 +60,7 @@ sub metadata_tree {
   }
 
   if ($c->app->config->{local_uwmetadata_tree} eq 'PhaidraAPI::Model::Uwmetadata::Tree') {
+
     # $c->app->log->debug("Reading uwmetadata tree from " . $c->app->config->{local_uwmetadata_tree} . " class");
     $res->{metadata_tree} = $PhaidraAPI::Model::Uwmetadata::Tree::tree{tree};
     return $res;
@@ -1533,6 +1535,7 @@ sub save_to_object() {
   my $metadata = shift;
   my $username = shift;
   my $password = shift;
+  my $skiphook = shift;
 
   my $res = {alerts => [], status => 200};
 
@@ -1559,7 +1562,7 @@ sub save_to_object() {
   }
 
   my $object_model = PhaidraAPI::Model::Object->new;
-  return $object_model->add_or_modify_datastream($c, $pid, "UWMETADATA", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $uwmetadata, "X", undef, undef, $username, $password, 0);
+  return $object_model->add_or_modify_datastream($c, $pid, "UWMETADATA", "text/xml", undef, $c->app->config->{phaidra}->{defaultlabel}, $uwmetadata, "X", undef, undef, $username, $password, 0, $skiphook);
 
 }
 

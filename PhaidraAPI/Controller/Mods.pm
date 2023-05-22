@@ -261,7 +261,7 @@ sub post {
   }
 
   my $metadata_model = PhaidraAPI::Model::Mods->new;
-  my $res            = $metadata_model->save_to_object($self, $pid, $metadata->{mods}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  my $res            = $metadata_model->save_to_object($self, $pid, $metadata->{mods}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 0);
 
   my $t1 = tv_interval($t0);
   if ($res->{status} eq 200) {

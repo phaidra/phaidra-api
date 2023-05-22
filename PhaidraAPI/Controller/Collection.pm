@@ -180,7 +180,7 @@ sub add_collection_members {
     }
 
     my $membersorder_model = PhaidraAPI::Model::Membersorder->new;
-    my $r                  = $membersorder_model->save_to_object($self, $pid, $res->{members}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+    my $r                  = $membersorder_model->save_to_object($self, $pid, $res->{members}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 0);
     push @{$res->{alerts}}, @{$r->{alerts}} if scalar @{$r->{alerts}} > 0;
     $res->{status} = $r->{status};
     if ($r->{status} ne 200) {
@@ -270,7 +270,7 @@ sub remove_collection_members {
     my $res        = $coll_model->get_members($self, $pid);
 
     my $membersorder_model = PhaidraAPI::Model::Membersorder->new;
-    my $r3                 = $membersorder_model->save_to_object($self, $pid, $res->{members}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+    my $r3                 = $membersorder_model->save_to_object($self, $pid, $res->{members}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 0);
     push @{$res->{alerts}}, @{$r3->{alerts}} if scalar @{$r3->{alerts}} > 0;
     $res->{status} = $r3->{status};
     if ($r3->{status} ne 200) {

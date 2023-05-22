@@ -200,7 +200,7 @@ sub post {
   }
 
   my $rights_model = PhaidraAPI::Model::Rights->new;
-  my $res          = $rights_model->save_to_object($self, $pid, $metadata->{rights}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+  my $res          = $rights_model->save_to_object($self, $pid, $metadata->{rights}, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 0);
 
   my $t1 = tv_interval($t0);
   if ($res->{status} eq 200) {
