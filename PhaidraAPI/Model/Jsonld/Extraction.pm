@@ -219,6 +219,7 @@ sub _get_jsonld_roles {
         my $name;
         my $givenName;
         my $familyName;
+        my $type;
         if ($contr->{'@type'} eq 'schema:Person') {
           if ($contr->{'schema:givenName'} || $contr->{'schema:familyName'}) {
             $name       = $contr->{'schema:givenName'}[0]->{'@value'} . " " . $contr->{'schema:familyName'}[0]->{'@value'};
@@ -228,9 +229,11 @@ sub _get_jsonld_roles {
           else {
             $name = $contr->{'schema:name'}[0]->{'@value'};
           }
+          $type = 'personal';
         }
         elsif ($contr->{'@type'} eq 'schema:Organization') {
           $name = $contr->{'schema:name'}[0]->{'@value'};
+          $type = 'corporate';
         }
         else {
           $c->app->log->error("_get_jsonld_roles: Unknown contributor type in jsonld");
@@ -265,11 +268,11 @@ sub _get_jsonld_roles {
           }
         }
         if ($jsonld_creator_roles{$role}) {
-          push @creators, {value => $name, firstname => $givenName, lastname => $familyName};
+          push @creators, {value => $name, firstname => $givenName, lastname => $familyName, type => $type};
         }
         else {
           if ($role ne 'uploader') {
-            push @contributors, {value => $name, firstname => $givenName, lastname => $familyName};
+            push @contributors, {value => $name, firstname => $givenName, lastname => $familyName, type => $type};
           }
         }
       }

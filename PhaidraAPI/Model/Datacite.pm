@@ -534,6 +534,14 @@ DataCite is unhappy about this (or the ordering)
       if ($cr->{lastname}) {
         push @{$ch->{children}}, {xmlname => "familyName", value => $cr->{lastname}};
       }
+      if ($cr->{type}) {
+        if ($cr->{type} eq 'personal') {
+          push @{$ch->{children}}, {xmlname => "nameType", value => 'Personal'};
+        }
+        if ($cr->{type} eq 'corporate') {
+          push @{$ch->{children}}, {xmlname => "nameType", value => 'Organizational'};
+        }
+      }
       push @creators_children, $ch;
     }
     push @datacite,
@@ -927,6 +935,7 @@ sub _get_filesize {
   push @sizes, {value => $bytesize};
   return \@sizes;
 }
+
 sub json_2_xml {
 
   my ($self, $c, $json) = @_;
