@@ -1560,7 +1560,7 @@ sub _get {
   # ts
   $index{_updated} = time;
 
-  $c->app->log->debug("XXXXXXXXXXXXX index: " . $c->app->dumper(\%index));
+  #$c->app->log->debug("XXXXXXXXXXXXX index: " . $c->app->dumper(\%index));
 
   $c->app->log->debug("_get indexing took " . tv_interval($t0));
   return $res;
