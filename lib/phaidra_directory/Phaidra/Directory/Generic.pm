@@ -7,9 +7,16 @@ use utf8;
 use MongoDB;
 use Data::UUID;
 use YAML::Syck;
+use Mojo::JSON qw(encode_json decode_json);
 use base 'Phaidra::Directory';
 
 my $config = undef;
+
+my $orgunits = {
+  root => {
+    subunits => []
+  }
+};
 
 sub _init {
   my $self = shift;
@@ -17,6 +24,52 @@ sub _init {
   my $conf = shift;
 
   $config = YAML::Syck::LoadFile('/etc/phaidra.yml');
+
+    my $orgjsonfilepath = '/usr/local/phaidra/phaidra-api/lib/phaidra_directory/Phaidra/Directory/univie.json';
+  if (-r $orgjsonfilepath) {
+
+    my $json_text = do {
+      open(my $json_fh, "<", $orgjsonfilepath)
+      or $mojo->log->error("Can't open file[".$orgjsonfilepath."]: $!\n");
+      local $/;
+      <$json_fh>
+    };
+
+    my @orgunitsarr = @{decode_json($json_text)};
+    for my $u (@orgunitsarr) {
+      $orgunits->{$u->{id}} = {
+        subunits => [],
+        superunits => [],
+        oracle_id => $u->{oracle_id},
+        parent_oracle_id => $u->{parent_oracle_id},
+        rdf => {
+          '@type' => $u->{type},
+          'skos:prefLabel' => {
+            'deu' => $u->{de},
+            'eng' => $u->{en}
+          },
+          'skos:notation' => $u->{oracle_id},
+          '@id' => $u->{id}
+        }
+      }
+    }
+    for my $unitid (keys %{$orgunits}) {
+      if (exists($orgunits->{$unitid}->{parent_oracle_id}) && ($orgunits->{$unitid}->{parent_oracle_id} eq -1)) {
+        push @{$orgunits->{root}->{subunits}}, $orgunits->{$unitid}
+      }
+      for my $unitid2 (keys %{$orgunits}) {
+        if (exists($orgunits->{$unitid2}->{parent_oracle_id}) && exists($orgunits->{$unitid}->{oracle_id}) && ($orgunits->{$unitid2}->{parent_oracle_id} eq $orgunits->{$unitid}->{oracle_id})) {
+          push @{$orgunits->{$unitid}->{subunits}}, $orgunits->{$unitid2};
+        }
+        if (exists($orgunits->{$unitid2}->{oracle_id}) && exists($orgunits->{$unitid}->{parent_oracle_id}) && ($orgunits->{$unitid2}->{oracle_id} eq $orgunits->{$unitid}->{parent_oracle_id})) {
+          push @{$orgunits->{$unitid}->{superunits}}, $orgunits->{$unitid2};
+        }
+      }
+    }
+  } else {
+    $mojo->log->error("univie.json [$orgjsonfilepath] not found");
+  }
+
 
   return $self;
 }
@@ -30,7 +83,7 @@ sub authenticate($$$$) {
 
   my $res = {alerts => [], status => 500};
 
-  $c->app->log->error("Authenticating user $username");
+  $c->app->log->debug("Authenticating user $username");
 
   for my $u (@{$config->{users}}) {
     if (($u->{username} eq $username) && ($u->{password} eq $password)) {
@@ -256,6 +309,10 @@ sub get_user_data {
   my @inums    = ();
   my @fakcodes = ();
 
+  if ($username eq 'feodraAdmin') {
+    return {username => 'feodraAdmin', firstname => 'Fedora', lastname => 'Admin', displayname => 'Fedora Admin', email => "", org_units_l2 => ('A1417'), org_units_l1 => ('A140')};
+  }
+
   for my $user (@{$config->{users}}) {
 
     if ($user->{username} eq $username) {
@@ -435,6 +492,136 @@ sub add_group_member {
 
   return;
 }
+
+# [begin] new org methods
+sub org_get_subunits {
+  my ($self, $c, $id)= @_;
+
+  my $res = { alerts => [], status => 200 };
+
+  $id = 'root' if $id == 'A-1';
+
+  if (exists($orgunits->{$id})) {
+    if (exists($orgunits->{$id}->{subunits})) {
+      my @subunits;
+      for my $u (@{$orgunits->{$id}->{subunits}}){
+        push @subunits, $u->{rdf};
+      }
+      $res->{subunits} = \@subunits;
+    } else {
+      push @{$res->{alerts}}, { type => 'danger', msg => "Internal error when requesting subunits of $id" };
+      $res->{status} = 500;
+    }
+  } else {
+    push @{$res->{alerts}}, { type => 'danger', msg => "$id not found" };
+    $res->{status} = 404;
+  }
+  return $res;
+}
+
+sub org_get_superunits {
+  my ($self, $c, $id)= @_;
+
+  my $res = { alerts => [], status => 200 };
+
+  if ($id) {
+    if (exists($orgunits->{$id})) {
+      if (exists($orgunits->{$id}->{superunits})) {
+        my @superunits;
+        for my $u (@{$orgunits->{$id}->{superunits}}){
+          push @superunits, $u->{rdf};
+        }
+        $res->{superunits} = \@superunits;
+      } else {
+        push @{$res->{alerts}}, { type => 'danger', msg => "Internal error when requesting superunits of $id" };
+        $res->{status} = 500;
+      }
+    } else {
+      push @{$res->{alerts}}, { type => 'danger', msg => "$id not found" };
+      $res->{status} = 404;
+    }
+
+  } else {
+    push @{$res->{alerts}}, { type => 'danger', msg => "No id provided when requesting superunits" };
+    $res->{status} = 400;
+  }
+  return $res;
+}
+
+sub org_get_units {
+  my ($self, $c, $flat)= @_;
+
+  my $res;
+
+  if ($flat) {
+    my @orgunits;
+    $self->_org_get_units_rec_flat($c, $orgunits->{root}->{subunits}, \@orgunits);
+    $res = { alerts => [], units => \@orgunits, status => 200 };
+  } else {
+    $res = { alerts => [], units => $self->_org_get_units_rec($c, $orgunits->{root}->{subunits}), status => 200 };
+  }
+
+  return $res;
+}
+
+sub org_get_parentpath {
+  my ($self, $c, $id)= @_;
+
+  my @parentpath;
+  push @parentpath, $orgunits->{$id}->{rdf};
+  $self->_org_get_parentpath_rec_flat($c, $orgunits->{$id}->{superunits}, \@parentpath);
+
+  return { alerts => [], parentpath => \@parentpath, status => 200 };
+}
+
+sub _org_get_units_rec {
+  my ($self, $c, $units)= @_;
+
+  my @newarr;
+
+  for my $u (@{$units}) {
+
+    my $new_u = $u->{rdf};
+
+    if (exists($u->{subunits})) {
+      if (scalar(@{$u->{subunits}}) > 0) {
+        $new_u->{subunits} = $self->_org_get_units_rec($c, $u->{subunits});
+      }
+    }
+
+    push @newarr, $new_u;
+  }
+
+  return \@newarr;
+}
+
+sub _org_get_units_rec_flat {
+  my ($self, $c, $units, $arr)= @_;
+
+  for my $u (@{$units}) {
+    push @{$arr}, $u->{rdf};
+    if (exists($u->{subunits})) {
+      if (scalar(@{$u->{subunits}}) > 0) {
+        $self->_org_get_units_rec_flat($c, $u->{subunits}, $arr);
+      }
+    }
+  }
+}
+
+sub _org_get_parentpath_rec_flat {
+  my ($self, $c, $units, $arr)= @_;
+
+  for my $u (@{$units}) {
+    push @{$arr}, $u->{rdf};
+    if (exists($u->{superunits})) {
+      if (scalar(@{$u->{superunits}}) > 0) {
+        $self->_org_get_parentpath_rec_flat($c, $u->{superunits}, $arr);
+      }
+    }
+    last;
+  }
+}
+# [end] new org methods
 
 1;
 __END__
