@@ -478,6 +478,7 @@ sub startup {
   $r->get('object/:pid/state')                      ->to('object#get_state');
   $r->get('object/:pid/cmodel')                     ->to('object#get_cmodel');
   $r->get('object/:pid/relationships')              ->to('relationships#get');
+  $r->get('object/:pid/iiifmanifest')               ->to('iiifmanifest#get_iiif_manifest');
 
   $r->get('object/:pid/id')                         ->to('search#id');
 
@@ -545,8 +546,6 @@ sub startup {
 
     $reader->get('imageserver')                                              ->to('imageserver#get');
     $reader->get('imageserver/:pid/status')                                  ->to('imageserver#status');
-
-    $r->get('object/:pid/iiifmanifest')                                      ->to('object#get_iiif_manifest');
 
     $ext_creds->get('object/:pid/info')                                      ->to('object#info');
     $ext_creds->get('object/:pid/metadata')                                  ->to('object#get_metadata');
@@ -684,7 +683,6 @@ sub startup {
 
     $proxyauth_optional->get('object/:pid/diss/:bdef/:method')                  ->to('object#diss');
     $proxyauth_optional->get('object/:pid/fulltext')                            ->to('fulltext#get');
-    $proxyauth_optional->get('object/:pid/iiifmanifest')                        ->to('object#get_iiif_manifest');
     $proxyauth_optional->get('object/:pid/metadata')                            ->to('object#get_metadata');
     $proxyauth_optional->get('object/:pid/info')                                ->to('object#info');
     $proxyauth_optional->get('object/:pid/thumbnail')                           ->to('object#thumbnail');
