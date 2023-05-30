@@ -1206,9 +1206,9 @@ sub get_metadata {
   }
 
   my $writerights = 0;
-  if ($c->app->config->{fedora}->{version} >= 6) {
+  if ($self->app->config->{fedora}->{version} >= 6) {
     my $authz = PhaidraAPI::Model::Authorization->new;
-    my $wr = $authz->check_rights($c, $pid, 'w');
+    my $wr = $authz->check_rights($self, $pid, 'w');
     if ($wr->{status} == 200) {
       $writerights = 1;
     }
@@ -1227,7 +1227,7 @@ sub get_metadata {
   }
 
   if ($r->{dshash}->{'JSON-LD-PRIVATE'}) {
-    if (($c->app->config->{fedora}->{version} < 6) || (($c->app->config->{fedora}->{version} >= 6) && $writerights)) {
+    if (($self->app->config->{fedora}->{version} < 6) || (($self->app->config->{fedora}->{version} >= 6) && $writerights)) {
       my $jsonldprivate_model = PhaidraAPI::Model::Jsonldprivate->new;
       my $r_jsonldprivate     = $jsonldprivate_model->get_object_jsonldprivate_parsed($self, $pid, $username, $password);
       if ($r_jsonldprivate->{status} ne 200) {
@@ -1283,7 +1283,7 @@ sub get_metadata {
   }
 
   if ($r->{dshash}->{'RIGHTS'}) {
-    if (($c->app->config->{fedora}->{version} < 6) || (($c->app->config->{fedora}->{version} >= 6) && $writerights)) {
+    if (($self->app->config->{fedora}->{version} < 6) || (($self->app->config->{fedora}->{version} >= 6) && $writerights)) {
       my $rights_model = PhaidraAPI::Model::Rights->new;
       my $r            = $rights_model->get_object_rights_json($self, $pid, $username, $password);
       if ($r->{status} ne 200) {
@@ -1384,20 +1384,6 @@ sub metadata {
 
   $self->render(json => $res, status => $res->{status});
 
-}
-
-sub get_iiif_manifest {
-  my $self = shift;
-
-  my $pid = $self->stash('pid');
-
-  unless (defined($pid)) {
-    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}], status => 404}, status => 404);
-    return;
-  }
-
-  my $object_model = PhaidraAPI::Model::Object->new;
-  $object_model->proxy_datastream($self, $pid, 'IIIF-MANIFEST', $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 1);
 }
 
 sub get_legacy_container_member {
