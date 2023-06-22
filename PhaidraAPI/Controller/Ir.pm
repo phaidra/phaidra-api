@@ -661,6 +661,23 @@ sub submit {
 
     if ($username eq $self->config->{ir}->{iraccount}) {
       $jsonld->{'phaidra:systemTag'} = [$self->config->{ir}->{adminset} . ":approved"];
+
+      # if ($self->app->config->{apis}->{pure}) {
+      #   my $uuid = $self->param('uuid');
+      #   if ($uuid) {
+      #     my $urlget = Mojo::URL->new($self->app->config->{apis}->{pure}->{url} . "/research-outputs/$uuid");
+      #     my $params = {apiKey => $self->app->config->{apis}->{pure}->{key}};
+
+      #     my $getres = $self->ua->post($urlget => {Accept => 'application/json'} => json => {"keywordUris" => ["/dk/atira/pure/keywords/ir_status/ir_okay"]})->result;
+      #     if ($getres->is_success) {
+      #       $res->{response} = $getres->json;
+      #     }
+      #     else {
+      #       $self->render(json => {alerts => [{type => 'error', msg => 'error updating Pure object ' . $getres->code . " " . $getres->message}]}, status => 500);
+      #       return;
+      #     }
+      #   }
+      # }
     }
 
     my $isAlternativeFormat = 0;
@@ -762,6 +779,55 @@ sub submit {
 
   $self->render(json => $res, status => $res->{status});
 }
+
+# sub createPureUpdate {
+
+#   my ($self, $pid, $metadata) = @_;
+
+#   # Types of Electronic versions: /dk/atira/pure/researchoutput/electronicversion/versiontype
+#   # Open Access permissions: /dk/atira/pure/core/openaccesspermission
+#   # Document licenses: /dk/atira/pure/core/document/licenses
+
+#   my $version;
+#   for my $e (@{$metadata->{metadata}->{'json-ld'}->{'oaire:version'}}) {
+#     for my $id (@{$e->{'skos:exactMatch'}}) {
+#       $version = $id;
+#     }
+#   }
+#   my $access;
+#   for my $e (@{$metadata->{metadata}->{'json-ld'}->{'dcterms:accessRights'}}) {
+#     for my $id (@{$e->{'skos:exactMatch'}}) {
+#       $access = $id;
+#     }
+#   }
+
+#   my $json = {
+#     "typeDiscriminator" => "LinkElectronicVersion",
+#     "visibleOnPortalDate" => DateTime->now->ymd,
+#     "link" => "https://".$self->app->config->{phaidra}->{baseurl}."/$pid",
+#     "accessType": {
+#       "uri" => "/dk/atira/pure/core/openaccesspermission/open"
+#     },
+#     "licenseType" => {
+#       "uri" => "/dk/atira/pure/core/document/licenses/cc_by"
+#     },
+#     "versionType" => {
+#       "uri" => "/dk/atira/pure/researchoutput/electronicversion/versiontype/publishersversion"
+#     },
+#     "keywordGroups" => [
+#       {
+#         "typeDiscriminator" => "ClassificationsKeywordGroup",
+#         "logicalName" => "/dk/atira/pure/keywords/ir_status",
+#         "classifications" => [
+#           {
+#             "uri" => "/dk/atira/pure/keywords/ir_status/ir_okay"
+#           }
+#         ]
+#       }
+#     ]
+#   }
+
+# }
 
 sub sendAdminEmail {
   my ($self, $title, $owner, $pid, $license) = @_;
@@ -1256,8 +1322,9 @@ sub puresearch {
 
   # $self->app->log->debug("XXXXXXXXXXXXXXXXXXXX : " . $self->app->config->{apis}->{pure}->{url} . '/research-outputs/search');
 
-  #my $urlget = Mojo::URL->new($self->app->config->{apis}->{pure}->{url} . '/research-outputs/search');
-  my $urlget = Mojo::URL->new($self->app->config->{apis}->{pure}->{url});
+  my $urlget = Mojo::URL->new($self->app->config->{apis}->{pure}->{url} . '/research-outputs/search');
+
+  # my $urlget = Mojo::URL->new($self->app->config->{apis}->{pure}->{url});
   my $params = {apiKey => $self->app->config->{apis}->{pure}->{key}};
   if ($size) {
     $params->{size} = $size;
@@ -1273,8 +1340,7 @@ sub puresearch {
   }
   $urlget->query($params);
 
-  my $ua     = Mojo::UserAgent->new;
-  my $getres = $ua->post($urlget => {Accept => 'application/json'} => json => {"keywordUris" => ["/dk/atira/pure/keywords/ir_status/$ir_status"]})->result;
+  my $getres = $self->ua->post($urlget => {Accept => 'application/json'} => json => {"keywordUris" => ["/dk/atira/pure/keywords/ir_status/$ir_status"]})->result;
   if ($getres->is_success) {
     $res->{response} = $getres->json;
   }
@@ -1382,5 +1448,34 @@ sub _pureimport_expirelocks {
 
   return $res;
 }
+
+# sub pureimport_reject {
+#   my ($self) = @_;
+
+#   my $res = {alerts => [], status => 200};
+
+#   my $username = $self->stash->{basic_auth_credentials}->{username};
+#   my $password = $self->stash->{basic_auth_credentials}->{password};
+
+#   if ($username ne $self->config->{ir}->{iraccount}) {
+#     $self->render(json => {alerts => [{type => 'error', msg => 'Not authorized.'}]}, status => 403);
+#     return;
+#   }
+
+#   my $uuid     = $self->param('uuid');
+
+#   my $urlget = Mojo::URL->new($self->app->config->{apis}->{pure}->{url} . "/research-outputs/$uuid");
+#   my $params = {apiKey => $self->app->config->{apis}->{pure}->{key}};
+
+#   my $getres = $self->ua->post($urlget => {Accept => 'application/json'} => json => {"keywordUris" => ["/dk/atira/pure/keywords/ir_status/ir_rejected"]})->result;
+#   if ($getres->is_success) {
+#     $res->{response} = $getres->json;
+#   }
+#   else {
+#     $self->render(json => {alerts => [{type => 'error', msg => 'error updating Pure object ' . $getres->code . " " . $getres->message}]}, status => 500);
+#     return;
+#   }
+#   return $res;
+# }
 
 1;

@@ -143,7 +143,7 @@ sub status {
 
   $res = $self->paf_mongo->get_collection('jobs')->find_one({pid => $pid}, {}, {"sort" => {"created" => -1}});
 
-  $self->render(json => { conversion => $res->{conversion}, status => $res->{status} }, status => 200);
+  $self->render(json => {conversion => $res->{conversion}, status => $res->{status}}, status => 200);
 
 }
 
@@ -194,7 +194,7 @@ sub tmp_hash {
 
 }
 
-sub get {
+sub imageserverproxy {
   my $self = shift;
 
   my $isrv_model = PhaidraAPI::Model::Imageserver->new;
@@ -230,8 +230,7 @@ sub _proxy_tx {
   }
   else {
     my $error = $tx->error;
-    $c->tx->res->headers->add('X-Remote-Status',
-      $error->{code} . ': ' . $error->{message});
+    $c->tx->res->headers->add('X-Remote-Status', $error->{code} . ': ' . $error->{message});
     $c->render(status => 500, text => 'Failed to fetch data from backend');
   }
 }

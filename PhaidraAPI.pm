@@ -544,7 +544,7 @@ sub startup {
     $reader->get('streaming/:pid')                                           ->to('utils#streamingplayer');
     $reader->get('streaming/:pid/key')                                       ->to('utils#streamingplayer_key');
 
-    $reader->get('imageserver')                                              ->to('imageserver#get');
+    $reader->get('imageserver')                                              ->to('imageserver#imageserverproxy');
     $reader->get('imageserver/:pid/status')                                  ->to('imageserver#status');
 
     $ext_creds->get('object/:pid/info')                                      ->to('object#info');
@@ -642,6 +642,7 @@ sub startup {
       $ir_admin->post('ir/:pid/approve')                                     ->to('ir#approve');
       $ir_admin->post('ir/pureimport/lock/:pureid/:lockname')                ->to('ir#pureimport_lock');
       $ir_admin->post('ir/pureimport/unlock/:pureid/:lockname')              ->to('ir#pureimport_unlock');
+      $ir_admin->post('ir/pureimport/reject/:uuid')                          ->to('ir#pureimport_reject');
       $admin->post('ir/embargocheck')                                        ->to('ir#embargocheck');
 
       $loggedin->post('feedback')                                            ->to('feedback#feedback');
@@ -789,6 +790,7 @@ sub startup {
       $check_auth->post('ir/:pid/approve')                                      ->to('ir#approve');
       $check_auth->post('ir/pureimport/lock/:pureid/:lockname')                 ->to('ir#pureimport_lock');
       $check_auth->post('ir/pureimport/unlock/:pureid/:lockname')               ->to('ir#pureimport_unlock');
+      $check_auth->post('ir/pureimport/reject/:uuid')                           ->to('ir#pureimport_reject');
 
       $check_auth->post('feedback')                                             ->to('feedback#feedback');
 
