@@ -530,16 +530,16 @@ DataCite is unhappy about this (or the ordering)
       my $creatorName = {xmlname => "creatorName", value => $cr->{value}};
       if ($cr->{type}) {
         if ($cr->{type} eq 'personal') {
-          $creatorName{attributes} = [
-            { name  => 'nameType',
-              value => 'Personal'
+          $creatorName->{attributes} = [
+            { xmlname => 'nameType',
+              value   => 'Personal'
             }
           ];
         }
         if ($cr->{type} eq 'corporate') {
-          $creatorName{attributes} = [
-            { name  => 'nameType',
-              value => 'Organizational'
+          $creatorName->{attributes} = [
+            { xmlname => 'nameType',
+              value   => 'Organizational'
             }
           ];
         }
