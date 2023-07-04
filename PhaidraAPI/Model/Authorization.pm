@@ -9,7 +9,7 @@ use PhaidraAPI::Model::Rights;
 use PhaidraAPI::Model::Fedora;
 
 sub check_rights {
-
+  no warnings 'uninitialized';
   my ($self, $c, $pid, $op) = @_;
 
   my $res = {alerts => [], status => 500};

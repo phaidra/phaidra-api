@@ -474,6 +474,7 @@ sub get_doc_from_core {
 }
 
 sub getSolrUpdateUrl {
+  no warnings 'uninitialized';
   my ($self, $c, $cmodel, $core) = @_;
 
   unless ($core) {
