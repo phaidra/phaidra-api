@@ -683,7 +683,7 @@ sub startup {
     $proxyauth_optional->get('streaming/:pid')                                  ->to('utils#streamingplayer');
     $proxyauth_optional->get('streaming/:pid/key')                              ->to('utils#streamingplayer_key');
 
-    $proxyauth_optional->get('imageserver')                                     ->to('imageserver#get');
+    $proxyauth_optional->get('imageserver')                                     ->to('imageserver#imageserverproxy');
 
     $proxyauth_optional->get('object/:pid/diss/:bdef/:method')                  ->to('object#diss');
     $proxyauth_optional->get('object/:pid/fulltext')                            ->to('fulltext#get');
