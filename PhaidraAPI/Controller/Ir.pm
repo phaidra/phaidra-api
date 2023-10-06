@@ -1523,21 +1523,20 @@ sub pureimport_reject {
 
   for my $kwg (@{$update->{keywordGroups}}) {
     if ($kwg->{logicalName} eq "/dk/atira/pure/keywords/ir_status") {
-      delete $kwg->{pureId};
       delete $kwg->{name};
       $kwg->{classifications} = [{"uri" => "/dk/atira/pure/keywords/ir_status/ir_rejected"}];
     }
   }
 
-  my $postres = $self->ua->post($url => {Accept => 'application/json', 'api-key' => $self->app->config->{apis}->{pure}->{key}} => json => $update)->result;
-  if ($postres->is_success) {
-    $res->{response} = $postres->json;
+  my $putres = $self->ua->put($url => {Accept => 'application/json', 'api-key' => $self->app->config->{apis}->{pure}->{key}} => json => $update)->result;
+  if ($putres->is_success) {
+    $self->app->log->debug("Pure response:\n" . $self->app->dumper($res));
   }
   else {
-    $self->render(json => {alerts => [{type => 'error', msg => 'error updating Pure object ' . $postres->code . " " . $postres->message}]}, status => 500);
+    $self->render(json => {alerts => [{type => 'error', msg => 'error updating Pure object ' . $putres->code . " " . $putres->message}]}, status => 500);
     return;
   }
-  return $res;
+  $self->render(json => $res, status => $res->{status});
 }
 
 sub createPureUpdate {
