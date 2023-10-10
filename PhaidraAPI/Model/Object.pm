@@ -912,6 +912,7 @@ sub create_container {
 
   my $container_metadata;
 
+  if (exists($metadata->{metadata}->{'json-ld'})) {
   if (exists($metadata->{metadata}->{'json-ld'}->{'container'})) {
     for my $k (keys %{$metadata->{metadata}->{'json-ld'}}) {
       $c->app->log->debug("Found key: [$k]");
@@ -970,6 +971,9 @@ sub create_container {
     }
   }
   else {
+    $container_metadata = $metadata->{metadata};
+  }
+  } else {
     $container_metadata = $metadata->{metadata};
   }
 
