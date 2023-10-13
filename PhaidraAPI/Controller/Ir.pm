@@ -1603,12 +1603,12 @@ sub createPureUpdate {
   for my $e (@{$metadata->{metadata}->{'json-ld'}->{'rdam:P30004'}}) {
     if (($e->{'@type'} eq 'ids:hdl') or ($e->{'@type'} eq 'ids:urn') or ($e->{'@type'} eq 'ids:uri')) {
       my $link_or_id = $e->{'@value'};
-      my $link = $link_or_id;
+      my $link       = $link_or_id;
       if ($e->{'@type'} eq 'ids:hdl') {
-	$link = 'https://hdl.handle.net/'.$link_or_id unless $link_or_id =~ m/http/;
+        $link = 'https://hdl.handle.net/' . $link_or_id unless $link_or_id =~ m/http/;
       }
       if ($e->{'@type'} eq 'ids:urn') {
-        $link = 'https://nbn-resolving.org/'.$link_or_id unless $link_or_id =~ m/http/;
+        $link = 'https://nbn-resolving.org/' . $link_or_id unless $link_or_id =~ m/http/;
       }
       push @{$update->{electronicVersions}},
         {

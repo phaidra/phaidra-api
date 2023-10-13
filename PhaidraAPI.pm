@@ -11,6 +11,7 @@ use Mojolicious::Plugin::Log::Any;
 use Mojo::Loader qw(load_class);
 use FindBin;
 use lib "$FindBin::Bin/lib/phaidra_directory";
+use change_refs;
 use MongoDB 1.8.3;
 use Sereal::Encoder qw(encode_sereal);
 use Sereal::Decoder qw(decode_sereal);
@@ -56,6 +57,7 @@ $ENV{MOJO_HEARTBEAT_TIMEOUT}  = 1209600;
 sub startup {
   my $self   = shift;
   my $config = $self->plugin('JSONConfig' => {file => 'PhaidraAPI.json'});
+  change_refs::change_refs($config);
   $self->config($config);
   $self->mode($config->{mode});
   $self->secrets([$config->{secret}]);
@@ -266,7 +268,10 @@ sub startup {
 
   $self->hook(
     'before_dispatch' => sub {
-      my $self    = shift;
+      my $self = shift;
+
+      $self->app->log->debug('===> ' . $self->req->method . ' ' . $self->req->url);
+
       my $session = $self->stash('mojox-session');
       $session->load;
       if ($session->is_expired) {
@@ -283,6 +288,8 @@ sub startup {
   $self->hook(
     'after_dispatch' => sub {
       my $self = shift;
+
+      $self->app->log->debug('<=== ' . $self->res->code . ' ' . $self->req->method . ' ' . $self->req->url);
 
       # CORS
       unless ($self->res->headers->header('Access-Control-Allow-Origin')) {
@@ -375,6 +382,8 @@ sub startup {
 
   #<<< perltidy ignore
   $r->get('')                                       ->to('authentication#signin_shib');
+  $r->get('openapi')                                ->to('utils#openapi');
+  $r->get('openapi/json')                           ->to('utils#openapi_json');
   $r->get('languages')                              ->to('languages#get_languages');
   $r->get('licenses')                               ->to('licenses#get_licenses');
   $r->get('state')                                  ->to('utils#state');
@@ -712,21 +721,21 @@ sub startup {
 
     $check_auth->get('termsofuse/getagreed')                                    ->to('termsofuse#getagreed');
 
-    $admin->get('test/error')                                        ->to('utils#testerror');
+    $admin->get('test/error')                                                   ->to('utils#testerror');
 
     unless($self->app->config->{readonly}){
 
-      $admin->post('index')                                          ->to('index#update');
-      $admin->post('dc')                                             ->to('dc#update');
+      $admin->post('index')                                                     ->to('index#update');
+      $admin->post('dc')                                                        ->to('dc#update');
 
       $check_auth->post('settings')                                             ->to('settings#post_settings');
 
-      $admin->post('object/:pid/index')                              ->to('index#update');
-      $admin->post('object/:pid/dc')                                 ->to('dc#update');
+      $admin->post('object/:pid/index')                                         ->to('index#update');
+      $admin->post('object/:pid/dc')                                            ->to('dc#update');
 
-      $admin->post('ir/embargocheck')                                ->to('ir#embargocheck');
+      $admin->post('ir/embargocheck')                                           ->to('ir#embargocheck');
 
-      $admin->post('imageserver/process')                            ->to('imageserver#process_pids');
+      $admin->post('imageserver/process')                                       ->to('imageserver#process_pids');
 
       $proxyauth->post('imageserver/:pid/process')                              ->to('imageserver#process');
 

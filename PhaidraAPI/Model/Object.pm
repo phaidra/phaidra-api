@@ -94,6 +94,18 @@ sub info {
     my $cmodelr      = $search_model->get_cmodel($c, $pid);
     if ($cmodelr->{status} ne 200) {
       $c->app->log->error("pid[$pid] could not get cmodel");
+      if ($cmodelr->{status} == 410) {
+        $res->{status} = 410;
+        $res->{info}   = {
+          tombstone => $cmodelr->{tombstone},
+          pid       => $pid
+        };
+        my $index_model = PhaidraAPI::Model::Index->new;
+        my $getrels     = $index_model->get_relationships($c, $pid);
+        $res->{info}->{relationships} = $getrels->{relationships};
+        $c->app->log->info("deleted object [$pid] " . $c->app->dumper($res));
+        return $res;
+      }
       return $cmodelr;
     }
     $info->{cmodel} = $cmodelr->{cmodel};
@@ -231,7 +243,7 @@ sub info {
   $info->{writerights} = 0;
   if ($c->app->config->{fedora}->{version} >= 6) {
     my $authz = PhaidraAPI::Model::Authorization->new;
-    my $wr = $authz->check_rights($c, $pid, 'w');
+    my $wr    = $authz->check_rights($c, $pid, 'w');
     if ($wr->{status} == 200) {
       $info->{writerights} = 1;
     }
@@ -239,7 +251,8 @@ sub info {
     if ($rr->{status} == 200) {
       $info->{readrights} = 1;
     }
-  } else {
+  }
+  else {
     my $rores = $self->get_datastream($c, $pid, 'READONLY', $username, $password);
     if ($rores->{status} eq '404') {
       $info->{readrights} = 1;
@@ -302,7 +315,7 @@ sub add_legacy_container_members {
   my $containerinfo;
   if ($c->app->config->{fedora}->{version} >= 6) {
     my $fedora_model = PhaidraAPI::Model::Fedora->new;
-    my $getdsres = $fedora_model->getDatastream($c, $pid, 'CONTAINERINFO');
+    my $getdsres     = $fedora_model->getDatastream($c, $pid, 'CONTAINERINFO');
     if ($getdsres->{status} != 200) {
       return $getdsres;
     }
@@ -312,7 +325,8 @@ sub add_legacy_container_members {
     $dom->parse($getdsres->{'CONTAINERINFO'});
     $containerinfo = $dom;
 
-  } else {
+  }
+  else {
     my $r_oxml = $self->get_foxml($c, $pid);
     if ($r_oxml->{status} eq 200) {
       my $dom = Mojo::DOM->new();
@@ -332,6 +346,7 @@ sub add_legacy_container_members {
       }
     }
   }
+
   # <c:container xmlns:c="http://phaidra.univie.ac.at/XML/V1.0/container">
   #   <c:datastream default="yes" filename="blatt_mit_wassertropfen.jpg">COMP000001</c:datastream>
   #   <c:datastream default="no" filename="bild_test.zip">COMP000000</c:datastream>
@@ -427,77 +442,89 @@ sub delete {
 
   my $res = {alerts => [], status => 200};
 
-  my $haswriterights = 0;
-  $c->app->log->debug("[$pid] Changing object status to Deleted...");
-  my $statusres = $self->modify($c, $pid, 'D', undef, undef, undef, undef, $username, $password);
-  if ($statusres->{status} != 200) {
-    return $statusres;
+  if ($c->app->config->{fedora}->{version} >= 6) {
+    my $fedora_model = PhaidraAPI::Model::Fedora->new;
+    $fedora_model->delete($c, $pid);
+    my $index_model = PhaidraAPI::Model::Index->new;
+    my $ri          = $index_model->updateDoc($c, $pid);
+    if ($ri->{status} ne 200) {
+      push @{$res->{alerts}}, @{$ri->{alerts}} if scalar @{$ri->{alerts}} > 0;
+    }
   }
   else {
-    $haswriterights = 1;
-  }
-  $c->app->log->debug("[$pid] Object status changed to Deleted");
 
-  # remove relationships - only do this AFTER it's clear the user has rights to delete this object since we're using intcall to remove relationships from related objects
-  if ($haswriterights) {
-
-    # 1) remove all relationships TO this object (RELS-EXT) from the related objects (eg remove it as a member from a collection)
-    # - that will also trigger reindex on those objects
-    my @remove_rels_from;
-    my $search_model = PhaidraAPI::Model::Search->new;
-    my $r_trip       = $search_model->triples($c, "* * <info:fedora/$pid>", 0);
-    if ($r_trip->{status} ne 200) {
-      return $r_trip;
+    my $haswriterights = 0;
+    $c->app->log->debug("[$pid] Changing object status to Deleted...");
+    my $statusres = $self->modify($c, $pid, 'D', undef, undef, undef, undef, $username, $password);
+    if ($statusres->{status} != 200) {
+      return $statusres;
     }
-    for my $triple (@{$r_trip->{result}}) {
-      my $subject   = @$triple[0];
-      my $predicate = @$triple[1];
-      my $subjectpid;
-      my $relationship;
-      if ($subject =~ m/^<info:fedora\/(.*)>$/) {
-        $subjectpid = $1;
-      }
-      if ($predicate =~ m/^<(.*)>$/) {
-        $relationship = $1;
-      }
-      if ($subjectpid && $relationship && defined($relationships_to_object{$relationship})) {
-        push @remove_rels_from, {from => $subjectpid, relationship => $relationship};
-      }
+    else {
+      $haswriterights = 1;
     }
-    for my $rel (@remove_rels_from) {
-      my @removerelationships;
-      push @removerelationships, {predicate => $rel->{relationship}, object => "info:fedora/" . $pid};
-      $c->app->log->info("[$pid] Removing relationship to [$pid] from [" . $rel->{from} . "]");
+    $c->app->log->debug("[$pid] Object status changed to Deleted");
 
-      # use the array method purge_relationshipS, it triggers reindex
-      my $r = $self->purge_relationships($c, $rel->{from}, \@removerelationships, $username, $password, 1);
+    # remove relationships - only do this AFTER it's clear the user has rights to delete this object since we're using intcall to remove relationships from related objects
+    if ($haswriterights) {
+
+      # 1) remove all relationships TO this object (RELS-EXT) from the related objects (eg remove it as a member from a collection)
+      # - that will also trigger reindex on those objects
+      my @remove_rels_from;
+      my $search_model = PhaidraAPI::Model::Search->new;
+      my $r_trip       = $search_model->triples($c, "* * <info:fedora/$pid>", 0);
+      if ($r_trip->{status} ne 200) {
+        return $r_trip;
+      }
+      for my $triple (@{$r_trip->{result}}) {
+        my $subject   = @$triple[0];
+        my $predicate = @$triple[1];
+        my $subjectpid;
+        my $relationship;
+        if ($subject =~ m/^<info:fedora\/(.*)>$/) {
+          $subjectpid = $1;
+        }
+        if ($predicate =~ m/^<(.*)>$/) {
+          $relationship = $1;
+        }
+        if ($subjectpid && $relationship && defined($relationships_to_object{$relationship})) {
+          push @remove_rels_from, {from => $subjectpid, relationship => $relationship};
+        }
+      }
+      for my $rel (@remove_rels_from) {
+        my @removerelationships;
+        push @removerelationships, {predicate => $rel->{relationship}, object => "info:fedora/" . $pid};
+        $c->app->log->info("[$pid] Removing relationship to [$pid] from [" . $rel->{from} . "]");
+
+        # use the array method purge_relationshipS, it triggers reindex
+        my $r = $self->purge_relationships($c, $rel->{from}, \@removerelationships, $username, $password, 1);
+      }
+
+      # 2) relationships from this object are saved in this object, so the delete will remove them
+      # - but these relationships are often indexed in the related objects, so we need to reindex them
+      #   (eg remove this collection from it's members index doc where it's saved like 'ispartof')
+      # TODO. Meanwhile, if you want to delete eg a container but not it's members, remove the members from that container first (otherwise these will be invisible in search).
     }
 
-    # 2) relationships from this object are saved in this object, so the delete will remove them
-    # - but these relationships are often indexed in the related objects, so we need to reindex them
-    #   (eg remove this collection from it's members index doc where it's saved like 'ispartof')
-    # TODO. Meanwhile, if you want to delete eg a container but not it's members, remove the members from that container first (otherwise these will be invisible in search).
-  }
+    $c->app->log->debug("[$pid] Purging object...");
+    my $url = Mojo::URL->new;
+    $url->scheme($c->app->config->{fedora}->{scheme} ? $c->app->config->{fedora}->{scheme} : 'https');
+    $url->userinfo("$username:$password");
+    $url->host($c->app->config->{phaidra}->{fedorabaseurl});
+    $url->path("/fedora/objects/$pid");
 
-  $c->app->log->debug("[$pid] Purging object...");
-  my $url = Mojo::URL->new;
-  $url->scheme($c->app->config->{fedora}->{scheme} ? $c->app->config->{fedora}->{scheme} : 'https');
-  $url->userinfo("$username:$password");
-  $url->host($c->app->config->{phaidra}->{fedorabaseurl});
-  $url->path("/fedora/objects/$pid");
+    my $ua = Mojo::UserAgent->new;
+    my %headers;
+    $self->add_upstream_headers($c, \%headers);
 
-  my $ua = Mojo::UserAgent->new;
-  my %headers;
-  $self->add_upstream_headers($c, \%headers);
-
-  my $deleteres = $ua->delete($url => \%headers)->result;
-  if ($deleteres->code == 200) {
-    $c->app->log->debug("[$pid] Object successfully purged");
-    return $res;
-  }
-  else {
-    unshift @{$res->{alerts}}, {type => 'error', msg => $deleteres->message};
-    $res->{status} = $deleteres->code;
+    my $deleteres = $ua->delete($url => \%headers)->result;
+    if ($deleteres->code == 200) {
+      $c->app->log->debug("[$pid] Object successfully purged");
+      return $res;
+    }
+    else {
+      unshift @{$res->{alerts}}, {type => 'error', msg => $deleteres->message};
+      $res->{status} = $deleteres->code;
+    }
   }
 
   return $res;
@@ -678,7 +705,8 @@ sub get_state {
       return $fres;
     }
     $state = $fres->{state};
-  } else {
+  }
+  else {
     $c->app->log->debug("get_state $pid: getting foxml");
     my $r_oxml = $self->get_foxml($c, $pid);
     if ($r_oxml->{status} ne 200) {
@@ -913,67 +941,68 @@ sub create_container {
   my $container_metadata;
 
   if (exists($metadata->{metadata}->{'json-ld'})) {
-  if (exists($metadata->{metadata}->{'json-ld'}->{'container'})) {
-    for my $k (keys %{$metadata->{metadata}->{'json-ld'}}) {
-      $c->app->log->debug("Found key: [$k]");
-      if (($k ne 'container')) {
-        my $childupload = $c->req->upload($k);
-        unless (defined($childupload)) {
-          unshift @{$res->{alerts}}, {type => 'error', msg => "Missing container member file [$k]"};
-          $res->{status} = 400;
-          return $res;
-        }
-        my $size = $childupload->size;
-        my $name = $childupload->filename;
-        $c->app->log->debug("Found file: $name [$size B]");
-        my $childmetadata = $metadata->{metadata}->{'json-ld'}->{$k};
-        my $mt;
-        for my $mtam (@{$childmetadata->{'ebucore:hasMimeType'}}) {
-          $mt = $mtam;
-        }
-
-        my $childcmodel = $mime_to_cmodel{$mt};
-        unless ($childcmodel) {
-          $childcmodel = 'cmodel:Asset';
-        }
-        $c->app->log->debug("ebucore:hasMimeType[$mt] maps to cmodel[$childcmodel]");
-        if ($childcmodel) {
-          my $child_metadata = {metadata => {'json-ld' => $childmetadata}};
-          if (exists($metadata->{metadata}->{'rights'})) {
-            $child_metadata->{metadata}->{rights} = $metadata->{metadata}->{'rights'};
-          }
-          if (exists($metadata->{metadata}->{'ownerid'})) {
-            $child_metadata->{metadata}->{ownerid} = $metadata->{metadata}->{'ownerid'};
-          }
-
-          #$c->app->log->debug("Creating child with metadata:".$c->app->dumper($child_metadata));
-          my $r = $self->create_simple($c, $childcmodel, $child_metadata, $mt, $childupload, undef, undef, $username, $password);
-          if ($r->{status} ne 200) {
-            $res->{status} = 500;
-            unshift @{$res->{alerts}}, @{$r->{alerts}};
-            unshift @{$res->{alerts}}, {type => 'error', msg => 'Error creating child object'};
+    if (exists($metadata->{metadata}->{'json-ld'}->{'container'})) {
+      for my $k (keys %{$metadata->{metadata}->{'json-ld'}}) {
+        $c->app->log->debug("Found key: [$k]");
+        if (($k ne 'container')) {
+          my $childupload = $c->req->upload($k);
+          unless (defined($childupload)) {
+            unshift @{$res->{alerts}}, {type => 'error', msg => "Missing container member file [$k]"};
+            $res->{status} = 400;
             return $res;
           }
+          my $size = $childupload->size;
+          my $name = $childupload->filename;
+          $c->app->log->debug("Found file: $name [$size B]");
+          my $childmetadata = $metadata->{metadata}->{'json-ld'}->{$k};
+          my $mt;
+          for my $mtam (@{$childmetadata->{'ebucore:hasMimeType'}}) {
+            $mt = $mtam;
+          }
 
-          push @children, {pid => $r->{pid}, memberkey => $k};
+          my $childcmodel = $mime_to_cmodel{$mt};
+          unless ($childcmodel) {
+            $childcmodel = 'cmodel:Asset';
+          }
+          $c->app->log->debug("ebucore:hasMimeType[$mt] maps to cmodel[$childcmodel]");
+          if ($childcmodel) {
+            my $child_metadata = {metadata => {'json-ld' => $childmetadata}};
+            if (exists($metadata->{metadata}->{'rights'})) {
+              $child_metadata->{metadata}->{rights} = $metadata->{metadata}->{'rights'};
+            }
+            if (exists($metadata->{metadata}->{'ownerid'})) {
+              $child_metadata->{metadata}->{ownerid} = $metadata->{metadata}->{'ownerid'};
+            }
+
+            #$c->app->log->debug("Creating child with metadata:".$c->app->dumper($child_metadata));
+            my $r = $self->create_simple($c, $childcmodel, $child_metadata, $mt, $childupload, undef, undef, $username, $password);
+            if ($r->{status} ne 200) {
+              $res->{status} = 500;
+              unshift @{$res->{alerts}}, @{$r->{alerts}};
+              unshift @{$res->{alerts}}, {type => 'error', msg => 'Error creating child object'};
+              return $res;
+            }
+
+            push @children, {pid => $r->{pid}, memberkey => $k};
+          }
+        }
+      }
+      for my $mk (keys %{$metadata->{metadata}}) {
+        if ($mk eq 'json-ld') {
+          $container_metadata->{$mk} = $metadata->{metadata}->{'json-ld'}->{container};
+        }
+        else {
+          if (lc($mk) ne 'rights') {
+            $container_metadata->{$mk} = $metadata->{metadata}->{$mk};
+          }
         }
       }
     }
-    for my $mk (keys %{$metadata->{metadata}}) {
-      if ($mk eq 'json-ld') {
-        $container_metadata->{$mk} = $metadata->{metadata}->{'json-ld'}->{container};
-      }
-      else {
-        if (lc($mk) ne 'rights') {
-          $container_metadata->{$mk} = $metadata->{metadata}->{$mk};
-        }
-      }
+    else {
+      $container_metadata = $metadata->{metadata};
     }
   }
   else {
-    $container_metadata = $metadata->{metadata};
-  }
-  } else {
     $container_metadata = $metadata->{metadata};
   }
 
@@ -1400,6 +1429,7 @@ sub save_metadata {
           }
           if ($rel->{'o'} eq "self") {
             $rel->{'o'} = "info:fedora/" . $pid;
+            $skiphook = 0;
           }
         }
         for my $rel (@{$metadata->{'relationships'}}) {

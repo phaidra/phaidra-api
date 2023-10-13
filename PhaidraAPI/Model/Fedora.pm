@@ -36,7 +36,7 @@ my %prefix2ns = (
   "http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#" => "ebucore"
 );
 
-sub getJsonldValue {
+sub getFirstJsonldValue {
   my ($self, $c, $jsonld, $p) = @_;
 
   for my $ob (@{$jsonld}) {
@@ -48,6 +48,23 @@ sub getJsonldValue {
       }
     }
   }
+}
+
+sub getJsonldValue {
+  my ($self, $c, $jsonld, $p) = @_;
+
+  my @a;
+  for my $ob (@{$jsonld}) {
+    if (exists($ob->{$p})) {
+      for my $ob1 (@{$ob->{$p}}) {
+        if (exists($ob1->{'@value'})) {
+          push @a, $ob1->{'@value'};
+        }
+      }
+      last;
+    }
+  }
+  return \@a;
 }
 
 sub _getObjectProperties {
@@ -63,6 +80,9 @@ sub _getObjectProperties {
     $res->{props} = $getres->json;
   }
   else {
+    if ($getres->{code} == 410) {
+      $res->{tombstone} = $getres->body;
+    }
     unshift @{$res->{alerts}}, {type => 'error', msg => $getres->message};
     $res->{status} = $getres->{code};
     return $res;
@@ -83,19 +103,19 @@ sub getObjectProperties {
   my $props = $propres->{props};
 
   # cmodel
-  my $cmodel = $self->getJsonldValue($c, $props, 'info:fedora/fedora-system:def/model#hasModel');
+  my $cmodel = $self->getFirstJsonldValue($c, $props, 'info:fedora/fedora-system:def/model#hasModel');
   $cmodel =~ m/(info:fedora\/)(\w+):(\w+)/g;
   if ($2 eq 'cmodel' && defined($3) && ($3 ne '')) {
     $res->{cmodel} = $3;
   }
 
-  $res->{state}    = $self->getJsonldValue($c, $props, 'info:fedora/fedora-system:def/model#state');
-  $res->{label}    = $self->getJsonldValue($c, $props, 'info:fedora/fedora-system:def/model#label');
-  $res->{created}  = $self->getJsonldValue($c, $props, 'http://fedora.info/definitions/v4/repository#created');
-  $res->{modified} = $self->getJsonldValue($c, $props, 'http://fedora.info/definitions/v4/repository#lastModified');
+  $res->{state}    = $self->getFirstJsonldValue($c, $props, 'info:fedora/fedora-system:def/model#state');
+  $res->{label}    = $self->getFirstJsonldValue($c, $props, 'info:fedora/fedora-system:def/model#label');
+  $res->{created}  = $self->getFirstJsonldValue($c, $props, 'http://fedora.info/definitions/v4/repository#created');
+  $res->{modified} = $self->getFirstJsonldValue($c, $props, 'http://fedora.info/definitions/v4/repository#lastModified');
 
   # $res->{owner}                  = $self->getJsonldValue($c, $props, 'http://fedora.info/definitions/v4/repository#createdBy');
-  $res->{owner}                  = $self->getJsonldValue($c, $props, 'info:fedora/fedora-system:def/model#ownerId');
+  $res->{owner}                  = $self->getFirstJsonldValue($c, $props, 'info:fedora/fedora-system:def/model#ownerId');
   $res->{identifier}             = $self->getJsonldValue($c, $props, 'http://purl.org/dc/terms/identifier');
   $res->{references}             = $self->getJsonldValue($c, $props, 'http://purl.org/dc/terms/references');
   $res->{isbacksideof}           = $self->getJsonldValue($c, $props, 'http://phaidra.org/XML/V1.0/relations#isBackSideOf');
@@ -120,13 +140,14 @@ sub getObjectProperties {
     }
   }
 
+  $c->app->log->debug("XXXXXXXXXXXXXXX getObjectProperties:\n" . $c->app->dumper($res));
   return $res;
 }
 
 sub addRelationship {
   my ($self, $c, $pid, $predicate, $object, $skiphook) = @_;
 
-  return $self->addRelationships($c, $pid, ({predicate => $predicate, object => $object}), $skiphook);
+  return $self->addRelationships($c, $pid, [{predicate => $predicate, object => $object}], $skiphook);
 }
 
 sub addRelationships {
@@ -138,7 +159,7 @@ sub addRelationships {
 sub removeRelationship {
   my ($self, $c, $pid, $predicate, $object, $skiphook) = @_;
 
-  return $self->removeRelationships($c, $pid, ({predicate => $predicate, object => $object}), $skiphook);
+  return $self->removeRelationships($c, $pid, [{predicate => $predicate, object => $object}], $skiphook);
 }
 
 sub removeRelationships {
@@ -181,12 +202,12 @@ sub _deleteOrInsertTriples {
     my $val = $p->{object};
 
     $prefixes .= "PREFIX " . $ns . ": <" . $pref . ">\n";
-    $values   .= "<> $ns:$prop \"$val\"\n";
+    $values   .= "<> $ns:$prop \"$val\".\n";
   }
   my $body = qq|
     $prefixes
     $action {
-      $values .
+      $values
     }
     WHERE { }
   |;
@@ -233,7 +254,7 @@ sub editTriples {
     # WHERE { }
     my ($pref, $prop) = $self->_getPrefProp($c, $p->{predicate});
     my $ns     = $prefix2ns{$pref};
-    my $curVal = $self->getJsonldValue($c, $currentValues, $p->{predicate});
+    my $curVal = $self->getFirstJsonldValue($c, $currentValues, $p->{predicate});
     my $newVal = $p->{object};
 
     $prefixes  .= "PREFIX " . $ns . ": <" . $pref . ">\n";
@@ -278,7 +299,7 @@ sub getDatastreamsHash {
 
   my $res = {alerts => [], status => 200};
 
-  my $propres = $self->_getObjectProperties($c, $pid);
+  my $propres = $self->getObjectProperties($c, $pid);
   if ($propres->{status} != 200) {
     return $propres;
   }
@@ -340,11 +361,11 @@ sub getDatastreamAttributes {
   my $getres = $c->ua->get($url => {'Accept' => 'application/ld+json'})->result;
 
   if ($getres->is_success) {
-    $res->{size} = $self->getJsonldValue($c, $getres->json, 'http://www.loc.gov/premis/rdf/v1#hasSize');
-    $res->{mimetype} = $self->getJsonldValue($c, $getres->json, 'http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#hasMimeType');
-    $res->{filename} = $self->getJsonldValue($c, $getres->json, 'http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#filename');
-    $res->{modified} = $self->getJsonldValue($c, $getres->json, 'http://fedora.info/definitions/v4/repository#lastModified');
-    $res->{created} = $self->getJsonldValue($c, $getres->json, 'http://fedora.info/definitions/v4/repository#created');
+    $res->{size}     = $self->getFirstJsonldValue($c, $getres->json, 'http://www.loc.gov/premis/rdf/v1#hasSize');
+    $res->{mimetype} = $self->getFirstJsonldValue($c, $getres->json, 'http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#hasMimeType');
+    $res->{filename} = $self->getFirstJsonldValue($c, $getres->json, 'http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#filename');
+    $res->{modified} = $self->getFirstJsonldValue($c, $getres->json, 'http://fedora.info/definitions/v4/repository#lastModified');
+    $res->{created}  = $self->getFirstJsonldValue($c, $getres->json, 'http://fedora.info/definitions/v4/repository#created');
   }
   else {
     unshift @{$res->{alerts}}, {type => 'error', msg => $getres->message};
@@ -361,18 +382,18 @@ sub getDatastreamPath {
   my $res = {alerts => [], status => 200};
 
   my $resourceID = "info:fedora/$pid";
-  my $hash = sha256_hex($resourceID);
+  my $hash       = sha256_hex($resourceID);
 
-  my $first   = substr($hash, 0, 3);
-  my $second  = substr($hash, 3, 3);
+  my $first  = substr($hash, 0, 3);
+  my $second = substr($hash, 3, 3);
   my $third  = substr($hash, 6, 3);
 
-  my $ocflroot = $c->app->config->{fedora}->{ocflroot};
-  my $objRootPath ="$ocflroot/$first/$second/$third/$hash";
+  my $ocflroot    = $c->app->config->{fedora}->{ocflroot};
+  my $objRootPath = "$ocflroot/$first/$second/$third/$hash";
 
   my $inventoryFile = "$objRootPath/inventory.json";
-  my $bytes = Mojo::File->new($inventoryFile)->slurp;
-  my $inventory = decode_json($bytes);
+  my $bytes         = Mojo::File->new($inventoryFile)->slurp;
+  my $inventory     = decode_json($bytes);
 
   # sanity check
   unless ($inventory->{id} eq $resourceID) {
@@ -381,7 +402,7 @@ sub getDatastreamPath {
     return $res;
   }
 
-  my $head = $inventory->{head};
+  my $head  = $inventory->{head};
   my $state = $inventory->{versions}->{$head}->{state};
   my $dsLatestKey;
   for my $key (keys %{$state}) {
@@ -490,6 +511,32 @@ sub createEmpty {
   $res->{pid} = $pid;
 
   return $res;
+}
+
+sub delete {
+  my ($self, $c, $pid) = @_;
+
+  my $res = {alerts => [], status => 200};
+
+  my $url = $c->app->fedoraurl->path($pid);
+  $c->app->log->debug("DELETE $url");
+  my $putres = $c->ua->delete($url)->result;
+  unless ($putres->is_success) {
+    $c->app->log->error("Cannot delete fedora object pid[$pid]: code:" . $putres->{code} . " message:" . $putres->{message});
+    unshift @{$res->{alerts}}, {type => 'error', msg => $putres->{message}};
+    $res->{status} = $putres->{code} ? $putres->{code} : 500;
+    return $res;
+  }
+  return $res;
+}
+
+sub isDeleted {
+  my ($self, $c, $pid) = @_;
+
+  my $url = $c->app->fedoraurl->path($pid);
+  $c->app->log->debug("GET $url");
+  my $getres = $c->ua->get($url)->result;
+  return $getres->{code} == 410;
 }
 
 sub mintPid {

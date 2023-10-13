@@ -500,10 +500,22 @@ sub getSolrUpdateUrl {
   return $updateurl;
 }
 
+sub updateDoc {
+  my ($self, $c, $pid) = @_;
+
+  my $dc_model     = PhaidraAPI::Model::Dc->new;
+  my $search_model = PhaidraAPI::Model::Search->new;
+  my $object_model = PhaidraAPI::Model::Object->new;
+
+  return $self->update($c, $pid, $dc_model, $search_model, $object_model);
+}
+
 sub update {
   my ($self, $c, $pid, $dc_model, $search_model, $object_model, $ignorestatus, $norecursion, $core) = @_;
 
   my $res = {status => 200};
+
+  my $ua = Mojo::UserAgent->new;
 
   if (exists($c->app->config->{solr})) {
 
@@ -511,12 +523,32 @@ sub update {
     my $cmodel_res = $search_model->get_cmodel($c, $pid);
     $c->app->log->debug("getting cmodel[" . $cmodel_res->{cmodel} . "] took " . tv_interval($tcm));
     if ($cmodel_res->{status} ne 200) {
+      if ($c->app->config->{fedora}->{version} >= 6) {
+
+        # object might have been deleted
+        my $fedora_model = PhaidraAPI::Model::Fedora->new;
+        if ($fedora_model->isDeleted($c, $pid)) {
+          if (exists($c->app->config->{solr})) {
+            my $post = $ua->post($self->getSolrUpdateUrl($c) => json => {delete => $pid})->result;
+            if ($post->is_success) {
+              $c->app->log->debug("[$pid] solr document deleted (object returns 410 Gone)");
+            }
+            else {
+              unshift @{$res->{alerts}}, {type => 'error', msg => "[$pid] Error deleting document from solr: " . $post->message};
+              $res->{status} = $post->code ? $post->code : 500;
+            }
+            $res->{status} = 200;
+            return $res;
+          }
+        }
+        else {
+          return $cmodel_res;
+        }
+      }
       return $cmodel_res;
     }
 
     my $updateurl = $self->getSolrUpdateUrl($c, $cmodel_res->{cmodel}, $core);
-
-    my $ua = Mojo::UserAgent->new;
 
     if ($cmodel_res->{cmodel} eq '') {
 
@@ -1046,6 +1078,12 @@ sub get {
   return $self->_get($c, $pid, $dc_model, $search_model, $object_model, $ignorestatus);
 }
 
+sub removeInfoFedoraPrefix {
+  my ($self, $c, $pid) = @_;
+
+  return $pid =~ s/info:fedora\///r;
+}
+
 sub _get {
 
   my ($self, $c, $pid, $dc_model, $search_model, $object_model, $ignorestatus) = @_;
@@ -1087,62 +1125,62 @@ sub _get {
     $index{cmodel}   = $fres->{cmodel};
     $index{created}  = $fres->{created};
     $index{modified} = $fres->{modified};
-    if ($fres->{identifier}) {
+    if (ref($fres->{identifier}) eq 'ARRAY') {
       for my $v (@{$fres->{identifier}}) {
         push @{$index{dc_identifier}}, $v;
       }
     }
-    if ($fres->{references}) {
+    if (ref($fres->{references}) eq 'ARRAY') {
       for my $v (@{$fres->{references}}) {
-        push @{$index{references}}, $v;
+        push @{$index{references}}, $self->removeInfoFedoraPrefix($c, $v);
       }
     }
-    if ($fres->{isbacksideof}) {
+    if (ref($fres->{isbacksideof}) eq 'ARRAY') {
       for my $v (@{$fres->{isbacksideof}}) {
-        push @{$index{isbacksideof}}, $v;
+        push @{$index{isbacksideof}}, $self->removeInfoFedoraPrefix($c, $v);
       }
     }
-    if ($fres->{isthumbnailfor}) {
+    if (ref($fres->{isthumbnailfor}) eq 'ARRAY') {
       for my $v (@{$fres->{isthumbnailfor}}) {
-        push @{$index{isthumbnailfor}}, $v;
+        push @{$index{isthumbnailfor}}, $self->removeInfoFedoraPrefix($c, $v);
       }
     }
-    if ($fres->{hassuccessor}) {
+    if (ref($fres->{hassuccessor}) eq 'ARRAY') {
       for my $v (@{$fres->{hassuccessor}}) {
-        push @{$index{hassuccessor}}, $v;
+        push @{$index{hassuccessor}}, $self->removeInfoFedoraPrefix($c, $v);
       }
     }
-    if ($fres->{isalternativeformatof}) {
+    if (ref($fres->{isalternativeformatof}) eq 'ARRAY') {
       for my $v (@{$fres->{isalternativeformatof}}) {
-        push @{$index{isalternativeformatof}}, $v;
+        push @{$index{isalternativeformatof}}, $self->removeInfoFedoraPrefix($c, $v);
       }
     }
-    if ($fres->{isalternativeversionof}) {
+    if (ref($fres->{isalternativeversionof}) eq 'ARRAY') {
       for my $v (@{$fres->{isalternativeversionof}}) {
-        push @{$index{isalternativeversionof}}, $v;
+        push @{$index{isalternativeversionof}}, $self->removeInfoFedoraPrefix($c, $v);
       }
     }
-    if ($fres->{isinadminset}) {
+    if (ref($fres->{isinadminset}) eq 'ARRAY') {
       for my $v (@{$fres->{isinadminset}}) {
         push @{$index{isinadminset}}, $v;
       }
     }
-    if ($fres->{haspart}) {
+    if (ref($fres->{haspart}) eq 'ARRAY') {
       for my $v (@{$fres->{haspart}}) {
-        push @{$index{haspart}}, $v;
+        push @{$index{haspart}}, $self->removeInfoFedoraPrefix($c, $v);
       }
     }
-    if ($fres->{hasmember}) {
+    if (ref($fres->{hasmember}) eq 'ARRAY') {
       for my $v (@{$fres->{hasmember}}) {
-        push @{$index{hasmember}}, $v;
+        push @{$index{hasmember}}, $self->removeInfoFedoraPrefix($c, $v);
       }
     }
-    if ($fres->{hastrack}) {
+    if (ref($fres->{hastrack}) eq 'ARRAY') {
       for my $v (@{$fres->{hastrack}}) {
-        push @{$index{hastrack}}, $v;
+        push @{$index{hastrack}}, $self->removeInfoFedoraPrefix($c, $v);
       }
     }
-    if ($fres->{sameAs}) {
+    if (ref($fres->{sameAs}) eq 'ARRAY') {
       for my $v (@{$fres->{sameAs}}) {
         push @{$index{owl_sameas}}, $v;
       }
@@ -1159,7 +1197,7 @@ sub _get {
 
           my $dom = Mojo::DOM->new();
           $dom->xml(1);
-          $dom->parse('<foxml:xmlContent>'.$getdsres->{$dsid}.'</foxml:xmlContent>');
+          $dom->parse('<foxml:xmlContent>' . $getdsres->{$dsid} . '</foxml:xmlContent>');
           $datastreams{$dsid} = $dom;
         }
         else {
@@ -1576,17 +1614,15 @@ sub _get {
   return $res;
 }
 
-=cut
-info:fedora/fedora-system:def/model#hasModel
-info:fedora/fedora-system:def/relations-external#hasCollectionMember
-http://pcdm.org/models#hasMember
-http://purl.org/dc/terms/references
-http://phaidra.org/XML/V1.0/relations#isBackSideOf
-http://phaidra.univie.ac.at/XML/V1.0/relations#hasSuccessor
-http://phaidra.org/XML/V1.0/relations#isAlternativeFormatOf
-http://phaidra.org/XML/V1.0/relations#isAlternativeVersionOf
-http://phaidra.org/ontology/isInAdminSet
-=cut
+# info:fedora/fedora-system:def/model#hasModel
+# info:fedora/fedora-system:def/relations-external#hasCollectionMember
+# http://pcdm.org/models#hasMember
+# http://purl.org/dc/terms/references
+# http://phaidra.org/XML/V1.0/relations#isBackSideOf
+# http://phaidra.univie.ac.at/XML/V1.0/relations#hasSuccessor
+# http://phaidra.org/XML/V1.0/relations#isAlternativeFormatOf
+# http://phaidra.org/XML/V1.0/relations#isAlternativeVersionOf
+# http://phaidra.org/ontology/isInAdminSet
 
 sub _index_relsext {
   my ($self, $c, $xml, $index) = @_;
@@ -2012,7 +2048,7 @@ sub _add_jsonld_index {
 
   if (exists($jsonld->{'frapo:isOutputOf'})) {
     for my $proj (@{$jsonld->{'frapo:isOutputOf'}}) {
-      if (defined ($proj->{'@type'})) {
+      if (defined($proj->{'@type'})) {
         if ($proj->{'@type'} eq 'foaf:Project') {
           if (exists($proj->{'skos:exactMatch'})) {
             for my $projId (@{$proj->{'skos:exactMatch'}}) {
@@ -2701,7 +2737,7 @@ sub get_relationships {
 
   # $c->app->log->debug("getting doc of $pid");
   my $idx = $self->get_doc_from_ua($c, $ua, $urlget, $pid);
-  return $res unless ($idx);
+  $idx = {} unless $idx;
 
   my $rels = {
 
