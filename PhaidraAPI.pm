@@ -469,7 +469,7 @@ sub startup {
   $r->get('object/:pid/members/order')              ->to('membersorder#get');
   $r->get('object/:pid/annotations')                ->to('annotations#get');
   $r->get('object/:pid/techinfo')                   ->to('techinfo#get');
-  $r->get('object/:pid/dc')                         ->to('dc#get', dsid => 'DC_P');
+  $r->get('object/:pid/dc')                         ->to('dc#get', dsid => 'DC');
   $r->get('object/:pid/oai_dc')                     ->to('dc#get', dsid => 'DC_OAI');
   $r->get('object/:pid/index')                      ->to('index#get');
   $r->get('object/:pid/index/dc')                   ->to('index#get_dc');
