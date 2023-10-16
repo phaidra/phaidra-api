@@ -110,7 +110,7 @@ sub get_video_key {
     }
   }
   else {
-    $errormsg = 'unavaliable';
+    $errormsg = 'unavailable';
     $res->{status} = 404;
   }
   if ($errormsg) {

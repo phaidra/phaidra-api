@@ -236,7 +236,7 @@ sub search_lucene {
     sub {
       my ($delay, $r) = @_;
 
-      # resturn result
+      # return result
       $self->render(json => $r, status => $r->{status});
     }
 
