@@ -5634,7 +5634,7 @@
         "/settings": {
             "post": {
                 "summary": "Save user's settings.",
-                "description": "Currently only used to set default metadata tempalte in some external UIs.",
+                "description": "Currently only used to set default metadata template in some external UIs.",
                 "tags": [
                     "misc"
                 ],
@@ -5680,7 +5680,7 @@
             },
             "get": {
                 "summary": "Get user's settings",
-                "description": "Currently only used to set default metadata tempalte in some external UIs.",
+                "description": "Currently only used to set default metadata template in some external UIs.",
                 "tags": [
                     "misc"
                 ],
@@ -6999,7 +6999,7 @@
                             "required": false
                         },
                         "example": "o:440180.tif/full/256,256/0/default.jpg",
-                        "description": "IIF request"
+                        "description": "IIIF request"
                     }
                 ],
                 "responses": {
@@ -7342,8 +7342,8 @@
         },
         "/object/{pid}/metadata": {
             "get": {
-                "summary": "Get object's metatada",
-                "description": "Retrieve the object metatada (UWMETADATA, MODS, JSON-LD, ... depending on the metadata datastream.)",
+                "summary": "Get object's metadata",
+                "description": "Retrieve the object metadata (UWMETADATA, MODS, JSON-LD, ... depending on the metadata datastream.)",
                 "tags": [
                     "object-advanced"
                 ],
@@ -7474,7 +7474,7 @@
         "/object/{pid}/index": {
             "post": {
                 "summary": "Re-indexes object.",
-                "description": "Triggers the update of the object's index (Solr). Need admin authentification",
+                "description": "Triggers the update of the object's index (Solr). Need admin authentication",
                 "tags": [
                     "object-basics"
                 ],

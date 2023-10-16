@@ -908,8 +908,8 @@ sub search {
       $total = $sr->{hits};
 
       if ($sr->{status} eq 200) {
-        my $lenght = scalar @{$sr->{objects}};
-        $read += $lenght;
+        my $length = scalar @{$sr->{objects}};
+        $read += $length;
         $from = $read + 1;
 
         push @objects, @{$sr->{objects}};

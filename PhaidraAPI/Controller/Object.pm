@@ -438,13 +438,13 @@ sub preview {
           return;
         }
       }
-      if ($imgsrvjobstatus eq 'new' or $imgsrvjobstatus eq 'in_progess') {
-        $self->app->log->info("Imageserver job new/in_progess: sleeping... pid[$pid] cm[$cmodel]");
+      if ($imgsrvjobstatus eq 'new' or $imgsrvjobstatus eq 'in_progress') {
+        $self->app->log->info("Imageserver job new/in_progress: sleeping... pid[$pid] cm[$cmodel]");
         Mojo::IOLoop->timer(6 => sub { });
         Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
-        $self->app->log->info("Imageserver job new/in_progess: waking up... pid[$pid] cm[$cmodel]");
+        $self->app->log->info("Imageserver job new/in_progress: waking up... pid[$pid] cm[$cmodel]");
         $imgsrvjobstatus = $self->imageserver_job_status($pid);
-        $self->app->log->info("Imageserver job new/in_progess: job status [$imgsrvjobstatus] pid[$pid] cm[$cmodel]");
+        $self->app->log->info("Imageserver job new/in_progress: job status [$imgsrvjobstatus] pid[$pid] cm[$cmodel]");
       }
       if ($imgsrvjobstatus eq 'finished') {
         my $license = '';
@@ -909,9 +909,9 @@ sub create_simple {
           }
           if ($foundfile) {
             if (-r $pullupload) {
-              my $fileAssset = Mojo::Asset::File->new(path => $pullupload);
+              my $fileAsset = Mojo::Asset::File->new(path => $pullupload);
               $upload = Mojo::Upload->new;
-              $upload->asset($fileAssset);
+              $upload->asset($fileAsset);
               my $pulluploadPath = Mojo::Path->new($pullupload);
               my @parts          = @{$pulluploadPath->parts};
               my $filename       = $parts[-1];

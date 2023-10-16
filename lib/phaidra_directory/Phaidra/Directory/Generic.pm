@@ -99,7 +99,7 @@ sub authenticate($$$$) {
   return undef;
 }
 
-#get the email adress for a specific user
+#get the email address for a specific user
 sub get_email {
   my ($self, $c, $username) = @_;
 
@@ -309,8 +309,8 @@ sub get_user_data {
   my @inums    = ();
   my @fakcodes = ();
 
-  if ($username eq 'feodraAdmin') {
-    return {username => 'feodraAdmin', firstname => 'Fedora', lastname => 'Admin', displayname => 'Fedora Admin', email => "", org_units_l2 => ('A1417'), org_units_l1 => ('A140')};
+  if ($username eq 'fedoraAdmin') {
+    return {username => 'fedoraAdmin', firstname => 'Fedora', lastname => 'Admin', displayname => 'Fedora Admin', email => "", org_units_l2 => ('A1417'), org_units_l1 => ('A140')};
   }
 
   for my $user (@{$config->{users}}) {
