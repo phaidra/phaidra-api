@@ -547,6 +547,7 @@ sub preview {
     case 'Asset' {
 
       unless ($docres) {
+        $docres = $index_model->get_doc($self, $pid);
         if ($docres->{status} ne 200) {
           $self->app->log->error("pid[$pid] error searching for doc: " . $self->app->dumper($docres));
           $self->setNoCacheHeaders();
@@ -567,7 +568,9 @@ sub preview {
           return;
         }
         $self->stash(baseurl  => $self->config->{baseurl});
+        $self->stash(scheme   => $self->config->{scheme});
         $self->stash(basepath => $self->config->{basepath});
+        $self->stash(trywebversion => $trywebversion);
         $self->stash(pid      => $pid);
         $self->stash(mType    => 'ply')   if $index_mime eq 'model/ply';
         $self->stash(mType    => 'nexus') if $index_mime eq 'model/nxz';
