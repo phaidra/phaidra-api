@@ -38,7 +38,7 @@
         },
         {
             "name": "templates",
-            "description": "Requests for managing metadata teplates"
+            "description": "Requests for managing metadata templates"
         },
         {
             "name": "directory",
@@ -100,7 +100,7 @@
                                     "mimetype": {
                                         "type": "string",
                                         "example": "application/json",
-                                        "description": "mimetypee optional: if not provided, heuristics is used on server side",
+                                        "description": "mimetype is optional: if not provided, heuristics is used on server side",
                                         "required": false
                                     },
                                     "metadata": {
@@ -547,7 +547,7 @@
         "/collection/create": {
             "post": {
                 "summary": "Creates a collection",
-                "description": "Use to create collection object. The process is the same as for other simple objects (eg picture/create), just don't provide any file parameter.",
+                "description": "Use to create collection object. The process is the same as for other simple objects (e.g. picture/create), just don't provide any file parameter.",
                 "tags": [
                     "object-basics"
                 ],
@@ -637,7 +637,7 @@
                         "multipart/form-data": {
                             "schema": {
                                 "type": "object",
-                                "description": "JSON metadata example(see [creating a container example](https://github.com/phaidra/phaidra-api/wiki/Creating-a-container)",
+                                "description": "JSON metadata example (see [creating a container example](https://github.com/phaidra/phaidra-api/wiki/Creating-a-container))",
                                 "properties": {
                                     "metadata": {
                                         "$ref": "#/components/schemas/container_with_members"
@@ -769,7 +769,7 @@
         "/uwmetadata/json2xml": {
             "post": {
                 "summary": "Transforms uwmetadata JSON to XML.",
-                "description": "Transforms uwmetadata structure from JSON to XML (See [examples of uwmetadata](https://github.com/phaidra/phaidra-api/wiki/Datastream-examples)).",
+                "description": "Transforms uwmetadata structure from JSON to XML (see [examples of uwmetadata](https://github.com/phaidra/phaidra-api/wiki/Datastream-examples)).",
                 "tags": [
                     "datastream"
                 ],
@@ -839,7 +839,7 @@
         "/uwmetadata/xml2json": {
             "post": {
                 "summary": "Transforms uwmetadata XML to JSON.",
-                "description": "Transforms the uwmetadata structure from XML to JSON (See [examples of uwmetadata](https://github.com/phaidra/phaidra-api/wiki/Datastream-examples)).",
+                "description": "Transforms the uwmetadata structure from XML to JSON (see [examples of uwmetadata](https://github.com/phaidra/phaidra-api/wiki/Datastream-examples)).",
                 "tags": [
                     "datastream"
                 ],
@@ -920,7 +920,7 @@
         "/uwmetadata/validate": {
             "post": {
                 "summary": "Validates uwmetadata XML.",
-                "description": "Validates the uwmetadata structure in XML (See an [example of uwmetadata XML](https://github.com/phaidra/phaidra-api/wiki/Article-uwmetadata-in-xml-format)). The XML has to be sent in the request body as raw data.",
+                "description": "Validates the uwmetadata structure in XML (see an [example of uwmetadata XML](https://github.com/phaidra/phaidra-api/wiki/Article-uwmetadata-in-xml-format)). The XML has to be sent in the request body as raw data.",
                 "tags": [
                     "datastream"
                 ],
@@ -1251,7 +1251,7 @@
         "/rights/json2xml": {
             "post": {
                 "summary": "Transforms rights JSON to XML.",
-                "description": "Transforms the rights structure from JSON to XML. (See [examples of rights structure](https://github.com/phaidra/phaidra-api/wiki/Example-of-rights))",
+                "description": "Transforms the rights structure from JSON to XML (see [examples of rights structure](https://github.com/phaidra/phaidra-api/wiki/Example-of-rights))",
                 "tags": [
                     "datastream"
                 ],
@@ -1321,7 +1321,7 @@
         "/rights/xml2json": {
             "post": {
                 "summary": "Transforms rights XML to JSON.",
-                "description": "Transforms the rights structure from XML to JSON (See [examples of rights structure](https://github.com/phaidra/phaidra-api/wiki/Example-of-rights)).",
+                "description": "Transforms the rights structure from XML to JSON (see [examples of rights structure](https://github.com/phaidra/phaidra-api/wiki/Example-of-rights)).",
                 "tags": [
                     "datastream"
                 ],
@@ -1425,7 +1425,7 @@
         "/rights/json2xml_validate": {
             "post": {
                 "summary": "Validates rights JSON.",
-                "description": "Transforms the rights structure from JSON to XML and validates it (See [examples of rights structure](https://github.com/phaidra/phaidra-api/wiki/Example-of-rights)).",
+                "description": "Transforms the rights structure from JSON to XML and validates it (see [examples of rights structure](https://github.com/phaidra/phaidra-api/wiki/Example-of-rights)).",
                 "tags": [
                     "datastream"
                 ],
@@ -1475,7 +1475,7 @@
         "/geo/json2xml": {
             "post": {
                 "summary": "Transforms the geo JSON to XML.",
-                "description": "Transforms the geo structure from JSON to XML (See [examples of geo datastream of a map object](https://github.com/phaidra/phaidra-api/wiki/GEO-datastream-of-a-map-object)).",
+                "description": "Transforms the geo structure from JSON to XML (see [examples of geo datastream of a map object](https://github.com/phaidra/phaidra-api/wiki/GEO-datastream-of-a-map-object)).",
                 "tags": [
                     "datastream"
                 ],
@@ -1541,7 +1541,7 @@
         "/geo/xml2json": {
             "post": {
                 "summary": "Transforms geo XML to JSON.",
-                "description": "Transforms the geo structure from XML to JSON (See [examples of geo datastream of a map object](https://github.com/phaidra/phaidra-api/wiki/GEO-datastream-of-a-map-object)).",
+                "description": "Transforms the geo structure from XML to JSON (see [examples of geo datastream of a map object](https://github.com/phaidra/phaidra-api/wiki/GEO-datastream-of-a-map-object)).",
                 "tags": [
                     "datastream"
                 ],
@@ -1601,7 +1601,7 @@
         "/geo/validate": {
             "post": {
                 "summary": "Validates the geo XML.",
-                "description": "Validates the geo structure in XM.",
+                "description": "Validates the geo structure in XML.",
                 "tags": [
                     "datastream"
                 ],
@@ -1642,7 +1642,7 @@
         "/geo/json2xml_validate": {
             "post": {
                 "summary": "Validates the geo JSON.",
-                "description": "Transforms the geo structure from JSON to XML and validates it. (See [examples of geo datastream of a map object](https://github.com/phaidra/phaidra-api/wiki/GEO-datastream-of-a-map-object)).",
+                "description": "Transforms the geo structure from JSON to XML and validates it. See [examples of geo datastream of a map object](https://github.com/phaidra/phaidra-api/wiki/GEO-datastream-of-a-map-object).",
                 "tags": [
                     "datastream"
                 ],
@@ -1794,7 +1794,7 @@
         "/annotations/json2xml": {
             "post": {
                 "summary": "Transforms annotations JSON to XML.",
-                "description": "Transforms the annotations JSON structure to XML (See an [example of annotation JSON structure](https://github.com/phaidra/phaidra-api/wiki/Annotations)).",
+                "description": "Transforms the annotations JSON structure to XML (see an [example of annotation JSON structure](https://github.com/phaidra/phaidra-api/wiki/Annotations)).",
                 "tags": [
                     "datastream"
                 ],
@@ -1941,7 +1941,7 @@
                 },
                 "responses": {
                     "200": {
-                        "description": "Annotations XML Validated.",
+                        "description": "Annotations XML validated.",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -2640,7 +2640,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Depends on the covabulary",
+                        "description": "Depends on the vocabulary",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -3484,7 +3484,7 @@
                                 1
                             ]
                         },
-                        "description": "searches for the relation in opposite direction (eg for `hasCollectionMember`: 0 will return a list of objects which are members of this object/collection, 1 will return a list of objects/collections where the object is a member)"
+                        "description": "searches for the relation in opposite direction (e.g. for `hasCollectionMember`: 0 will return a list of objects which are members of this object/collection, 1 will return a list of objects/collections where the object is a member)"
                     },
                     {
                         "in": "query",
@@ -3970,7 +3970,7 @@
             },
             "post": {
                 "summary": "Saves JSON-LD.",
-                "description": "This method saves the metadata if you are using JSON-LD as a metadata structure. ",
+                "description": "This method saves the metadata if you are using JSON-LD as a metadata structure.",
                 "tags": [
                     "object-advanced"
                 ],
@@ -4049,8 +4049,8 @@
         },
         "/object/{pid}/json-ld": {
             "get": {
-                "summary": "Get full JSON-LD,.",
-                "description": "Retrieve full object JSON-LD, with `@context` header etc.",
+                "summary": "Get full JSON-LD.",
+                "description": "Retrieve full object JSON-LD, with `@context` header, etc.",
                 "tags": [
                     "object-advanced"
                 ],
@@ -4114,7 +4114,7 @@
         "/object/{pid}/geo": {
             "get": {
                 "summary": "Get geo.",
-                "description": "Retrieves geo datastream of object. ",
+                "description": "Retrieves geo datastream of object.",
                 "tags": [
                     "object-advanced"
                 ],
@@ -4176,7 +4176,7 @@
             },
             "post": {
                 "summary": "Saves geo.",
-                "description": "This method saves information about the object's geolocation.  ",
+                "description": "This method saves information about the object's geolocation.",
                 "tags": [
                     "object-advanced"
                 ],
@@ -4368,7 +4368,7 @@
             },
             "post": {
                 "summary": "Saves annotations.",
-                "description": "This method can save annotations to an object. The format chosen is taken from IIPMooViewer.  ",
+                "description": "This method can save annotations to an object. The format chosen is taken from IIPMooViewer.",
                 "tags": [
                     "object-advanced"
                 ],
@@ -4439,7 +4439,7 @@
         "/object/{pid}/index/dc": {
             "get": {
                 "summary": "Get DC",
-                "description": "Get metadata exported (and signitficalntly reduced) in Dublin Core standard",
+                "description": "Get metadata exported (and significantly reduced) in Dublin Core standard",
                 "tags": [
                     "object-advanced"
                 ],
@@ -5087,7 +5087,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "Download count (integer). Useful eg for ajax content update without any response parsing necessary.",
+                        "description": "Download count (integer). Useful e.g. for ajax content update without any response parsing necessary.",
                         "content": {
                             "text/plain": {
                                 "schema": {
@@ -5151,7 +5151,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "details on object... (download, detail_page,...)",
+                        "description": "details on object (download, detail_page, etc.)",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -5218,7 +5218,7 @@
                 ],
                 "responses": {
                     "200": {
-                        "description": "user's details (name, affiliation, etc)",
+                        "description": "user's details (name, affiliation, etc.)",
                         "content": {
                             "application/json": {
                                 "schema": {
@@ -6255,7 +6255,7 @@
         "/list/{lid}/token/create": {
             "post": {
                 "summary": "Create a list token",
-                "description": "The token can be used in the /list/token/{token} resuest to create a URL under which the list can be publicly displayed.",
+                "description": "The token can be used in the /list/token/{token} request to create a URL under which the list can be publicly displayed.",
                 "tags": [
                     "lists"
                 ],
@@ -6985,7 +6985,7 @@
         },
         "/imageserver": {
             "get": {
-                "summary": "Proxy for the imageserver. ",
+                "summary": "Proxy for the imageserver.",
                 "description": "Proxy for the [imageserver API](http://www.hexaplant.com/pixeldragon/3-access-images.html). This is necessary for the frontend. The images at the image server are hashed so that it's possible to restrict access to them. This method checks if the user (if credentials are provided) is authorized to access the image and if it is, it uses the configured secret to create the hash under which image server knows the image. It then accesses the image server proxying all the parameters and proxies back the response.",
                 "tags": [
                     "imageserver"
@@ -7108,7 +7108,7 @@
         "/object/{pid}/info": {
             "get": {
                 "summary": "Get object info",
-                "description": "This method returns metadata (UWMETADATA, MODS, JSON-LD, ... depending on the metadata datastream.), as well as indexed data about the object and it's related objects. It's the primary method of getting as much information about an object as possible.",
+                "description": "This method returns metadata (UWMETADATA, MODS, JSON-LD, etc., depending on the metadata datastream), as well as indexed data about the object and its related objects. It's the primary method of getting as much information about an object as possible.",
                 "tags": [
                     "object-basics"
                 ],
@@ -7216,7 +7216,7 @@
         "/object/{pid}/preview": {
             "get": {
                 "summary": "Get preview page",
-                "description": "Retrieves the preview page, for example for embedding in an iframe. Imageviewer for supported imageformats, PDF viewer for PDFs, audio/video player for media, etc.",
+                "description": "Retrieves the preview page, for example for embedding in an iframe. Image viewer for supported image formats, PDF viewer for PDFs, audio/video player for media, etc.",
                 "tags": [
                     "object-basics"
                 ],
@@ -7303,7 +7303,7 @@
         "/object/{pid}/get": {
             "get": {
                 "summary": "Get object's data",
-                "description": "Receive data as a stream. Use this link if you want to embed the data, eg in a player/viewer.",
+                "description": "Receive data as a stream. Use this link if you want to embed the data, e.g. in a player/viewer.",
                 "tags": [
                     "object-basics"
                 ],
@@ -7343,7 +7343,7 @@
         "/object/{pid}/metadata": {
             "get": {
                 "summary": "Get object's metadata",
-                "description": "Retrieve the object metadata (UWMETADATA, MODS, JSON-LD, ... depending on the metadata datastream.)",
+                "description": "Retrieve the object metadata (UWMETADATA, MODS, JSON-LD, etc., depending on the metadata datastream).",
                 "tags": [
                     "object-advanced"
                 ],
@@ -7388,7 +7388,7 @@
             },
             "post": {
                 "summary": "Edit object's metadata",
-                "description": "Supported elements (in json format) are: json-ld, json-ld-private, mods, uwmetadata, rights, geo, members, membersorder and relationships.",
+                "description": "Supported elements (in JSON format) are: json-ld, json-ld-private, mods, uwmetadata, rights, geo, members, membersorder and relationships.",
                 "tags": [
                     "object-basics"
                 ],
@@ -7500,7 +7500,7 @@
                             "type": "boolean",
                             "required": false
                         },
-                        "description": "ignore object status, ie: include inactive objects"
+                        "description": "ignore object status, i.e. include inactive objects"
                     },
                     {
                         "in": "path",
@@ -8732,7 +8732,7 @@
                                     "dslabel": {
                                         "type": "string",
                                         "required": false,
-                                        "description": "For OCTETS datastream it should be the original filename (eg my_test.pdf). For other datastreams any string, it's not used by PHAIDRA."
+                                        "description": "For OCTETS datastream it should be the original filename (e.g. my_test.pdf). For other datastreams any string, it's not used by PHAIDRA."
                                     },
                                     "controlgroup": {
                                         "type": "string",
