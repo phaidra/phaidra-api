@@ -218,7 +218,7 @@ sub related_objects_mptmysql() {
   my $staterel   = '<info:fedora/fedora-system:def/model#state>';
   my $statetable = 't' . $relmap{$staterel};
 
-  # if tripplestore does not know the relation or relation is no provided
+  # if triple store does not know the relation or relation is not provided
   # then there are no related objects
   if (defined($relation) && !(exists($relmap{"<$relation>"}))) {
     unshift @{$res->{alerts}}, {type => 'error', msg => "Unknown relation"};
@@ -246,7 +246,7 @@ sub related_objects_mptmysql() {
 		$reljoin
 		WHERE $statetable.o = ? AND $relwhere
 		GROUP BY subject
-		ORDER BY $statetable.s DESC
+		ORDER BY $statetable.s ASC
 		";
 
   if ($limit) {
@@ -324,7 +324,7 @@ sub related_objects_mptmysql() {
 
       my @titles = split($titsep, $titles);
       my @titles_out;
-      my $session_lang = 'eng';
+      my $session_lang = 'ita';
       my $pref_title   = '';
       my $en_title     = '';
       my $text         = '';
@@ -371,7 +371,7 @@ sub related_objects_mptmysql() {
         if ($field == 'dc.description') {
           my @descs = split($descsep, $descs);
           my @descs_out;
-          my $session_lang = 'eng';
+          my $session_lang = 'ita';
           my $pref_desc    = '';
           my $en_desc      = '';
           my $text         = '';
