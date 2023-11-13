@@ -5,7 +5,6 @@ use warnings;
 use v5.10;
 use base 'Mojolicious::Controller';
 use PhaidraAPI::Model::Search;
-use PhaidraAPI::Model::Search::GSearchSAXHandler;
 
 sub triples {
   my $self = shift;
