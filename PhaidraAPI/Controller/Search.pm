@@ -90,10 +90,10 @@ sub related {
   my $r;
   
   if (@fields) {
-    $r = $search_model->related($self, $self->stash('pid'), $relation, $right, $from, $limit, @fields, $delay->begin);
+    $r = $search_model->related($self, $self->stash('pid'), $relation, $right, $from, $limit, @fields);
   }
   else {
-    $r = $search_model->related($self, $self->stash('pid'), $relation, $right, $from, $limit, undef, $delay->begin);
+    $r = $search_model->related($self, $self->stash('pid'), $relation, $right, $from, $limit, undef);
   }
 
   #$self->app->log->debug($self->app->dumper($r));
