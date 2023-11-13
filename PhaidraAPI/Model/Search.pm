@@ -5,8 +5,6 @@ use warnings;
 use v5.10;
 use XML::Parser::PerlSAX;
 use XML::XPath;
-use Mojo::IOLoop;
-use Mojo::IOLoop::Delay;
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Fedora;
 use base qw/Mojo::Base/;

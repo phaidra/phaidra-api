@@ -6,7 +6,6 @@ use v5.10;
 use base 'Mojolicious::Controller';
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Search::GSearchSAXHandler;
-use Mojo::IOLoop::Delay;
 
 sub triples {
   my $self = shift;
