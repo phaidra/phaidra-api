@@ -435,7 +435,7 @@ sub related_objects_mptmysql() {
 
 sub related {
 
-  my ($self, $c, $pid, $relation, $right, $from, $limit, $fields, $cb) = @_;
+  my ($self, $c, $pid, $relation, $right, $from, $limit, $fields) = @_;
 
   # on frontend the first item is 1, but in triplestore its 0
   if ($from > 0) {
@@ -516,7 +516,7 @@ sub related {
 
   }
 
-  $self->$cb($sr);
+  return $sr;
 }
 
 sub datastream_exists {

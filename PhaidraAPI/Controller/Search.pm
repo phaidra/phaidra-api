@@ -87,29 +87,17 @@ sub related {
   }
 
   my $search_model = PhaidraAPI::Model::Search->new;
+  my $r;
+  
+  if (@fields) {
+    $r = $search_model->related($self, $self->stash('pid'), $relation, $right, $from, $limit, @fields, $delay->begin);
+  }
+  else {
+    $r = $search_model->related($self, $self->stash('pid'), $relation, $right, $from, $limit, undef, $delay->begin);
+  }
 
-  $self->render_later;
-  my $delay = Mojo::IOLoop->delay(
-
-    sub {
-      my $delay = shift;
-      if (@fields) {
-        $search_model->related($self, $self->stash('pid'), $relation, $right, $from, $limit, @fields, $delay->begin);
-      }
-      else {
-        $search_model->related($self, $self->stash('pid'), $relation, $right, $from, $limit, undef, $delay->begin);
-      }
-    },
-
-    sub {
-      my ($delay, $r) = @_;
-
-      #$self->app->log->debug($self->app->dumper($r));
-      $self->render(json => $r, status => $r->{status});
-    }
-
-  );
-  $delay->wait unless $delay->ioloop->is_running;
+  #$self->app->log->debug($self->app->dumper($r));
+  $self->render(json => $r, status => $r->{status});
 
 }
 
