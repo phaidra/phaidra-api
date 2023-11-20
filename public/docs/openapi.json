@@ -4627,7 +4627,7 @@
         },
         "/object/{pid}/datacite": {
             "get": {
-                "summary": "<<check>> Transforms metadata to DataCite.",
+                "summary": "Transforms metadata to DataCite.",
                 "tags": [
                     "object-advanced"
                 ],
