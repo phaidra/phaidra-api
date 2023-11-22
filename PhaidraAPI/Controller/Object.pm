@@ -669,7 +669,7 @@ sub preview {
         $self->stash(trywebversion => $trywebversion);
 
         # html tag won't work with video/quicktime
-        $self->stash(mimetype => $mimetype = 'video/quicktime' ? 'video/mp4' : $mimetype);
+        $self->stash(mimetype => $mimetype eq 'video/quicktime' ? 'video/mp4' : $mimetype);
         $self->stash(pid      => $pid);
         my $thumbPid = $self->get_is_thumbnail_for($pid);
         if ($thumbPid) {
