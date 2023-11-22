@@ -499,7 +499,7 @@ sub org_get_subunits {
 
   my $res = { alerts => [], status => 200 };
 
-  $id = 'root' if $id == 'A-1';
+  $id = 'root' if $id eq 'A-1';
 
   if (exists($orgunits->{$id})) {
     if (exists($orgunits->{$id}->{subunits})) {
