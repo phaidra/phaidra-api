@@ -1060,11 +1060,11 @@ sub stats_chart {
   }
 
   if (defined($key)) {
-    if ($key == 'downloads') {
+    if ($key eq 'downloads') {
       $self->render(text => $downloads, status => 200);
       return;
     }
-    if ($key == 'detail_page') {
+    if ($key eq 'detail_page') {
       $self->render(text => $detail_page, status => 200);
       return;
     }

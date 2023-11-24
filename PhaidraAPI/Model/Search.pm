@@ -368,7 +368,7 @@ sub related_objects_mptmysql() {
       }
 
       foreach my $field (@{$fields}) {
-        if ($field == 'dc.description') {
+        if ($field eq 'dc.description') {
           my @descs = split($descsep, $descs);
           my @descs_out;
           my $session_lang = 'ita';
