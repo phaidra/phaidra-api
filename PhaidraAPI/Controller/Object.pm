@@ -1640,7 +1640,7 @@ sub diss {
     }
   }
   else {
-    $self->app->log->info("user[" . $self->stash->{basic_auth_credentials}->{username} . "] proxying $url");
+    $self->app->log->info("user[" . $self->stash->{basic_auth_credentials}->{username} . "] proxying $url") if $self->stash->{basic_auth_credentials}->{username};
     if (Mojo::IOLoop->is_running) {
       $self->render_later;
       $self->ua->get(
