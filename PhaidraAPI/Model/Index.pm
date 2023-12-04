@@ -678,7 +678,7 @@ sub update {
         unless (defined($membersorder)) {
           @{$membersorder} = ();
         }
-        my $umr = $self->order($c, $pid, $cmodel_res->{cmodel}, $updateurl, $membersorder);
+        my $umr = $self->_update_membersorder($c, $pid, $cmodel_res->{cmodel}, $updateurl, $membersorder);
         if ($umr->{status} ne 200) {
           $res->{status} = $umr->{status};
           push @{$res->{alerts}}, @{$umr->{alerts}} if scalar @{$umr->{alerts}} > 0;
