@@ -678,7 +678,7 @@ sub update {
         unless (defined($membersorder)) {
           @{$membersorder} = ();
         }
-        my $umr = $self->_update_membersorder($c, $pid, $cmodel_res->{cmodel}, $updateurl, $membersorder);
+        my $umr = $self->order($c, $pid, $cmodel_res->{cmodel}, $updateurl, $membersorder);
         if ($umr->{status} ne 200) {
           $res->{status} = $umr->{status};
           push @{$res->{alerts}}, @{$umr->{alerts}} if scalar @{$umr->{alerts}} > 0;
@@ -914,7 +914,15 @@ sub _update_members {
 
   my $res = {status => 200};
 
-  $c->app->log->debug("[$pid] [" . (scalar @{$members}) . "] objects should have [$relation] relation to [$pid]");
+  my $numMem = scalar @{$members};
+
+  $c->app->log->debug("[$pid] [$numMem] objects should have [$relation] relation to [$pid]");
+
+  if ($numMem > 1000) {
+    $c->app->log->error("[$pid] skipping _update_members, too many members: [$numMem]");
+    unshift @{$res->{alerts}}, {type => 'warning', msg => "_update_members skipped, too many members: [$numMem]"};
+    return $res;
+  }
 
   #$c->app->log->debug("XXXXXXXXXXXX ".$c->app->dumper($members));
 
