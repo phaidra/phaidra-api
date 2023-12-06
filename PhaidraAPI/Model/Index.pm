@@ -1828,7 +1828,7 @@ sub _add_mods_index {
           }
         }
       }
-      my $name = "$firstname $lastname";
+      my $name = (defined($firstname) ? $firstname : '') . " " . (defined($lastname) ? $lastname : '');
       push @{$index->{"bib_roles_pers_$role"}}, trim $name unless $name eq ' ';
       push @{$index->{"bib_roles_corp_$role"}}, $institution if defined $institution;
     }
@@ -2642,7 +2642,7 @@ sub _get_uwm_roles {
                 $entity{$l2->{xmlname}} = $l2->{ui_value} if $l2->{ui_value} ne '';
               }
             }
-            my $name = "$firstname $lastname";
+            my $name = (defined($firstname) ? $firstname : '') . " " . (defined($lastname) ? $lastname : '');
             $entity{name}        = $name unless $name eq ' ';
             $entity{institution} = $institution if defined($institution);
             $entity{role}        = $role;
