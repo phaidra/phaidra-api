@@ -435,7 +435,7 @@ sub startup {
   $r->get('directory/org_get_units')                ->to('directory#org_get_units');
 
   $r->get('search/triples')                         ->to('search#triples');
-  # use ?_method=POST if you want to call this from browser
+  $r->get('search/select')                          ->to('search#search_solr');
   $r->post('search/select')                         ->to('search#search_solr');
   $r->post('search/get_pids')                       ->to('search#get_pids');
 
