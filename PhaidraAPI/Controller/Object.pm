@@ -587,16 +587,41 @@ sub preview {
         $index_mime = $mt if $mt =~ m/\//g;
       }
       $self->app->log->info("preview pid[$pid] metadata mimetype[$index_mime]");
-      if (($index_mime eq 'model/ply') || ($index_mime eq 'model/nxz')) {
+       if (($index_mime eq 'application/x-wacz')) {
+        
+       my $object_model = PhaidraAPI::Model::Object->new;
+       my $r= $object_model->info($self, $pid);
+       my $website_url;
+       
+ #check if metadata has URL to display from the archive after the component loads in replayweb
+
+        if (exists($r->{info}->{metadata}->{"JSON-LD"}->{'rdfs:seeAlso'}[0]->{'schema:url'}[0])) {
+            $website_url = $r->{info}->{metadata}->{"JSON-LD"}->{'rdfs:seeAlso'}[0]->{'schema:url'}[0];
+            }  
+          
+        $self->stash(website_url =>$website_url);
         $self->stash(baseurl  => $self->config->{baseurl});
         $self->stash(scheme   => $self->config->{scheme});
         $self->stash(basepath => $self->config->{basepath});
+        $self->stash(baseurl       => $self->config->{baseurl});
         $self->stash(pid      => $pid);
+       
+
+        my $u_model = PhaidraAPI::Model::Util->new;
+        $u_model->track_action($self, $pid, 'preview');
+         $self->render(template => 'utils/replayweb', format => 'html');
+        return;
+      }
+      if (($index_mime eq 'model/ply') || ($index_mime eq 'model/nxz')) {
         if ($showloadbutton) {
           $self->render(template => 'utils/loadbutton', format => 'html');
           return;
         }
+        $self->stash(baseurl  => $self->config->{baseurl});
+        $self->stash(scheme   => $self->config->{scheme});
+        $self->stash(basepath => $self->config->{basepath});
         $self->stash(trywebversion => $trywebversion);
+        $self->stash(pid      => $pid);
         $self->stash(mType    => 'ply')   if $index_mime eq 'model/ply';
         $self->stash(mType    => 'nexus') if $index_mime eq 'model/nxz';
 

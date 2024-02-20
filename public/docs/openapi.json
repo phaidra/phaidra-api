@@ -33,6 +33,10 @@
             "description": "Requests for adding and removing object relationships"
         },
         {
+            "name": "search",
+            "description": ""
+        },
+        {
             "name": "datastream",
             "description": "Requests for transforming and validating datastreams"
         },
@@ -4904,7 +4908,8 @@
                         "in": "path",
                         "name": "pid",
                         "schema": {
-                            "type": "string"
+                            "type": "string",
+                            "required": true
                         },
                         "description": "object pid"
                     }
@@ -5456,31 +5461,29 @@
                     }
                 ],
                 "responses": {
-                    "responses": {
-                        "200": {
-                            "description": "Terms of use",
-                            "content": {
-                                "application/json": {
-                                    "schema": {
-                                        "type": "object",
-                                        "properties": {
-                                            "alerts": {
-                                                "type": "array",
-                                                "items": {
-                                                    "type": "object",
-                                                    "properties": {
-                                                        "msg": {
-                                                            "type": "string"
-                                                        },
-                                                        "type": {
-                                                            "type": "string"
-                                                        }
+                    "200": {
+                        "description": "Terms of use",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "alerts": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "msg": {
+                                                        "type": "string"
+                                                    },
+                                                    "type": {
+                                                        "type": "string"
                                                     }
                                                 }
-                                            },
-                                            "status": {
-                                                "type": "number"
                                             }
+                                        },
+                                        "status": {
+                                            "type": "number"
                                         }
                                     }
                                 }
@@ -6950,31 +6953,31 @@
                                 }
                             }
                         }
-                    }
-                },
-                "503": {
-                    "description": "Service Unavailable",
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object",
-                                "properties": {
-                                    "alerts": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "object",
-                                            "properties": {
-                                                "msg": {
-                                                    "type": "string"
-                                                },
-                                                "type": {
-                                                    "type": "string"
+                    },
+                    "503": {
+                        "description": "Service Unavailable",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "alerts": {
+                                            "type": "array",
+                                            "items": {
+                                                "type": "object",
+                                                "properties": {
+                                                    "msg": {
+                                                        "type": "string"
+                                                    },
+                                                    "type": {
+                                                        "type": "string"
+                                                    }
                                                 }
                                             }
+                                        },
+                                        "status": {
+                                            "type": "number"
                                         }
-                                    },
-                                    "status": {
-                                        "type": "number"
                                     }
                                 }
                             }
@@ -8561,22 +8564,22 @@
                                                     }
                                                 }
                                             }
+                                        },
+                                        "status": {
+                                            "type": "string"
                                         }
-                                    },
-                                    "status": {
-                                        "type": "string"
                                     }
                                 }
                             }
                         }
-                    }
-                },
-                "404": {
-                    "description": "Failed to fetch data",
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
+                    },
+                    "404": {
+                        "description": "Failed to fetch data",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
                             }
                         }
                     }
@@ -8655,22 +8658,22 @@
                                                     }
                                                 }
                                             }
+                                        },
+                                        "status": {
+                                            "type": "string"
                                         }
-                                    },
-                                    "status": {
-                                        "type": "string"
                                     }
                                 }
                             }
                         }
-                    }
-                },
-                "404": {
-                    "description": "Failed to fetch data",
-                    "content": {
-                        "application/json": {
-                            "schema": {
-                                "type": "object"
+                    },
+                    "404": {
+                        "description": "Failed to fetch data",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object"
+                                }
                             }
                         }
                     }
@@ -8743,7 +8746,7 @@
                                             "R",
                                             "E"
                                         ],
-                                        "descriptrion": "One of X, M, R, or E (Inline XML, Managed Content, Redirect, or External Referenced)"
+                                        "description": "One of X, M, R, or E (Inline XML, Managed Content, Redirect, or External Referenced)"
                                     }
                                 }
                             }
@@ -9318,6 +9321,106 @@
                     }
                 }
             }
+        },
+        "/search/select":{
+            "post": { 
+            "summary": "Search query",
+            "description": "Solr query, for the query parameters see [Solr common query parameters](https://solr.apache.org/guide/solr/latest/query-guide/common-query-parameters.html)",
+            "tags": [
+                "search"
+            ],
+            "parameters": [
+                {
+                    "in": "query",
+                    "name": "q",
+                    "schema": {
+                        "type": "string",
+                        "required": true
+                    },
+                    "description": "query string"
+                }
+
+            ],
+            "responses": {
+                "200": {
+                    "description": "search response",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object",
+                                "properties": {
+                                    "responseHeader": {
+                                        "type": "array",
+                                        "items": {
+                                            "type": "object",
+                                            "properties": {
+                                                "status": {
+                                                    "type": "number"
+                                                },
+                                                "QTime": {
+                                                    "type": "number"
+                                                },
+                                                "params": {
+                                                    "type": "object"
+                                                }
+                                            }
+                                        }
+                                    },
+                                    "response": {
+                                        "type": "object",
+                                        "properties": {
+                                            "numFound": {
+                                                "type": "number"
+                                            },
+                                            "start": {
+                                                "type": "number"
+                                            },
+                                            "numFoundExact": {
+                                                "type": "boolean"
+                                            },
+                                            "docs": {
+                                                "type": "array"
+                                            }
+                                        }
+                                    },
+                                    "facet_counts": {
+                                        "type": "object",
+                                        "properties": {
+                                            "facet_querie": {
+                                                "type": "object"
+                                            },
+                                            "facet_fields": {
+                                                "type": "object"
+                                            },
+                                            "facet_ranges": {
+                                                "type": "object"
+                                            },
+                                            "facet_intervals": {
+                                                "type": "object"
+                                            },
+                                            "facet_heatmaps": {
+                                                "type": "object"
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                },
+                "404": {
+                    "description": "object has not been found",
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "type": "object"
+                            }
+                        }
+                    }
+                }
+            }
+          
+            }
         }
     },
     "components": {
@@ -9446,11 +9549,14 @@
                                     "type": "string"
                                 },
                                 "labels": {
-                                    "en": {
-                                        "type": "string"
-                                    },
-                                    "de": {
-                                        "type": "string"
+                                    "type": "object",
+                                    "properties": {
+                                        "en": {
+                                            "type": "string"
+                                        },
+                                        "de": {
+                                            "type": "string"
+                                        }
                                     }
                                 }
                             }
@@ -9612,7 +9718,7 @@
                             "type": "string"
                         },
                         "input_type": {
-                            "type": "strIng"
+                            "type": "string"
                         },
                         "labels": {
                             "type": "object"
