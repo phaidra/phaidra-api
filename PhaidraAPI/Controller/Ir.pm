@@ -372,11 +372,14 @@ sub approve {
   my $subject        = $self->config->{ir}->{name} . " - Redaktionelle Bearbeitung abgeschlossen / Submission process completed";
   my $templatefolder = $self->config->{ir}->{templatefolder};
 
+  my $supportEmail = $self->config->{ir}->{supportemail};
+  my $from = substr($supportEmail, 0, index($supportEmail, ','));
+
   my %options;
   $options{INCLUDE_PATH} = $templatefolder;
   eval {
     my $msg = MIME::Lite::TT::HTML->new(
-      From        => $self->config->{ir}->{supportemail},
+      From        => $from,
       To          => $email,
       Subject     => $subject,
       Charset     => 'utf8',
@@ -884,9 +887,12 @@ sub sendAdminEmail {
 
   $self->app->log->info("Sending email for pid[$pid]: \n$email");
 
+  my $supportEmail = $self->config->{ir}->{supportemail};
+  my $from = substr($supportEmail, 0, index($supportEmail, ','));
+
   my $msg = MIME::Lite->new(
-    From    => $self->config->{ir}->{supportemail},
-    To      => $self->config->{ir}->{supportemail},
+    From    => $from,
+    To      => $supportEmail,
     Type    => 'text/html; charset=UTF-8',
     Subject => "New upload: $pid",
     Data    => encode('UTF-8', $email)
@@ -926,7 +932,7 @@ sub stats {
   unless ($fr->{site} eq 'ir' or $fr->{site} eq 'phaidra') {
 
     # return 200, this is just ok
-    $self->render(json => {alerts => [{type => 'info', msg => 'Site [' . $fr->{site} . '] is not supported'}]}, status => 200);
+    $self->render(json => {alerts => [{type => 'info', msg => 'Site [' . $fr->{site} . '] is not ed'}]}, status => 200);
     return;
   }
   unless (defined($fr->{stats})) {
@@ -940,7 +946,7 @@ sub stats {
   unless ($fr->{stats}->{type} eq 'piwik') {
 
     # return 200, this is just ok
-    $self->render(json => {alerts => [{type => 'info', msg => 'Statistics source [' . $fr->{stats}->{type} . '] is not supported.'}]}, status => 200);
+    $self->render(json => {alerts => [{type => 'info', msg => 'Statistics source [' . $fr->{stats}->{type} . '] is not ed.'}]}, status => 200);
     return;
   }
   unless ($irsiteid) {
@@ -1003,7 +1009,7 @@ sub stats_chart {
   unless ($fr->{site} eq 'ir' or $fr->{site} eq 'phaidra') {
 
     # return 200, this is just ok
-    $self->render(json => {alerts => [{type => 'info', msg => 'Site [' . $fr->{site} . '] is not supported'}]}, status => 200);
+    $self->render(json => {alerts => [{type => 'info', msg => 'Site [' . $fr->{site} . '] is not ed'}]}, status => 200);
     return;
   }
   unless (defined($fr->{stats})) {
@@ -1017,7 +1023,7 @@ sub stats_chart {
   unless ($fr->{stats}->{type} eq 'piwik') {
 
     # return 200, this is just ok
-    $self->render(json => {alerts => [{type => 'info', msg => 'Statistics source [' . $fr->{stats}->{type} . '] is not supported.'}]}, status => 200);
+    $self->render(json => {alerts => [{type => 'info', msg => 'Statistics source [' . $fr->{stats}->{type} . '] is not ed.'}]}, status => 200);
     return;
   }
   unless ($irsiteid) {
@@ -1202,11 +1208,14 @@ sub sendEmbargoendEmail {
   my $subject        = $self->config->{ir}->{name} . " - Embargofrist abgelaufen / Embargo period expired";
   my $templatefolder = $self->config->{ir}->{templatefolder};
 
+  my $supportEmail = $self->config->{ir}->{supportemail};
+  my $from = substr($supportEmail, 0, index($supportEmail, ','));
+
   my %options;
   $options{INCLUDE_PATH} = $templatefolder;
   eval {
     my $msg = MIME::Lite::TT::HTML->new(
-      From        => $self->config->{ir}->{supportemail},
+      From        => $from,
       To          => $email,
       Subject     => $subject,
       Charset     => 'utf8',
