@@ -373,7 +373,8 @@ sub approve {
   my $templatefolder = $self->config->{ir}->{templatefolder};
 
   my $supportEmail = $self->config->{ir}->{supportemail};
-  my $from = substr($supportEmail, 0, index($supportEmail, ','));
+  my $from = $supportEmail;
+  $from = substr($supportEmail, 0, index($supportEmail, ',')) if index($supportEmail, ',') != -1;
 
   my %options;
   $options{INCLUDE_PATH} = $templatefolder;
@@ -888,7 +889,8 @@ sub sendAdminEmail {
   $self->app->log->info("Sending email for pid[$pid]: \n$email");
 
   my $supportEmail = $self->config->{ir}->{supportemail};
-  my $from = substr($supportEmail, 0, index($supportEmail, ','));
+  my $from = $supportEmail;
+  $from = substr($supportEmail, 0, index($supportEmail, ',')) if index($supportEmail, ',') != -1;
 
   my $msg = MIME::Lite->new(
     From    => $from,
