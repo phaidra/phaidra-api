@@ -517,6 +517,7 @@ sub startup {
 
   $r->get('list/token/:token')                      ->to('lists#get_token_list');
 
+  $r->get('app_settings')                           ->to('settings#get_app_settings');
 
   if ($self->app->config->{fedora}->{version} >= 6) {
     my $ext_creds = $r->under('/')->to('authentication#extract_credentials', creds_must_be_present => 0);
@@ -536,7 +537,6 @@ sub startup {
     $loggedin->get('directory/user/data')                                    ->to('directory#get_user_data');
 
     $loggedin->get('settings')                                               ->to('settings#get_settings');
-    $loggedin->get('app_settings')                                           ->to('settings#get_app_settings');
 
     $loggedin->get('groups')                                                 ->to('groups#get_users_groups');
     $loggedin->get('group/:gid')                                             ->to('groups#get_group');
@@ -566,6 +566,7 @@ sub startup {
     $reader->get('object/:pid/download')                                     ->to('octets#get', operation => 'download');
     $reader->get('object/:pid/get')                                          ->to('octets#get', operation => 'get');
     $reader->get('object/:pid/comp/:ds')                                     ->to('object#get_legacy_container_member');
+    $reader->get('object/:pid/datastream/:dsid')                             ->to('object#get_public_datastream');
 
     $writer->get('object/:pid/jsonldprivate')                                ->to('jsonldprivate#get');
     $writer->get('object/:pid/rights')                                       ->to('rights#get');
@@ -644,6 +645,7 @@ sub startup {
 
       $loggedin->post('jsonld/template/add')                                 ->to('jsonld#add_template');
       $loggedin->post('jsonld/template/:tid/remove')                         ->to('jsonld#remove_template');
+      $loggedin->post('jsonld/template/:tid/edit')                           ->to('jsonld#edit_template');
 
       $loggedin->post('ir/submit')                                           ->to('ir#submit');
       $loggedin->post('ir/notifications')                                    ->to('ir#notifications');
@@ -678,7 +680,6 @@ sub startup {
     $check_auth->get('directory/user/data')                                     ->to('directory#get_user_data');
 
     $check_auth->get('settings')                                                ->to('settings#get_settings');
-    $check_auth->get('app_settings')                                            ->to('settings#get_app_settings');
 
     $check_auth->get('groups')                                                  ->to('groups#get_users_groups');
     $check_auth->get('group/:gid')                                              ->to('groups#get_group');
@@ -795,6 +796,7 @@ sub startup {
 
       $check_auth->post('jsonld/template/add')                                  ->to('jsonld#add_template');
       $check_auth->post('jsonld/template/:tid/remove')                          ->to('jsonld#remove_template');
+      $check_auth->post('jsonld/template/:tid/edit')                            ->to('jsonld#edit_template');
 
       $proxyauth->post('ir/submit')                                             ->to('ir#submit');
       $check_auth->post('ir/notifications')                                     ->to('ir#notifications');

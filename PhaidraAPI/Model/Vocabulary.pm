@@ -104,6 +104,7 @@ sub _get_server_vocabulary {
   # TODO! - sparql to provided url
 }
 
+
 sub _get_bic_vocabulary {
   my ($self, $c, $nocache) = @_;
 

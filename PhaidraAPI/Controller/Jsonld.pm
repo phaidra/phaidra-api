@@ -167,9 +167,66 @@ sub add_template {
   my $btid = $ug->create();
   my $tid  = $ug->to_string($btid);
 
-  $self->mongo->get_collection('jsonldtemplates')->insert_one({tid => $tid, owner => $self->stash->{basic_auth_credentials}->{username}, name => $name, form => $form, tag => $tag, created => time});
+  my $owner;
+  if ($self->stash('remote_user')) {
+    $owner = $self->stash('remote_user');
+  } else {
+    $owner = $self->stash->{basic_auth_credentials}->{username};
+  }
+
+  $self->mongo->get_collection('jsonldtemplates')->insert_one({tid => $tid, owner => $owner, name => $name, form => $form, tag => $tag, created => time});
 
   $res->{tid} = $tid;
+
+  $self->render(json => $res, status => $res->{status});
+}
+
+sub edit_template {
+  my $self = shift;
+
+  my $res = {alerts => [], status => 200};
+
+  unless (defined($self->stash('tid'))) {
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined template id'}]}, status => 400);
+    return;
+  }
+  my $tid = $self->stash('tid');
+
+  my $form = $self->param('form');
+  unless (defined($form)) {
+    $self->render(json => {alerts => [{type => 'error', msg => 'No form sent'}]}, status => 400);
+    return;
+  }
+
+  my $tag = $self->param('tag');
+
+  eval {
+    if (ref $form eq 'Mojo::Upload') {
+      $self->app->log->debug("form sent as file param");
+      $form = $form->asset->slurp;
+      $form = decode_json($form);
+    }
+    else {
+      $form = decode_json(b($form)->encode('UTF-8'));
+    }
+  };
+
+  if ($@) {
+    $self->app->log->error("Error: $@");
+    unshift @{$res->{alerts}}, {type => 'error', msg => $@};
+    $res->{status} = 400;
+    $self->render(json => $res, status => $res->{status});
+    return;
+  }
+
+  my $owner;
+  if ($self->stash('remote_user')) {
+    $owner = $self->stash('remote_user');
+  } else {
+    $owner = $self->stash->{basic_auth_credentials}->{username};
+  }
+
+  $self->mongo->get_collection('jsonldtemplates')->update_one({tid => $tid}, { '$set' => { form => $form, updated => time}});
 
   $self->render(json => $res, status => $res->{status});
 }
@@ -184,7 +241,14 @@ sub get_template {
     return;
   }
   $self->app->log->debug($self->stash('tid') . " " . $self->stash->{basic_auth_credentials}->{username});
-  my $tres = $self->mongo->get_collection('jsonldtemplates')->find_one({tid => $self->stash('tid'), owner => $self->stash->{basic_auth_credentials}->{username}});
+
+  my $owner;
+  if ($self->stash('remote_user')) {
+    $owner = $self->stash('remote_user');
+  } else {
+    $owner = $self->stash->{basic_auth_credentials}->{username};
+  }
+  my $tres = $self->mongo->get_collection('jsonldtemplates')->find_one({tid => $self->stash('tid'), owner => $owner});
 
   $res->{template} = $tres;
 
@@ -198,7 +262,14 @@ sub get_users_templates {
 
   my $tag = $self->param('tag');
 
-  my $find = {'owner' => $self->stash->{basic_auth_credentials}->{username}};
+  my $owner;
+  if ($self->stash('remote_user')) {
+    $owner = $self->stash('remote_user');
+  } else {
+    $owner = $self->stash->{basic_auth_credentials}->{username};
+  }
+
+  my $find = {'owner' => $owner};
   if ($tag) {
     $find->{'tag'} = $tag;
   }
@@ -224,7 +295,14 @@ sub remove_template {
     return;
   }
 
-  $self->mongo->get_collection('jsonldtemplates')->delete_one({tid => $self->stash('tid'), owner => $self->stash->{basic_auth_credentials}->{username}});
+  my $owner;
+  if ($self->stash('remote_user')) {
+    $owner = $self->stash('remote_user');
+  } else {
+    $owner = $self->stash->{basic_auth_credentials}->{username};
+  }
+
+  $self->mongo->get_collection('jsonldtemplates')->delete_one({tid => $self->stash('tid'), owner => $owner});
 
   $self->render(json => $res, status => $res->{status});
 }

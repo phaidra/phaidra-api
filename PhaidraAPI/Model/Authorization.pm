@@ -8,6 +8,17 @@ use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Rights;
 use PhaidraAPI::Model::Fedora;
 
+my %private_datastreams = (
+  'RIGHTS'          => 1,
+  'JSON-LD-PRIVATE' => 1
+);
+
+sub is_private_ds {
+  my ($self, $c, $dsid) = @_;
+
+  return $private_datastreams{$dsid};
+}
+
 sub check_rights {
   no warnings 'uninitialized';
   my ($self, $c, $pid, $op) = @_;
@@ -142,7 +153,7 @@ sub check_rights {
       $rightsAreEmpty = 0;
       for my $def (@{$rights->{'department'}}) {
         my $v;
-        if (exists($def->{value})) {
+        if (ref($def) eq 'HASH') {
           $v = $def->{value};
         }
         else {
@@ -163,7 +174,7 @@ sub check_rights {
       $rightsAreEmpty = 0;
       for my $def (@{$rights->{'faculty'}}) {
         my $v;
-        if (exists($def->{value})) {
+        if (ref($def) eq 'HASH') {
           $v = $def->{value};
         }
         else {
@@ -184,7 +195,7 @@ sub check_rights {
       $rightsAreEmpty = 0;
       for my $def (@{$rights->{'gruppe'}}) {
         my $v;
-        if (exists($def->{value})) {
+        if (ref($def) eq 'HASH') {
           $v = $def->{value};
         }
         else {

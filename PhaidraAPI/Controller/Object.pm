@@ -553,15 +553,15 @@ sub preview {
       return;
     }
     case 'PDFDocument' {
-      $self->stash(baseurl       => $self->config->{baseurl});
-      $self->stash(scheme        => $self->config->{scheme});
-      $self->stash(basepath      => $self->config->{basepath});
-      $self->stash(pid           => $pid);
       if ($showloadbutton) {
         $self->render(template => 'utils/loadbutton', format => 'html');
         return;
       }
+      $self->stash(baseurl       => $self->config->{baseurl});
+      $self->stash(scheme        => $self->config->{scheme});
+      $self->stash(basepath      => $self->config->{basepath});
       $self->stash(trywebversion => $trywebversion);
+      $self->stash(pid           => $pid);
 
       my $u_model = PhaidraAPI::Model::Util->new;
       $u_model->track_action($self, $pid, 'preview');
@@ -637,7 +637,36 @@ sub preview {
       }
     }
     case 'Video' {
-      if ($self->config->{streaming}) {
+      if (defined $self->config
+          ->{external_services}->{opencast}->{mode} &&
+          $self->config->{external_services}->{opencast}->{mode}
+          eq "ACTIVATED")
+      {
+        my $object_job_info = $self->paf_mongo->get_collection('jobs')->
+          find_one({pid => $pid, agent => 'vige'});
+        if (defined $object_job_info) {
+          my $job_status = $object_job_info->{'status'};
+          if ($job_status eq "SUCCEEDED") {
+            my $opencast_url = $object_job_info->{'oc_player_url'};
+            $self->stash(player_url => $opencast_url);
+            $self->render(template => 'utils/opencast', format => 'html');
+          }
+          elsif ($job_status eq "new") {
+            $self->render(text => "please be patient, stream processing will start shortly.");
+          }
+          elsif ($job_status eq "sent") {
+            $self->render(text => "please be patient, video is being processed for streaming.");
+          }
+          elsif ($job_status eq "FAILED") {
+            $self->render(text => "stream preparation failed, please contact your admin.");
+          }
+        }
+        else {
+          $self->render(text => "Did you recently migrate to a streaming service?  It looks like this video has not been not been processed!");
+        }
+        return;
+      }
+      elsif ($self->config->{streaming}) {
 
         my $u_model = PhaidraAPI::Model::Util->new;
         my $r       = $u_model->get_video_key($self, $pid);
@@ -709,22 +738,22 @@ sub preview {
         }
       }
       else {
+        if ($showloadbutton) {
+          $self->render(template => 'utils/loadbutton', format => 'html');
+          return;
+        }
         $self->stash(scheme        => $self->config->{scheme});
         $self->stash(baseurl       => $self->config->{baseurl});
         $self->stash(basepath      => $self->config->{basepath});
+        $self->stash(trywebversion => $trywebversion);
+
+        # html tag won't work with video/quicktime
+        $self->stash(mimetype => $mimetype eq 'video/quicktime' ? 'video/mp4' : $mimetype);
         $self->stash(pid      => $pid);
         my $thumbPid = $self->get_is_thumbnail_for($pid);
         if ($thumbPid) {
           $self->stash(thumbpid => $pid);
         }
-        if ($showloadbutton) {
-          $self->render(template => 'utils/loadbutton', format => 'html');
-          return;
-        }
-        $self->stash(trywebversion => $trywebversion);
-
-        # html tag won't work with video/quicktime
-        $self->stash(mimetype => $mimetype eq 'video/quicktime' ? 'video/mp4' : $mimetype);
 
         my $u_model = PhaidraAPI::Model::Util->new;
         $u_model->track_action($self, $pid, 'preview');
@@ -735,22 +764,21 @@ sub preview {
       return;
     }
     case 'Audio' {
+      if ($showloadbutton) {
+        $self->render(template => 'utils/loadbutton', format => 'html');
+        return;
+      }
       $self->stash(scheme        => $self->config->{scheme});
       $self->stash(baseurl       => $self->config->{baseurl});
       $self->stash(basepath      => $self->config->{basepath});
+      $self->stash(trywebversion => $trywebversion);
+      $self->stash(mimetype      => $mimetype);
       $self->stash(pid           => $pid);
       my $thumbPid = $self->get_is_thumbnail_for($pid);
 
       if ($thumbPid) {
         $self->stash(thumbpid => $pid);
       }
-      
-      if ($showloadbutton) {
-        $self->render(template => 'utils/loadbutton', format => 'html');
-        return;
-      }
-      $self->stash(trywebversion => $trywebversion);
-      $self->stash(mimetype      => $mimetype);
 
       my $u_model = PhaidraAPI::Model::Util->new;
       $u_model->track_action($self, $pid, 'preview');
@@ -1272,6 +1300,31 @@ sub add_or_modify_datastream {
   my $r = $object_model->add_or_modify_datastream($self, $self->stash('pid'), $self->stash('dsid'), $mimetype, $location, $label, $dscontent, $controlgroup, $checksumtype, $checksum, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password}, 0, 0);
 
   $self->render(json => $r, status => $r->{status});
+}
+
+sub get_public_datastream {
+
+  my $self = shift;
+
+  unless (defined($self->stash('pid'))) {
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
+    return;
+  }
+
+  unless (defined($self->stash('dsid'))) {
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined dsid'}]}, status => 400);
+    return;
+  }
+
+  my $dsid = $self->stash('dsid');
+  my $authz_model = PhaidraAPI::Model::Authorization->new;
+  if ($authz_model->is_private_ds($self, $dsid)) {
+    $self->render(json => {alerts => [{type => 'error', msg => 'Datastream '.$dsid.' is not public.'}]}, status => 400);
+    return;
+  }
+
+  my $object_model = PhaidraAPI::Model::Object->new;
+  $object_model->proxy_datastream($self, $self->stash('pid'), $dsid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
 }
 
 sub get_metadata {

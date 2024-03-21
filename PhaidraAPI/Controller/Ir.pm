@@ -934,7 +934,7 @@ sub stats {
   unless ($fr->{site} eq 'ir' or $fr->{site} eq 'phaidra') {
 
     # return 200, this is just ok
-    $self->render(json => {alerts => [{type => 'info', msg => 'Site [' . $fr->{site} . '] is not ed'}]}, status => 200);
+    $self->render(json => {alerts => [{type => 'info', msg => 'Site [' . $fr->{site} . '] is not supported'}]}, status => 200);
     return;
   }
   unless (defined($fr->{stats})) {
@@ -948,7 +948,7 @@ sub stats {
   unless ($fr->{stats}->{type} eq 'piwik') {
 
     # return 200, this is just ok
-    $self->render(json => {alerts => [{type => 'info', msg => 'Statistics source [' . $fr->{stats}->{type} . '] is not ed.'}]}, status => 200);
+    $self->render(json => {alerts => [{type => 'info', msg => 'Statistics source [' . $fr->{stats}->{type} . '] is not supported.'}]}, status => 200);
     return;
   }
   unless ($irsiteid) {
@@ -1011,7 +1011,7 @@ sub stats_chart {
   unless ($fr->{site} eq 'ir' or $fr->{site} eq 'phaidra') {
 
     # return 200, this is just ok
-    $self->render(json => {alerts => [{type => 'info', msg => 'Site [' . $fr->{site} . '] is not ed'}]}, status => 200);
+    $self->render(json => {alerts => [{type => 'info', msg => 'Site [' . $fr->{site} . '] is not supported'}]}, status => 200);
     return;
   }
   unless (defined($fr->{stats})) {
@@ -1025,7 +1025,7 @@ sub stats_chart {
   unless ($fr->{stats}->{type} eq 'piwik') {
 
     # return 200, this is just ok
-    $self->render(json => {alerts => [{type => 'info', msg => 'Statistics source [' . $fr->{stats}->{type} . '] is not ed.'}]}, status => 200);
+    $self->render(json => {alerts => [{type => 'info', msg => 'Statistics source [' . $fr->{stats}->{type} . '] is not supported.'}]}, status => 200);
     return;
   }
   unless ($irsiteid) {
