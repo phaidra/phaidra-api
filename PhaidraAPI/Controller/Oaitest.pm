@@ -231,14 +231,21 @@ sub _add_uwm_roles_with_id {
   my $rec      = shift;
   my $metadata = shift;
 
-  my @roles;
-  my %field;
-  $field{name}   = 'contributor';
-  $field{values} = [];
+  my @fields;
   my $arr     = decode_json(b($rec->{uwm_roles_json}[0])->encode('UTF-8'));
   my @contrib = sort {$a->{data_order} <=> $b->{data_order}} @{$arr};
   for my $con (@contrib) {
-    if ($con->{entities}) {
+    my $dcrole;
+    if ($PhaidraAPI::Model::Jsonld::Extraction::jsonld_creator_roles{$con->{role}}) {
+      $dcrole = 'creator';
+    } else {
+      $dcrole = 'contributor';
+    }
+
+    if ($dcrole && $con->{entities}) {
+      my %field;
+      $field{name}   = $dcrole;
+      $field{values} = [];
       my @entities = sort {$a->{data_order} <=> $b->{data_order}} @{$con->{entities}};
       for my $e (@entities) {
         my $name;
@@ -283,9 +290,32 @@ sub _add_uwm_roles_with_id {
         #$self->app->log->debug('adding: ' . $self->app->dumper($role));
         push @{$field{values}}, $role;
       }
+      push @fields, \%field;
     }
   }
-  push @{$metadata}, \%field;
+
+  $self->app->log->debug('fields: ' . $self->app->dumper(@fields));
+
+  # merge duplicate roles
+  my $merging;
+  for my $f (@fields) {
+    unless (exists($merging->{$f->{name}})) {
+      $merging->{$f->{name}} = {
+        name => $f->{name},
+        values => ()
+      }
+    }
+    for my $v (@{$f->{values}}) {
+      push @{$merging->{$f->{name}}->{values}}, $v;
+    }
+  }
+
+  for my $name (keys %{$merging}) {
+    push @{$metadata}, $merging->{$name};
+  }
+
+  $self->app->log->debug('md after merging: ' . $self->app->dumper($metadata));
+
 }
 
 sub _add_roles_with_id {
@@ -294,55 +324,64 @@ sub _add_roles_with_id {
   my $metadata = shift;
 
   my @roles;
-  my %field;
-  $field{name}   = 'contributor';
-  $field{values} = [];
   if ($rec->{roles_json}) {
     my $roles_json = decode_json(b($rec->{roles_json}[0])->encode('UTF-8'));
     for my $r (@{$roles_json}) {
       for my $pred (keys %{$r}) {
-        for my $contr (@{$r->{$pred}}) {
-          my $name;
-          my $affiliation;
-          my $id;
-          if ($contr->{'@type'} eq 'schema:Person') {
-            if ($contr->{'schema:givenName'} || $contr->{'schema:familyName'}) {
-              $name = $contr->{'schema:givenName'}[0]->{'@value'} . " " . $contr->{'schema:familyName'}[0]->{'@value'};
-            }
-            else {
-              $name = $contr->{'schema:name'}[0]->{'@value'};
-            }
-            if ($contr->{'schema:affiliation'}) {
-              for my $aff (@{$contr->{'schema:affiliation'}}) {
-                for my $affname (@{$aff->{'schema:name'}}) {
-                  $affiliation = $affname->{'@value'};
+        my $dcrole;
+        if ($PhaidraAPI::Model::Jsonld::Extraction::jsonld_creator_roles{substr($pred, 5)}) {
+          $dcrole = 'creator';
+        } else {
+          $dcrole = 'contributor';
+        }
+
+        if ($dcrole) {
+          my %field;
+          $field{name}   = $dcrole;
+          $field{values} = [];
+          for my $contr (@{$r->{$pred}}) {
+            my $name;
+            my $affiliation;
+            my $id;
+            if ($contr->{'@type'} eq 'schema:Person') {
+              if ($contr->{'schema:givenName'} || $contr->{'schema:familyName'}) {
+                $name = $contr->{'schema:givenName'}[0]->{'@value'} . " " . $contr->{'schema:familyName'}[0]->{'@value'};
+              }
+              else {
+                $name = $contr->{'schema:name'}[0]->{'@value'};
+              }
+              if ($contr->{'schema:affiliation'}) {
+                for my $aff (@{$contr->{'schema:affiliation'}}) {
+                  for my $affname (@{$aff->{'schema:name'}}) {
+                    $affiliation = $affname->{'@value'};
+                  }
                 }
               }
+              if ($contr->{'skos:exactMatch'}) {
+                $id = $PhaidraAPI::Model::Jsonld::Extraction::jsonld_identifiers{$contr->{'skos:exactMatch'}[0]->{'@type'}} . ':' . $contr->{'skos:exactMatch'}[0]->{'@value'};
+              }
             }
-            if ($contr->{'skos:exactMatch'}) {
-              $id = $PhaidraAPI::Model::Jsonld::Extraction::jsonld_identifiers{$contr->{'skos:exactMatch'}[0]->{'@type'}} . ':' . $contr->{'skos:exactMatch'}[0]->{'@value'};
+            elsif ($contr->{'@type'} eq 'schema:Organization') {
+              $name = $contr->{'schema:name'}[0]->{'@value'};
             }
-          }
-          elsif ($contr->{'@type'} eq 'schema:Organization') {
-            $name = $contr->{'schema:name'}[0]->{'@value'};
-          }
 
-          my $role = $name;
-          if ($affiliation) {
-            $role .= ' (' . $affiliation . ')';
-          }
-          $role .= '|hide|[role:'.substr($pred, 5).']';
-          if ($id) {
-            $role .= '[' . $id . ']';
-          }
+            my $role = $name;
+            if ($affiliation) {
+              $role .= ' (' . $affiliation . ')';
+            }
+            $role .= '|hide|[role:'.substr($pred, 5).']';
+            if ($id) {
+              $role .= '[' . $id . ']';
+            }
 
-          #$self->app->log->debug('adding: ' . $self->app->dumper($role));
-          push @{$field{values}}, $role;
+            #$self->app->log->debug('adding: ' . $self->app->dumper($role));
+            push @{$field{values}}, $role;
+          }
+          push @{$metadata}, \%field;
         }
       }
     }
   }
-  push @{$metadata}, \%field;
 }
 
 sub _map_dc_type {
@@ -648,7 +687,7 @@ sub handler {
     my $earliestDatestampStr = '1970-01-01T00:00:01Z';
     my $rec                  = $self->mongo->get_collection('oai_records')->find()->sort({"updated" => 1})->next;
     if ($rec) {
-      $earliestDatestampStr = $self->_epochMsToIso($rec->{created});
+      $earliestDatestampStr = $self->_epochMsToIso($rec->{inserted});
     }
     $self->stash(earliest_datestamp => $earliestDatestampStr);
     $self->render(template => 'oai/identify', format => 'xml', handler => 'ep');
@@ -690,12 +729,16 @@ sub handler {
 
     my %filter;
 
+    if ($from or $until) {
+      $filter{"updated"} = {};
+    }
+
     if ($from) {
-      $filter{"updated"} = {'$gte' => DateTime::Format::ISO8601->parse_datetime($from)->epoch * 1000};
+      $filter{"updated"}->{'$gte'} = DateTime::Format::ISO8601->parse_datetime($from)->epoch * 1000;
     }
 
     if ($until) {
-      $filter{"updated"} = {'$lte' => DateTime::Format::ISO8601->parse_datetime($until)->epoch * 1000};
+      $filter{"updated"}->{'$lte'} = DateTime::Format::ISO8601->parse_datetime($until)->epoch * 1000;
     }
 
     if ($params->{set}) {
