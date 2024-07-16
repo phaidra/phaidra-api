@@ -225,6 +225,7 @@ sub _get_metadata_dc {
   # remove duplicates
   my @u_metadata = ();
   for my $f (@metadata) {
+    $self->app->log->debug('inspecting: ' . $self->app->dumper($f));
     unless ($self->_already_present($f, \@u_metadata)) {
       push @u_metadata, $f;
     }
@@ -239,8 +240,16 @@ sub _already_present {
   my $arr  = shift;
 
   for my $f (@{$arr}) {
-    if ($f->{name} eq $fl->{name} and $f->{lang} eq $fl->{lang}) {
-      return 1;
+    if (($f->{name} eq 'creator') or ($f->{name} eq 'contributor')) {
+      if ($f->{name} eq $fl->{name} and $f->{lang} eq $fl->{lang} and $f->{lang} eq $fl->{lang}) {
+        $self->app->log->debug('already present: ' . $f->{name}."-".$fl->{lang});
+        return 1;
+      }
+    } else {
+      if ($f->{name} eq $fl->{name} and $f->{lang} eq $fl->{lang}) {
+        $self->app->log->debug('already present: ' . $f->{name}."-".$fl->{lang});
+        return 1;
+      }
     }
   }
   return 0;
@@ -282,10 +291,10 @@ sub _add_roles_with_id {
         }
 
         if ($dcrole) {
-          for my $contr (@{$r->{$pred}}) {
-            my %field;
-            $field{name}   = $dcrole;
-            $field{values} = [];
+          my %field;
+          $field{name}   = $dcrole;
+          $field{values} = [];
+          for my $contr (@{$r->{$pred}}) {  
             my $name;
             my $affiliation;
             my $id;
@@ -321,8 +330,8 @@ sub _add_roles_with_id {
 
             #$self->app->log->debug('adding: ' . $self->app->dumper($role));
             push @{$field{values}}, $role;
-            push @{$metadata}, \%field;
           }
+          push @{$metadata}, \%field;
         }
       }
     }
