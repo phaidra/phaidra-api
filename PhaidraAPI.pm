@@ -591,6 +591,8 @@ sub startup {
 
       $admin->post('imageserver/process')                                    ->to('imageserver#process_pids');
       $writer->post('imageserver/:pid/process')                              ->to('imageserver#process');
+      $admin->post('streaming/process')                                      ->to('streaming#process_pids');
+      $admin->post('streaming/:pid/process')                                 ->to('streaming#process');
 
       $writer->post('object/:pid/updateiiifmanifest')                        ->to('iiifmanifest#update_manifest_metadata');
       $writer->post('object/:pid/modify')                                    ->to('object#modify');
@@ -740,8 +742,10 @@ sub startup {
       $admin->post('ir/embargocheck')                                           ->to('ir#embargocheck');
 
       $admin->post('imageserver/process')                                       ->to('imageserver#process_pids');
-
       $proxyauth->post('imageserver/:pid/process')                              ->to('imageserver#process');
+
+      $admin->post('streaming/process')                                         ->to('streaming#process_pids');
+      $proxyauth->post('streaming/:pid/process')                                ->to('streaming#process');
 
       $proxyauth->post('object/:pid/updateiiifmanifest')                        ->to('iiifmanifest#update_manifest_metadata');
       $proxyauth->post('object/:pid/modify')                                    ->to('object#modify');
