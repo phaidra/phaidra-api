@@ -61,11 +61,39 @@ sub create_streaming_job {
         $path = $parthres->{path};
       }
     }
-    my $job = {pid => $pid, cmodel => $cmodel, agent => "vige", status => "new", created => time};
+    # FIX: change status to "new" after migration
+    my $job = {pid => $pid, cmodel => $cmodel, agent => "vige", status => "phaidraupload", created => time};
     $job->{path} = $path if $path;
     $c->paf_mongo->get_collection('jobs')->insert_one($job);
   }
   return $res;
+}
+
+sub get_job {
+  my ($self, $c, $pid) = @_;
+
+  my $res = {alerts => [], status => 200};
+  if ($c->app->config->{streaming} ||
+      defined $c->app->config
+      ->{external_services}->{opencast}->{mode} &&
+      $c->app->config->{external_services}->{opencast}->{mode}
+      eq "ACTIVATED") {
+    $c->app->log->info("Searching for streaming job pid[$pid]");
+    my $resjob = $c->paf_mongo->get_collection('jobs')->find_one({pid => $pid, agent => 'vige'}, {}, {"sort" => {"created" => -1}});
+    if ($resjob->{pid}) {
+      $res->{job} = $resjob;
+      $c->app->log->info("job pid[$pid]:\n".$c->app->dumper($resjob));
+      return $res;
+    } else {
+      unshift @{$res->{alerts}}, {type => 'error', msg => "Could not find job for pid[$pid]"};
+      $res->{status} = 404;
+      return $res
+    }
+  } else {
+    unshift @{$res->{alerts}}, {type => 'error', msg => "Streaming is not configured"};
+    $res->{status} = 400;
+    return $res;
+  }
 }
 
 1;
