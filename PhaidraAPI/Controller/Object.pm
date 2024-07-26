@@ -676,9 +676,9 @@ sub preview {
           }
           elsif ($job_status eq "sent") {
             $self->render(text => "please be patient, video is being processed for streaming.");
-          }
-          elsif ($job_status eq "FAILED") {
-            $self->render(text => "stream preparation failed, please contact your admin.");
+          # }
+          # elsif ($job_status eq "FAILED") {
+          #   $self->render(text => "stream preparation failed, please contact your admin.");
           } elsif ($self->config->{streaming}) {
             # TODO: this is duplicate code, but we'll remove both old streaming paths after migration
             my $u_model = PhaidraAPI::Model::Util->new;
