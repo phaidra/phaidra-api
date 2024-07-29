@@ -16,6 +16,7 @@ use Clone qw(clone);
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::ByteStream qw(b);
 use PhaidraAPI::Model::Oai::Openaire;
+use PhaidraAPI::Model::Vocabulary;
 
 my $DEFAULT_LIMIT = 100;
 
@@ -75,6 +76,10 @@ sub _get_metadata_dc {
   my @el          = qw/contributor coverage creator date description format identifier language publisher relation rights source subject title type/;
   my %valuesCheck = map {$_ => {}} @el;
   my @metadata;
+
+  my $voc_model = PhaidraAPI::Model::Vocabulary->new;
+  my $res = $voc_model->get_vocabulary($self, 'roles');
+  my $rolesvoc = $res->{vocabulary};
 
   # my $isirobject = 0;
   # if (exists($rec->{isinadminset})) {
@@ -137,10 +142,10 @@ sub _get_metadata_dc {
 
   if (($set eq 'phaidra4primo')) {
     if (exists($rec->{roles_json})) {
-      $self->_add_roles_with_id($rec, \@metadata);
+      $self->_add_roles_with_id($rolesvoc, $rec, \@metadata);
     } else {
       if (exists($rec->{uwm_roles_json})) {
-        $self->_add_uwm_roles_with_id($rec, \@metadata);
+        $self->_add_uwm_roles_with_id($rolesvoc, $rec, \@metadata);
       }
     }
   }
@@ -226,8 +231,22 @@ sub _already_present {
   return 0;
 }
 
+sub _get_role_label_de {
+  my $self     = shift;
+  my $c     = shift;
+  my $rolesvoc = shift;
+  my $rolecode = shift;
+
+  for my $r (@{$rolesvoc}) {
+    if ($r->{'@id'} eq 'role:'.$rolecode) {
+      return $r->{'skos:prefLabel'}->{'deu'};
+    }
+  }
+}
+
 sub _add_uwm_roles_with_id {
   my $self     = shift;
+  my $rolesvoc = shift;
   my $rec      = shift;
   my $metadata = shift;
 
@@ -282,7 +301,8 @@ sub _add_uwm_roles_with_id {
         if ($affiliation) {
           $role .= ' (' . $affiliation . ')';
         }
-        $role .= '|hide|[role:'.$con->{role}.']';
+        my $roleLabel = $self->_get_role_label_de($self, $rolesvoc, $con->{role}) || $con->{role};
+        $role .= "|hide|[role:$roleLabel]";
         if ($id) {
           $role .= '[' . $id . ']';
         }
@@ -320,6 +340,7 @@ sub _add_uwm_roles_with_id {
 
 sub _add_roles_with_id {
   my $self     = shift;
+  my $rolesvoc = shift;
   my $rec      = shift;
   my $metadata = shift;
 
@@ -369,7 +390,8 @@ sub _add_roles_with_id {
             if ($affiliation) {
               $role .= ' (' . $affiliation . ')';
             }
-            $role .= '|hide|[role:'.substr($pred, 5).']';
+            my $roleLabel = $self->_get_role_label_de($self, $rolesvoc, substr($pred, 5)) || substr($pred, 5);
+            $role .= "|hide|[role:$roleLabel]";
             if ($id) {
               $role .= '[' . $id . ']';
             }
