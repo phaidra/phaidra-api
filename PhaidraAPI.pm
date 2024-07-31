@@ -664,6 +664,8 @@ sub startup {
       $loggedin->post('termsofuse/agree/:version')                           ->to('termsofuse#agree');
 
       $loggedin->post('settings')                                            ->to('settings#post_settings');
+
+      $loggedin->post('utils/:pid/requestdoi')                               ->to('utils#request_doi');
     }
   } else {
 
@@ -814,6 +816,8 @@ sub startup {
       $check_auth->post('feedback')                                             ->to('feedback#feedback');
 
       $check_auth->post('termsofuse/agree/:version')                            ->to('termsofuse#agree');
+
+      $check_auth->post('utils/:pid/requestdoi')                                ->to('utils#request_doi');
     }
   }
   #>>>
