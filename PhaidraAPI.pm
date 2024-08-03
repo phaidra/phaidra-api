@@ -613,6 +613,9 @@ sub startup {
       $writer->post('object/:pid/datastream/:dsid')                          ->to('object#add_or_modify_datastream');
       $writer->post('object/:pid/data')                                      ->to('object#add_octets');
 
+      $admin->post('objects/:currentowner/modify')                           ->to('object#modify_bulk');
+      $admin->post('objects/:currentowner/delete')                           ->to('object#delete_bulk');
+
       $loggedin->post('picture/create')                                      ->to('object#create_simple', cmodel => 'cmodel:Picture');
       $loggedin->post('document/create')                                     ->to('object#create_simple', cmodel => 'cmodel:PDFDocument');
       $loggedin->post('video/create')                                        ->to('object#create_simple', cmodel => 'cmodel:Video');
@@ -769,6 +772,9 @@ sub startup {
       $proxyauth->post('object/:pid/id/remove')                                 ->to('object#add_or_remove_identifier', operation => 'remove');
       $proxyauth->post('object/:pid/datastream/:dsid')                          ->to('object#add_or_modify_datastream');
       $proxyauth->post('object/:pid/data')                                      ->to('object#add_octets');
+
+      $admin->post('objects/:currentowner/modify')                              ->to('object#modify_bulk');
+      $admin->post('objects/:currentowner/delete')                              ->to('object#delete_bulk');
 
       $proxyauth->post('picture/create')                                        ->to('object#create_simple', cmodel => 'cmodel:Picture');
       $proxyauth->post('document/create')                                       ->to('object#create_simple', cmodel => 'cmodel:PDFDocument');

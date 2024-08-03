@@ -1021,6 +1021,171 @@ sub modify {
   $self->render(json => $r, status => $r->{status});
 }
 
+sub modify_bulk {
+  my $self = shift;
+
+  my $currentowner = $self->stash('currentowner');
+  unless (defined($currentowner)) {
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined current owner'}]}, status => 400);
+    return;
+  }
+
+  my @objarr;
+  my $objects = $self->param('objects');
+
+  unless (defined($objects)) {
+    $self->render(json => {alerts => [{type => 'error', msg => 'No objects sent'}]}, status => 400);
+    return;
+  }
+
+  eval {
+    if (ref $objects eq 'Mojo::Upload') {
+      $self->app->log->debug("Objects sent as file param");
+      $objects = $objects->asset->slurp;
+      $self->app->log->debug("parsing json");
+      $objects = decode_json($objects);
+    }
+    else {
+      $self->app->log->debug("parsing json");
+      $objects = decode_json(b($objects)->encode('UTF-8'));
+    }
+  };
+
+  if ($@) {
+    $self->app->log->error("Error: $@");
+    $self->render(json => {alerts => [{type => 'error', msg => $@}]}, status => 400);
+    return;
+  }
+
+  unless (defined($objects->{objects})) {
+    $self->render(json => {alerts => [{type => 'error', msg => 'No pids found'}]}, status => 400);
+    return;
+  }
+
+  @objarr = @{$objects->{objects}};
+  
+  my $objcount = scalar @objarr;
+  my $i         = 0;
+  my @res;
+  my $status = 200;
+  for my $o (@objarr) {
+    my $pid = $o->{pid};
+
+    $i++;
+    $self->app->log->info("modify_bulk processing $pid [$i/$objcount]");
+
+    my $state = exists($o->{state}) ? $o->{state} : undef;
+    my $label = exists($o->{label}) ? $o->{label} : undef;
+    my $ownerid = exists($o->{ownerid}) ? $o->{ownerid} : undef;
+    my $logmessage = exists($o->{logmessage}) ? $o->{logmessage} : undef;
+    my $lastmodifieddate = exists($o->{lastmodifieddate}) ? $o->{lastmodifieddate} : undef;
+
+    my $search_model = PhaidraAPI::Model::Search->new;
+    my $owr          = $search_model->get_ownerid($self, $pid);
+    if ($owr->{status} ne 200) {
+      push @res, $owr;
+      $status = 500;
+      next;
+    }
+
+    my $objectowner = $owr->{ownerid};
+    $objectowner =~ s/"//g;
+
+    # Sanity check. Only allow bulk operations on objects which belong to single owner.
+    # The owner must be sent in currentowner param, and object's owner must match it.  
+    if ($objectowner ne $currentowner) {
+      push @res, {alerts => [{type => 'error', msg => "Object[$pid] owner[$objectowner] does not match currentowner[$currentowner]"}], status => 400};
+      $status = 500;
+      next;
+    }
+
+    my $object_model = PhaidraAPI::Model::Object->new;
+    my $r            = $object_model->modify($self, $pid, $state, $label, $ownerid, $logmessage, $lastmodifieddate, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+
+    push @res, $r;
+    if ($r->{status} ne 200) {
+      $status = 500;
+    }
+  }
+
+  $self->render(json => {results => \@res}, status => $status);
+}
+
+sub delete_bulk {
+  my $self = shift;
+
+  my $currentowner = $self->stash('currentowner');
+  unless (defined($currentowner)) {
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined current owner'}]}, status => 400);
+    return;
+  }
+
+  my $pids = $self->param('pids');
+
+  unless (defined($pids)) {
+    $self->render(json => {alerts => [{type => 'error', msg => 'No pids sent'}]}, status => 400);
+    return;
+  }
+
+  eval {
+    if (ref $pids eq 'Mojo::Upload') {
+      $self->app->log->debug("Pids sent as file param");
+      $pids = $pids->asset->slurp;
+      $self->app->log->debug("parsing json");
+      $pids = decode_json($pids);
+    }
+    else {
+      $self->app->log->debug("parsing json");
+      $pids = decode_json(b($pids)->encode('UTF-8'));
+    }
+  };
+
+  if ($@) {
+    $self->app->log->error("Error: $@");
+    $self->render(json => {alerts => [{type => 'error', msg => $@}]}, status => 400);
+    return;
+  }
+
+  my $pidscount = scalar @{$pids->{pids}};
+  my $i         = 0;
+  my @res;
+  my $status = 200;
+  for my $pid (@{$pids->{pids}}) {
+
+    $i++;
+    $self->app->log->info("delete_bulk processing $pid [$i/$pidscount]");
+
+    my $search_model = PhaidraAPI::Model::Search->new;
+    my $owr          = $search_model->get_ownerid($self, $pid);
+    if ($owr->{status} ne 200) {
+      push @res, $owr;
+      $status = 500;
+      next;
+    }
+
+    my $objectowner = $owr->{ownerid};
+    $objectowner =~ s/"//g;
+
+    # Sanity check. Only allow bulk operations on objects which belong to single owner.
+    # The owner must be sent in currentowner param, and object's owner must match it.  
+    if ($objectowner ne $currentowner) {
+      push @res, {alerts => [{type => 'error', msg => "Object[$pid] owner[$objectowner] does not match currentowner[$currentowner]"}], status => 400};
+      $status = 500;
+      next;
+    }
+
+    my $object_model = PhaidraAPI::Model::Object->new;
+    my $r            = $object_model->delete($self, $pid, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+
+    push @res, $r;
+    if ($r->{status} ne 200) {
+      $status = 500;
+    }
+  }
+
+  $self->render(json => {results => \@res}, status => $status);
+}
+
 sub get_state {
   my $self = shift;
 
