@@ -2040,51 +2040,67 @@ sub resourcelink {
     return;
   }
 
-  my $search_model = PhaidraAPI::Model::Search->new;
-  my $cmodelr      = $search_model->get_cmodel($self, $pid);
-  if ($cmodelr->{status} ne 200) {
-    $self->app->log->error("pid[$pid] could not get cmodel");
-    $self->render(json => {alerts => [{type => 'error', msg => 'could not get cmodel'}]}, status => 500);
+  if ($self->app->config->{fedora}->{version} >= 6) {
+    my $search_model = PhaidraAPI::Model::Search->new;
+    my $cmodelr      = $search_model->get_cmodel($self, $pid);
+    if ($cmodelr->{status} ne 200) {
+      $self->app->log->error("pid[$pid] could not get cmodel");
+      $self->render(json => {alerts => [{type => 'error', msg => 'could not get cmodel'}]}, status => 500);
+      return;
+    }
+
+    if ($cmodelr->{cmodel} ne 'Resource') {
+      $self->app->log->error("pid[$pid] called resourcelink on a non-resource object");
+      $self->render(json => {alerts => [{type => 'error', msg => "Object $pid does not have a Resource cmodel (current cmodel: ".$cmodelr->{cmodel}.")"}]}, status => 500);
+      return;
+    }
+
+    my $authz_model = PhaidraAPI::Model::Authorization->new;
+    my $authzres    = $authz_model->check_rights($self, $pid, 'r');
+    if ($authzres->{status} != 200) {
+      $res->{status} = $authzres->{status};
+      push @{$res->{alerts}}, @{$authzres->{alerts}} if scalar @{$authzres->{alerts}} > 0;
+      $self->render(json => $res, status => $res->{status});
+      return;
+    }
+
+    my $object_model = PhaidraAPI::Model::Object->new;
+    my $resgetds     = $object_model->get_datastream($self, $pid, 'LINK', $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+    if (($resgetds->{status} ne 200) || (!$resgetds->{LINK})) {
+      $self->render(json => $resgetds, status => $resgetds->{status});
+      return;
+    }
+
+    if ($operation eq 'get') {
+      $res->{resourcelink} = $resgetds->{LINK};
+      $self->render(json => $res, status => $res->{status});
+      return;
+    }
+
+    if ($operation eq 'redirect') {
+      $self->app->log->debug("redirecting to " . $resgetds->{LINK});
+      $self->redirect_to($resgetds->{LINK});
+      return;
+    }
+    
+    $self->app->log->error("pid[$pid] resourcelink, unknown operation: $operation");
+    $self->render(json => {alerts => [{type => 'error', msg => "pid[$pid] resourcelink, unknown operation: $operation"}]}, status => 400);
     return;
+  } else {
+
+    if ($operation eq 'get') {
+      $self->app->log->error("pid[$pid] resourcelink get is not supported on fedora 3.x instances");
+      $self->render(json => {alerts => [{type => 'error', msg => "pid[$pid] resourcelink get is not supported on fedora 3.x instances"}]}, status => 500);
+      return;
+    }
+
+    if ($operation eq 'redirect') {
+      $self->stash->{bdef} = 'Resource';
+      $self->stash->{method} = 'get';
+      return $self->diss($self);
+    }
   }
 
-  if ($cmodelr->{cmodel} ne 'Resource') {
-    $self->app->log->error("pid[$pid] called resourcelink on a non-resource object");
-    $self->render(json => {alerts => [{type => 'error', msg => "Object $pid does not have a Resource cmodel (current cmodel: ".$cmodelr->{cmodel}.")"}]}, status => 500);
-    return;
-  }
-
-  my $authz_model = PhaidraAPI::Model::Authorization->new;
-  my $authzres    = $authz_model->check_rights($self, $pid, 'r');
-  if ($authzres->{status} != 200) {
-    $res->{status} = $authzres->{status};
-    push @{$res->{alerts}}, @{$authzres->{alerts}} if scalar @{$authzres->{alerts}} > 0;
-    $self->render(json => $res, status => $res->{status});
-    return;
-  }
-
-  my $object_model = PhaidraAPI::Model::Object->new;
-  my $resgetds     = $object_model->get_datastream($self, $pid, 'LINK', $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
-  if (($resgetds->{status} ne 200) || (!$resgetds->{LINK})) {
-    $self->render(json => $resgetds, status => $resgetds->{status});
-    return;
-  }
-
-  if ($operation eq 'get') {
-    $res->{resourcelink} = $resgetds->{LINK};
-    $self->render(json => $res, status => $res->{status});
-    return;
-  }
-
-  if ($operation eq 'redirect') {
-    $self->app->log->debug("redirecting to " . $resgetds->{LINK});
-    $self->redirect_to($resgetds->{LINK});
-    return;
-  }
-  
-  $self->app->log->error("pid[$pid] resourcelink, unknown operation: $operation");
-  $self->render(json => {alerts => [{type => 'error', msg => "pid[$pid] resourcelink, unknown operation: $operation"}]}, status => 400);
-  return;
 }
 
 # Diss method is for calling the disseminator which is api-a access, so it can also be called without credentials.
