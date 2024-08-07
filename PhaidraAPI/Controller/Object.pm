@@ -2028,7 +2028,6 @@ sub resourcelink {
   my $self = shift;
 
   my $res = {alerts => [], status => 200};
-
   my $pid = $self->stash('pid');
   unless (defined($pid)) {
     $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
@@ -2089,8 +2088,19 @@ sub resourcelink {
   } else {
 
     if ($operation eq 'get') {
-      $self->app->log->error("pid[$pid] resourcelink get is not supported on fedora 3.x instances");
-      $self->render(json => {alerts => [{type => 'error', msg => "pid[$pid] resourcelink get is not supported on fedora 3.x instances"}]}, status => 500);
+      my $url = Mojo::URL->new;
+      $url->scheme('https');
+      $url->host($self->app->config->{phaidra}->{fedorabaseurl});
+      $url->userinfo($self->stash->{basic_auth_credentials}->{username} . ":" . $self->stash->{basic_auth_credentials}->{password}) if $self->stash->{basic_auth_credentials}->{username};
+      $url->path("/fedora/get/$pid/bdef:Resource/get");
+      my $redres = $self->ua->get($url)->result;
+      if ($redres->code ne 302) {
+        $self->render(json => $redres, status => $redres->{status});
+        return;
+      }
+
+      $res->{resourcelink} = $redres->headers->location;
+      $self->render(json => $res, status => $res->{status});
       return;
     }
 
