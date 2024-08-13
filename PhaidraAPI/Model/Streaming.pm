@@ -61,8 +61,7 @@ sub create_streaming_job {
         $path = $parthres->{path};
       }
     }
-    # FIX: change status to "new" after migration
-    my $job = {pid => $pid, cmodel => $cmodel, agent => "vige", status => "phaidraupload", created => time};
+    my $job = {pid => $pid, cmodel => $cmodel, agent => "vige", status => "new", created => time};
     $job->{path} = $path if $path;
     $c->paf_mongo->get_collection('jobs')->insert_one($job);
   }
