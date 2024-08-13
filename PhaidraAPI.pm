@@ -549,7 +549,8 @@ sub startup {
 
     $loggedin->get('authz/check/:pid/:op')                                   ->to('authorization#check_rights');
 
-    $reader->get('streaming/:pid')                                           ->to('utils#streamingplayer');
+    #$reader->get('streaming/:pid')                                          ->to('utils#streamingplayer');
+    $reader->get('streaming/:pid')                                           ->to('object#preview');
     $reader->get('streaming/:pid/key')                                       ->to('utils#streamingplayer_key');
 
     $reader->get('imageserver')                                              ->to('imageserver#imageserverproxy');
@@ -701,7 +702,8 @@ sub startup {
 
     $proxyauth_optional->get('authz/check/:pid/:op')                            ->to('authorization#check_rights');
 
-    $proxyauth_optional->get('streaming/:pid')                                  ->to('utils#streamingplayer');
+    #$proxyauth_optional->get('streaming/:pid')                                 ->to('utils#streamingplayer');
+    $proxyauth_optional->get('streaming/:pid')                                  ->to('object#preview');
     $proxyauth_optional->get('streaming/:pid/key')                              ->to('utils#streamingplayer_key');
 
     $proxyauth_optional->get('imageserver')                                     ->to('imageserver#imageserverproxy');
