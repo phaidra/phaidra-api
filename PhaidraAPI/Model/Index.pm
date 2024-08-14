@@ -1983,6 +1983,7 @@ sub _add_jsonld_index {
     $index->{"descriptions_json"} = b(encode_json(\@descriptions))->decode('UTF-8');
   }
 
+  my $skosConcepts = [];
   if (exists($jsonld->{'dcterms:subject'})) {
     for my $o (@{$jsonld->{'dcterms:subject'}}) {
       if ($o->{'@type'} eq 'phaidra:Subject') {
@@ -1996,9 +1997,11 @@ sub _add_jsonld_index {
             push @{$index->{"dcterms_subject_id"}}, $subject_id;
           }
         }
+        push @$skosConcepts, $o;
       }
     }
   }
+  $index->{"skos_concepts"} = b(encode_json($skosConcepts))->decode('UTF-8');
 
   if (exists($jsonld->{'bf:provisionActivity'})) {
     for my $pa (@{$jsonld->{'bf:provisionActivity'}}) {
