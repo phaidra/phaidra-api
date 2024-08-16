@@ -92,6 +92,10 @@ sub _get_metadata {
       my $edm_model = PhaidraAPI::Model::Oai::Edm->new;
       return $edm_model->get_metadata($self, $rec);
     }
+    case 'lom' {
+      my $lom_model = PhaidraAPI::Model::Oai::Lom->new;
+      return $lom_model->get_metadata($self, $rec);
+    }
   }
 }
 

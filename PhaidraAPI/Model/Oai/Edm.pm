@@ -18,7 +18,7 @@ sub get_metadata {
   my %iso6393ToBCP = reverse %{$lang_model->get_iso639map()};
   my $pidUri       = 'https://' . $c->app->config->{phaidra}->{baseurl} . '/' . $pid;
   my $apiBaseUrlPath = $c->app->config->{baseurl}. ($c->app->config->{basepath} ? '/' . $c->app->config->{basepath} : '');
-  my $getUri       = "https://$apiBaseUrlPath/object/$pid/get";
+  my $getUrl       = "https://$apiBaseUrlPath/object/$pid/get";
   my $iiifUri      = "https://$apiBaseUrlPath/imageserver?IIIF=$pid.tif/";
   my $iiifManifestUri = "https://$apiBaseUrlPath/object/$pid/iiifmanifest";
 
@@ -100,7 +100,7 @@ sub get_metadata {
     name => 'edm:isShownBy',
     attributes => [
       { name  => 'rdf:resource',
-        value => $getUri,
+        value => $getUrl,
       }
     ]
   };
@@ -136,12 +136,16 @@ sub get_metadata {
   my $titles = $self->_get_dc_fields($c, \%iso6393ToBCP, $rec, 'title', 'dc:title');
   push @{$edmProvidedCHO->{children}}, @{$titles};
 
+  # dc:description
+  my $descriptions = $self->_get_dc_fields($c, \%iso6393ToBCP, $rec, 'description', 'dc:description');
+  push @{$edmProvidedCHO->{children}}, @{$descriptions};
+
   # dc:identifier
   push @{$edmProvidedCHO->{children}}, {
     name => 'dc:identifier',
     attributes => [
       { name  => 'rdf:resource',
-        value => $getUri,
+        value => $getUrl,
       }
     ]
   };
@@ -274,7 +278,7 @@ sub get_metadata {
     name       => 'edm:WebResource',
     attributes => [
       { name  => 'rdf:about',
-        value => $getUri
+        value => $getUrl
       }
     ],
     children => []
@@ -348,43 +352,46 @@ sub get_metadata {
   
   #### skos:Concept ####
 
-  if (exists($rec->{skos_concepts})) {
-    my $skosConcepts = decode_json(b($rec->{skos_concepts}[0])->encode('UTF-8'));
-    for my $c_in (@{$skosConcepts}) {
-      my $c_out = {
-        name => 'skos:Concept',
-        attributes => [],
-        children => []
-      };
-      my $prefLabels = [];
-      my $exactMatch;  
-      for my $em (@{$c_in->{'skos:exactMatch'}}) {
-        push @{$c_out->{attributes}}, { 
-          name  => 'rdf:about',
-          value => $em
-        };
-        last;
-      }
-      for my $l_in (@{$c->{'skos:prefLabel'}}) {
-        my $l_out = {
-          name => 'skos:prefLabel',
-          attributes => [],
-          value => $l_in->{'@value'}
-        };
-        
-        if ($l_in->{'@language'}) {
-          push @{$l_out->{attributes}}, { 
-            name  => 'xml:lang',
-            value => $l_in->{'@language'}
+  if (exists($rec->{jsonld})) {
+    if (exists($rec->{jsonld}->{'dcterms:subject'})) {
+      for my $c_in (@{$rec->{jsonld}->{'dcterms:subject'}}) {
+        if ($c_in->{'@type'} eq 'skos:Concept') {
+          my $c_out = {
+            name => 'skos:Concept',
+            attributes => [],
+            children => []
           };
+          my $prefLabels = [];
+          my $exactMatch;  
+          for my $em (@{$c_in->{'skos:exactMatch'}}) {
+            push @{$c_out->{attributes}}, { 
+              name  => 'rdf:about',
+              value => $em
+            };
+            last;
+          }
+          for my $l_in (@{$c->{'skos:prefLabel'}}) {
+            my $l_out = {
+              name => 'skos:prefLabel',
+              attributes => [],
+              value => $l_in->{'@value'}
+            };
+            
+            if ($l_in->{'@language'}) {
+              push @{$l_out->{attributes}}, { 
+                name  => 'xml:lang',
+                value => $l_in->{'@language'}
+              };
+            }
+            push @{$c_out->{children}}, $l_out;
+          }
+          push @{$edm->{children}}, $c_out;
         }
-        push @{$c_out->{children}}, $l_out;
       }
-      push @{$edm->{children}}, $c_out;
     }
   }
 
-  $c->app->log->debug("XXXXXXXXXXXXXXXXXXXXXXXXX\n".$c->app->dumper($edm));
+  # $c->app->log->debug("XXXXXXXXXXXXX EDM XXXXXXXXXXXX\n".$c->app->dumper($edm));
   
   push @metadata, $edm;
 
@@ -455,7 +462,7 @@ sub _get_rights_statement {
     if ($key =~ m/^dc_rights/) {
       for my $v (@{$rec->{key}}) {
         unless ($v =~ m/^http(s)?:\/\//) {
-          return $v; # card 0..1
+          return $v; # cardinality 0..1
         }
       }
     }

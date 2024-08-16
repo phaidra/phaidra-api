@@ -237,6 +237,10 @@ sub _get_role_label_de {
   my $rolesvoc = shift;
   my $rolecode = shift;
 
+  if ($rolecode eq 'datasupplier') {
+    return 'DatenlieferantIn';
+  }
+
   for my $r (@{$rolesvoc}) {
     if ($r->{'@id'} eq 'role:'.$rolecode) {
       return $r->{'skos:prefLabel'}->{'deu'};
@@ -274,16 +278,16 @@ sub _add_uwm_roles_with_id {
           $id = 'orcid:'.$e->{orcid};
         }
         if ($e->{viaf}) {
-          $id = 'viaf:'.$e->{viaf};
+          $id = ($id ? '|' : '') .'viaf:'.$e->{viaf};
         }
         if ($e->{wdq}) {
-          $id = 'wdq:'.$e->{wdq};
+          $id = ($id ? '|' : ''). 'wdq:'.$e->{wdq};
         }
         if ($e->{gnd}) {
-          $id = 'gnd:'.$e->{gnd};
+          $id = ($id ? '|' : ''). 'gnd:'.$e->{gnd};
         }
         if ($e->{isni}) {
-          $id = 'isni:'.$e->{isni};
+          $id = ($id ? '|' : ''). 'isni:'.$e->{isni};
         }
 
         if ($e->{firstname} || $e->{lastname}) {
@@ -295,6 +299,32 @@ sub _add_uwm_roles_with_id {
           if ($e->{institution}) {
             $name = $e->{institution};
           }
+        }
+
+        # TODO
+        unless ($name) {
+          # the person/corp is not saved as contribute->entity but it's parts are in multiple entity
+          # parts of the contribute node
+          # <ns1:contribute seq="0">
+          #   <ns1:role>46</ns1:role>
+          #   <ns1:entity seq="0">
+          #     <ns3:firstname>Susanne</ns3:firstname>
+          #     <ns3:lastname>Blumesberger</ns3:lastname>
+          #   </ns1:entity>
+          #   <ns1:entity seq="1">
+          #     <ns3:type>viaf</ns3:type>
+          #     <ns3:viaf>267230929</ns3:viaf>
+          #   </ns1:entity>
+          #   <ns1:entity seq="2">
+          #     <ns3:type>gnd</ns3:type>
+          #     <ns3:gnd>123533813</ns3:gnd>
+          #   </ns1:entity>
+          #   <ns1:entity seq="3">
+          #     <ns3:type>orcid</ns3:type>
+          #     <ns3:orcid>0000-0001-9018-623X </ns3:orcid>
+          #   </ns1:entity>
+          #   <ns1:date>2015-09-18</ns1:date>
+          # </ns1:contribute>
         }
 
         my $role = $name;
