@@ -236,17 +236,35 @@ sub get_metadata {
     }
   }
 
-  # dc:creator
-  my $creators = $self->_get_dc_fields($c, \%iso6393ToBCP, $rec, 'creator', 'dc:creator');
-  push @{$edmProvidedCHO->{children}}, @{$creators};
+  # if there are metadata about physical object and there are roles, only add these to providedCHO
+  my $hasRepresentedObjectRoles = 0;
+  if (exists($rec->{jsonld})) {
+    if (exists($rec->{jsonld}->{'dcterms:subject'})) {
+      for my $subject (@{$rec->{jsonld}->{'dcterms:subject'}}) {
+        if ($subject->{'@type'} eq 'phaidra:Subject') {
+          for my $sPredicate (keys %{$subject}) {
+            if ($sPredicate =~ m/role:(\w+)/g) {
+              $hasRepresentedObjectRoles = 1;
+            }
+          }
+        }
+      }
+    }
+  }
+         
+  unless ($hasRepresentedObjectRoles) {
+    # dc:creator
+    my $creators = $self->_get_dc_fields($c, \%iso6393ToBCP, $rec, 'creator', 'dc:creator');
+    push @{$edmProvidedCHO->{children}}, @{$creators};
 
-  # dc:contributor
-  my $contributors = $self->_get_dc_fields($c, \%iso6393ToBCP, $rec, 'contributor', 'dc:contributor');
-  push @{$edmProvidedCHO->{children}}, @{$contributors};
+    # dc:contributor
+    my $contributors = $self->_get_dc_fields($c, \%iso6393ToBCP, $rec, 'contributor', 'dc:contributor');
+    push @{$edmProvidedCHO->{children}}, @{$contributors};
 
-  # dc:publisher
-  my $publishers = $self->_get_dc_fields($c, \%iso6393ToBCP, $rec, 'publisher', 'dc:publisher');
-  push @{$edmProvidedCHO->{children}}, @{$publishers};
+    # dc:publisher
+    my $publishers = $self->_get_dc_fields($c, \%iso6393ToBCP, $rec, 'publisher', 'dc:publisher');
+    push @{$edmProvidedCHO->{children}}, @{$publishers};
+  }
 
   # dcterms:isPartOf
   if (exists($rec->{ispartof})) {
@@ -264,11 +282,151 @@ sub get_metadata {
     }
   }
 
-  # currently not in index
-  # dcterms:spatial
+  # currently not in index, so only taken if object has json-ld
   # dcterms:temporal
-  # dc:coverage
+  # dcterms:spatial
   # dcterms:provenance
+  if (exists($rec->{jsonld})) {
+    my $jsonld = $rec->{jsonld};
+
+    # dcterms:temporal
+    my $temporal;
+    if (exists($jsonld->{'dcterms:temporal'})) {
+      $temporal = $jsonld->{'dcterms:temporal'};
+    }
+    # use represented-object temporal coverage preferrably
+    if (exists($jsonld->{'dcterms:subject'})) {
+      for my $subject (@{$jsonld->{'dcterms:subject'}}) {
+        if ($subject->{'@type'} eq 'phaidra:Subject') {
+          if (exists($subject->{'dcterms:temporal'})) {
+            $temporal = $subject->{'dcterms:temporal'};
+          }
+        }
+      }
+    }
+    if ($temporal) {
+      for my $temp (@{$temporal}) {
+        my $tempNode = {
+          name => 'dcterms:temporal',
+          value => $temp->{'@value'}
+        };
+        if ($temp->{'@language'}) {
+          $tempNode->{attributes} = [
+            {
+              name => 'xml:lang',
+              value => $self->_map_iso3_to_bcp(\%iso6393ToBCP, $temp->{'@language'})
+            }
+          ]
+        }
+        push @{$edmProvidedCHO->{children}}, $tempNode;
+      }
+    }
+
+    # dcterms:spatial
+    my $spatial;
+    if (exists($jsonld->{'dcterms:spatial'})) {
+      $spatial = $jsonld->{'dcterms:spatial'};
+    }
+    # use represented-object spatial coverage preferrably
+    if (exists($jsonld->{'dcterms:subject'})) {
+      for my $subject (@{$jsonld->{'dcterms:subject'}}) {
+        if ($subject->{'@type'} eq 'phaidra:Subject') {
+          if (exists($subject->{'dcterms:spatial'})) {
+            $spatial = $subject->{'dcterms:spatial'};
+          }
+        }
+      }
+    }
+    if ($spatial) {
+      for my $place (@{$spatial}) {
+        my $placeid;
+        if (exists($place->{'skos:exactMatch'})) {
+          for my $em (@{$place->{'skos:exactMatch'}}) {
+            $placeid = $em;
+            last;
+          }
+        }
+        if ($placeid) {
+          my $spatialNode = {
+            name => 'dcterms:spatial',
+            attributes => [
+              {
+                name => 'rdf:resource',
+                value => $placeid
+              }
+            ]
+          };
+          push @{$edmProvidedCHO->{children}}, $spatialNode;
+
+          my $rdfsLabel;
+          if (exists($place->{'rdfs:label'})) {
+            for my $lab (@{$place->{'rdfs:label'}}) {
+              $rdfsLabel = $lab->{'@value'};
+              last;
+            }
+          }
+
+          if ($rdfsLabel) {
+            my $edmPlace = {
+              name => 'edm:Place',
+              attributes => [
+                {
+                  name => 'rdf:about',
+                  value => $placeid
+                }
+              ],
+              children => [
+                {
+                  name => 'skos:prefLabel',
+                  value => $rdfsLabel
+                }
+              ]
+            };
+            # this goes one level up
+            push @{$edm->{children}}, $edmPlace;
+          }
+        }
+      }
+    }
+
+    # dcterms:provenance
+    my $provenance;
+    if (exists($jsonld->{'dcterms:provenance'})) {
+      $provenance = $jsonld->{'dcterms:provenance'};
+    }
+    # use represented-object spatial coverage preferrably
+    if (exists($jsonld->{'dcterms:subject'})) {
+      for my $subject (@{$jsonld->{'dcterms:subject'}}) {
+        if ($subject->{'@type'} eq 'phaidra:Subject') {
+          if (exists($subject->{'dcterms:provenance'})) {
+            $provenance = $subject->{'dcterms:provenance'};
+          }
+        }
+      }
+    }
+    if ($provenance) {
+      for my $prov (@{$provenance}) {
+        my $prefLabel;
+        if (exists($prov->{'skos:prefLabel'})) {
+          for my $lab (@{$prov->{'skos:prefLabel'}}) {
+            my $provenanceNode = {
+              name => 'dcterms:provenance',
+              value => $lab->{'@value'}
+            };
+            if (exists($lab->{'@language'})) {
+              $provenanceNode->{attributes} = [
+                {
+                  name => 'xml:lang',
+                  value => $self->_map_iso3_to_bcp(\%iso6393ToBCP, $lab->{'@language'})
+                }
+              ];
+            }
+            push @{$edmProvidedCHO->{children}}, $provenanceNode;
+          }
+        }
+      }
+    }
+  }
 
   push @{$edm->{children}}, $edmProvidedCHO;
 
@@ -370,7 +528,7 @@ sub get_metadata {
             };
             last;
           }
-          for my $l_in (@{$c->{'skos:prefLabel'}}) {
+          for my $l_in (@{$c_in->{'skos:prefLabel'}}) {
             my $l_out = {
               name => 'skos:prefLabel',
               attributes => [],
@@ -380,7 +538,7 @@ sub get_metadata {
             if ($l_in->{'@language'}) {
               push @{$l_out->{attributes}}, { 
                 name  => 'xml:lang',
-                value => $l_in->{'@language'}
+                value => $self->_map_iso3_to_bcp(\%iso6393ToBCP, $l_in->{'@language'})
               };
             }
             push @{$c_out->{children}}, $l_out;
@@ -391,7 +549,7 @@ sub get_metadata {
     }
   }
 
-  # $c->app->log->debug("XXXXXXXXXXXXX EDM XXXXXXXXXXXX\n".$c->app->dumper($edm));
+  $c->app->log->debug("XXXXXXXXXXXXX EDM XXXXXXXXXXXX\n".$c->app->dumper($edm));
   
   push @metadata, $edm;
 
@@ -418,7 +576,8 @@ sub _get_dc_fields {
         $node{value} = $v;
         unless ($lang eq 'xxx') {
           $node{attributes} = [
-            { name  => 'xml:lang',
+            { 
+              name  => 'xml:lang',
               value => $self->_map_iso3_to_bcp($iso6393ToBCP, $lang)
             }
           ];

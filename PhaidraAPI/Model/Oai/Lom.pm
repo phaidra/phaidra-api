@@ -218,17 +218,6 @@ sub get_metadata {
   my $descriptions = $self->_get_dc_fields($c, \%iso6393ToBCP, $rec, 'description', 'lom:description');
   push @{$general->{children}}, @{$descriptions};
 
-  # keyword
-  my $keywords = $self->_get_dc_fields($c, \%iso6393ToBCP, $rec, 'subject', 'lom:keyword');
-  for my $kw (@{$keywords}) {
-    for my $kwLangString (@{$kw->{children}}) {
-      # skip ÖFOS, those will be added as classification
-      if (rindex($kwLangString->{value}, 'ÖFOS', 0) != 0) {
-        push @{$general->{children}}, $kw;
-      }
-    }
-  }
-
   # language
   if (exists($rec->{dc_language})) {
     for my $l (@{$rec->{dc_language}}) {
@@ -262,18 +251,12 @@ sub get_metadata {
 
   # contribute
   if (exists($rec->{roles_json})) {
-    $self->_add_contribute($lifecycle, $rec, 'roles_json', 'aut', 'Author');
-    $self->_add_contribute($lifecycle, $rec, 'roles_json', 'pbl', 'Publisher');
-    $self->_add_contribute($lifecycle, $rec, 'roles_json', 'edt', 'Editor');
+    $self->_add_contribute($c, $lifecycle, $rec, 'roles_json');
   } else {
     if (exists($rec->{uwm_roles_json})) {
-      $self->_add_contribute($lifecycle, $rec, 'uwm_roles_json', 'aut', 'Author');
-      $self->_add_contribute($lifecycle, $rec, 'uwm_roles_json', 'pbl', 'Publisher');
-      $self->_add_contribute($lifecycle, $rec, 'uwm_roles_json', 'edt', 'Editor');
+      $self->_add_contribute($c, $lifecycle, $rec, 'uwm_roles_json');
     }
   }
-
-  
 
   #### technical ####
 
@@ -452,7 +435,7 @@ sub get_metadata {
     name => 'lom:langstring',
     value => $lic
   };
-  if (rindex($lic, 'https://creativecommons.org/licenses/', 0) == 0) {
+  if ($lic =~ m/^https?\:\/\/creativecommons.org\/licenses\//) {
     $licLangStr->{attributes} = [
       {
         name => 'xml:lang',
@@ -512,7 +495,7 @@ sub get_metadata {
     ]
   };
 
-  $self->_add_oefos($classification, $rec);
+  $self->_add_oefos_and_keywords($c, \%iso6393ToBCP, $general, $classification, $rec);
 
   push @{$lom->{children}}, $general;
   push @{$lom->{children}}, $lifecycle;
@@ -521,15 +504,15 @@ sub get_metadata {
   push @{$lom->{children}}, $technical;
   push @{$lom->{children}}, $classification;
 
-  $c->app->log->debug("XXXXXXXXXXXX LOM XXXXXXXXXXXXX\n".$c->app->dumper($lom));
+  # $c->app->log->debug("XXXXXXXXXXXX LOM XXXXXXXXXXXXX\n".$c->app->dumper($lom));
   
   push @metadata, $lom;
 
   return \@metadata;
 }
 
-sub _add_oefos {
-  my ($self, $classification, $rec) = @_;
+sub _add_oefos_and_keywords {
+  my ($self, $c, $iso6393ToBCP, $general, $classification, $rec) = @_;
 
   # turning
   # ÖFOS 2012 -- SOZIALWISSENSCHAFTEN (5) -- Erziehungswissenschaften (503) -- Erziehungswissenschaften (5030) -- E-Learning (503008)
@@ -554,6 +537,7 @@ sub _add_oefos {
   # it's ÖFOS so it's just eng and deu
 
   my $taxonPaths;
+  my @lastTaxonLabels;
 
   if (exists($rec->{dc_subject_eng})) {
     for my $sub (@{$rec->{dc_subject_eng}}) {
@@ -563,22 +547,25 @@ sub _add_oefos {
 
         # first, find last taxon, we'll use it to identify this classification
         my $lastTaxon;
+        my $lastTaxonLabel;
         for my $entry (@path) {
           if (rindex($entry , 'ÖFOS', 0) == 0) {
             next;
           }
-          $entry =~ m/(\w+)\s\((\d+)\)/;
+          $entry =~ m/(.+)\s\((\d+)\)$/;
+          $lastTaxonLabel = $1;
           $lastTaxon = $2;
         }
 
         $taxonPaths->{$lastTaxon} = [];
+        push @lastTaxonLabels, $lastTaxonLabel;
 
         # now add the full path for that taxon
         for my $entry (@path) {
           if (rindex($entry , 'ÖFOS', 0) == 0) {
             next;
           }
-          $entry =~ m/(\w+)\s\((\d+)\)/;
+          $entry =~ m/(.+)\s\((\d+)\)$/;
           push @{$taxonPaths->{$lastTaxon}}, {
             'notation' => $2,
             'eng' => $1
@@ -597,19 +584,23 @@ sub _add_oefos {
 
         # first, find last taxon, we'll use it to identify this classification
         my $lastTaxon;
+        my $lastTaxonLabel;
         for my $entry (@path) {
           if (rindex($entry , 'ÖFOS', 0) == 0) {
             next;
           }
-          $entry =~ m/(\w+)\s\((\d+)\)/;
+          $entry =~ m/(.+)\s\((\d+)\)$/;
+          $lastTaxonLabel = $1;
           $lastTaxon = $2;
         }
+
+        push @lastTaxonLabels, $lastTaxonLabel;
 
         for my $entry (@path) {
           if (rindex($entry , 'ÖFOS', 0) == 0) {
             next;
           }
-          $entry =~ m/(\w+)\s\((\d+)\)/;
+          $entry =~ m/(.+)\s\((\d+)\)$/;
 
           for my $entry (@{$taxonPaths->{$lastTaxon}}) {
             if ($entry->{notation} eq $2) {
@@ -626,64 +617,60 @@ sub _add_oefos {
     my @taxonChildren;
     
     push @taxonChildren, {
-      {
-        name => 'lom:source',
-        children => [
-          {
-            name => 'lom:langstring',
-            values => 'https://w3id.org/oerbase/vocabs/oefos2012',
-            attributes => [
-              { 
-                name  => 'xml:lang',
-                value => 'x-none'
-              }
-            ]
-          }
-        ]
-      }
+      name => 'lom:source',
+      children => [
+        {
+          name => 'lom:langstring',
+          value => 'https://w3id.org/oerbase/vocabs/oefos2012',
+          attributes => [
+            { 
+              name  => 'xml:lang',
+              value => 'x-none'
+            }
+          ]
+        }
+      ]
     };
     
     for my $entry (@{$taxonPaths->{$lastTaxon}}) {
       push @taxonChildren, {
-        {
-          name => 'lom:taxon',
-          children => [
-            {
-              name => 'lom:id',
-              value => 'https://w3id.org/oerbase/vocabs/oefos2012/'.$entry->{notation}
-            },
-            {
-              name => 'lom:entry',
-              children => [
-                {
-                  name => 'lom:langstring',
-                  value => $entry->{eng},
-                  attributes => [
-                    {
-                      name => 'xml:lang',
-                      value => 'en'
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              name => 'lom:entry',
-              children => [
-                {
-                  name => 'lom:langstring',
-                  value => $entry->{deu},
-                  attributes => [
-                    {
-                      name => 'xml:lang',
-                      value => 'de'
-                    }
-                  ]
-                }
-              ]
-            }
-          ]
-        }
+        name => 'lom:taxon',
+        children => [
+          {
+            name => 'lom:id',
+            value => 'https://w3id.org/oerbase/vocabs/oefos2012/'.$entry->{notation}
+          },
+          {
+            name => 'lom:entry',
+            children => [
+              {
+                name => 'lom:langstring',
+                value => $entry->{eng},
+                attributes => [
+                  {
+                    name => 'xml:lang',
+                    value => 'en'
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            name => 'lom:entry',
+            children => [
+              {
+                name => 'lom:langstring',
+                value => $entry->{deu},
+                attributes => [
+                  {
+                    name => 'xml:lang',
+                    value => 'de'
+                  }
+                ]
+              }
+            ]
+          }
+        ]
       };
     }
 
@@ -692,10 +679,33 @@ sub _add_oefos {
       children => \@taxonChildren
     };
   }
+
+  my $keywords = $self->_get_dc_fields($c, $iso6393ToBCP, $rec, 'subject', 'lom:keyword');
+  for my $kw (@{$keywords}) {
+    for my $kwLangString (@{$kw->{children}}) {
+      # when indexing, this
+      # ÖFOS 2012 -- SOZIALWISSENSCHAFTEN (5) -- Erziehungswissenschaften (503) -- Erziehungswissenschaften (5030) -- E-Learning (503008)
+      # and this
+      # E-Learning
+      # was added to dc_subject along with keywords
+      # we want to skip those, since those were just added as classification
+      my $kwval = $kwLangString->{value};
+      my $isOefosTaxon = 0;
+      for my $lt (@lastTaxonLabels) {
+        if ($kwval eq $lt) {
+          $isOefosTaxon = 1;
+          last;
+        }
+      }
+      if ((rindex($kwval, 'ÖFOS', 0) != 0) && !$isOefosTaxon) {
+        push @{$general->{children}}, $kw;
+      }
+    }
+  }
 }
 
 sub _add_contribute {
-  my ($self, $lifecycle, $rec, $solrfield, $field, $role) = @_;
+  my ($self, $c, $lifecycle, $rec, $solrfield) = @_;
 
   for my $roles_json_str (@{$rec->{$solrfield}}) {
 
@@ -703,101 +713,104 @@ sub _add_contribute {
 
     my $roles;
     if ($solrfield eq 'roles_json') {
-      $roles = $self->_get_jsonld_roles($json);
+      $roles = $self->_get_jsonld_roles($c, $json);
     } else {
-      $roles = $self->_get_uwm_roles($json);
+      $roles = $self->_get_uwm_roles($c, $json);
     }
 
     for my $role (keys %{$roles}) {
-      my $contribute = {
-        name => 'lom:contribute',
-        children => [
-          {
-            name => 'lom:role',
-            children => [
-              {
-                name => 'lom:source',
-                children => [
-                  {
-                    name => 'lom:langstring',
-                    value => 'LOMv1.0'
-                  }
-                ],
-                attributes => [
-                  { 
-                    name  => 'xml:lang',
-                    value => 'x-none'
-                  }
-                ]
-              },
-              {
-                name => 'lom:value',
-                children => [
-                  {
-                    name => 'lom:langstring',
-                    value => $role
-                  }
-                ],
-                attributes => [
-                  { 
-                    name  => 'xml:lang',
-                    value => 'x-none'
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      };
-
-      for my $entity (@{$roles->{$role}}) {
-
-        my $n;
-        my $fn;
-        my $orcid;
-        if ($entity->{name}) {
-          $fn = $entity->{name};
-        }
-        else {
-          $fn = $entity->{lastname};
-          $fn = $entity->{firstname}.' '.$entity->{lastname} if $entity->{firstname};
-
-          $n = $entity->{lastname}.';;';
-          $n = $entity->{lastname}.';'.$entity->{lastname}.';' if $entity->{firstname};
-        }
-        
-        my $vcard = "BEGIN:VCARD\nVERSION:3.0\n";
-
-        if ($entity->{n}) {
-          $vcard .= "N:$n\n";
-        }
-
-        $vcard .= "FN:$fn\n";
-
-        if ($entity->{orcid}) {
-          $vcard .= "X-ORCID:https\://orcid.org/$orcid\n";
-        }
-
-        $vcard .= "END:VCARD";
-
-        push @{$contribute->{children}}, {
-          name => 'lom:centity',
+      my $entityCnt = scalar @{$roles->{$role}};
+      if ($entityCnt > 0) {
+        my $contribute = {
+          name => 'lom:contribute',
           children => [
             {
-              name => 'lom:vcard',
-              value => $vcard
+              name => 'lom:role',
+              children => [
+                {
+                  name => 'lom:source',
+                  children => [
+                    {
+                      name => 'lom:langstring',
+                      value => 'LOMv1.0'
+                    }
+                  ],
+                  attributes => [
+                    { 
+                      name  => 'xml:lang',
+                      value => 'x-none'
+                    }
+                  ]
+                },
+                {
+                  name => 'lom:value',
+                  children => [
+                    {
+                      name => 'lom:langstring',
+                      value => $role
+                    }
+                  ],
+                  attributes => [
+                    { 
+                      name  => 'xml:lang',
+                      value => 'x-none'
+                    }
+                  ]
+                }
+              ]
             }
           ]
         };
-      }
 
-      push @{$lifecycle->{children}}, $contribute;
+        for my $entity (@{$roles->{$role}}) {
+
+          my $n;
+          my $fn;
+          my $orcid;
+          if ($entity->{name}) {
+            $fn = $entity->{name};
+          }
+          else {
+            $fn = $entity->{lastname};
+            $fn = $entity->{firstname}.' '.$entity->{lastname} if $entity->{firstname};
+
+            $n = $entity->{lastname}.';;';
+            $n = $entity->{lastname}.';'.$entity->{firstname}.';' if $entity->{firstname};
+          }
+          
+          my $vcard = "BEGIN:VCARD\nVERSION:3.0\n";
+
+          if ($n) {
+            $vcard .= "N:$n\n";
+          }
+
+          $vcard .= "FN:$fn\n";
+
+          if ($entity->{orcid}) {
+            $vcard .= "X-ORCID:https\://orcid.org/".$entity->{orcid}."\n";
+          }
+
+          $vcard .= "END:VCARD";
+
+          push @{$contribute->{children}}, {
+            name => 'lom:centity',
+            children => [
+              {
+                name => 'lom:vcard',
+                value => $vcard
+              }
+            ]
+          };
+        }
+
+        push @{$lifecycle->{children}}, $contribute;
+      }
     }
   }
 }
 
 sub _get_jsonld_roles {
-  my ($self, $json) = @_;
+  my ($self, $c, $json) = @_;
 
   my $roles = {
     Author => [],
@@ -807,7 +820,7 @@ sub _get_jsonld_roles {
   for my $hash (@{$json}) {
     for my $rolePredicate (keys %{$hash}) {
       for my $e (@{$hash->{$rolePredicate}}) {
-        my $entity;
+        my $entity = {};
         my $roleCode = $rolePredicate;
         $roleCode =~ s/^role://g;
         switch ($roleCode) {
@@ -858,7 +871,7 @@ sub _get_jsonld_roles {
 }
 
 sub _get_uwm_roles {
-  my ($self, $json) = @_;
+  my ($self, $c, $json) = @_;
 
   my $roles = {
     Author => [],
