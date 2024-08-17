@@ -1,4 +1,4 @@
-package PhaidraAPI::Model::Oai::Edm;
+package PhaidraAPI::Model::Mappings::Edm;
 
 use strict;
 use warnings;
@@ -549,7 +549,7 @@ sub get_metadata {
     }
   }
 
-  $c->app->log->debug("XXXXXXXXXXXXX EDM XXXXXXXXXXXX\n".$c->app->dumper($edm));
+  # $c->app->log->debug("XXXXXXXXXXXXX EDM XXXXXXXXXXXX\n".$c->app->dumper($edm));
   
   push @metadata, $edm;
 

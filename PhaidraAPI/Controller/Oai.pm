@@ -15,10 +15,10 @@ use DateTime::Format::Strptime;
 use Clone qw(clone);
 use Mojo::JSON qw(encode_json decode_json);
 use Mojo::ByteStream qw(b);
-use PhaidraAPI::Model::Oai::Openaire;
-use PhaidraAPI::Model::Oai::Dc;
-use PhaidraAPI::Model::Oai::Edm;
-use PhaidraAPI::Model::Oai::Lom;
+use PhaidraAPI::Model::Mappings::Openaire;
+use PhaidraAPI::Model::Mappings::Dc;
+use PhaidraAPI::Model::Mappings::Edm;
+use PhaidraAPI::Model::Mappings::Lom;
 
 my $DEFAULT_LIMIT = 100;
 
@@ -81,19 +81,19 @@ sub _get_metadata {
 
   switch ($metadataPrefix) {
     case 'oai_dc' {
-      my $dc_model = PhaidraAPI::Model::Oai::Dc->new;
+      my $dc_model = PhaidraAPI::Model::Mappings::Dc->new;
       return $dc_model->get_metadata($self, $rec, $set);
     }
     case 'oai_openaire' {
-      my $oaire_model = PhaidraAPI::Model::Oai::Openaire->new;
+      my $oaire_model = PhaidraAPI::Model::Mappings::Openaire->new;
       return $oaire_model->get_metadata($self, $rec);
     }
     case 'edm' {
-      my $edm_model = PhaidraAPI::Model::Oai::Edm->new;
+      my $edm_model = PhaidraAPI::Model::Mappings::Edm->new;
       return $edm_model->get_metadata($self, $rec);
     }
     case 'lom' {
-      my $lom_model = PhaidraAPI::Model::Oai::Lom->new;
+      my $lom_model = PhaidraAPI::Model::Mappings::Lom->new;
       return $lom_model->get_metadata($self, $rec);
     }
   }

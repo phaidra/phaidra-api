@@ -1,4 +1,4 @@
-package PhaidraAPI::Model::Oai::Dc;
+package PhaidraAPI::Model::Mappings::Dc;
 
 use strict;
 use warnings;

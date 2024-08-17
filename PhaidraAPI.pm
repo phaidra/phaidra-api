@@ -482,6 +482,9 @@ sub startup {
   $r->get('object/:pid/index/relationships')        ->to('index#get_relationships');
   $r->get('object/:pid/index/members')              ->to('index#get_object_members');
   $r->get('object/:pid/datacite')                   ->to('datacite#get');
+  $r->get('object/:pid/lom')                        ->to('mappings#get', schema => 'lom');
+  $r->get('object/:pid/edm')                        ->to('mappings#get', schema => 'edm');
+  $r->get('object/:pid/openaire')                   ->to('mappings#get', schema => 'openaire');
   $r->get('object/:pid/state')                      ->to('object#get_state');
   $r->get('object/:pid/cmodel')                     ->to('object#get_cmodel');
   $r->get('object/:pid/relationships')              ->to('relationships#get');

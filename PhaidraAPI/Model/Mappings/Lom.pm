@@ -1,4 +1,4 @@
-package PhaidraAPI::Model::Oai::Lom;
+package PhaidraAPI::Model::Mappings::Lom;
 
 use strict;
 use warnings;

@@ -1,4 +1,4 @@
-package PhaidraAPI::Model::Oai::Openaire;
+package PhaidraAPI::Model::Mappings::Openaire;
 
 use strict;
 use warnings;
