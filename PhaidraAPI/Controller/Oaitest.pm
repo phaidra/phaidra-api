@@ -301,30 +301,31 @@ sub _add_uwm_roles_with_id {
           }
         }
 
-        # TODO
         unless ($name) {
           # the person/corp is not saved as contribute->entity but it's parts are in multiple entity
           # parts of the contribute node
           # <ns1:contribute seq="0">
           #   <ns1:role>46</ns1:role>
           #   <ns1:entity seq="0">
-          #     <ns3:firstname>Susanne</ns3:firstname>
-          #     <ns3:lastname>Blumesberger</ns3:lastname>
+          #     <ns3:firstname>Firstname</ns3:firstname>
+          #     <ns3:lastname>Lastname</ns3:lastname>
           #   </ns1:entity>
           #   <ns1:entity seq="1">
           #     <ns3:type>viaf</ns3:type>
-          #     <ns3:viaf>267230929</ns3:viaf>
+          #     <ns3:viaf>123456789</ns3:viaf>
           #   </ns1:entity>
           #   <ns1:entity seq="2">
           #     <ns3:type>gnd</ns3:type>
-          #     <ns3:gnd>123533813</ns3:gnd>
+          #     <ns3:gnd>123456789</ns3:gnd>
           #   </ns1:entity>
           #   <ns1:entity seq="3">
           #     <ns3:type>orcid</ns3:type>
-          #     <ns3:orcid>0000-0001-9018-623X </ns3:orcid>
+          #     <ns3:orcid>0000-0000-0000-0000</ns3:orcid>
           #   </ns1:entity>
           #   <ns1:date>2015-09-18</ns1:date>
           # </ns1:contribute>
+          # we'll ignore the additional nodes, user would need to fix this in metadata
+          next;
         }
 
         my $role = $name;
