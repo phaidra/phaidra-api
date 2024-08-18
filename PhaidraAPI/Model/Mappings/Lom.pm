@@ -326,7 +326,7 @@ sub get_metadata {
       case 'PDFDocument' {
         $kimHcrtType = 'https://w3id.org/kim/hcrt/text';
       }
-      default {
+      else {
         $kimHcrtType = 'https://w3id.org/kim/hcrt/other';
       }
     }
