@@ -278,16 +278,16 @@ sub _add_uwm_roles_with_id {
           $id = 'orcid:'.$e->{orcid};
         }
         if ($e->{viaf}) {
-          $id = ($id ? '|' : '') .'viaf:'.$e->{viaf};
+          $id = ($id ? "$id|" : '') .'viaf:'.$e->{viaf};
         }
         if ($e->{wdq}) {
-          $id = ($id ? '|' : ''). 'wdq:'.$e->{wdq};
+          $id = ($id ? "$id|" : ''). 'wdq:'.$e->{wdq};
         }
         if ($e->{gnd}) {
-          $id = ($id ? '|' : ''). 'gnd:'.$e->{gnd};
+          $id = ($id ? "$id|" : ''). 'gnd:'.$e->{gnd};
         }
         if ($e->{isni}) {
-          $id = ($id ? '|' : ''). 'isni:'.$e->{isni};
+          $id = ($id ? "$id|" : ''). 'isni:'.$e->{isni};
         }
 
         if ($e->{firstname} || $e->{lastname}) {
