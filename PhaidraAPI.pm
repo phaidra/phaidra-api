@@ -324,6 +324,10 @@ sub startup {
       my $u    = shift;
       my $p    = shift;
       my $ru   = shift;
+      my $firstname   = shift;
+      my $lastname   = shift;
+      my $email   = shift;
+      my $affiliation   = shift;
 
       my $ciphertext;
 
@@ -337,8 +341,9 @@ sub startup {
         $ba = encode_sereal({username => $u, password => $p});
       }
       if (defined($ru)) {
-        $ba = encode_sereal({remote_user => $ru});
+        $ba = encode_sereal({remote_user => $ru, firstname => $firstname, lastname => $lastname, email => $email, affiliation => $affiliation});
       }
+      
       my $salt = Math::Random::ISAAC::XS->new(map {unpack("N", urandom(4))} 1 .. 256)->irand();
       my $key  = hmac_sha256($salt, $self->app->config->{enc_key});
       my $cbc  = Crypt::CBC->new(-key => $key, -pbkdf => 'pbkdf2');
@@ -346,8 +351,9 @@ sub startup {
       eval {$ciphertext = encode_base64url($cbc->encrypt($ba));};
       $self->app->log->error("Encoding error: $@") if $@;
       $session->data(cred => $ciphertext, salt => $salt);
+      $session->flush;
 
-      #$self->app->log->debug("Created session: ".$session->sid);
+      # $self->app->log->debug("Created session: ".$session->sid);
     }
   );
 
@@ -441,6 +447,9 @@ sub startup {
   $r->post('search/get_pids')                       ->to('search#get_pids');
 
   $r->get('utils/get_all_pids')                     ->to('utils#get_all_pids');
+
+  $r->get('geonames/search')                        ->to('utils#geonames_search');
+  $r->get('gnd/search')                             ->to('utils#gnd_search');
 
   $r->get('vocabulary')                             ->to('vocabulary#get_vocabulary');
 
@@ -552,7 +561,6 @@ sub startup {
 
     $loggedin->get('authz/check/:pid/:op')                                   ->to('authorization#check_rights');
 
-    #$reader->get('streaming/:pid')                                          ->to('utils#streamingplayer');
     $reader->get('streaming/:pid')                                           ->to('object#preview');
     $reader->get('streaming/:pid/key')                                       ->to('utils#streamingplayer_key');
 
@@ -705,7 +713,6 @@ sub startup {
 
     $proxyauth_optional->get('authz/check/:pid/:op')                            ->to('authorization#check_rights');
 
-    #$proxyauth_optional->get('streaming/:pid')                                 ->to('utils#streamingplayer');
     $proxyauth_optional->get('streaming/:pid')                                  ->to('object#preview');
     $proxyauth_optional->get('streaming/:pid/key')                              ->to('utils#streamingplayer_key');
 
@@ -756,6 +763,7 @@ sub startup {
       $admin->post('ir/embargocheck')                                           ->to('ir#embargocheck');
 
       $admin->post('imageserver/process')                                       ->to('imageserver#process_pids');
+
       $proxyauth->post('imageserver/:pid/process')                              ->to('imageserver#process');
 
       $admin->post('streaming/process')                                         ->to('streaming#process_pids');

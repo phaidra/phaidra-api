@@ -4,8 +4,10 @@ use strict;
 use warnings;
 use v5.10;
 use Mojo::ByteStream qw(b);
+use Scalar::Util qw(looks_like_number);
 use base 'Mojolicious::Controller';
 use PhaidraAPI::Model::Object;
+use PhaidraAPI::Model::Termsofuse;
 
 sub extract_credentials {
   my $self = shift;
@@ -369,14 +371,34 @@ sub signin_shib {
 
   if ($username && $authorized) {
 
+    my $version = $self->param('consentversion');
+    if ($version) {
+      $self->app->log->debug("consentversion[$version] provided");
+
+      unless(looks_like_number($version)) {
+        $self->render(json => {alerts => [{type => 'error', msg => 'Invalid version provided'}]}, status => 400);
+        return;
+      }
+
+      my $termsofuse_model = PhaidraAPI::Model::Termsofuse->new;
+      my $agreeres = $termsofuse_model->agree($self, $username, $version);
+      # $self->app->log->debug("agree result: \n".$self->app->dumper($agreeres));
+    }
+    
+    my $termsofuse_model = PhaidraAPI::Model::Termsofuse->new;
+    my $termsres = $termsofuse_model->getagreed($self, $username);
+    unless($termsres->{agreed}) {
+      $self->app->log->debug("redirecting to " . $self->app->config->{authentication}->{shibboleth}->{frontendconsenturl});
+      $self->redirect_to($self->app->config->{authentication}->{shibboleth}->{frontendconsenturl});
+      return;
+    }
+
     # init session, save credentials
-    # currently we only save remote_user
-    # TODO: save remote_affiliation and remote_groups
     $self->app->log->debug("remote user authorized: username[$username]");
-    $self->save_cred(undef, undef, $username);
+    $self->save_cred(undef, undef, $username, $firstname, $lastname, $email, $affiliation);
     my $session = $self->stash('mojox-session');
 
-    # sent token cookie
+    # send token cookie
     my $cookie = Mojo::Cookie::Response->new;
     $cookie->name($self->app->config->{authentication}->{token_cookie})->value($session->sid);
     $cookie->secure(1);
@@ -389,6 +411,7 @@ sub signin_shib {
       $cookie->domain($self->app->config->{phaidra}->{baseurl});
     }
     $self->tx->res->cookies($cookie);
+
   }
 
   $self->app->log->debug("redirecting to " . $self->app->config->{authentication}->{shibboleth}->{frontendloginurl});

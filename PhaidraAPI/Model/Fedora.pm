@@ -36,6 +36,15 @@ my %prefix2ns = (
   "http://www.ebu.ch/metadata/ontologies/ebucore/ebucore#" => "ebucore"
 );
 
+sub getFedoraUrlPrefix {
+  my ($self, $c) = @_;
+  if ($c->app->fedoraurl->{port}) {
+    return $c->app->fedoraurl->{scheme}.'://'.$c->app->fedoraurl->{host}.':'.$c->app->fedoraurl->{port}.'/'.$c->app->fedoraurl->{path};
+  } else {
+    return $c->app->fedoraurl->{scheme}.'://'.$c->app->fedoraurl->{host}.'/'.$c->app->fedoraurl->{path};
+  }
+}
+
 sub getFirstJsonldValue {
   my ($self, $c, $jsonld, $p) = @_;
 
@@ -46,6 +55,8 @@ sub getFirstJsonldValue {
           return $ob1->{'@value'};
         }
         if (exists($ob1->{'@id'})) {
+          my $fp = $self->getFedoraUrlPrefix($c);
+          $ob1->{'@id'} =~ s/$fp//g;
           return $ob1->{'@id'};
         }
       }
@@ -62,6 +73,13 @@ sub getJsonldValue {
       for my $ob1 (@{$ob->{$p}}) {
         if (exists($ob1->{'@value'})) {
           push @a, $ob1->{'@value'};
+        } else {
+          if (exists($ob1->{'@id'})) {
+            my $fp = $self->getFedoraUrlPrefix($c);
+            # $c->app->log->debug("XXXXXXXXXXX prefix $fp");
+            $ob1->{'@id'} =~ s/$fp//g;
+            push @a, $ob1->{'@id'};
+          }
         }
       }
       last;
@@ -104,13 +122,13 @@ sub getObjectProperties {
   }
 
   my $props = $propres->{props};
+  # $c->app->log->debug("XXXXXXXXXXXXXXX getObjectProperties propres:\n" . $c->app->dumper($props));
 
   # cmodel
   my $cmodel = $self->getFirstJsonldValue($c, $props, 'info:fedora/fedora-system:def/model#hasModel');
-
-  $cmodel =~ m/(.+\/)(\w+):(\w+)/g;
-  if ($2 eq 'cmodel' && defined($3) && ($3 ne '')) {
-    $res->{cmodel} = $3;
+  $cmodel =~ m/(\w+):(\w+)/g;
+  if ($1 eq 'cmodel' && defined($2) && ($2 ne '')) {
+    $res->{cmodel} = $2;
   }
 
   $res->{state}    = $self->getFirstJsonldValue($c, $props, 'info:fedora/fedora-system:def/model#state');
@@ -268,7 +286,12 @@ sub editTriples {
 
     $prefixes  .= "PREFIX " . $ns . ": <" . $pref . ">\n";
     $oldValues .= "<> $ns:$prop \"$curVal\"\n";
-    $newValues .= "<> $ns:$prop \"$newVal\"\n";
+
+    if ($newVal =~ m/info\:fedora/) {
+      $newValues .= "<> $ns:$prop <$newVal>\n";
+    } else {
+      $newValues .= "<> $ns:$prop \"$newVal\"\n";
+    }
   }
   my $body = qq|
     $prefixes
@@ -435,7 +458,7 @@ sub addOrModifyDatastream {
 
   if ($location) {
     # we're not going to create 'external content' in fcrepo because the resource cmodel is not supposed
-    # to be pointing to binay data (normally it's just a link where user should be redirected)
+    # to be pointing to binary data (normally it's just a link where user should be redirected)
     # my $url = $c->app->fedoraurl->path("$pid/LINK");
     # $c->app->log->debug("PUT $url Link $location");
     # my $putres = $c->ua->put($url => {'Link' => "<$location>; rel=\"http://fedora.info/definitions/fcrepo#ExternalContent\"; handling=\"redirect\"; type=\"text/plain\""})->result;
