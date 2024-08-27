@@ -885,7 +885,7 @@ sub _get_uwm_roles {
     if ($con->{entities}) {
       my @entities = sort {$a->{data_order} <=> $b->{data_order}} @{$con->{entities}};
       for my $e (@entities) {
-        my $entity;
+        my $entity = {};
         my $roleCode = $con->{role};
         switch ($roleCode) {
           case 'aut' {
