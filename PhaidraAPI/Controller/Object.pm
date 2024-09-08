@@ -353,7 +353,7 @@ sub preview {
 
   my $trywebversion = 0;
 
-  # we need mimetype for the audio/viedo player and size (either octets or webversion) to know if to use load button
+  # we need mimetype for the audio/video player and size (either octets or webversion) to know if to use load button
   my ($filename, $mimetype, $size, $cmodel);
 
   if ($self->app->config->{fedora}->{version} >= 6) {
