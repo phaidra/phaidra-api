@@ -680,6 +680,22 @@ our %tree = (
                       "uri" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1552167"
                     },
                     { "labels" => {
+                        "de" => "BegutachterIn",
+                        "en" => "Assessor",
+                        "it" => "Assessor",
+                        "sr" => "Assessor"
+                      },
+                      "uri" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562799"
+                    },
+                    { "labels" => {
+                        "de" => "MitbetreuerIn",
+                        "en" => "Co-advisor",
+                        "it" => "Co-advisor",
+                        "sr" => "Co-advisor"
+                      },
+                      "uri" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1562800"
+                    },
+                    { "labels" => {
                         "de" => "AufbewahrerIn des Originals",
                         "en" => "Keeper of the original",
                         "it" => "Affidatario dell'originale",
@@ -5477,7 +5493,7 @@ our %tree = (
                       "uri" => "http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0/voc_3/1557105"
                     },
                     { "labels" => {
-                        "de" => "BeurteilerIn",
+                        "de" => "BeurteilerIn/RichterIn",
                         "en" => "Judge",
                         "it" => "Giudice",
                         "sr" => "sudija"

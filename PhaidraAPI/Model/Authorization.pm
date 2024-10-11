@@ -64,6 +64,18 @@ sub check_rights {
       return $res;
     }
 
+    # superuserforallusers = phaidradmins
+    if ($userdata->{ldapgroups}) {
+      for my $ldapgroup (@{$userdata->{ldapgroups}}) {
+        if ($ldapgroup eq 'phaidradmins') {
+          $c->app->log->info("Authz op[$op] pid[$pid] currentuser[$currentuser] GRANTED: ldapgroup phaidradmins");
+          $res->{rights} = 'rw';
+          $res->{status} = 200;
+          return $res;
+        }
+      }
+    }
+
     my $fedora_model = PhaidraAPI::Model::Fedora->new;
     my $fres         = $fedora_model->getObjectProperties($c, $pid);
     if ($fres->{status} ne 200) {
@@ -149,9 +161,9 @@ sub check_rights {
       }
     }
 
-    if (exists($rights->{'edupersonaffiliation'})) {
+    if (exists($rights->{'affiliation'})) {
       $rightsAreEmpty = 0;
-      for my $def (@{$rights->{'edupersonaffiliation'}}) {
+      for my $def (@{$rights->{'affiliation'}}) {
         my $v;
         if (ref($def) eq 'HASH') {
           $v = $def->{value};
@@ -161,7 +173,7 @@ sub check_rights {
         }
         for my $aff (@{$userdata->{affiliation}}) {
           if ($aff eq $v) {
-            $c->app->log->info("Authz op[$op] pid[$pid] username[$currentuser] GRANTED: rule edupersonaffiliation[$aff]");
+            $c->app->log->info("Authz op[$op] pid[$pid] username[$currentuser] GRANTED: rule affiliation[$aff]");
             $res->{rights} = 'ro';
             $res->{status} = 200;
             return $res;
