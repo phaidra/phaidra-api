@@ -28,7 +28,7 @@ my $folders = {
   }
 };
 
-my $configPath = '/usr/local/phaidra/phaidra-api/PhaidraAPI.json'
+my $configPath = '/usr/local/phaidra/phaidra-api/PhaidraAPI.json';
 my $json_text = do {
   open(my $json_fh, "<:encoding(UTF-8)", $configPath) or die("Can't open file[".$configPath."]: $!\n");
   local $/;
