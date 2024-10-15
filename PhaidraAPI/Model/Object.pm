@@ -536,6 +536,11 @@ sub add_upstream_headers {
   my $headers = shift;
 
   if ($c->stash->{remote_user}) {
+    # $c->app->log->debug("add_upstream_headers");
+    # $c->app->log->debug($c->app->config->{authentication}->{upstream}->{principalheader});
+    # $c->app->log->debug($c->stash->{remote_user});
+    # $c->app->log->debug($c->app->config->{authentication}->{upstream}->{affiliationheader});
+    # $c->app->log->debug($c->stash->{remote_affiliation});
     $headers->{$c->app->config->{authentication}->{upstream}->{principalheader}}   = $c->stash->{remote_user};
     $headers->{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation} if $c->stash->{remote_affiliation};
     $headers->{$c->app->config->{authentication}->{upstream}->{groupsheader}}      = $c->stash->{remote_groups}      if $c->stash->{remote_groups};
@@ -1536,10 +1541,11 @@ sub get_foxml {
   $url->host($c->app->config->{phaidra}->{fedorabaseurl});
   $url->path("/fedora/objects/$pid/objectXML");
 
-  my %headers;
-  $self->add_upstream_headers($c, \%headers);
+  #my %headers;
+  #$self->add_upstream_headers($c, \%headers);
 
-  my $get = Mojo::UserAgent->new->get($url => \%headers)->result;
+  #my $get = Mojo::UserAgent->new->get($url => \%headers)->result;
+  my $get = Mojo::UserAgent->new->get($url)->result;
 
   if ($get->is_success) {
     $res->{status} = 200;
@@ -2089,15 +2095,13 @@ sub add_relationship {
     my $ua = Mojo::UserAgent->new;
     my %headers;
     $self->add_upstream_headers($c, \%headers);
-    my $post = $ua->post($url => \%headers);
-    my $r    = $post->result;
+    my $r = $ua->post($url => \%headers)->result;
     if ($r->is_success) {
       unshift @{$res->{alerts}}, {type => 'success', msg => $r->body};
     }
     else {
-      my ($err, $code) = $post->error;
-      unshift @{$res->{alerts}}, {type => 'error', msg => $err};
-      $res->{status} = $code ? $code : 500;
+      unshift @{$res->{alerts}}, {type => 'error', msg => $r->message};
+      $res->{status} = $r->code ? $r->code : 500;
     }
   }
 

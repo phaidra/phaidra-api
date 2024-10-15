@@ -350,21 +350,25 @@ sub signin_shib {
     $affiliation = $ENV{$self->app->config->{authentication}->{shibboleth}->{attributes}->{affiliation}};
     $affiliation = $self->req->headers->header($self->app->config->{authentication}->{shibboleth}->{attributes}->{affiliation}) unless $affiliation;
 
-    my @userAffs = split(';', $affiliation);
-    for my $userAff (@userAffs) {
-      last if $authorized;
-      $self->app->log->debug("Checking if affiliation $userAff can login");
-      my @valid_affiliations = map {split(/,/)} @{$self->app->config->{authentication}->{shibboleth}->{requiredaffiliations}};
+    if ($self->app->config->{authentication}->{shibboleth}->{requiredaffiliations}) {
+      my @userAffs = split(';', $affiliation);
+      for my $userAff (@userAffs) {
+        last if $authorized;
+        $self->app->log->debug("Checking if affiliation $userAff can login");
+        my @valid_affiliations = map {split(/,/)} @{$self->app->config->{authentication}->{shibboleth}->{requiredaffiliations}};
 
-      # $self->app->log->debug(Dumper(@valid_affiliations));
-      for my $configAff (@valid_affiliations) {
-        $self->app->log->debug("$configAff");
-        if ($configAff eq $userAff) {
-          $self->app->log->debug($configAff . " can login");
-          $authorized = 1;
-          last;
+        # $self->app->log->debug(Dumper(@valid_affiliations));
+        for my $configAff (@valid_affiliations) {
+          $self->app->log->debug("$configAff");
+          if ($configAff eq $userAff) {
+            $self->app->log->debug($configAff . " can login");
+            $authorized = 1;
+            last;
+          }
         }
       }
+    } else {
+      $authorized = 1;
     }
   }
 
