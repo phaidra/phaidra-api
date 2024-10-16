@@ -536,14 +536,16 @@ sub add_upstream_headers {
   my $headers = shift;
 
   if ($c->stash->{remote_user}) {
-    # $c->app->log->debug("add_upstream_headers");
-    # $c->app->log->debug($c->app->config->{authentication}->{upstream}->{principalheader});
-    # $c->app->log->debug($c->stash->{remote_user});
-    # $c->app->log->debug($c->app->config->{authentication}->{upstream}->{affiliationheader});
-    # $c->app->log->debug($c->stash->{remote_affiliation});
     $headers->{$c->app->config->{authentication}->{upstream}->{principalheader}}   = $c->stash->{remote_user};
-    $headers->{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{remote_affiliation} if $c->stash->{remote_affiliation};
-    $headers->{$c->app->config->{authentication}->{upstream}->{groupsheader}}      = $c->stash->{remote_groups}      if $c->stash->{remote_groups};
+    $headers->{$c->app->config->{authentication}->{upstream}->{affiliationheader}} = $c->stash->{affiliation} if $c->stash->{affiliation};
+    #$headers->{$c->app->config->{authentication}->{upstream}->{groupsheader}}      = $c->stash->{groups}      if $c->stash->{groups};
+    if ($c->app->config->{fedora}->{version} < 6) {
+      $headers->{fakcode} = $c->stash->{fakcode} if $c->stash->{fakcode};
+      $headers->{inum}    = $c->stash->{inum} if $c->stash->{inum};
+      $headers->{gruppe}  = $c->stash->{gruppe} if $c->stash->{gruppe};
+      $headers->{groups}  = $c->stash->{gruppe} if $c->stash->{gruppe};
+    }
+    $c->app->log->debug("setting upstream headers\n".$c->app->dumper($headers));
   }
 }
 
