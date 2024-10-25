@@ -621,6 +621,13 @@ sub _org_get_parentpath_rec_flat {
     last;
   }
 }
+
+sub org_get_units_uwm {
+  my ($self, $c, $parent_id, $lang) = @_;
+
+  return $self->get_org_units($parent_id, $lang);
+}
+
 # [end] new org methods
 
 1;
