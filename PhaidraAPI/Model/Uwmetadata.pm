@@ -91,6 +91,55 @@ sub metadata_tree {
     $vocabulary{'terms'} = \@termarray;
     $facultyNode->{vocabularies} = [ \%vocabulary ];
 
+    # the same for "spl" (study plans)
+    my $splNode = $self->get_json_node($c, 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization', 'spl', $res->{metadata_tree});
+    my %vocabularySpl;
+    $vocabularySpl{namespace} = 'http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_spl/';
+    my $confmodel = PhaidraAPI::Model::Config->new;
+    my $pubconfig = $confmodel->get_public_config($c);
+    my $lang_model = PhaidraAPI::Model::Languages->new;
+    my %iso6393ToBCP = reverse %{$lang_model->get_iso639map()};
+    my @terms;
+    if (exists($pubconfig->{data_vocabularies})) {
+      if (exists($pubconfig->{data_vocabularies}->{studyplansuwm})) {
+        if (exists($pubconfig->{data_vocabularies}->{studyplansuwm}->{terms})) {
+          for my $t (@{$pubconfig->{data_vocabularies}->{studyplansuwm}->{terms}}) {
+            
+            # from
+            # {
+            #   "@type": "aiiso:Programme",
+            #   "skos:prefLabel": {
+            #     "deu": "textil•kunst•design"
+            #   },
+            #   "skos:notation": [
+            #     "785"
+            #   ],
+            #   "@id": "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_spl/33"
+            # }
+            
+            # to
+            # { 
+            #   "labels" => {"de" => "SPL 33: Ernahrungswissenschaften"},
+            #   "uri"    => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/organization/voc_spl/33"
+            # }
+            
+            my $labels;
+            for my $lang (keys %{$t->{'skos:prefLabel'}}) {
+              my $alpha2lang = exists($iso6393ToBCP{$lang}) ? $iso6393ToBCP{$lang} : $lang;
+              $labels->{$alpha2lang} = $t->{'skos:prefLabel'}->{$lang};
+            }
+
+            push @termarray, {
+              "uri" => $t->{'@id'},
+              "labels" => $labels
+            };
+          }
+        }
+      }
+    }
+    $vocabularySpl{'terms'} = \@termarray;
+    $splNode->{vocabularies} = [ \%vocabularySpl ];
+
     return $res;
   }
 
