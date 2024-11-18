@@ -461,8 +461,8 @@ sub get_metadata {
     };
   }
 
-  # dcterms:isReferencedBy  
-  if ($self->_has_iiifmanifest($c, $rec)) {
+  # svcs:has_service
+  if ($rec->{cmodel} eq 'Picture') {
     push @{$edmWebResource->{children}}, {
       name => 'dcterms:isReferencedBy',
       attributes => [
@@ -471,10 +471,6 @@ sub get_metadata {
         }
       ]
     };
-  }
-
-  # svcs:has_service
-  if ($rec->{cmodel} eq 'Picture') {
     push @{$edmWebResource->{children}}, {
       name => 'svcs:has_service',
       attributes => [
