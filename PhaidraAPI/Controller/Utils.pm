@@ -9,6 +9,7 @@ use base 'Mojolicious::Controller';
 use Scalar::Util qw(looks_like_number);
 use PhaidraAPI::Model::Search;
 use PhaidraAPI::Model::Util;
+use PhaidraAPI::Model::Config;
 use MIME::Lite::TT::HTML;
 
 sub get_all_pids {
