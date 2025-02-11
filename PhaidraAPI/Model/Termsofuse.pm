@@ -87,7 +87,7 @@ sub agree {
     $res->{status} = 500;
     return $res;
   }
-  
+
   return $res;
 }
 

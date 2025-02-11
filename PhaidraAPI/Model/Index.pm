@@ -1949,8 +1949,6 @@ sub _add_jsonld_index {
         push @{$index->{"dc_identifier"}}, $prefix . ":" . $id->{'@value'};
         # index without prefix too, makes it easier to search
         push @{$index->{"_text_"}}, $id->{'@value'};
-        # index without prefix too, makes it easier to search
-        push @{$index->{"_text_"}}, $id->{'@value'};
       }
     }
   }

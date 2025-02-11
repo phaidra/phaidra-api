@@ -128,7 +128,7 @@ sub get_user_data {
   $self->app->log->debug("get user data username[$username]");
 
   my $user_data = $self->app->directory->get_user_data($self, $username);
-  if ($self->stash('remote_user')) {
+  if ($self->stash('remote_user') eq $username) {
     # in case there is no user data api, use the attrs we saved on shib login
     my $sessionData = $self->load_cred;
     unless (exists($user_data->{firstname}) && ($user_data->{firstname} ne '')) {

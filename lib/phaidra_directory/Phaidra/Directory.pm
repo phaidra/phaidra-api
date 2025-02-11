@@ -29,6 +29,7 @@ sub update_info_data {
 }
 
 sub authenticate($$$$) {
+  my $self = shift;
   my $app       = shift;
   my $username  = shift;
   my $password  = shift;
@@ -235,6 +236,11 @@ sub add_group_member {
 }
 
 sub remove_group_member {
+  my ($self, $c, $gid, $uid) = @_;
+  $c->app->log->error("Directory.pm - " . ((caller(0))[3]) . " - this method is not implemented");
+}
+
+sub get_member_groups {
   my ($self, $c, $gid, $uid) = @_;
   $c->app->log->error("Directory.pm - " . ((caller(0))[3]) . " - this method is not implemented");
 }

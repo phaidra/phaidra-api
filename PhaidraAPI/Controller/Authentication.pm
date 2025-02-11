@@ -8,6 +8,7 @@ use Scalar::Util qw(looks_like_number);
 use base 'Mojolicious::Controller';
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Termsofuse;
+use PhaidraAPI::Model::Config;
 
 sub extract_credentials {
   my $self = shift;
@@ -330,10 +331,22 @@ sub signin_shib {
   my $username = $ENV{$self->app->config->{authentication}->{shibboleth}->{attributes}->{username}};
   $username = $self->req->headers->header($self->app->config->{authentication}->{shibboleth}->{attributes}->{username}) unless $username;
 
+  # old - should be removed after docker migration
   if (exists($self->app->config->{authentication}->{shibboleth}->{stripemaildomain})) {
     if ($self->app->config->{authentication}->{shibboleth}->{stripemaildomain}) {
       if ($username =~ m/(\w+)@*/g) {
         $username =~ s/@([\w|\.]+)//g;
+      }
+    }
+  }
+  # new
+  my $confmodel = PhaidraAPI::Model::Config->new;
+  my $privconfig = $confmodel->get_private_config($self);
+  if (exists($privconfig->{userscopetotrim})) {
+    if ($privconfig->{userscopetotrim}) {
+      my $userscopetotrim = $privconfig->{userscopetotrim};
+      if ($username =~ m/(\w+)@*/g) {
+        $username =~ s/$userscopetotrim//g;
       }
     }
   }
@@ -482,7 +495,8 @@ sub signin_shib {
   # 302 would set, but not immediately send strict cookies, so we need to send 200 and create a client side redirect via html
   #$self->redirect_to($self->app->config->{authentication}->{shibboleth}->{frontendloginurl});
   my $html = '<html xmlns="http://www.w3.org/1999/xhtml"><head><meta http-equiv="refresh" content="0;URL=\''.$self->app->config->{authentication}->{shibboleth}->{frontendloginurl}.'\'" /></head><body><p>Redirectring...</p></body></html>';
-  $self->render(text => $html, status => 200);
+  # set format explicitly because the stash value 'format' seems overwritten when saving consent (so application/json gets back)
+  $self->render(text => $html, format => 'html', status => 200);
 
 }
 
