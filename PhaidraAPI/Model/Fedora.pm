@@ -6,8 +6,18 @@ use v5.10;
 use utf8;
 use JSON;
 use Mojo::File;
+use Mojo::Util qw(encode);
 use Digest::SHA qw(sha256_hex);
 use base qw/Mojo::Base/;
+use Net::Amazon::S3;
+use Net::Amazon::S3::Vendor::Generic;
+use Net::Amazon::S3::Authorization::Basic;
+
+# S3 credentials and bucketname
+my $aws_access_key_id = $ENV{S3_ACCESS_KEY};
+my $aws_secret_access_key = $ENV{S3_SECRET_KEY};
+my $s3_endpoint = $ENV{S3_ENDPOINT};
+my $bucketname = $ENV{S3_BUCKETNAME};
 
 my %prefix2ns = (
 
@@ -425,10 +435,40 @@ sub getDatastreamPath {
 
   my $ocflroot    = $c->app->config->{fedora}->{ocflroot};
   my $objRootPath = "$ocflroot/$first/$second/$third/$hash";
+  my $inventoryFile;
+  my $inventoryFileFromS3;
 
-  my $inventoryFile = "$objRootPath/inventory.json";
+  if ( $ENV{S3_ENABLED} eq "true" ) {
+    my $s3 = Net::Amazon::S3-> new(
+      authorization_context => Net::Amazon::S3::Authorization::Basic-> new (
+        aws_access_key_id => $aws_access_key_id,
+        aws_secret_access_key => $aws_secret_access_key,
+      ),
+      retry => 1,
+      vendor => Net::Amazon::S3::Vendor::Generic->new(
+        host => $s3_endpoint =~ s/^https?:\/\///r,
+        use_virtual_host => 0,
+        use_https => !($s3_endpoint =~ qr/^http:\/\/.*/),
+        default_region => "eu-central-1",
+      ),
+     );
+    my $bucket = $s3->bucket($bucketname);
+    $inventoryFileFromS3 = '/tmp/' . $pid . '_inventory.json';
+    my $bucket_prefix = "fedora";
+    my $response = $bucket->get_key_filename( "$bucket_prefix/$first/$second/$third/$hash/inventory.json", 'GET', $inventoryFileFromS3 )
+      or die $s3->err . ": " . $s3->errstr;
+    $inventoryFile = $inventoryFileFromS3;
+  } else {
+    $inventoryFile = "$objRootPath/inventory.json";
+  }
+
   my $bytes         = Mojo::File->new($inventoryFile)->slurp;
   my $inventory     = decode_json($bytes);
+
+  # # clean up inventoryfile if downloaded from S3
+  # if (defined $inventoryFileFromS3) {
+  #   unlink $inventoryFileFromS3;
+  # }
 
   # sanity check
   unless ($inventory->{id} eq $resourceID) {
@@ -508,12 +548,13 @@ sub addOrModifyDatastream {
   if ($upload) {
     my $headers;
     $headers->{'Content-Type'}        = $mimetype;
-    $headers->{'Content-Disposition'} = 'attachment; filename="' . $upload->filename . '"';
+    my $filename = utf8::is_utf8($upload->filename) ? encode('UTF-8', $upload->filename) : $upload->filename;
+    $headers->{'Content-Disposition'} = 'attachment; filename="' . $filename . '"';
     if ($checksumtype) {
       $headers->{digest} = "$checksumtype=$checksum";
     }
     my $url = $c->app->fedoraurl->path("$pid/$dsid");
-    $c->app->log->debug("PUT $url filename[" . $upload->filename . "] mimetype[$mimetype]");
+    $c->app->log->debug("PUT $url filename[" . $filename . "] mimetype[$mimetype]");
     my $tx = $c->ua->build_tx(PUT => $url => $headers);
     $tx->req->content->asset($upload->asset);
     my $putres = $c->ua->start($tx)->result;

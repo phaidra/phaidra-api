@@ -31,7 +31,10 @@
               "ids:urn",
               "ids:isbn",
               "ids:issn",
-              "phaidra:acnumber"
+              "phaidra:acnumber",
+              "phaidra:akbildeyebaseid",
+              "phaidra:akbildcampusid",
+              "phaidra:akbildthesisid"
             ]
           },
           "@value": {
@@ -82,10 +85,10 @@
             "const": "schema:QuantitativeValue"
           },
           "schema:unitCode": {
-            "type": "string"
+            "$ref": "#/$defs/array-of-strings"
           },
           "schema:value": {
-            "type": "string"
+            "$ref": "#/$defs/array-of-strings"
           }
         },
         "required": [
@@ -95,58 +98,61 @@
       }
     },
     "edm-timespan": {
-      "type": "array",
-      "minItems": 1,
-      "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "@type": {
-            "type": "string",
-            "const": "edm:TimeSpan"
-          },
-          "skos:exactMatch": {
-            "$ref": "#/$defs/skos-exact-match"
-          },
-          "skos:prefLabel": {
-            "$ref": "#/$defs/language-tagged-values"
-          }
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "@type": {
+          "type": "string",
+          "const": "edm:TimeSpan"
         },
-        "required": [
-          "@type",
-          "skos:prefLabel"
-        ]
-      }
+        "skos:exactMatch": {
+          "$ref": "#/$defs/skos-exact-match"
+        },
+        "skos:prefLabel": {
+          "$ref": "#/$defs/language-tagged-values"
+        }
+      },
+      "required": [
+        "@type",
+        "skos:prefLabel"
+      ]
+    },
+    "date-or-datetime": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date"
+        },
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "string",
+          "pattern": "^[+-]?\\d{4}(-[01]\\d(-[0-3]\\d(T[0-2]\\d:[0-5]\\d:?([0-5]\\d(\\.\\d+)?)?[+-][0-2]\\d:[0-5]\\dZ?)?)?)?$"
+        }
+      ]
     },
     "dates-or-datetimes": {
       "type": "array",
       "minItems": 1,
       "items": {
-        "anyOf": [
-          {
-            "type": "string",
-            "format": "date"
-          },
-          {
-            "type": "string",
-            "format": "date-time"
-          },
-          {
-            "type": "string",
-            "pattern": "^[+-]?\\d{4}(-[01]\\d(-[0-3]\\d(T[0-2]\\d:[0-5]\\d:?([0-5]\\d(\\.\\d+)?)?[+-][0-2]\\d:[0-5]\\dZ?)?)?)?$"
-          }
-        ]
+        "$ref": "#/$defs/date-or-datetime"
       }
     },
     "dates-or-date-concepts": {
-      "oneOf": [
-        {
-          "$ref": "#/$defs/dates-or-datetimes"
-        },
-        {
-          "$ref": "#/$defs/edm-timespan"
-        }
-      ]
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/date-or-datetime"
+          },
+          {
+            "$ref": "#/$defs/edm-timespan"
+          }
+        ]
+      }
     },
     "skos-exact-match": {
       "oneOf": [
@@ -225,30 +231,32 @@
         },
         "required": [
           "@type",
-          "skos:exactMatch",
           "skos:prefLabel"
         ]
       }
+    },
+    "skos-concept-no-id": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "@type": {
+          "type": "string",
+          "const": "skos:Concept"
+        },
+        "skos:prefLabel": {
+          "$ref": "#/$defs/language-tagged-values"
+        }
+      },
+      "required": [
+        "@type",
+        "skos:prefLabel"
+      ]
     },
     "skos-concepts-no-id": {
       "type": "array",
       "minItems": 1,
       "items": {
-        "type": "object",
-        "additionalProperties": false,
-        "properties": {
-          "@type": {
-            "type": "string",
-            "const": "skos:Concept"
-          },
-          "skos:prefLabel": {
-            "$ref": "#/$defs/language-tagged-values"
-          }
-        },
-        "required": [
-          "@type",
-          "skos:prefLabel"
-        ]
+        "$ref": "#/$defs/skos-concept-no-id"
       }
     },
     "dce-title": {
@@ -303,6 +311,9 @@
           },
           "ids:issn": {
             "$ref": "#/$defs/array-of-strings"
+          },
+          "skos:exactMatch": {
+            "$ref": "#/$defs/skos-exact-match"
           }
         },
         "required": [
@@ -354,8 +365,24 @@
           }
         },
         "required": [
-          "@type",
-          "bf:agent"
+          "@type"
+        ],
+        "anyOf": [
+          {
+            "required": [
+              "bf:agent"
+            ]
+          },
+          {
+            "required": [
+              "bf:place"
+            ]
+          },
+          {
+            "required": [
+              "bf:date"
+            ]
+          }
         ]
       }
     },
@@ -500,6 +527,9 @@
         },
         "skos:notation": {
           "$ref": "#/$defs/array-of-strings"
+        },
+        "skos:exactMatch": {
+          "$ref": "#/$defs/skos-exact-match"
         }
       },
       "required": [
@@ -570,16 +600,31 @@
           }
         },
         "skos:exactMatch": {
-          "$ref": "#/$defs/skos-exact-match"
+          "$ref": "#/$defs/typed-identifiers"
         },
         "rdfs:comment": {
           "$ref": "#/$defs/language-tagged-values"
         },
         "foaf:homepage": {
           "$ref": "#/$defs/array-of-strings"
+        },
+        "frapo:hasAcronym": {
+          "$ref": "#/$defs/array-of-strings"
+        },
+        "frapo:hasEndDate": {
+          "$ref": "#/$defs/dates-or-datetimes"
+        },
+        "frapo:hasStartDate": {
+          "$ref": "#/$defs/dates-or-datetimes"
+        },
+        "frapo:hasProjectIdentifier": {
+          "$ref": "#/$defs/array-of-strings"
+        },
+        "frapo:homepage": {
+          "$ref": "#/$defs/array-of-strings"
         }
       },
-      "oneOf" : [
+      "anyOf" : [
         {
           "required": [
             "@type",
@@ -627,7 +672,7 @@
           "$ref": "#/$defs/dates-or-datetimes"
         }
       },
-      "oneOf" : [
+      "anyOf" : [
         {
           "required": [
             "@type",
@@ -638,12 +683,6 @@
           "required": [
             "@type",
             "skos:exactMatch"
-          ]
-        },
-        {
-          "required": [
-            "@type",
-            "frapo:hasFundingAgency"
           ]
         }
       ]
@@ -734,7 +773,11 @@
           "$ref": "#/$defs/array-of-strings"
         },
         "ebucore:hasRelatedEvent": {
-          "$ref": "#/$defs/event"
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/event"
+          }
         },
         "dcterms:type": {
           "$ref": "#/$defs/skos-concepts"
@@ -1159,7 +1202,7 @@
         "role:mdc": {
           "$ref": "#/$defs/entities"
         },
-        "role:emt": {
+        "role:mte": {
           "$ref": "#/$defs/entities"
         },
         "role:mtk": {
@@ -1526,13 +1569,13 @@
           "$ref": "#/$defs/skos-concepts"
         },
         "dcterms:date": {
-          "$ref": "#/$defs/dates-or-datetimes"
+          "$ref": "#/$defs/dates-or-date-concepts"
         },
         "dcterms:created": {
-          "$ref": "#/$defs/dates-or-datetimes"
+          "$ref": "#/$defs/dates-or-date-concepts"
         },
         "dcterms:modified": {
-          "$ref": "#/$defs/dates-or-datetimes"
+          "$ref": "#/$defs/dates-or-date-concepts"
         },
         "dcterms:available": {
           "$ref": "#/$defs/dates-or-datetimes"
@@ -1552,6 +1595,9 @@
         "dcterms:dateSubmitted": {
           "$ref": "#/$defs/dates-or-datetimes"
         },
+        "phaidra:dateApprobation": {
+          "$ref": "#/$defs/dates-or-datetimes"
+        },
         "rdau:P60071": {
           "$ref": "#/$defs/dates-or-datetimes"
         },
@@ -1562,7 +1608,7 @@
           "type": "array",
           "minItems": 1,
           "items": {
-            "oneOf": [
+            "anyOf": [
               {
                 "$ref": "#/$defs/project"
               },
@@ -1621,11 +1667,22 @@
               },
               "skos:exactMatch": {
                 "$ref": "#/$defs/skos-exact-match"
+              },
+              "dce:title": {
+                "$ref": "#/$defs/dce-title"
               }
             },
-            "required": [
-              "@type",
-              "skos:prefLabel"
+            "anyOf" : [
+              {
+                "required": [
+                  "dce:prefLabel"
+                ]
+              },
+              {
+                "required": [
+                  "dce:title"
+                ]
+              }
             ]
           }
         },
@@ -1650,9 +1707,17 @@
                 "$ref": "#/$defs/skos-exact-match"
               }
             },
-            "required": [
-              "@type",
-              "skos:prefLabel"
+            "anyOf" : [
+              {
+                "required": [
+                  "dce:prefLabel"
+                ]
+              },
+              {
+                "required": [
+                  "dce:title"
+                ]
+              }
             ]
           }
         },
@@ -1836,8 +1901,12 @@
           "$ref": "#/$defs/schema-quantitative-values"
         },
         "schema:duration": {
-          "type": "string",
-          "pattern": "^P(\\d*Y)?(\\d*M)?(\\d*D)?T(\\d*H)?(\\d*M)?(\\d*S)?$"
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^P(\\d*Y)?(\\d*M)?(\\d*D)?T(\\d*H)?(\\d*M)?(\\d*S)?$"
+          }
         },
         "dce:format": {
           "$ref": "#/$defs/skos-concepts"
@@ -1846,10 +1915,32 @@
           "$ref": "#/$defs/skos-concepts"
         },
         "bf:awards": {
-          "$ref": "#/$defs/skos-concepts"
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/skos-concept"
+              },
+              {
+                "$ref": "#/$defs/skos-concept-no-id"
+              }
+            ]
+          }
         },
         "dcterms:audience": {
-          "$ref": "#/$defs/skos-concepts"
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "oneOf": [
+              {
+                "$ref": "#/$defs/skos-concept"
+              },
+              {
+                "$ref": "#/$defs/skos-concept-no-id"
+              }
+            ]
+          }
         },
         "rdau:P60059": {
           "$ref": "#/$defs/skos-concepts"
@@ -1912,6 +2003,9 @@
               },
               "bf:provisionActivity": {
                 "$ref": "#/$defs/provision-activity"
+              },
+              "skos:exactMatch": {
+                "$ref": "#/$defs/skos-exact-match"
               }
             },
             "required": [

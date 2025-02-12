@@ -287,7 +287,7 @@ our %uwm_2_mods_roles = (
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561226" => "mrk",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561227" => "med",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561228" => "mdc",
-  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557105" => "emt",
+  "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1557105" => "mte",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561229" => "mtk",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561230" => "mod",
   "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1561231" => "mon",
@@ -1947,6 +1947,8 @@ sub _add_jsonld_index {
       }
       else {
         push @{$index->{"dc_identifier"}}, $prefix . ":" . $id->{'@value'};
+        # index without prefix too, makes it easier to search
+        push @{$index->{"_text_"}}, $id->{'@value'};
         # index without prefix too, makes it easier to search
         push @{$index->{"_text_"}}, $id->{'@value'};
       }
