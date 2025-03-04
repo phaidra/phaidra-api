@@ -17,7 +17,7 @@ sub get_jsonld {
 
     # Get the primary language for the record
     my $primary_language = _determine_language($marcjson);
-    push @{$jsonld->{'dcterms:language'}}, $subfield->{'#text'} eq 'ger' ? 'deu' : $subfield->{'#text'};
+    push @{$jsonld->{'dcterms:language'}}, $primary_language eq 'ger' ? 'deu' : $primary_language;
 
     # Process datafields
     if (exists $marcjson->{datafield}) {
