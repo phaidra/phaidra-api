@@ -9,6 +9,7 @@ use base qw/Mojo::Base/;
 
 sub get_jsonld {
     my $self = shift;
+    my $c = shift;
     my $marcjson = shift;
 
     my $res = {alerts => [], status => 200};
@@ -18,6 +19,20 @@ sub get_jsonld {
     # Get the primary language for the record
     my $primary_language = _determine_language($marcjson);
     push @{$jsonld->{'dcterms:language'}}, $primary_language eq 'ger' ? 'deu' : $primary_language;
+
+    # Process controlfields
+    if (exists $marcjson->{controlfield}) {
+        foreach my $field (@{$marcjson->{controlfield}}) {
+            my $tag = $field->{'@tag'};
+
+            if ($tag eq '009') {
+                $jsonld->{'rdam:P30004'} = [{
+                    '@type' => 'phaidra:acnumber',
+                    '@value' => $field->{'#text'}
+                }];
+            }
+        }
+    }
 
     # Process datafields
     if (exists $marcjson->{datafield}) {
@@ -47,6 +62,24 @@ sub get_jsonld {
                 }
                 
                 push @{$jsonld->{'dce:title'}}, $title;
+            }
+
+            # Basisklassifikation mapping (084)
+            if ($tag eq '084') {
+                my ($bkl_code, $has_bkl) = (undef, 0);
+                foreach my $subfield (@{_ensure_array($field->{subfield})}) {
+                    $has_bkl = 1 if $subfield->{'@code'} eq '2' && $subfield->{'#text'} eq 'bkl';
+                    $bkl_code = $subfield->{'#text'} if $subfield->{'@code'} eq 'a';
+                }
+                
+                if ($has_bkl && $bkl_code) {
+                    my $bkl_subject = $self->_query_dante_api($c, $bkl_code);
+                    if ($bkl_subject) {
+                        $jsonld->{'dcterms:subject'} //= [];
+$c->app->log->debug("XXXXXXXXXXXXX\n".$c->app->dumper($bkl_subject));
+                        push @{$jsonld->{'dcterms:subject'}}, $bkl_subject;
+                    }
+                }
             }
             
             # Subject mapping (689)
@@ -191,20 +224,15 @@ sub get_jsonld {
                 push @{$jsonld->{'rdau:P60193'}}, $series;
             }
 
-            # Identifier mapping (009, 020, 024)
-            if ($tag eq '009') {
-                $jsonld->{'rdam:P30004'} = [{
-                    '@type' => 'phaidra:acnumber',
-                    '@value' => $field->{subfield}{'#text'}
-                }];
-            }
-            elsif ($tag eq '020') {
+            # Identifier mapping (020, 024)
+            if ($tag eq '020') {
                 foreach my $subfield (@{_ensure_array($field->{subfield})}) {
                     if ($subfield->{'@code'} eq 'a') {
-                        $jsonld->{'rdam:P30004'} = [{
+                        $jsonld->{'rdam:P30004'} //= [];
+                        push @{$jsonld->{'rdam:P30004'}}, {
                             '@type' => 'ids:isbn',
                             '@value' => $subfield->{'#text'}
-                        }];
+                        };
                     }
                 }
             }
@@ -342,6 +370,51 @@ sub _determine_language {
     }
     
     return undef; # undefined if no language found
+}
+
+sub _query_dante_api {
+    my ($self, $c, $bkl_code) = @_;
+    
+    # Code to query Dante API
+    my $api_url = "https://api.dante.gbv.de/data";
+    my $uri = "http://uri.gbv.de/terminology/bk/$bkl_code";
+    my $ua = Mojo::UserAgent->new;
+    my $response = $c->app->ua->get("$api_url?properties=notation,ancestors&uri=$uri")->result;
+    
+    if ($response->is_success) {
+        my $data = $response->json;
+        if ($data && ref $data eq 'ARRAY' && @$data) {
+            my $selected_item = $data->[0];
+            my $pref_label_de = $selected_item->{prefLabel}->{de};
+            my $notation = $selected_item->{notation}->[0];
+            my $path = $pref_label_de;
+            if ($selected_item->{ancestors} && ref $selected_item->{ancestors} eq 'ARRAY') {
+                foreach my $ancestor (reverse @{$selected_item->{ancestors}}) {
+                    my $ancestor_label = $ancestor->{prefLabel}->{de};
+                    $path = $ancestor_label . ' -- ' . $path if $ancestor_label;
+                }
+            }
+            my $subject = {
+                '@type' => 'skos:Concept',
+                'skos:notation' => [ $notation ],
+                'skos:prefLabel' => [{
+                    '@value' => $pref_label_de,
+                    '@language' => 'deu'
+                }],
+                'rdfs:label' => [{
+                    '@value' => $path,
+                    '@language' => 'deu'
+                }],
+                'skos:exactMatch' => [ $uri ]
+            };
+            return $subject;
+        }
+    }
+    else {
+        $c->app->log->error("Dante API request failed: " . $response->{message});
+    }
+
+    return undef;
 }
 
 1;
