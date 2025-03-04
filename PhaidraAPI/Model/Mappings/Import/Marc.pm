@@ -76,7 +76,6 @@ sub get_jsonld {
                     my $bkl_subject = $self->_query_dante_api($c, $bkl_code);
                     if ($bkl_subject) {
                         $jsonld->{'dcterms:subject'} //= [];
-$c->app->log->debug("XXXXXXXXXXXXX\n".$c->app->dumper($bkl_subject));
                         push @{$jsonld->{'dcterms:subject'}}, $bkl_subject;
                     }
                 }
@@ -289,16 +288,40 @@ $c->app->log->debug("XXXXXXXXXXXXX\n".$c->app->dumper($bkl_subject));
                     if ($subfield->{'@code'} eq 'a') {
                         my ($family_name, $given_name) = split /, /, $subfield->{'#text'}, 2;
                         push @{$entity->{'schema:familyName'}}, {
-                            '@value' => $family_name,
-                            '@language' => $primary_language
+                            '@value' => $family_name
                         };
                         push @{$entity->{'schema:givenName'}}, {
-                            '@value' => $given_name,
-                            '@language' => $primary_language
+                            '@value' => $given_name
                         } if defined $given_name;
                     }
                     elsif ($subfield->{'@code'} eq '4') {
                         $role = 'role:'.$subfield->{'#text'};
+                    }
+                    elsif ($subfield->{'@code'} eq '0') {
+                        $entity->{'skos:exactMatch'} //= [];
+                        if (defined($subfield->{'#text'})) {
+                            my $v = $subfield->{'#text'};
+                            $v =~ s/\(DE-588\)//g;
+                            push @{$entity->{'skos:exactMatch'}}, {
+                                '@type' => 'ids:gnd',
+                                '@value' => $v
+                            }
+                        }
+                    }
+                }
+                unless (defined($entity->{'skos:exactMatch'})) {
+                    # if there was no GND, try orcid
+                    foreach my $subfield (@{_ensure_array($field->{subfield})}) {
+                        if ($subfield->{'@code'} eq '9') {
+                            if (defined($subfield->{'#text'})) {
+                                my $v = $subfield->{'#text'};
+                                $v =~ s/\(orcid\)//g;
+                                push @{$entity->{'skos:exactMatch'}}, {
+                                    '@type' => 'ids:orcid',
+                                    '@value' => $v
+                                };
+                            }
+                        }
                     }
                 }
                 $jsonld->{$role} //= [];
@@ -319,6 +342,17 @@ $c->app->log->debug("XXXXXXXXXXXXX\n".$c->app->dumper($bkl_subject));
                     }
                     elsif ($subfield->{'@code'} eq '4') {
                         $role = 'role:'.$subfield->{'#text'};
+                    }
+                    elsif ($subfield->{'@code'} eq '0') {
+                        $entity->{'skos:exactMatch'} //= [];
+                        if (defined($subfield->{'#text'})) {
+                            my $v = $subfield->{'#text'};
+                            $v =~ s/\(DE-588\)//g;
+                            push @{$entity->{'skos:exactMatch'}}, {
+                                '@type' => 'ids:gnd',
+                                '@value' => $v
+                            }
+                        }
                     }
                 }
                 $jsonld->{$role} //= [];
