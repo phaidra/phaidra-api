@@ -17,12 +17,13 @@ sub get_jsonld {
 
     # Get the primary language for the record
     my $primary_language = _determine_language($marcjson);
+    push @{$jsonld->{'dcterms:language'}}, $subfield->{'#text'} eq 'ger' ? 'deu' : $subfield->{'#text'};
 
     # Process datafields
     if (exists $marcjson->{datafield}) {
         foreach my $field (@{$marcjson->{datafield}}) {
             my $tag = $field->{'@tag'};
-            
+
             # Title mapping (245)
             if ($tag eq '245') {
                 $jsonld->{'dce:title'} = [];
@@ -46,16 +47,6 @@ sub get_jsonld {
                 }
                 
                 push @{$jsonld->{'dce:title'}}, $title;
-            }
-            
-            # Language mapping (041)
-            elsif ($tag eq '041') {
-                $jsonld->{'dcterms:language'} = [];
-                foreach my $subfield (@{_ensure_array($field->{subfield})}) {
-                    if ($subfield->{'@code'} eq 'a') {
-                        push @{$jsonld->{'dcterms:language'}}, $subfield->{'#text'};
-                    }
-                }
             }
             
             # Subject mapping (689)
@@ -260,7 +251,7 @@ sub get_jsonld {
 
             # Role mapping (100, 700, 710)
             elsif ($tag eq '100' || $tag eq '700') {
-                $jsonld->{'role:aut'} //= [];
+                my $role = 'role:oth';  # Default role
                 my $entity = {
                     '@type' => 'schema:Person',
                     'schema:familyName' => [],
@@ -278,11 +269,15 @@ sub get_jsonld {
                             '@language' => $primary_language
                         } if defined $given_name;
                     }
+                    elsif ($subfield->{'@code'} eq '4') {
+                        $role = 'role:'.$subfield->{'#text'};
+                    }
                 }
-                push @{$jsonld->{'role:aut'}}, $entity;
+                $jsonld->{$role} //= [];
+                push @{$jsonld->{$role}}, $entity;
             }
             elsif ($tag eq '710') {
-                $jsonld->{'role:aut'} //= [];
+                my $role = 'role:oth';  # Default role
                 my $entity = {
                     '@type' => 'schema:Organization',
                     'schema:name' => []
@@ -295,10 +290,11 @@ sub get_jsonld {
                         };
                     }
                     elsif ($subfield->{'@code'} eq '4') {
-                        $entity->{'role'} = $subfield->{'#text'};
+                        $role = 'role:'.$subfield->{'#text'};
                     }
                 }
-                push @{$jsonld->{'role:aut'}}, $entity;
+                $jsonld->{$role} //= [];
+                push @{$jsonld->{$role}}, $entity;
             }
         }
     }

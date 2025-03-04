@@ -238,7 +238,7 @@ sub _get_role_label_de {
   my $rolecode = shift;
 
   if ($rolecode eq 'datasupplier') {
-    return 'DatenlieferantIn';
+    return 'Datenlieferant*in';
   }
 
   for my $r (@{$rolesvoc}) {
