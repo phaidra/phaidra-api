@@ -18,9 +18,9 @@ my $config = from_json($json_text);
 # Configuration
 my $botTreshold = 100;
 my $tsv_file = '/usr/local/phaidra/phaidra-api/public/ip2country/ip2country-v4.tsv';
-my $dsn = $config->{phaidradb}->{dsn};
-my $username = $config->{phaidradb}->{username};
-my $password = $config->{phaidradb}->{password};
+my $dsn = $config->{phaidra_db}->{dsn};
+my $username = $config->{phaidra_db}->{username};
+my $password = $config->{phaidra_db}->{password};
 my @ip_ranges;
 my @visitor_ids;
 
