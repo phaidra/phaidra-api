@@ -62,8 +62,8 @@ while (my $row = $sth->fetchrow_hashref()) {
     # Find country code matching the IP
     foreach my $range (@ip_ranges) {
         if ($numeric_ip >= $range->{start_ip} && $numeric_ip <= $range->{end_ip}) {
-            $country_code = $range->{country_code};
-            $country_code = 'XX' if $range->{country_code} eq 'None';
+            $country_code = lc($range->{country_code});
+            $country_code = 'xx' if $range->{country_code} eq 'None';
             print "found country code $country_code\n";
             last;
         }
@@ -75,7 +75,7 @@ while (my $row = $sth->fetchrow_hashref()) {
 }
 
 # Next, identify the visitor IDs exceeding the threshold:
-my $sth = $dbh->prepare("
+$sth = $dbh->prepare("
     SELECT `visitor_id`, `ip`, COUNT(*)
     FROM `usage_stats`
     WHERE `created` >= NOW() - INTERVAL 3 DAY
