@@ -70,7 +70,7 @@ while (my $row = $sth->fetchrow_hashref()) {
     }
     
     # Update the usage_stats table with the resolved country code
-    my $update_sth = $dbh->prepare("UPDATE `usage_stats` SET `location_country` = ? WHERE `ip` = ? AND AND `created` >= NOW() - INTERVAL 4 DAY");
+    my $update_sth = $dbh->prepare("UPDATE `usage_stats` SET `location_country` = ? WHERE `ip` = ? AND `created` >= NOW() - INTERVAL 4 DAY");
     $update_sth->execute($country_code, $ip_address);
 }
 
