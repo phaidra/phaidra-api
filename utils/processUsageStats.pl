@@ -78,6 +78,7 @@ while (my $row = $sth->fetchrow_hashref()) {
 my $sth = $dbh->prepare("
     SELECT `visitor_id`, `ip`, COUNT(*)
     FROM `usage_stats`
+    WHERE `created` >= NOW() - INTERVAL 3 DAY
     GROUP BY `visitor_id`
     HAVING COUNT(*) > $botTreshold
 ");
