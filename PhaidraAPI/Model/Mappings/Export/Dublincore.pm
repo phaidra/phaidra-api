@@ -1,4 +1,4 @@
-package PhaidraAPI::Model::Mappings::Export::Dc;
+package PhaidraAPI::Model::Mappings::Export::Dublincore;
 
 use strict;
 use warnings;
