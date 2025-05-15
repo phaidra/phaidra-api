@@ -1910,11 +1910,32 @@ sub _add_jsonld_index {
 
   if ($jsonld->{'dcterms:created'}) {
     for my $date (@{$jsonld->{'dcterms:created'}}) {
-      my $dccreatedsub = substr($date, 0, 4);
-      if (looks_like_number($dccreatedsub)) {
-        my $dccreated = int($dccreatedsub);
-        push @{$index->{"dcterms_created_year"}}, $dccreated;
-        $index->{"dcterms_created_year_sort"} = $dccreated;
+      # Store the full EDTF date
+      push @{$index->{"dcterms_created_edtf"}}, $date;
+      
+      # Extract year from EDTF date
+      my $year;
+      if ($date =~ /^(\d{4})/) {
+        # Simple year format (e.g. "2023")
+        $year = $1;
+      } elsif ($date =~ /^(\d{4})~/) {
+        # Approximate year (e.g. "2023~")
+        $year = $1;
+      } elsif ($date =~ /^(\d{4})\/(\d{4})/) {
+        # Year range (e.g. "2020/2023")
+        $year = $1;
+      } elsif ($date =~ /^(\d{4})-\d{2}/) {
+        # Year with month (e.g. "2023-02")
+        $year = $1;
+      } elsif ($date =~ /^(\d{4})-\d{2}-\d{2}/) {
+        # Full date (e.g. "2023-02-03")
+        $year = $1;
+      }
+      
+      if ($year && looks_like_number($year)) {
+        my $year_int = int($year);
+        push @{$index->{"dcterms_created_year"}}, $year_int;
+        $index->{"dcterms_created_year_sort"} = $year_int;
       }
     }
   }
@@ -2001,7 +2022,13 @@ sub _add_jsonld_index {
     }
   }
 
-  $index->{"roles_json"} = b(encode_json(\@roles))->decode('UTF-8');
+  unless (exists($jsonld->{'@type'}) && ($jsonld->{'@type'} eq 'phaidra:Subject')) {
+    # If it was phaidra:Subject (=represented object section), then roles
+    # array would overwrite the digital object roles array.
+    # Merge would not be easy (could create dups), so let's just skip adding
+    # the represented object roles to array.
+    $index->{"roles_json"} = b(encode_json(\@roles))->decode('UTF-8');
+  }
 
   if (scalar @descriptions) {
     $index->{"descriptions_json"} = b(encode_json(\@descriptions))->decode('UTF-8');

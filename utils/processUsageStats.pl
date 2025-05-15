@@ -67,7 +67,7 @@ while (my ($visitor_id, $ip, $count) = $sth->fetchrow_array) {
 # Select all distinct IPs from usage_stats for processing
 # Taking 3 day window to allow for some overlap... and won't repeatedly try if it does not work
 # though if everything works well, only the one from last day should be NULL anyway
-my $sth = $dbh->prepare("
+$sth = $dbh->prepare("
     SELECT DISTINCT `ip` 
     FROM `usage_stats` 
     WHERE `location_country` IS NULL 

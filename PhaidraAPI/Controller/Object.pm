@@ -21,6 +21,7 @@ use PhaidraAPI::Model::Octets;
 use PhaidraAPI::Model::Uwmetadata;
 use PhaidraAPI::Model::Geo;
 use PhaidraAPI::Model::Mods;
+use PhaidraAPI::Model::Threed;
 use PhaidraAPI::Model::Imageserver;
 use PhaidraAPI::Model::Util;
 use PhaidraAPI::Model::Authorization;
@@ -70,14 +71,6 @@ sub info {
 
   if ($r->{status} eq 200) {
     $self->track_info($pid);
-  }
-
-  if (defined $self->config->{external_services}->{opencast}->{mode} && $self->config->{external_services}->{opencast}->{mode} eq "ACTIVATED") {
-      my $object_job_info = $self->paf_mongo->get_collection('jobs')->find_one({pid => $pid, agent => 'vige'});
-      if ($object_job_info && exists $r->{info}) {
-        my $oc_mpid = $object_job_info->{'oc_mpid'};
-        $r->{info}->{oc_mpid} = $oc_mpid;
-      }
   }
 
   $self->render(json => $r, status => $r->{status});
@@ -148,22 +141,35 @@ sub _proxy_thumbnail {
   # this can lead to a broken thumbnail until the job is finished
   # but this is better than checking the job status forever after
   my $jobstatus = 'finished';#$self->imageserver_job_status($pid);
+
+  my $authz_model = PhaidraAPI::Model::Authorization->new;
+  my $res         = $authz_model->check_rights($self, $pid, 'ro');
+  unless ($res->{status} eq '200') {
+    $self->setNoCacheHeaders();
+    $self->reply->static('images/locked.png');
+    return;
+  }
+
   if (defined($jobstatus) && ($jobstatus eq 'finished')) {
 
     # use imageserver
     my $isrv_model = PhaidraAPI::Model::Imageserver->new;
+    my $t0 = [gettimeofday];
     my $res        = $isrv_model->get_url($self, Mojo::Parameters->new(IIIF => "$pid.tif/full/$size/0/default.jpg"), 0);
+    $self->app->log->debug($pid . " " . $self->req->params." _proxy_thumbnail get_url took " . tv_interval($t0));
     if ($res->{status} ne 200) {
       $self->render(json => $res, status => $res->{status});
       return;
     }
     if (Mojo::IOLoop->is_running) {
+      my $t1 = [gettimeofday];
       $self->render_later;
       $self->ua->get(
         $res->{url},
         sub {
           my ($c, $tx) = @_;
           _proxy_tx($self, $tx);
+          $self->app->log->debug($pid . " " . $self->req->params." _proxy_thumbnail call_url took " . tv_interval($t1));
         }
       );
     }
@@ -260,7 +266,7 @@ sub thumbnail {
 
   switch ($cmodelr->{cmodel}) {
     case ['Picture', 'Page', 'PDFDocument'] {
-      if ( $ENV{S3_ENABLED} eq "true" ) {
+      if ( defined $ENV{S3_ENABLED} and $ENV{S3_ENABLED} eq "true" ) {
         my $paf_mongo = $self->paf_mongo;
         my $s3_cache = PhaidraAPI::S3::Cache->new(paf_mongodb=>$paf_mongo,
                                                   aws_access_key_id=>$aws_access_key_id,
@@ -361,7 +367,17 @@ sub thumbnail {
         $self->render(json => $res, status => $res->{status});
         return;
       }
-      return $self->_proxy_thumbnail($r->{oldest_member}, $cmodelr->{cmodel}, $size);
+      if ($r->{oldest_member} && $r->{oldest_member}->{pid}) {
+        if ($r->{oldest_member}->{cmodel} eq 'Collection') {
+          $self->reply->static('images/collection.png');
+          return;
+        } else {
+          return $self->_proxy_thumbnail($r->{oldest_member}->{pid}, $r->{oldest_member}->{cmodel}, $size);
+        }
+      } else {
+        $self->reply->static('images/collection.png');
+        return;
+      }
     }
     case 'Resource' {
       $self->reply->static('images/resource.png');
@@ -385,6 +401,9 @@ sub preview {
     $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
     return;
   }
+  my $lang = $self->param('lang') || 'en';  # Default to English
+  $self->languages($lang);
+
   my $pid = $self->stash('pid');
 
   my $force = $self->param('force');
@@ -670,6 +689,28 @@ sub preview {
         $index_mime = $mt if $mt =~ m/\//g;
       }
       $self->app->log->info("preview pid[$pid] metadata mimetype[$index_mime]");
+
+      if (($mimetype eq 'model/obj')) {
+        my $threed_model = PhaidraAPI::Model::Threed->new;
+        my $model_path = $threed_model->get_model_path($self, $pid);
+        
+        if ($model_path eq 'processing') {
+          $self->render('threed/processing');
+          return;
+        }
+        
+        if ($model_path) {
+          $self->stash(model_path => $model_path);
+          $self->stash(baseurl       => $self->config->{baseurl});
+          $self->stash(scheme        => $self->config->{scheme});
+          $self->stash(basepath      => $self->config->{basepath});
+          $self->stash(trywebversion => $trywebversion);
+          $self->stash(pid           => $pid);
+          $self->render('threed/viewer');
+          return;
+        }
+      }
+
        if (($index_mime eq 'application/x-wacz')) {
         
        my $object_model = PhaidraAPI::Model::Object->new;
@@ -974,6 +1015,7 @@ $self->app->log->info("XXXXXXXXXXXXXXX NOT-MIGRATED pid[$pid]");
         $self->stash(pid      => $pid);
         
         if ($showloadbutton) {
+          
           $self->render(template => 'utils/loadbutton', format => 'html');
           return;
         }

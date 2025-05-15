@@ -491,6 +491,7 @@ sub startup {
 
   $r->get('collection/:pid/members')                ->to('collection#get_collection_members');
   $r->get('collection/:pid/descendants')            ->to('collection#descendants');
+  $r->get('collection/:pid/rss')                    ->to('collection#rss');
 
   # does not show inactive objects, not specific to collection (but does ordering)
   $r->get('object/:pid/related')                    ->to('search#related');
@@ -532,10 +533,10 @@ sub startup {
   $r->get('stats/:pid/chart')                       ->to('stats#chart');
 
   $r->get('ir/stats/topdownloads')                  ->to('ir#stats_topdownloads');
-  $r->get('ir/stats/:pid')                          ->to('stats#stats');
-  $r->get('ir/stats/:pid/downloads')                ->to('stats#stats', stats_param_key => 'downloads');
-  $r->get('ir/stats/:pid/detail_page')              ->to('stats#stats', stats_param_key => 'detail_page');
-  $r->get('ir/stats/:pid/chart')                    ->to('stats#chart');
+  $r->get('ir/stats/:pid')                          ->to('ir#stats');
+  $r->get('ir/stats/:pid/downloads')                ->to('ir#stats', stats_param_key => 'downloads');
+  $r->get('ir/stats/:pid/detail_page')              ->to('ir#stats', stats_param_key => 'detail_page');
+  $r->get('ir/stats/:pid/chart')                    ->to('ir#stats_chart');
 
   $r->get('directory/user/#username/data')          ->to('directory#get_user_data');
   $r->get('directory/user/#username/name')          ->to('directory#get_user_name');
@@ -690,6 +691,11 @@ sub startup {
       $loggedin->post('jsonld/template/add')                                 ->to('jsonld#add_template');
       $loggedin->post('jsonld/template/:tid/remove')                         ->to('jsonld#remove_template');
       $loggedin->post('jsonld/template/:tid/edit')                           ->to('jsonld#edit_template');
+      
+      $admin->get('jsonld/templates/admin')                                  ->to('jsonld#get_templates_admin');
+      $admin->post('jsonld/template/admin/:tid/remove')                     ->to('jsonld#remove_template_admin');
+      $admin->post('jsonld/template/admin/:tid/edit')                       ->to('jsonld#edit_template_admin');
+
 
       $loggedin->post('ir/submit')                                           ->to('ir#submit');
       $loggedin->post('ir/notifications')                                    ->to('ir#notifications');
@@ -777,6 +783,10 @@ sub startup {
     $admin->get('config/private')                                               ->to('config#get_private_config');
 
     unless($self->app->config->{readonly}){
+
+      $admin->get('jsonld/templates/admin')                                     ->to('jsonld#get_templates_admin');
+      $admin->post('jsonld/template/admin/:tid/remove')                        ->to('jsonld#remove_template_admin');
+      $admin->post('jsonld/template/admin/:tid/edit')                          ->to('jsonld#edit_template_admin');
 
       $admin->post('config/public')                                             ->to('config#post_public_config');
       $admin->post('config/private')                                            ->to('config#post_private_config');

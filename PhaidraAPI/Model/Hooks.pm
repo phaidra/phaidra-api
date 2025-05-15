@@ -96,7 +96,7 @@ sub add_or_modify_datastream_hooks {
             push @{$res->{alerts}}, @{$vsr->{alerts}} if scalar @{$vsr->{alerts}} > 0;
           }
         } else {
-          $c->app->log->error("add_or_modify_datastream_hooks pid[$pid] Could not get cmodel, not creating imageserver/streaming job");
+          $c->app->log->error("add_or_modify_datastream_hooks pid[$pid] Could not get cmodel, not creating imageserver/streaming/3d job");
         }
 
       }
@@ -285,6 +285,32 @@ sub modify_hook {
         my $vsr = $strm_model->create_streaming_job($c, $pid, $res_cmodel->{cmodel});
         push @{$res->{alerts}}, @{$vsr->{alerts}} if scalar @{$vsr->{alerts}} > 0;
       }
+      if ($res_cmodel->{cmodel} eq 'Asset') {
+        my $mimetype;
+
+        if ($c->app->config->{fedora}->{version} >= 6) {
+          my $fedora_model = PhaidraAPI::Model::Fedora->new;
+          my $dsAttr = $fedora_model->getDatastreamAttributes($c, $pid, 'OCTETS');
+          if ($dsAttr->{status} eq 200) {
+            $mimetype = $dsAttr->{mimetype};
+          }
+        }
+        else {
+          my $object_model = PhaidraAPI::Model::Object->new;
+          my $r_oxml = $object_model->get_foxml($c, $pid);
+          if ($r_oxml->{status} eq 200) {
+            my $foxmldom = Mojo::DOM->new();
+            $foxmldom->xml(1);
+            $foxmldom->parse($r_oxml->{foxml});
+            my $octets_model = PhaidraAPI::Model::Octets->new;
+            (undef, $mimetype, undef) = $octets_model->_get_ds_attributes($c, $pid, 'OCTETS', $foxmldom);
+          }
+        }
+        if ($mimetype eq 'model/obj') {
+          my $threedr = $self->_create_3d_job_if_not_exists($c, $pid, $res_cmodel->{cmodel});
+          push @{$res->{alerts}}, @{$threedr->{alerts}} if scalar @{$threedr->{alerts}} > 0;
+        }
+      }
     }
   }
 
@@ -304,6 +330,48 @@ sub _create_imageserver_job_if_not_exists {
 
   return $res;
 }
+sub delete_hook {
+  my ($self, $c, $pid) = @_;
+  my $res = { alerts => [], status => 200 };
+
+  my $search_model = PhaidraAPI::Model::Search->new;
+  my $res_cmodel = $search_model->get_cmodel($c, $pid);
+  $c->app->log->debug("res_cmodel\n" . $c->app->dumper($res_cmodel));
+
+  my %valid_models = (
+    'Picture'      => 'pige',
+    'PDFDocument'  => 'pige',
+    'Video'        => 'vige',
+    '3DObject'     => '3d'
+  );
+
+  if (defined $res_cmodel->{cmodel} && exists $valid_models{ $res_cmodel->{cmodel} }) {
+    my $agent = $valid_models{ $res_cmodel->{cmodel} };
+    my $find = $c->paf_mongo->get_collection('jobs')->find_one({ pid => $pid });
+
+    if ($find && defined $find->{status}) {
+      $c->app->log->info("delete object hook for cmodel $res_cmodel->{cmodel} pid[$pid] : Current streaming job status[$find->{status}]");
+
+      if ($find->{status} eq "TO_DELETE" or $find->{status} eq "DEL_REQUESTED") {
+        $c->app->log->info("Delete already requested. Noop.");
+      } elsif ($find->{status} =~ m/^OC_DELETED_/) {
+        $c->app->log->info("Already deleted. Noop.");
+      } else {
+        $c->app->log->info("Marking stream for delete.");
+        $c->paf_mongo->get_collection('jobs')->update_one(
+          { 'pid' => $pid, 'agent' => $agent },
+          { '$set' => { 'status' => 'TO_DELETE' } },
+          { 'upsert' => 0 }
+        );
+      }
+    } else {
+      $c->app->log->info("Streaming job wasn't found. Noop.");
+    }
+  }
+
+  return $res;
+}
+
 
 sub _create_streaming_job_if_not_exists {
   my ($self, $c, $pid, $cmodel) = @_;
@@ -314,6 +382,32 @@ sub _create_streaming_job_if_not_exists {
   my $find = $c->paf_mongo->get_collection('jobs')->find_one({pid => $pid, agent => 'vige'});
   unless ($find->{pid}) {    
     return $strm_model->create_streaming_job($c, $pid, $cmodel);
+  }
+
+  return $res;
+}
+
+sub _create_3d_job_if_not_exists {
+  my ($self, $c, $pid, $cmodel) = @_;
+
+  my $res = {alerts => [], status => 200};
+
+  my $find = $c->paf_mongo->get_collection('jobs')->find_one({pid => $pid, agent => '3d'});
+  unless ($find->{pid}) {    
+    my $hash = hmac_sha1_hex($pid, $c->app->config->{imageserver}->{hash_secret});
+    my $path;
+    if ($c->app->config->{fedora}->{version} >= 6) {
+      my $fedora_model = PhaidraAPI::Model::Fedora->new;
+      my $dsAttr = $fedora_model->getDatastreamPath($c, $pid, 'OCTETS');
+      if ($dsAttr->{status} eq 200) {
+        $path = $dsAttr->{path};
+      } else {
+        $c->app->log->error("3d job pid[$pid] cm[$cmodel]: could not get path");
+      }
+    }
+    my $job = {pid => $pid, cmodel => $cmodel, agent => "3d", status => "new", idhash => $hash, created => time};
+    $job->{path} = $path if $path;
+    $c->paf_mongo->get_collection('jobs')->insert_one($job);
   }
 
   return $res;

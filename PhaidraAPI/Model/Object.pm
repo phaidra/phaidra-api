@@ -305,6 +305,14 @@ sub info {
 
   # $c->app->log->debug("XXXXXXXXXXXXXX ".$c->app->dumper($info));
 
+  if (defined $c->app->config->{external_services}->{opencast}->{mode} && $c->app->config->{external_services}->{opencast}->{mode} eq "ACTIVATED") {
+      my $object_job_info = $c->paf_mongo->get_collection('jobs')->find_one({pid => $pid, agent => 'vige'});
+      if ($object_job_info && defined($info)) {
+        my $oc_mpid = $object_job_info->{'oc_mpid'};
+        $info->{oc_mpid} = $oc_mpid;
+      }
+  }
+
   $res->{info} = $info;
   return $res;
 }
@@ -526,6 +534,11 @@ sub delete {
       $res->{status} = $deleteres->code;
     }
   }
+  
+  my $hooks_model = PhaidraAPI::Model::Hooks->new;
+  my $hr          = $hooks_model->delete_hook($c, $pid);
+  push @{$res->{alerts}}, @{$hr->{alerts}} if scalar @{$hr->{alerts}} > 0;
+  $res->{status} = $hr->{status};
 
   return $res;
 }
@@ -575,6 +588,8 @@ sub modify {
     }
     if (scalar @properties) {
       my $eres = $fedora_model->editTriples($c, $pid, \@properties);
+      # save transaction if any
+      $fedora_model->commitTransaction($c);
       my $hooks_model = PhaidraAPI::Model::Hooks->new;
       my $indexed = 0;
       if ($eres->{status} == 200) {
@@ -805,6 +820,12 @@ sub create_simple {
   my $r;
   unless (exists($metadata->{'target-pid'})) {
 
+    if ($c->app->config->{fedora}->{version} >= 6) {
+      # use transactions only for object creation
+      my $fedora_model = PhaidraAPI::Model::Fedora->new;
+      my $transaction_url = $fedora_model->useTransaction($c);
+      $c->stash(transaction_url => $transaction_url->{transaction_id});
+    }
     # create object
     $r = $self->create($c, $cmodel, $username, $password);
     if ($r->{status} ne 200) {
@@ -1050,6 +1071,13 @@ sub create_container {
   my $pid = '';
   my $r;
   unless (exists($container_metadata->{'target-pid'})) {
+
+    if ($c->app->config->{fedora}->{version} >= 6) {
+      # use transactions only for single object creation. TODO: use a single transaction for all containers and children. This way, if one child fails to be created, the entire load fails, and no partial loads occur.  
+      my $fedora_model = PhaidraAPI::Model::Fedora->new;
+      my $transaction_url = $fedora_model->useTransaction($c);
+      $c->stash(transaction_url => $transaction_url->{transaction_id});
+    }
 
     # create parent object
     $r = $self->create($c, 'cmodel:Container', $username, $password);

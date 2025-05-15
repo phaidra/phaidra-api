@@ -5,6 +5,7 @@ use warnings;
 use v5.10;
 use base qw/Mojo::Base/;
 use PhaidraAPI::Model::Uwmetadata;
+use PhaidraAPI::Model::Fedora;
 use PhaidraAPI::Model::Object;
 use PhaidraAPI::Model::Membersorder;
 
@@ -23,6 +24,13 @@ sub create {
 
   # create object
   my $pid;
+
+  if ($c->app->config->{fedora}->{version} >= 6) {
+    # use transactions only for single object creation. TODO: use only one transactions also for membership relation when adding members
+    my $fedora_model = PhaidraAPI::Model::Fedora->new;
+    my $transaction_url = $fedora_model->useTransaction($c);
+    $c->stash(transaction_url => $transaction_url->{transaction_id});
+  }
   my $object_model = PhaidraAPI::Model::Object->new;
   my $res_create   = $object_model->create($c, 'cmodel:Collection', $username, $password);
   if ($res_create->{status} ne 200) {
@@ -290,11 +298,14 @@ sub get_oldest_member {
     }
 
     my $root;
-    $urlget->query(q => "*:*", fq => "ispartof:\"$pid\"", sort => 'created asc', fl => 'pid', rows => "1", wt => "json");
+    $urlget->query(q => "*:*", fq => "ispartof:\"$pid\"", sort => 'created asc', fl => 'pid,cmodel', rows => "1", wt => "json");
     my $getres = $c->ua->get($urlget)->result;
     if ($getres->is_success) {
       for my $d (@{$getres->json->{response}->{docs}}) {
-        $oldest_member = $d->{pid};
+        $oldest_member = {
+          pid => $d->{pid},
+          cmodel => $d->{cmodel}
+        };
         last;
       }
     }

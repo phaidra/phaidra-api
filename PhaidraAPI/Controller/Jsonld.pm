@@ -37,8 +37,12 @@ sub get {
     $jsonld->{'@context'} = $context;
     $jsonld->{'@id'}      = 'https://' . $self->config->{phaidra}->{baseurl} . '/' . $pid;
     for my $pred (keys %{$jsonld}) {
-      if ($pred =~ m/role:(\w+)/g) {
-        $jsonld->{'@context'}->{$pred} = {'@id' => 'http://id.loc.gov/vocabulary/relators', '@container' => '@list'};
+      if ($pred =~ m/^role:(\w+)$/) {
+          my $role_name = $1;
+          $jsonld->{'@context'}->{'role'}->{'@context'}->{$role_name} = {
+              '@id' => "http://id.loc.gov/vocabulary/relators/$role_name",
+              '@container' => '@list'
+          };
       }
     }
   }
@@ -188,6 +192,23 @@ sub add_template {
   $self->render(json => $res, status => $res->{status});
 }
 
+sub edit_template_admin {
+  my $self = shift;
+
+  my $res = {alerts => [], status => 200};
+
+  unless (defined($self->stash('tid'))) {
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined template id'}]}, status => 400);
+    return;
+  }
+  my $tid = $self->stash('tid');
+
+  my $public = ($self->param('public') eq 'true') ? true : false;
+  my $validationfnc = $self->param('validationfnc');
+  $self->mongo->get_collection('jsonldtemplates')->update_one({tid => $tid}, { '$set' => { public => $public, validationfnc => $validationfnc, updated => time}});
+  $self->render(json => $res, status => $res->{status});
+}
+
 sub edit_template {
   my $self = shift;
 
@@ -315,6 +336,29 @@ sub get_users_templates {
   $self->render(json => $res, status => $res->{status});
 }
 
+sub get_templates_admin {
+  my $self = shift;
+
+  my $res = {alerts => [], status => 200};
+
+  my $tag = $self->param('tag');
+
+  my $find = {};
+  if ($tag) {
+    $find->{'tag'} = $tag;
+  }
+
+  my $users_templates = $self->mongo->get_collection('jsonldtemplates')->find($find)->sort({'created' => -1});
+  my @tmplts          = ();
+  while (my $doc = $users_templates->next) {
+    push @tmplts, {tid => $doc->{tid}, name => $doc->{name}, created => $doc->{created}, public => $doc->{public}, validationfnc => $doc->{validationfnc}};
+  }
+
+  $res->{templates} = \@tmplts;
+
+  $self->render(json => $res, status => $res->{status});
+}
+
 sub remove_template {
   my $self = shift;
 
@@ -333,6 +377,22 @@ sub remove_template {
   }
 
   $self->mongo->get_collection('jsonldtemplates')->delete_one({tid => $self->stash('tid'), owner => $owner});
+
+  $self->render(json => $res, status => $res->{status});
+}
+
+
+sub remove_template_admin {
+  my $self = shift;
+
+  my $res = {alerts => [], status => 200};
+
+  unless (defined($self->stash('tid'))) {
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined template id'}]}, status => 400);
+    return;
+  }
+
+  $self->mongo->get_collection('jsonldtemplates')->delete_one({tid => $self->stash('tid')});
 
   $self->render(json => $res, status => $res->{status});
 }

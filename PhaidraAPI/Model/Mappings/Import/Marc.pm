@@ -410,6 +410,7 @@ sub _query_dante_api {
     my ($self, $c, $bkl_code) = @_;
     
     # Code to query Dante API
+    # TODO: put to public config
     my $api_url = "https://api.dante.gbv.de/data";
     my $uri = "http://uri.gbv.de/terminology/bk/$bkl_code";
     my $ua = Mojo::UserAgent->new;
