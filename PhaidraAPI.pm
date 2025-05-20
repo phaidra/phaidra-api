@@ -542,10 +542,13 @@ sub startup {
   $r->get('directory/user/#username/name')          ->to('directory#get_user_name');
   $r->get('directory/user/#username/email')         ->to('directory#get_user_email');
 
-  $r->get('oai')                                    ->to('oai#handler');
-  $r->post('oai')                                   ->to('oai#handler');
-  $r->get('oaitest')                                ->to('oaitest#handler');
-  $r->post('oaitest')                               ->to('oaitest#handler');
+  # 2025-05-20
+  # temporarily switch oai routes so that /oai uses oaitest implementation 
+  # if everything's fine, oaitest implementation will replace oai
+  $r->get('oaitest')                                ->to('oai#handler');
+  $r->post('oaitest')                               ->to('oai#handler');
+  $r->get('oai')                                    ->to('oaitest#handler');
+  $r->post('oai')                                   ->to('oaitest#handler');
 
   $r->get('termsofuse')                             ->to('termsofuse#get');
 
