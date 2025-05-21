@@ -214,7 +214,10 @@ sub _add_roles_with_id {
                 }
               }
               if ($contr->{'skos:exactMatch'}) {
-                $id = $PhaidraAPI::Model::Jsonld::Extraction::jsonld_identifiers{$contr->{'skos:exactMatch'}[0]->{'@type'}} . ':' . $contr->{'skos:exactMatch'}[0]->{'@value'};
+                my $idv = $contr->{'skos:exactMatch'}[0]->{'@value'};
+                $idv =~ s{^(?:https?://)?orcid\.org/}{};
+                $idv =~ s/\s+//g;
+                $id = $PhaidraAPI::Model::Jsonld::Extraction::jsonld_identifiers{$contr->{'skos:exactMatch'}[0]->{'@type'}} . ':' . $idv;
               }
             }
             elsif ($contr->{'@type'} eq 'schema:Organization') {
