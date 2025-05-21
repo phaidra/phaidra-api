@@ -264,6 +264,7 @@ sub _add_uwm_roles_with_id {
         my $id;
         my $affiliation;
         if ($e->{orcid}) {
+          $e->{orcid} =~ s{^(?:https?://)?orcid\.org/}{};
           $id = 'orcid:'.$e->{orcid};
         }
         if ($e->{viaf}) {
