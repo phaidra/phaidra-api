@@ -75,8 +75,9 @@ $sth = $dbh->prepare("
 ");
 $sth->execute();
 
-while (my $row = $sth->fetchrow_hashref()) {
-    my $ip_address = $row->{ip};
+my @ip_addresses= ();
+while (my $row= $sth->fetchrow_hashref()) { push (@ip_addresses, $row->{ip}) }
+while (my $ip_address= shift(@ip_addresses)) {
     my $numeric_ip = unpack('N', pack('C4', split(/\./, $ip_address)));
     my $country_code = 'xx';
     print "checking $ip_address\n";
