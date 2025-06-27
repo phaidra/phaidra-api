@@ -1911,7 +1911,9 @@ sub _add_jsonld_index {
   if ($jsonld->{'dcterms:created'}) {
     for my $date (@{$jsonld->{'dcterms:created'}}) {
       # Store the full EDTF date
-      push @{$index->{"dcterms_created_edtf"}}, $date;
+      # can't do this on prod, it seems the dcterms_created_edtf wasn't added manually to schema, now solr wants a date
+      # ERROR: [doc=o:2143070] Error adding field 'dcterms_created_edtf'='2025' msg=Invalid Date String:'2025' => org.apache.solr.common.SolrException: ERROR: [doc=o:2143070] Error adding field 'dcterms_created_edtf'='2025' msg=Invalid Date String:'2025'
+      #push @{$index->{"dcterms_created_edtf"}}, $date;
       
       # Extract year from EDTF date
       my $year;
