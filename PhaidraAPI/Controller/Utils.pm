@@ -131,14 +131,16 @@ sub request_doi {
     my $msg = MIME::Lite::TT::HTML->new(
       From        => $userdata->{email},
       To          => $to,
-      Subject     => 'Subsequent DOI allocation',
+      Subject     => 'Subsequent DOI allocation: '. $pid . ' ' . $userdata->{email},
       Charset     => 'utf8',
       Encoding    => 'quoted-printable',
       Template    => {html => 'email/doirequest.html.tt', text => 'email/doirequest.txt.tt'},
       TmplParams  => \%emaildata,
       TmplOptions => \%options
     );
-    $msg->send('smtp', $privconfig->{smtpserver}.':'.$privconfig->{smtpport}, AuthUser => $privconfig->{smtpuser}, AuthPass => $privconfig->{smtppassword}, SSL => 1);
+    my @pars= ('smtp', $privconfig->{smtpserver}.':'.$privconfig->{smtpport}, AuthUser => $privconfig->{smtpuser}, AuthPass => $privconfig->{smtppassword});
+    push (@pars, SSL => $privconfig->{smtpssl}) if (exists ($privconfig->{smtpssl}));
+    $msg->send(@pars);
   };
   if ($@) {
     my $err = "[$pid] sending DOI request email failed: " . $@;
