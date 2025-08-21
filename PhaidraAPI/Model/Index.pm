@@ -1230,6 +1230,9 @@ sub _get {
           $datastreams{$dsid} = 1;
         }
       }
+      if ($dsid eq 'OCTETS') {
+        $datastreamids{$dsid} = 1;
+      }
     }
     push @{$index{datastreams}}, keys %datastreamids;
   }
@@ -1910,6 +1913,9 @@ sub _add_jsonld_index {
 
   if ($jsonld->{'dcterms:created'}) {
     for my $date (@{$jsonld->{'dcterms:created'}}) {
+      if (ref($date) eq 'HASH') {
+        next;
+      }
       # Store the full EDTF date
       # can't do this on prod, it seems the dcterms_created_edtf wasn't added manually to schema, now solr wants a date
       # ERROR: [doc=o:2143070] Error adding field 'dcterms_created_edtf'='2025' msg=Invalid Date String:'2025' => org.apache.solr.common.SolrException: ERROR: [doc=o:2143070] Error adding field 'dcterms_created_edtf'='2025' msg=Invalid Date String:'2025'
@@ -2350,7 +2356,7 @@ sub _add_jsonld_roles {
             for my $aff (@{$contr->{'schema:affiliation'}}) {
               for my $affname (@{$aff->{'schema:name'}}) {
                 unless (exists($foundAss->{$affname->{'@value'}})) {
-                  push @{$index->{"association"}}, $affname->{'@value'};
+                  push @{$index->{"affiliation"}}, $affname->{'@value'};
                   $foundAss->{$affname->{'@value'}} = 1;
                 }
               }
@@ -2358,14 +2364,14 @@ sub _add_jsonld_roles {
                 for my $id (@{$aff->{'skos:exactMatch'}}) {
                   unless (exists($foundAssIds->{$id})) {
                     if (reftype $id ne reftype {}) {
-                      push @{$index->{"association_id"}}, $id;
+                      push @{$index->{"affiliation_id"}}, $id;
                       $foundAssIds->{$id} = 1;
                       my $pp = $c->app->directory->org_get_parentpath($c, $id);
                       if ($pp->{status} eq 200) {
                         for my $parent (@{$pp->{parentpath}}) {
                           if ($parent->{'@id'} ne $id) {
                             unless (exists($foundAssIds->{$parent->{'@id'}})) {
-                              push @{$index->{"association_id"}}, $parent->{'@id'};
+                              push @{$index->{"affiliation_id"}}, $parent->{'@id'};
                               $foundAssIds->{$parent->{'@id'}} = 1;
                             }
                           }
@@ -2381,14 +2387,14 @@ sub _add_jsonld_roles {
         elsif ($contr->{'@type'} eq 'schema:Organization') {
           unless (exists($foundAss->{$name})) {
             $name = $contr->{'schema:name'}[0]->{'@value'};
-            push @{$index->{"association"}}, $name;
+            push @{$index->{"affiliation"}}, $name;
             $foundAss->{$name} = 1;
           }
           if ($contr->{'skos:exactMatch'}) {
             for my $id (@{$contr->{'skos:exactMatch'}}) {
               unless (exists($foundAssIds->{$id})) {
                 if (reftype $id ne reftype {}) {
-                  push @{$index->{"association_id"}}, $id;
+                  push @{$index->{"affiliation_id"}}, $id;
                   $foundAssIds->{$id} = 1;
                 }
               }
@@ -2602,7 +2608,56 @@ sub _add_uwm_index {
     }
   }
 
+  # padova: uwmetadata organisation association
+  my $uwm_organisations = $self->_get_uwm_organisations($c, $uwm);
+  #$c->app->log->debug("XXXXXXXXXXXX UWM ORGANISATIONS ".$c->app->dumper($uwm_organisations));
+  #$index->{"uwm_association_json"} = b(encode_json($uwm_organisations))->decode('UTF-8') if (@{$uwm_organisations});  
+  my %foundAssIds;
+  if (@{$uwm_organisations}) {
+    for my $org (@{$uwm_organisations}) {      
+      my $faculty = $org->{'faculty'} || '';
+      unless (exists($foundAssIds{$faculty})) {
+        if ($faculty ne '') {          
+          push @{$index->{"uwm_association_id"}}, $faculty;
+          $foundAssIds{$faculty} = 1;
+        }
+      }
+      my $department = $org->{'department'} || '';
+      unless (exists($foundAssIds{$department})) {
+        if ($department ne '') {            
+          push @{$index->{"uwm_association_id"}}, $department;
+          $foundAssIds{$department} = 1;
+        }                     
+      }
+    }
+  }
+
   return $res;
+}
+
+# padova
+sub _get_uwm_organisations {
+  my ($self, $c, $uwm) = @_;
+
+  my $org = $self->_find_first_uwm_node_rec($c, "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0", "organization", $uwm);
+  my @orgassignments_json;
+  for my $ch (@{$org->{children}}) {
+    if ($ch->{xmlname} eq "orgassignment") {
+      my %orgassignment_json;
+      for my $n (@{$ch->{children}}) {
+        if (($n->{xmlname} eq "faculty")) {
+          $n->{ui_value} =~ /([^\/]+$)/; # remove xmlns
+          $orgassignment_json{faculty} = $1 if ($1 ne '');
+        }
+        if (($n->{xmlname} eq "department")) {
+          $n->{ui_value} =~ /([^\/]+$)/; # remove xmlns
+          $orgassignment_json{department} = $1 if ($1 ne '');
+        }
+      }
+      push @orgassignments_json, \%orgassignment_json;
+    }
+  }
+  return \@orgassignments_json;
 }
 
 sub _get_uwm_educational {

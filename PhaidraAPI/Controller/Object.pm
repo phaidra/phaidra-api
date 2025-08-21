@@ -37,6 +37,7 @@ use FileHandle;
 use Data::Dumper;
 use Net::Amazon::S3;
 use Net::Amazon::S3::Authorization::Basic;
+use MIME::Base64 qw(encode_base64);
 autoflush STDOUT 1;
 
 
@@ -404,6 +405,8 @@ sub preview {
   my $lang = $self->param('lang') || 'en';  # Default to English
   $self->languages($lang);
 
+  my $addannotation = $self->param('addannotation');
+
   my $pid = $self->stash('pid');
 
   my $force = $self->param('force');
@@ -526,6 +529,16 @@ sub preview {
     $self->app->log->info("preview pid[$pid] force[NO] cmodel[$cmodel] mimetype[$mimetype] size[$size] showloadbutton[$showloadbutton]");
   }
 
+  # Get instance config and set favicon
+  my $model = PhaidraAPI::Model::Config->new;
+  my $modelres = $model->get_public_config($self, 1);
+  if (defined $modelres->{faviconText}) {
+    my $faviconText = $modelres->{faviconText};
+    $faviconText =~ s/^\s+|\s+$//g if defined $faviconText;
+    my $base64Svg = encode_base64($faviconText);
+    $self->stash(favIcon => "data:image/svg+xml;base64,$base64Svg");
+  }
+
   switch ($cmodel) {
     case ['Picture', 'Page'] {
       my $imgsrvjobstatus = $self->imageserver_job_status($pid);
@@ -621,7 +634,7 @@ sub preview {
         my $u_model = PhaidraAPI::Model::Util->new;
         $u_model->track_action($self, $pid, 'preview');
 
-        $self->render(template => 'utils/imageviewer', format => 'html');
+        $self->render(template => 'utils/imageviewer', format => 'html', addannotation => $addannotation);
         return;
       }
       else {
@@ -640,12 +653,14 @@ sub preview {
         }
       }
 
+
       my $page = $self->param('page');
       $page = looks_like_number($page) ? $page : 1;
       $self->stash(page     => $page);
       $self->stash(baseurl  => $self->config->{baseurl});
       $self->stash(basepath => $self->config->{basepath});
       $self->stash(pid      => $pid);
+      $self->stash(lang     => $lang);
 
       my $u_model = PhaidraAPI::Model::Util->new;
       $u_model->track_action($self, $pid, 'preview');
@@ -717,13 +732,14 @@ sub preview {
        my $r= $object_model->info($self, $pid);
        my $website_url;
        
-        #check if metadata has URL to display from the archive after the component loads in replayweb
-        if (exists($r->{info}->{metadata}->{"JSON-LD"}->{'phaidra:systemTag'}[0])) {
-          $website_url = $r->{info}->{metadata}->{"JSON-LD"}->{'phaidra:systemTag'}[0];
-        } elsif (exists($r->{info}->{metadata}->{"JSON-LD"}->{'rdfs:seeAlso'}[0]->{'schema:url'}[0])) {
-          $website_url = $r->{info}->{metadata}->{"JSON-LD"}->{'rdfs:seeAlso'}[0]->{'schema:url'}[0];
-        }
-          
+ #check if metadata has URL to display from the archive after the component loads in replayweb
+
+     
+           if (exists($r->{info}->{metadata}->{"JSON-LD"}->{'phaidra:systemTag'}[0])) {
+            $website_url = $r->{info}->{metadata}->{"JSON-LD"}->{'phaidra:systemTag'}[0];
+            }  elsif (exists($r->{info}->{metadata}->{"JSON-LD"}->{'rdfs:seeAlso'}[0]->{'schema:url'}[0])) {
+            $website_url = $r->{info}->{metadata}->{"JSON-LD"}->{'rdfs:seeAlso'}[0]->{'schema:url'}[0];
+            }  
         $self->stash(website_url =>$website_url);
         $self->stash(baseurl  => $self->config->{baseurl});
         $self->stash(scheme   => $self->config->{scheme});
@@ -1570,6 +1586,30 @@ sub add_relationship {
 
   $self->render(json => $r, status => $r->{status});
 
+}
+
+sub add_relationships {
+
+  my $self = shift;
+
+  unless (defined($self->stash('pid'))) {
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined pid'}]}, status => 400);
+    return;
+  }
+
+  my $relationships = $self->param('relationships');
+
+  unless (defined($relationships)) {
+    $self->render(json => {alerts => [{type => 'error', msg => 'Undefined relationships'}]}, status => 400);
+    return;
+  }
+
+  $relationships = decode_json(b($relationships)->encode('UTF-8'));
+
+  my $object_model = PhaidraAPI::Model::Object->new;
+  my $r            = $object_model->add_relationships($self, $self->stash('pid'), $relationships, $self->stash->{basic_auth_credentials}->{username}, $self->stash->{basic_auth_credentials}->{password});
+
+  $self->render(json => $r, status => $r->{status});
 }
 
 sub purge_relationship {

@@ -555,6 +555,9 @@ sub startup {
   $r->get('list/token/:token')                      ->to('lists#get_token_list');
 
   $r->get('config/public')                          ->to('config#get_public_config');
+  $r->get('cms/template/:templateName')             ->to('cms#get_template');
+
+  $r->get('/jwks')                                  ->to('utils#jwks');
 
   if ($self->app->config->{fedora}->{version} >= 6) {
     my $ext_creds = $r->under('/')->to('authentication#extract_credentials', creds_must_be_present => 0);
@@ -650,6 +653,7 @@ sub startup {
       $writer->post('object/:pid/iiifmanifest')                              ->to('iiifmanifest#post');
       $writer->post('object/:pid/metadata')                                  ->to('object#metadata');
       $writer->post('object/:pid/relationship/add')                          ->to('object#add_relationship');
+      $writer->post('object/:pid/relationships/add')                         ->to('object#add_relationships');
       $writer->post('object/:pid/relationship/remove')                       ->to('object#purge_relationship');
       $writer->post('object/:pid/id/add')                                    ->to('object#add_or_remove_identifier', operation => 'add');
       $writer->post('object/:pid/id/remove')                                 ->to('object#add_or_remove_identifier', operation => 'remove');
@@ -826,6 +830,7 @@ sub startup {
       $proxyauth->post('object/create')                                         ->to('object#create_empty');
       $proxyauth->post('object/create/:cmodel')                                 ->to('object#create');
       $proxyauth->post('object/:pid/relationship/add')                          ->to('object#add_relationship');
+      $proxyauth->post('object/:pid/relationships/add')                         ->to('object#add_relationships');
       $proxyauth->post('object/:pid/relationship/remove')                       ->to('object#purge_relationship');
       $proxyauth->post('object/:pid/id/add')                                    ->to('object#add_or_remove_identifier', operation => 'add');
       $proxyauth->post('object/:pid/id/remove')                                 ->to('object#add_or_remove_identifier', operation => 'remove');

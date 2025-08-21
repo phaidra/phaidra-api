@@ -197,7 +197,7 @@ our %tree = (
           "labels"      => {
             "de" => "Geltungsbereich",
             "en" => "Coverage",
-            "it" => "Copertura (temporale – geografica – amministrativa)",
+            "it" => "Copertura (spaziale-temporale)",
             "sr" => "obseg"
           },
           "loaded" => 0,
@@ -1048,7 +1048,7 @@ our %tree = (
                     { "labels" => {
                         "de" => "AutorIn des analogen Objekts",
                         "en" => "Author of the analogue object",
-                        "it" => "Autore dell'oggetto  analogico",
+                        "it" => "Autore",
                         "sr" => "autor analognog objekta"
                       },
                       "uri" => "http://phaidra.univie.ac.at/XML/metadata/lom/V1.0/voc_3/1552095"
@@ -2851,7 +2851,7 @@ our %tree = (
           "labels"      => {
             "de" => "Ausgew\x{e4}hlte Lizenz",
             "en" => "Licence Selected",
-            "it" => "Licenza scelta",
+            "it" => "Licenza",
             "sr" => "izabrana licenca"
           },
           "loaded" => 0,
@@ -4478,7 +4478,7 @@ our %tree = (
       "labels"      => {
         "de" => "Zuordnung",
         "en" => "Association",
-        "it" => "Relazioni",
+        "it" => "Afferenza",
         "sr" => "ustanove"
       },
       "loaded" => 0,
@@ -5163,7 +5163,7 @@ our %tree = (
                     { "labels" => {
                         "de" => "Abbildungsnachweis",
                         "en" => "Image Certificate",
-                        "it" => "certificato dell'immagine",
+                        "it" => "Certificato dell'immagine",
                         "sr" => "sertifikat slike"
                       },
                       "uri" => "http://phaidra.univie.ac.at/XML/metadata/histkult/V1.0/voc_25/1552000"
@@ -6252,7 +6252,7 @@ our %tree = (
                     { "labels" => {
                         "de" => "AutorIn des analogen Objekts",
                         "en" => "Author of the analogue object",
-                        "it" => "Autore dell'oggetto  analogico",
+                        "it" => "Autore",
                         "sr" => "autor analognog objekta"
                       },
                       "uri" => "http://phaidra.univie.ac.at/XML/metadata/provenience/V1.0/voc_3/1552095"
@@ -7139,7 +7139,7 @@ our %tree = (
       "labels"      => {
         "de" => "Digitales Buch",
         "en" => "Digital Book",
-        "it" => "Libro digitale",
+        "it" => "Dati bibliografici",
         "sr" => "podaci o knjizi"
       },
       "loaded" => 0,
