@@ -305,12 +305,14 @@ sub info {
 
   # $c->app->log->debug("XXXXXXXXXXXXXX ".$c->app->dumper($info));
 
-  if (defined $c->app->config->{external_services}->{opencast}->{mode} && $c->app->config->{external_services}->{opencast}->{mode} eq "ACTIVATED") {
-      my $object_job_info = $c->paf_mongo->get_collection('jobs')->find_one({pid => $pid, agent => 'vige'});
-      if ($object_job_info && defined($info)) {
-        my $oc_mpid = $object_job_info->{'oc_mpid'};
-        $info->{oc_mpid} = $oc_mpid;
-      }
+  if ($info->{cmodel} eq 'Video') {
+    if (defined $c->app->config->{external_services}->{opencast}->{mode} && $c->app->config->{external_services}->{opencast}->{mode} eq "ACTIVATED") {
+        my $object_job_info = $c->paf_mongo->get_collection('jobs')->find_one({pid => $pid, agent => 'vige'});
+        if ($object_job_info && defined($info)) {
+          my $oc_mpid = $object_job_info->{'oc_mpid'};
+          $info->{oc_mpid} = $oc_mpid;
+        }
+    }
   }
 
   $res->{info} = $info;
@@ -1479,8 +1481,12 @@ sub save_metadata {
             $rel->{'o'} = "info:fedora/" . $pid;
             $skiphook = 0;
           }
+<<<<<<< HEAD
           $relsPerSubject->{$rel->{'s'}} = [] unless(exists($relsPerSubject->{$rel->{'s'}}));
           push @{$relsPerSubject->{$rel->{'s'}}}, {predicate => $rel->{'p'}, object => $rel->{'o'}};
+=======
+          push @relationships, {predicate => $rel->{'p'}, object => $rel->{'o'}};
+>>>>>>> 6ec07afde3c6b5e875f8ec63f5a4b49e101320d4
         }
         foreach my $subjectPid (keys %{$relsPerSubject}) {
           my $r = $self->add_relationships($c, $subjectPid, $relsPerSubject->{$subjectPid}, $username, $password, $skiphook);
