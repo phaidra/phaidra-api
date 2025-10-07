@@ -1481,12 +1481,8 @@ sub save_metadata {
             $rel->{'o'} = "info:fedora/" . $pid;
             $skiphook = 0;
           }
-<<<<<<< HEAD
           $relsPerSubject->{$rel->{'s'}} = [] unless(exists($relsPerSubject->{$rel->{'s'}}));
           push @{$relsPerSubject->{$rel->{'s'}}}, {predicate => $rel->{'p'}, object => $rel->{'o'}};
-=======
-          push @relationships, {predicate => $rel->{'p'}, object => $rel->{'o'}};
->>>>>>> 6ec07afde3c6b5e875f8ec63f5a4b49e101320d4
         }
         foreach my $subjectPid (keys %{$relsPerSubject}) {
           my $r = $self->add_relationships($c, $subjectPid, $relsPerSubject->{$subjectPid}, $username, $password, $skiphook);
