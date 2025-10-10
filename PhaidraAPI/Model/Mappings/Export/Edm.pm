@@ -21,6 +21,7 @@ sub get_metadata {
   my $apiBaseUrlPath = $c->app->config->{baseurl}. ($c->app->config->{basepath} ? '/' . $c->app->config->{basepath} : '');
   my $getUrl       = "https://$apiBaseUrlPath/object/$pid/get";
   my $previewUrl   = "https://$apiBaseUrlPath/object/$pid/preview";
+  my $thumbnailUrl   = "https://$apiBaseUrlPath/object/$pid/thumbnail";
   my $iiifUri      = "https://$apiBaseUrlPath/imageserver?IIIF=$pid.tif/info.json";
   my $iiifManifestUri = "https://$apiBaseUrlPath/object/$pid/iiifmanifest";
 
@@ -111,7 +112,18 @@ sub get_metadata {
     name => 'edm:isShownBy',
     attributes => [
       { name  => 'rdf:resource',
-        value => ($rec->{cmodel} eq 'Video') ? $previewUrl : $getUrl,
+        value => $getUrl,
+      }
+    ]
+  };
+
+  # thumbnail
+  # edm:object
+  push @{$oreAggregation->{children}}, {
+    name => 'edm:object',
+    attributes => [
+      { name  => 'rdf:resource',
+        value => $thumbnailUrl,
       }
     ]
   };
@@ -447,7 +459,7 @@ sub get_metadata {
     name       => 'edm:WebResource',
     attributes => [
       { name  => 'rdf:about',
-        value => ($rec->{cmodel} eq 'Video') ? $previewUrl : $getUrl
+        value => $getUrl
       }
     ],
     children => []
@@ -462,8 +474,10 @@ sub get_metadata {
     };
   }
 
-  # svcs:has_service
-  if ($rec->{cmodel} eq 'Picture') {
+  
+  if (($rec->{cmodel} eq 'Picture') || ($rec->{cmodel} eq 'Book'))  {
+
+    # svcs:isReferencedBy
     push @{$edmWebResource->{children}}, {
       name => 'dcterms:isReferencedBy',
       attributes => [
@@ -472,6 +486,8 @@ sub get_metadata {
         }
       ]
     };
+
+    # svcs:has_service
     push @{$edmWebResource->{children}}, {
       name => 'svcs:has_service',
       attributes => [
