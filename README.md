@@ -1,14 +1,3 @@
-phaidra-api 
-===========
+# This repository is deprecated
 
-See [Wiki](https://github.com/phaidra/phaidra-api/wiki).
-
-Starting / Hot reload
---------
-
-<code>hypnotoad phaidra-api.cgi</code>
-
-Stopping
--------
-
-<code>hypnotoad phaidra-api.cgi --stop</code>
+Please see https://github.com/phaidra/phaidra/tree/main/src/phaidra-api for current version.
